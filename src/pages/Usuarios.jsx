@@ -4,12 +4,14 @@ import "../App.css";
 
 export default function Usuarios() {
   const { t } = useTranslation();
-
+  const apiBase = "https://daehanshippingbackend.onrender.com";
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [usuarios, setUsuarios] = useState([]);
   const [mensaje, setMensaje] = useState("");
   const [nuevoPassword, setNuevoPassword] = useState("");
+
 
   const crearUsuario = async () => {
     try {
@@ -34,7 +36,7 @@ export default function Usuarios() {
 
   const cargarUsuarios = async () => {
     try {
-      const response = await fetch("/list-users");
+      const response = await fetch(`${apiBase}/list-users`);
       const data = await response.json();
       setUsuarios(data);
     } catch {
@@ -44,10 +46,10 @@ export default function Usuarios() {
 
   const actualizarPassword = async (uid) => {
     try {
-      const response = await fetch("/update-password", {
-        method: "POST",
+      const response = await fetch(`${apiBase}/update-password`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid, password: nuevoPassword }),
+        body: JSON.stringify({ uid, newPassword: nuevoPassword }),
       });
 
       if (response.ok) {
@@ -64,10 +66,8 @@ export default function Usuarios() {
   const eliminarUsuario = async (uid) => {
     if (!window.confirm(t("confirm_delete_user"))) return;
     try {
-      await fetch("/delete-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid }),
+      await fetch(`${apiBase}/delete-user/${uid}`, {
+        method: "DELETE",
       });
       cargarUsuarios();
     } catch {
