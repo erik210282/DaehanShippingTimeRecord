@@ -1,0 +1,6 @@
+{
+  "chart_type": "Tipo de gráfico",
+  "bar_chart": "Gráfico de barras",
+  "pie_chart": "Gráfico de pastel",
+  "average": "Promedio"
+}
