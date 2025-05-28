@@ -2,20 +2,21 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
 
+const apiBase = import.meta.env.VITE_API_BASE || "";
+
 export default function Usuarios() {
   const { t } = useTranslation();
-  const apiBase = "https://daehanshippingbackend.onrender.com";
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [usuarios, setUsuarios] = useState([]);
   const [mensaje, setMensaje] = useState("");
   const [nuevoPassword, setNuevoPassword] = useState("");
 
-
   const crearUsuario = async () => {
-    try {{
-     const response = await fetch(`${apiBase}/create-user`, {
+HEAD
+  try {
+      const response = await fetch(`${apiBase}/create-user`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -47,9 +48,9 @@ export default function Usuarios() {
   const actualizarPassword = async (uid) => {
     try {
       const response = await fetch(`${apiBase}/update-password`, {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid, newPassword: nuevoPassword }),
+        body: JSON.stringify({ uid, password: nuevoPassword }),
       });
 
       if (response.ok) {
@@ -66,8 +67,10 @@ export default function Usuarios() {
   const eliminarUsuario = async (uid) => {
     if (!window.confirm(t("confirm_delete_user"))) return;
     try {
-      await fetch(`${apiBase}/delete-user/${uid}`, {
-        method: "DELETE",
+      await fetch(`${apiBase}/delete-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid }),
       });
       cargarUsuarios();
     } catch {
