@@ -15,7 +15,7 @@ export default function Usuarios() {
 
   const crearUsuario = async () => {
     try {{
-     const response = await fetch("https://daehanshippingbackend.onrender.com/create-user", {
+     const response = await fetch("/create-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
