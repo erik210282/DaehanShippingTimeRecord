@@ -16,6 +16,9 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
+  const user = auth.currentUser || JSON.parse(localStorage.getItem("usuario"));
+  if (!user) return null; // Oculta navbar si no hay sesión
+
   const handleLanguageChange = (e) => {
     i18n.changeLanguage(e.target.value);
   };
