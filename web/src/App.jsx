@@ -11,7 +11,7 @@ import ConfiguracionTareas from "./pages/ConfiguracionTareas";
 import { useTranslation } from "react-i18next";
 import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { auth } from "../firebase/config";
+import { auth } from "./firebase/config";
 import { useEffect, useState } from "react";
 
 const Navbar = () => {
