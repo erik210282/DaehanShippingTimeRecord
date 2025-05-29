@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
 
@@ -6,16 +6,23 @@ const apiBase = import.meta.env.VITE_API_BASE || "";
 
 export default function Usuarios() {
   const { t } = useTranslation();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [usuarios, setUsuarios] = useState([]);
   const [mensaje, setMensaje] = useState("");
-  const [nuevoPassword, setNuevoPassword] = useState("");
+  const [nuevosPasswords, setNuevosPasswords] = useState({});
+
+  useEffect(() => {
+    cargarUsuarios();
+  }, []);
 
   const crearUsuario = async () => {
-HEAD
-  try {
+    if (!email || !password) {
+      setMensaje(t("error_user_creation"));
+      return;
+    }
+
+    try {
       const response = await fetch(`${apiBase}/create-user`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -28,7 +35,8 @@ HEAD
         setPassword("");
         cargarUsuarios();
       } else {
-        setMensaje(t("error_user_creation"));
+        const data = await response.json();
+        setMensaje(`${t("error_user_creation")}: ${data.error}`);
       }
     } catch (e) {
       setMensaje(t("network_error"));
@@ -39,13 +47,19 @@ HEAD
     try {
       const response = await fetch(`${apiBase}/list-users`);
       const data = await response.json();
-      setUsuarios(data);
+      setUsuarios(data.users || []);
     } catch {
       setMensaje(t("network_error"));
     }
   };
 
   const actualizarPassword = async (uid) => {
+    const nuevoPassword = nuevosPasswords[uid] || "";
+    if (!nuevoPassword) {
+      setMensaje(t("enter_new_password"));
+      return;
+    }
+
     try {
       const response = await fetch(`${apiBase}/update-password`, {
         method: "POST",
@@ -55,9 +69,9 @@ HEAD
 
       if (response.ok) {
         setMensaje(t("success_password_updated"));
-        setNuevoPassword("");
+        setNuevosPasswords((prev) => ({ ...prev, [uid]: "" }));
       } else {
-        setMensaje(t("error_user_creation"));
+        setMensaje(t("error_password_update"));
       }
     } catch {
       setMensaje(t("network_error"));
@@ -66,6 +80,7 @@ HEAD
 
   const eliminarUsuario = async (uid) => {
     if (!window.confirm(t("confirm_delete_user"))) return;
+
     try {
       await fetch(`${apiBase}/delete-user`, {
         method: "POST",
@@ -73,6 +88,7 @@ HEAD
         body: JSON.stringify({ uid }),
       });
       cargarUsuarios();
+      setMensaje(t("user_deleted"));
     } catch {
       setMensaje(t("network_error"));
     }
@@ -124,8 +140,13 @@ HEAD
                   <td>
                     <input
                       type="password"
-                      value={nuevoPassword}
-                      onChange={(e) => setNuevoPassword(e.target.value)}
+                      value={nuevosPasswords[u.uid] || ""}
+                      onChange={(e) =>
+                        setNuevosPasswords((prev) => ({
+                          ...prev,
+                          [u.uid]: e.target.value,
+                        }))
+                      }
                       placeholder={t("new_password")}
                     />
                   </td>
