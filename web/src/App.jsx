@@ -12,14 +12,21 @@ import { useTranslation } from "react-i18next";
 import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { auth } from "../firebase/config";
-
+import { useEffect, useState } from "react";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const [user, setUser] = useState(null);
 
-  const user = auth.currentUser || JSON.parse(localStorage.getItem("usuario"));
-  if (!user) return null; // Oculta navbar si no hay sesión
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (!user) return null; // Oculta navbar si no hay sesión válida
 
   const handleLanguageChange = (e) => {
     i18n.changeLanguage(e.target.value);
@@ -27,6 +34,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("usuario");
+    auth.signOut();
     navigate("/");
   };
 

@@ -3,9 +3,9 @@ import { Navigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/config";
 
-export default function ProtectedRoute({ children }) {
+const ProtectedRoute = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -15,6 +15,8 @@ export default function ProtectedRoute({ children }) {
     return () => unsubscribe();
   }, []);
 
-  if (loading) return null; // o spinner opcional
+  if (loading) return null; // O puedes mostrar un spinner
   return isAuthenticated ? children : <Navigate to="/" />;
-}
+};
+
+export default ProtectedRoute;
