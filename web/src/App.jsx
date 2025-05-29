@@ -11,6 +11,8 @@ import ConfiguracionTareas from "./pages/ConfiguracionTareas";
 import { useTranslation } from "react-i18next";
 import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { auth } from "../firebase/config";
+
 
 const Navbar = () => {
   const navigate = useNavigate();
