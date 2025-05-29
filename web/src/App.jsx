@@ -5,11 +5,12 @@ import Productividad from "./pages/Productividad";
 import Catalogos from "./pages/Catalogos";
 import Usuarios from "./pages/Usuarios";
 import Login from "./pages/Login";
-import TareasPendientes from "./pages/TareasPendientes"; // Nueva página de tareas pendientes
-import TareasOperario from "./pages/TareasOperario"; // Nueva página de tareas para el operario
-import ConfiguracionTareas from "./pages/ConfiguracionTareas"; // Página de configuración de tareas
+import TareasPendientes from "./pages/TareasPendientes";
+import TareasOperario from "./pages/TareasOperario";
+import ConfiguracionTareas from "./pages/ConfiguracionTareas";
 import { useTranslation } from "react-i18next";
 import "./App.css";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const Navbar = () => {
   return (
     <div className="navbar">
       <div className="navbar-left">
-        <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button> {/* Nueva opción de navegación */}
+        <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
         <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
@@ -50,25 +51,38 @@ const AppContent = () => (
     <Navbar />
     <div className="content">
       <Routes>
-        <Route path="/tareas-pendientes" element={<TareasPendientes />} /> {/* Ruta de tareas pendientes */}
-        <Route path="/registros" element={<Registros />} />
-        <Route path="/productividad" element={<Productividad />} />
-        <Route path="/catalogos" element={<Catalogos />} />
-        <Route path="/usuarios" element={<Usuarios />} />
-        <Route path="/tareas-operario" element={<TareasOperario />} /> {/* Ruta para tareas operarios */}
-        <Route path="/configuracion-tareas" element={<ConfiguracionTareas />} /> {/* Ruta de configuración de tareas */}
         <Route path="/" element={<Login />} />
+
+        <Route path="/tareas-pendientes" element={
+          <ProtectedRoute><TareasPendientes /></ProtectedRoute>
+        } />
+        <Route path="/registros" element={
+          <ProtectedRoute><Registros /></ProtectedRoute>
+        } />
+        <Route path="/productividad" element={
+          <ProtectedRoute><Productividad /></ProtectedRoute>
+        } />
+        <Route path="/catalogos" element={
+          <ProtectedRoute><Catalogos /></ProtectedRoute>
+        } />
+        <Route path="/usuarios" element={
+          <ProtectedRoute><Usuarios /></ProtectedRoute>
+        } />
+        <Route path="/tareas-operario" element={
+          <ProtectedRoute><TareasOperario /></ProtectedRoute>
+        } />
+        <Route path="/configuracion-tareas" element={
+          <ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>
+        } />
       </Routes>
     </div>
   </div>
 );
 
-const App = () => {
-  return (
-    <Router>
-      <AppContent />
-    </Router>
-  );
-};
+const App = () => (
+  <Router>
+    <AppContent />
+  </Router>
+);
 
 export default App;
