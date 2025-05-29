@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
 
-const apiBase = import.meta.env.VITE_API_BASE || "";
+const apiBase = "https://daehanshippingbackend.onrender.com";
 
 export default function Usuarios() {
   const { t } = useTranslation();
