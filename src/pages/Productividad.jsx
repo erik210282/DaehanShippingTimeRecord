@@ -103,7 +103,7 @@ export default function Productividad() {
   };
 
   const calcularPromedioTiempo = () => {
-  const promedios = {};
+    const promedios = {};
     filtrarRegistros().forEach((r) => {
       let claves = [];
       if (agrupadoPor === "operador") claves = r.operadores || [];
@@ -117,10 +117,10 @@ export default function Productividad() {
       claves.forEach((clave) => {
         const horaInicio = r.hora_inicio?.toDate?.() ?? new Date(r.hora_inicio);
         const horaFinRaw = r.hora_fin?.toDate?.() ?? new Date(r.hora_fin);
-        const horaFin = isNaN(horaFinRaw?.getTime?.()) ? null : horaFinRaw;
-        if (!horaInicio || !horaFin) return;
+        const horaFinValidada = isNaN(horaFinRaw?.getTime?.()) ? null : horaFinRaw;
+        if (!horaInicio || !horaFinValidada) return;
 
-        const duracionMinutos = (horaFin - horaInicio) / 60000;
+        const duracionMinutos = (horaFinValidada - horaInicio) / 60000;
         if (!promedios[clave]) promedios[clave] = { totalTiempo: 0, count: 0 };
         promedios[clave].totalTiempo += duracionMinutos;
         promedios[clave].count += 1;
@@ -129,15 +129,13 @@ export default function Productividad() {
 
     const promediosFinales = {};
     Object.keys(promedios).forEach((clave) => {
-      promediosFinales[clave] = Math.round(
-        promedios[clave].totalTiempo / promedios[clave].count
-      );
+      promediosFinales[clave] = Math.round(promedios[clave].totalTiempo / promedios[clave].count);
     });
     return promediosFinales;
   };
 
   const calcularPromedioCruzado = () => {
-  const promediosCruzados = {};
+    const promediosCruzados = {};
     filtrarRegistros().forEach((r) => {
       let claves = [];
       let claves2 = [];
@@ -162,10 +160,10 @@ export default function Productividad() {
         claves2.forEach((clave2) => {
           const horaInicio = r.hora_inicio?.toDate?.() ?? new Date(r.hora_inicio);
           const horaFinRaw = r.hora_fin?.toDate?.() ?? new Date(r.hora_fin);
-          const horaFin = isNaN(horaFinRaw?.getTime?.()) ? null : horaFinRaw;
-          if (!horaInicio || !horaFin) return;
+          const horaFinValidada = isNaN(horaFinRaw?.getTime?.()) ? null : horaFinRaw;
+          if (!horaInicio || !horaFinValidada) return;
 
-          const duracionMinutos = (horaFin - horaInicio) / 60000;
+          const duracionMinutos = (horaFinValidada - horaInicio) / 60000;
           const key = `${clave} - ${clave2}`;
           if (!promediosCruzados[key])
             promediosCruzados[key] = { totalTiempo: 0, count: 0 };
@@ -176,14 +174,12 @@ export default function Productividad() {
     });
 
     const promediosFinalesCruzados = {};
-      Object.keys(promediosCruzados).forEach((clave) => {
-        const { totalTiempo, count } = promediosCruzados[clave];
-        promediosFinalesCruzados[clave] =
-          count > 0 ? Math.round(totalTiempo / count) : 0;
-      });
+    Object.keys(promediosCruzados).forEach((clave) => {
+      const { totalTiempo, count } = promediosCruzados[clave];
+      promediosFinalesCruzados[clave] = count > 0 ? Math.round(totalTiempo / count) : 0;
+    });
     return promediosFinalesCruzados;
   };
-
 
   const datosPromedio = calcularPromedioTiempo();
   const datosPromedioCruzado = calcularPromedioCruzado();
