@@ -161,7 +161,7 @@ export default function Productividad() {
       claves.forEach((clave) => {
         claves2.forEach((clave2) => {
           const horaInicio = r.hora_inicio?.toDate?.() ?? new Date(r.hora_inicio);
-          const horaFin = r.hora_fin?.toDate?.() ?? new Date(r.hora_fin);
+          const horaFinRaw = r.hora_fin?.toDate?.() ?? new Date(r.hora_fin); // ← nombre intermedio
           const horaFin = isNaN(horaFinRaw?.getTime?.()) ? null : horaFinRaw;
           if (!horaInicio || !horaFin) return;
 
