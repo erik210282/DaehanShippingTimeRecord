@@ -162,6 +162,7 @@ export default function Productividad() {
         claves2.forEach((clave2) => {
           const horaInicio = r.hora_inicio?.toDate?.() ?? new Date(r.hora_inicio);
           const horaFin = r.hora_fin?.toDate?.() ?? new Date(r.hora_fin);
+          const horaFin = isNaN(horaFinRaw?.getTime?.()) ? null : horaFinRaw;
           if (!horaInicio || !horaFin) return;
 
           const duracionMinutos = (horaFin - horaInicio) / 60000;
@@ -175,11 +176,11 @@ export default function Productividad() {
     });
 
     const promediosFinalesCruzados = {};
-    Object.keys(promediosCruzados).forEach((clave) => {
-      promediosFinalesCruzados[clave] = Math.round(
-        promediosCruzados[clave].totalTiempo / promediosCruzados[clave].count
-      );
-    });
+      Object.keys(promediosCruzados).forEach((clave) => {
+        const { totalTiempo, count } = promediosCruzados[clave];
+        promediosFinalesCruzados[clave] =
+          count > 0 ? Math.round(totalTiempo / count) : 0;
+      });
     return promediosFinalesCruzados;
   };
 
