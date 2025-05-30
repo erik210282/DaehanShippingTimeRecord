@@ -60,10 +60,12 @@ export default function Productividad() {
       setActividades(actividadesMap);
       setProductos(productosMap);
 
-      const registros = regSnap.docs.map((doc) => ({
+      const registros = regSnap.docs
+      .map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      }))
+      .filter((r) => r.estado === "completed");
       setRegistros(registros);
     };
 
