@@ -117,6 +117,7 @@
     "no_duplicate_products": "No se permiten productos repetidos",
     "no_duplicate_activity": "No se permite duplicar actividad con mismo operador y horario",
     "export_success": "CSV exportado correctamente",
+    "idx": "Código IDX",
 
     "start_activity": "Iniciar actividad",
     "finish_activity": "Finalizar actividad",

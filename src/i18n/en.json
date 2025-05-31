@@ -109,6 +109,7 @@
     "add_task": "Add Task",
     "enter_notes": "Notes",
     "export_success": "CSV successfully exported",
+    "idx": "IDX code",
     
     "start_activity": "Start activity",
     "finish_activity": "Finish activity",

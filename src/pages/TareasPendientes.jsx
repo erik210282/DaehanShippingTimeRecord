@@ -1,3 +1,4 @@
+// TareasPendientes.jsx
 import React, { useEffect, useState } from "react";
 import {
   collection,
@@ -13,7 +14,7 @@ import Select from "react-select";
 import Modal from "react-modal";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 
 Modal.setAppElement("#root");
 
@@ -23,6 +24,7 @@ export default function TareasPendientes() {
   const [productos, setProductos] = useState({});
   const [modalAbierto, setModalAbierto] = useState(false);
   const [tareaActual, setTareaActual] = useState(null);
+  const [busqueda, setBusqueda] = useState("");
   const { t, i18n } = useTranslation();
 
   useEffect(() => {
@@ -76,13 +78,14 @@ export default function TareasPendientes() {
         actividad: "",
         productos: [{ producto: "", cantidad: "" }],
         notas: "",
+        idx: "", // nuevo campo
       }
     );
     setModalAbierto(true);
   };
 
   const guardarTarea = async () => {
-    const { actividad, productos: listaProductos, notas } = tareaActual;
+    const { actividad, productos: listaProductos, notas, idx } = tareaActual;
 
     if (!actividad || listaProductos.some(p => !p.producto || !p.cantidad)) {
       toast.error(t("fill_all_fields"));
@@ -99,6 +102,7 @@ export default function TareasPendientes() {
       actividad,
       productos: listaProductos.map(p => ({ producto: p.producto, cantidad: Number(p.cantidad) })),
       notas: notas || "",
+      idx: idx || "",
       estado: tareaActual.estado || "pendiente",
     };
 
@@ -130,12 +134,26 @@ export default function TareasPendientes() {
 
   const mostrarNombre = (id, mapa) => mapa[id] || `ID: ${id}`;
 
+  const tareasFiltradas = tareas.filter((t) =>
+    [t.idx, t.notas].some((campo) =>
+      campo?.toLowerCase().includes(busqueda.toLowerCase())
+    )
+  );
+
   return (
     <div className="card">
       <h2>{t("pending_tasks")}</h2>
       <button onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
         ➕ {t("add_task")}
       </button>
+
+      <input
+        type="text"
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.target.value)}
+        placeholder={`${t("search")} IDX / ${t("notes")}`}
+        style={{ marginBottom: 10, width: "100%" }}
+      />
 
       <table className="table">
         <thead>
@@ -144,12 +162,13 @@ export default function TareasPendientes() {
             <th>{t("product")}</th>
             <th>{t("amount")}</th>
             <th>{t("notes")}</th>
+            <th>{t("idx")}</th>
             <th>{t("status")}</th>
             <th>{t("actions")}</th>
           </tr>
         </thead>
         <tbody key={i18n.language}>
-          {tareas.map((tarea) => (
+          {tareasFiltradas.map((tarea) => (
             <tr key={tarea.id}>
               <td>{mostrarNombre(tarea.actividad, actividades)}</td>
               <td>
@@ -167,9 +186,8 @@ export default function TareasPendientes() {
                   : tarea.cantidad}
               </td>
               <td>{tarea.notas || "-"}</td>
-              <td>
-                {tarea.estado === "started" ? t("started") : t("pending")}
-              </td>
+              <td>{tarea.idx || "-"}</td>
+              <td>{tarea.estado === "started" ? t("started") : t("pending")}</td>
               <td>
                 <button onClick={() => abrirModal(tarea)}>{t("edit")}</button>
                 <button onClick={() => eliminarTarea(tarea.id)}>{t("delete")}</button>
@@ -243,6 +261,14 @@ export default function TareasPendientes() {
               value={tareaActual.notas}
               onChange={(e) => setTareaActual({ ...tareaActual, notas: e.target.value })}
               rows={2}
+              style={{ width: "100%", marginTop: "10px" }}
+            />
+
+            <input
+              type="text"
+              placeholder={t("idx")}
+              value={tareaActual.idx || ""}
+              onChange={(e) => setTareaActual({ ...tareaActual, idx: e.target.value })}
               style={{ width: "100%", marginTop: "10px", marginBottom: "10px" }}
             />
 
