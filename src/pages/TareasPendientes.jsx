@@ -182,7 +182,14 @@ export default function TareasPendientes() {
 
       <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
         <h3>{tareaActual?.id ? t("edit_task") : t("new_task")}</h3>
-              
+
+              <input
+                type="text"
+                placeholder={t("idx")}
+                value={tareaActual?.idx || ""}
+                onChange={(e) => tareaActual && setTareaActual({ ...tareaActual, idx: e.target.value })}
+                style={{ width: "100%", marginTop: "10px", marginBottom: "10px" }}
+              />
         {tareaActual && (
           <>
           <input
