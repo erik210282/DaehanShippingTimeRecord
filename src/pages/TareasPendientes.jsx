@@ -86,7 +86,7 @@ export default function TareasPendientes() {
   const guardarTarea = async () => {
     const { idx, actividad, productos: listaProductos, notas } = tareaActual;
 
-    if (!actividad || listaProductos.some(p => !p.producto || !p.cantidad)) {
+    if (!idx || !actividad || listaProductos.some(p => !p.producto || !p.cantidad)) {
       toast.error(t("fill_all_fields"));
       return;
     }
