@@ -133,21 +133,13 @@ export default function TareasPendientes() {
   };
 
   const mostrarNombre = (id, mapa) => mapa[id] || `ID: ${id}`;
-  
+
   return (
     <div className="card">
       <h2>{t("pending_tasks")}</h2>
       <button onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
         ➕ {t("add_task")}
       </button>
-
-      <input
-        type="text"
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        placeholder={`${t("search")} IDX / ${t("notes")}`}
-        style={{ marginBottom: 10, width: "100%" }}
-      />
 
       <table className="table">
         <thead>
@@ -194,6 +186,15 @@ export default function TareasPendientes() {
 
         {tareaActual && (
           <>
+
+          <input
+              type="text"
+              placeholder={t("idx")}
+              value={tareaActual.idx || ""}
+              onChange={(e) => setTareaActual({ ...tareaActual, idx: e.target.value })}
+              style={{ width: "100%", marginTop: "10px", marginBottom: "10px" }}
+            />
+            
             <Select
               options={Object.entries(actividades).map(([id, nombre]) => ({ value: id, label: nombre }))}
               value={
@@ -203,7 +204,7 @@ export default function TareasPendientes() {
               }
               onChange={(e) => setTareaActual({ ...tareaActual, actividad: e.value })}
               placeholder={t("select_activity")}
-            />
+            />            
 
             {tareaActual.productos.map((p, index) => (
               <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
@@ -254,15 +255,7 @@ export default function TareasPendientes() {
               onChange={(e) => setTareaActual({ ...tareaActual, notas: e.target.value })}
               rows={2}
               style={{ width: "100%", marginTop: "10px" }}
-            />
-
-            <input
-              type="text"
-              placeholder={t("idx")}
-              value={tareaActual.idx || ""}
-              onChange={(e) => setTareaActual({ ...tareaActual, idx: e.target.value })}
-              style={{ width: "100%", marginTop: "10px", marginBottom: "10px" }}
-            />
+            />            
 
             <button onClick={guardarTarea}>{t("save")}</button>
             <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
