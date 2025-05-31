@@ -133,13 +133,7 @@ export default function TareasPendientes() {
   };
 
   const mostrarNombre = (id, mapa) => mapa[id] || `ID: ${id}`;
-
-  const tareasFiltradas = tareas.filter((t) =>
-    [t.idx, t.notas].some((campo) =>
-      campo?.toLowerCase().includes(busqueda.toLowerCase())
-    )
-  );
-
+  
   return (
     <div className="card">
       <h2>{t("pending_tasks")}</h2>
