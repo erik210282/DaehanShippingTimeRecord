@@ -75,17 +75,18 @@ export default function TareasPendientes() {
   const abrirModal = (tarea = null) => {
     setTareaActual(
       tarea || {
+        idx: "",
         actividad: "",
         productos: [{ producto: "", cantidad: "" }],
         notas: "",
-        idx: "", // nuevo campo
+        
       }
     );
     setModalAbierto(true);
   };
 
   const guardarTarea = async () => {
-    const { actividad, productos: listaProductos, notas, idx } = tareaActual;
+    const { idx, actividad, productos: listaProductos, notas} = tareaActual;
 
     if (!actividad || listaProductos.some(p => !p.producto || !p.cantidad)) {
       toast.error(t("fill_all_fields"));
@@ -99,10 +100,10 @@ export default function TareasPendientes() {
     }
 
     const datos = {
+      idx: idx || "",
       actividad,
       productos: listaProductos.map(p => ({ producto: p.producto, cantidad: Number(p.cantidad) })),
       notas: notas || "",
-      idx: idx || "",
       estado: tareaActual.estado || "pendiente",
     };
 
@@ -134,12 +135,6 @@ export default function TareasPendientes() {
 
   const mostrarNombre = (id, mapa) => mapa[id] || `ID: ${id}`;
 
-  const tareasFiltradas = tareas.filter((t) =>
-    [t.idx, t.notas].some((campo) =>
-      campo?.toLowerCase().includes(busqueda.toLowerCase())
-    )
-  );
-
   return (
     <div className="card">
       <h2>{t("pending_tasks")}</h2>
@@ -147,22 +142,14 @@ export default function TareasPendientes() {
         ➕ {t("add_task")}
       </button>
 
-      <input
-        type="text"
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        placeholder={`${t("search")} IDX / ${t("notes")}`}
-        style={{ marginBottom: 10, width: "100%" }}
-      />
-
       <table className="table">
         <thead>
           <tr>
+            <th>{t("idx")}</th>
             <th>{t("activity")}</th>
             <th>{t("product")}</th>
             <th>{t("amount")}</th>
-            <th>{t("notes")}</th>
-            <th>{t("idx")}</th>
+            <th>{t("notes")}</th>  
             <th>{t("status")}</th>
             <th>{t("actions")}</th>
           </tr>
@@ -170,6 +157,7 @@ export default function TareasPendientes() {
         <tbody key={i18n.language}>
           {tareasFiltradas.map((tarea) => (
             <tr key={tarea.id}>
+              <td>{tarea.idx || "-"}</td>
               <td>{mostrarNombre(tarea.actividad, actividades)}</td>
               <td>
                 {Array.isArray(tarea.productos)
@@ -185,8 +173,7 @@ export default function TareasPendientes() {
                     ))
                   : tarea.cantidad}
               </td>
-              <td>{tarea.notas || "-"}</td>
-              <td>{tarea.idx || "-"}</td>
+              <td>{tarea.notas || "-"}</td>              
               <td>{tarea.estado === "started" ? t("started") : t("pending")}</td>
               <td>
                 <button onClick={() => abrirModal(tarea)}>{t("edit")}</button>
