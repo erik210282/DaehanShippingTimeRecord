@@ -24,7 +24,6 @@ export default function TareasPendientes() {
   const [productos, setProductos] = useState({});
   const [modalAbierto, setModalAbierto] = useState(false);
   const [tareaActual, setTareaActual] = useState(null);
-  const [busqueda, setBusqueda] = useState("");
   const { t, i18n } = useTranslation();
 
   useEffect(() => {
@@ -184,17 +183,16 @@ export default function TareasPendientes() {
       <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
         <h3>{tareaActual?.id ? t("edit_task") : t("new_task")}</h3>
 
-        {tareaActual && (
-          <>
-
-          <input
+            <input
               type="text"
               placeholder={t("idx")}
               value={tareaActual.idx || ""}
               onChange={(e) => setTareaActual({ ...tareaActual, idx: e.target.value })}
               style={{ width: "100%", marginTop: "10px", marginBottom: "10px" }}
             />
-            
+
+        {tareaActual && (
+          <>
             <Select
               options={Object.entries(actividades).map(([id, nombre]) => ({ value: id, label: nombre }))}
               value={
