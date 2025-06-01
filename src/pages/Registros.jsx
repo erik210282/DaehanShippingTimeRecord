@@ -322,7 +322,7 @@ const cargarCatalogos = async () => {
       const duracionMin = Math.round((fin - inicio) / 60000);
 
       return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
-        [t("idx")]: p.idx,
+        [t("idx")]: d.idx,
         [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
         [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
         [t("operator")]: Array.isArray(d.operadores)
@@ -590,6 +590,7 @@ const cargarCatalogos = async () => {
           </button>
 
           <Select isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
+          <textarea value={registroActual?.idx} onChange={(e) => setRegistroActual({ ...registroActual, idx: e.target.value })} placeholder={t("idx")} rows={2} style={{ width: "100%", marginTop: 10 }} />  
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
           <input type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} />
           <input type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} />
