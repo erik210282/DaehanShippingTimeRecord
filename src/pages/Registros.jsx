@@ -612,39 +612,41 @@ const cargarCatalogos = async () => {
           <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
           <ToastContainer position="top-center" autoClose={1000} />
         </Modal>  
+
+        {registroAEliminar && (
+          <Modal
+            isOpen={true}
+            onRequestClose={() => setRegistroAEliminar(null)}
+            className="modal"
+            overlayClassName="modal-overlay"
+          >
+            <h2>{t("confirm_delete_title")}</h2>
+            <p>{t("confirm_delete_text")}</p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
+              <button className="btn btn-secondary" onClick={() => setRegistroAEliminar(null)}>
+                {t("cancel")}
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={async () => {
+                  try {
+                    await deleteDoc(doc(db, "actividades_realizadas", registroAEliminar.id));
+                    setRegistros((prev) =>
+                      prev.filter((r) => r.id !== registroAEliminar.id)
+                    );
+                    toast.success(t("delete_success"));
+                  } catch (error) {
+                    toast.error(t("delete_error"));
+                  }
+                  setRegistroAEliminar(null);
+                }}
+              >
+                {t("confirm")}
+              </button>
+            </div>
+          </Modal>
+        )}
         <ToastContainer position="top-center" autoClose={1000} />    
-
-    <Modal
-      isOpen={registroAEliminar !== null}
-      onRequestClose={() => setRegistroAEliminar(null)}
-      className="modal"
-      overlayClassName="modal-overlay"
-    >
-      <h2>{t("confirm_delete_title")}</h2>
-      <p>{t("confirm_delete_text")}</p>
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-        <button className="btn btn-secondary" onClick={() => setRegistroAEliminar(null)}>
-          {t("cancel")}
-        </button>
-        <button
-          className="btn btn-danger"
-          onClick={async () => {
-            try {
-              await deleteDoc(doc(db, "actividades_realizadas", registroAEliminar.id));
-              setRegistros((prev) => prev.filter((r) => r.id !== registroAEliminar.id));
-              toast.success(t("delete_success"));
-            } catch (error) {
-              console.error("Error eliminando:", error);
-              toast.error(t("delete_error"));
-            }
-            setRegistroAEliminar(null);
-          }}
-        >
-          {t("confirm")}
-        </button>
-      </div>
-    </Modal>
-
     </div>
   );
 }
