@@ -608,7 +608,18 @@ const cargarCatalogos = async () => {
           <input type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} />
           <input type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} />
 
-          <textarea value={registroActual?.duracion} onChange={(e) => setRegistroActual({ ...registroActual, duracion: e.target.value })} placeholder={t("duration_min")} rows={2} style={{ width: "100%", marginTop: 10 }} />
+          <label>{t("duration_min")}</label>
+            <input
+              type="text"
+              placeholder={t("duration_min")}
+              value={
+                registroEditando.duracion != null
+                  ? Math.round(registroEditando.duracion / 60)
+                  : ""
+              }
+              disabled
+              className="input-disabled"
+            />  
 
           <button onClick={guardarRegistro}>{t("save")}</button>
           <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
