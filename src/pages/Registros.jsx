@@ -314,7 +314,6 @@ const cargarCatalogos = async () => {
   } catch {
     toast.error(t("error_saving"));
   }
-  <ToastContainer position="top-center" autoClose={1000} />  
 };
 
   const exportarCSV = () => {
@@ -610,26 +609,41 @@ const cargarCatalogos = async () => {
           <input type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} />
           <button onClick={guardarRegistro}>{t("save")}</button>
           <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
-          <ToastContainer position="top-center" autoClose={1000} />
         </Modal>  
 
-        <Modal
-          isOpen={registroAEliminar !== null}
-          onRequestClose={() => setRegistroAEliminar(null)}
-          className="modal"
-          overlayClassName="modal-overlay"
-        >
-          <h2>{t("confirm_delete_title")}</h2>
-          <p>{t("confirm_delete_text")}</p>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-            <button className="btn btn-secondary" onClick={() => setRegistroAEliminar(null)}>
-              {t("cancel")}
-            </button>
-            <button className="btn btn-danger" onClick={eliminarRegistro}>
-              {t("confirm")}
-            </button>
-          </div>
-        </Modal>
+        {registroAEliminar && (
+          <Modal
+            isOpen={true}
+            onRequestClose={() => setRegistroAEliminar(null)}
+            className="modal"
+            overlayClassName="modal-overlay"
+          >
+            <h2>{t("confirm_delete_title")}</h2>
+            <p>{t("confirm_delete_text")}</p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
+              <button className="btn btn-secondary" onClick={() => setRegistroAEliminar(null)}>
+                {t("cancel")}
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={async () => {
+                  try {
+                    await deleteDoc(doc(db, "actividades_realizadas", registroAEliminar.id));
+                    setRegistros((prev) =>
+                      prev.filter((r) => r.id !== registroAEliminar.id)
+                    );
+                    toast.success(t("delete_success"));
+                  } catch (error) {
+                    toast.error(t("delete_error"));
+                  }
+                  setRegistroAEliminar(null);
+                }}
+              >
+                {t("confirm")}
+              </button>
+            </div>
+          </Modal>
+        )}
         <ToastContainer position="top-center" autoClose={1000} />    
     </div>
   );
