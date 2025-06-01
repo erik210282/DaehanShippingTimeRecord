@@ -492,7 +492,7 @@ const cargarCatalogos = async () => {
                           setRegistroAEliminar(null);
                         }}
                       >
-                        {t("confirm")}
+                        {t("delete")}
                       </button>
                     </td>
                   </tr>
