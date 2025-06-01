@@ -609,7 +609,7 @@ const cargarCatalogos = async () => {
           <input type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} />
           <input type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} />
 
-          <div className="input-group">
+          <label>{t("duration_min")}</label>
             <input
               type="number"
               className="form-control"
@@ -626,9 +626,7 @@ const cargarCatalogos = async () => {
                   });
                 }
               }}
-            />
-            <span className="input-group-text">min</span>
-          </div> 
+            /> 
 
           <button onClick={guardarRegistro}>{t("save")}</button>
           <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
