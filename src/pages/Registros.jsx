@@ -611,7 +611,7 @@ const cargarCatalogos = async () => {
           <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
         </Modal>  
 
-        {registroAEliminar && (
+        {registroAEliminar && registroAEliminar.id && (
           <Modal
             isOpen={true}
             onRequestClose={() => setRegistroAEliminar(null)}
@@ -620,19 +620,22 @@ const cargarCatalogos = async () => {
           >
             <h2>{t("confirm_delete_title")}</h2>
             <p>{t("confirm_delete_text")}</p>
+
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setRegistroAEliminar(null)}
+              >
+                {t("cancel")}
+              </button>
+
               <button
                 className="btn btn-danger"
                 onClick={async () => {
-                  if (!registroAEliminar || !registroAEliminar.id) {
-                    toast.error("ID inválido");
-                    return;
-                  }
-
                   try {
+                    console.log("Eliminando ID:", registroAEliminar.id);
                     const ref = doc(db, "actividades_realizadas", registroAEliminar.id);
                     await deleteDoc(ref);
-
                     setRegistros((prev) =>
                       prev.filter((r) => r.id !== registroAEliminar.id)
                     );
@@ -640,12 +643,12 @@ const cargarCatalogos = async () => {
                   } catch (error) {
                     console.error("Error eliminando:", error);
                     toast.error(t("delete_error"));
+                  } finally {
+                    setRegistroAEliminar(null);
                   }
-
-                  setRegistroAEliminar(null);
                 }}
               >
-                {t("delete")}
+                {t("confirm")}
               </button>
             </div>
           </Modal>
