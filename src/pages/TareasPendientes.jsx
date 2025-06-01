@@ -25,6 +25,7 @@ export default function TareasPendientes() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [tareaActual, setTareaActual] = useState(null);
   const { t, i18n } = useTranslation();
+  const [tareaAEliminar, setTareaAEliminar] = useState(null);
 
   useEffect(() => {
     const unsubAct = onSnapshot(collection(db, "actividades"), (snapshot) => {
@@ -173,7 +174,7 @@ export default function TareasPendientes() {
               <td>{tarea.estado === "started" ? t("started") : t("pending")}</td>
               <td>
                 <button onClick={() => abrirModal(tarea)}>{t("edit")}</button>
-                <button onClick={() => eliminarTarea(tarea.id)}>{t("delete")}</button>
+                <button onClick={() => setTareaAEliminar(tarea)}>{t("delete")}</button>
               </td>
             </tr>
           ))}
@@ -181,7 +182,8 @@ export default function TareasPendientes() {
       </table>
 
       <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
-        <h3>{tareaActual?.id ? t("edit_task") : t("new_task")}</h3>             
+        <h3>{tareaActual?.id ? t("edit_task") : t("new_task")}</h3>
+             
         {tareaActual && (
           <>
           <input
@@ -259,6 +261,38 @@ export default function TareasPendientes() {
         )}
       </Modal>
 
+      {tareaAEliminar && (
+        <Modal
+          isOpen={true}
+          onRequestClose={() => setTareaAEliminar(null)}
+          className="modal"
+          overlayClassName="modal-overlay"
+        >
+          <h2>{t("confirm_delete_title")}</h2>
+          <p>{t("confirm_delete_text")}</p>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
+            <button className="btn btn-secondary" onClick={() => setTareaAEliminar(null)}>
+              {t("cancel")}
+            </button>
+            <button
+              className="btn btn-danger"
+              onClick={async () => {
+                try {
+                  if (!tareaAEliminar?.id) throw new Error("ID inválido");
+                  await deleteDoc(doc(db, "tareas_pendientes", tareaAEliminar.id));
+                  toast.success(t("task_deleted"));
+                } catch (error) {
+                  console.error("Error eliminando:", error);
+                  toast.error(t("error_deleting"));
+                }
+                setTareaAEliminar(null);
+              }}
+            >
+              {t("confirm")}
+            </button>
+          </div>
+        </Modal>
+      )}
       <ToastContainer position="top-center" autoClose={1000} />
     </div>
   );
