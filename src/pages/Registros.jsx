@@ -50,6 +50,8 @@ export default function Registros() {
   const [modoAgrupacion, setModoAgrupacion] = useState("operador");
 
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
+  
+  const [registroEditando, setRegistroEditando] = useState(null);
 
   const parseFirebaseDate = (fecha) => {
     if (!fecha) return null;
