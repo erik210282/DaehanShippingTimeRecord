@@ -181,9 +181,7 @@ export default function TareasPendientes() {
       </table>
 
       <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
-        <h3>{tareaActual?.id ? t("edit_task") : t("new_task")}</h3>
-
-              
+        <h3>{tareaActual?.id ? t("edit_task") : t("new_task")}</h3>             
         {tareaActual && (
           <>
           <input
