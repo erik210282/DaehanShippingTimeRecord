@@ -321,7 +321,7 @@ const cargarCatalogos = async () => {
       const duracionMin = Math.round((fin - inicio) / 60000);
 
       return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
-        [t("idx")]: d.idx, 
+        [t("idx")]: r.idx || "N/A", 
         [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
         [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
         [t("operator")]: Array.isArray(d.operadores)
@@ -548,7 +548,7 @@ const cargarCatalogos = async () => {
           <input
             type="number"
             placeholder={t("idx")}
-            value={d.idx}
+            value={r.idx}
             onChange={(e) => {
             const nuevos = [...registroActual.productos];
             nuevos[index].idx = e.target.value;
