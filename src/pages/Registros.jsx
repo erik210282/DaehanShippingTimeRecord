@@ -472,25 +472,8 @@ const cargarCatalogos = async () => {
                     <td>
                       <button onClick={() => abrirModal(r)}>{t("edit")}</button>
                       <button
+                        onClick={() => setRegistroAEliminar(r)}
                         className="btn btn-danger"
-                        onClick={async () => {
-                          try {
-                            if (!registroAEliminar?.id) throw new Error("ID inválido");
-
-                            const ref = doc(db, "actividades_realizadas", registroAEliminar.id);
-                            await deleteDoc(ref);
-
-                            setRegistros((prev) =>
-                              prev.filter((r) => r.id !== registroAEliminar.id)
-                            );
-
-                            toast.success(t("delete_success"));
-                          } catch (error) {
-                            console.error("Error eliminando:", error);
-                            toast.error(t("delete_error") + ": " + error.message);
-                          }
-                          setRegistroAEliminar(null);
-                        }}
                       >
                         {t("delete")}
                       </button>
@@ -638,25 +621,31 @@ const cargarCatalogos = async () => {
             <h2>{t("confirm_delete_title")}</h2>
             <p>{t("confirm_delete_text")}</p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-              <button className="btn btn-secondary" onClick={() => setRegistroAEliminar(null)}>
-                {t("cancel")}
-              </button>
               <button
                 className="btn btn-danger"
                 onClick={async () => {
+                  if (!registroAEliminar || !registroAEliminar.id) {
+                    toast.error("ID inválido");
+                    return;
+                  }
+
                   try {
-                    await deleteDoc(doc(db, "actividades_realizadas", registroAEliminar.id));
+                    const ref = doc(db, "actividades_realizadas", registroAEliminar.id);
+                    await deleteDoc(ref);
+
                     setRegistros((prev) =>
                       prev.filter((r) => r.id !== registroAEliminar.id)
                     );
                     toast.success(t("delete_success"));
                   } catch (error) {
+                    console.error("Error eliminando:", error);
                     toast.error(t("delete_error"));
                   }
+
                   setRegistroAEliminar(null);
                 }}
               >
-                {t("confirm")}
+                {t("delete")}
               </button>
             </div>
           </Modal>
