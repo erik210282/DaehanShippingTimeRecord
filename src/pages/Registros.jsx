@@ -331,7 +331,7 @@ const cargarCatalogos = async () => {
         [t("amount")]: p.cantidad,
         [t("start_time")]: inicio.toLocaleString(),
         [t("end_time")]: fin.toLocaleString(),
-        "Duración (min)": <Text>{registro.duracion ? `${Math.round(registro.duracion)} seg` : "-"}</Text>,
+        "Duración (min)": d.duracion ? Math.round(d.duracion / 60) : "-",
         [t("notes")]: d.notas || "N/A",
       }));
     });
@@ -465,7 +465,7 @@ const cargarCatalogos = async () => {
                     <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                     <td>{inicio.toLocaleString()}</td>
                     <td>{fin.toLocaleString()}</td>
-                    <td>{<Text>{registro.duracion ? `${Math.round(registro.duracion)} seg` : "-"}</Text>} min</td>
+                    <td>{r.duracion ? `${Math.round(r.duracion / 60)} min` : "-"}</td>
                     <td>{r.notas || "N/A"}</td>
                     <td>
                       <button onClick={() => abrirModal(r)}>{t("edit")}</button>
@@ -534,7 +534,7 @@ const cargarCatalogos = async () => {
                         </td>
                         <td>{new Date(r.horaInicio).toLocaleString()}</td>
                         <td>{new Date(r.horaFin).toLocaleString()}</td>
-                        <td><Text>{registro.duracion ? `${Math.round(registro.duracion)} seg` : "-"}</Text> min</td>
+                        <td>{r.duracion ? `${Math.round(r.duracion / 60)} min` : "-"}</td>
                         <td>{r.notas || "N/A"}</td>
                       </tr>
                     );
@@ -604,6 +604,15 @@ const cargarCatalogos = async () => {
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
           <input type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} />
           <input type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} />
+
+          <input
+            type="number"
+            placeholder={t("duracion")}
+            value={registroActual?.duracion}
+            onChange={(e) => setRegistroActual({ ...registroActual, duracion: e.target.value })}
+            style={{ width: "400px" }}
+          />
+
           <button onClick={guardarRegistro}>{t("save")}</button>
           <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
         </Modal>  
