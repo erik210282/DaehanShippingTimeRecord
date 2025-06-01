@@ -125,6 +125,7 @@ const cargarCatalogos = async () => {
           : [],
         horaInicio: parseFirebaseDate(data.hora_inicio),
         horaFin: parseFirebaseDate(data.hora_fin),
+        duracion: data.duracion || "",
       };
     });
     nuevos.sort((a, b) => new Date(a.horaInicio) - new Date(b.horaInicio));
@@ -231,6 +232,7 @@ const cargarCatalogos = async () => {
       cantidad: "",
       horaInicio: "",
       horaFin: "",
+      duaacion: "",
       notas: "",
     });
     setEsNuevo(true);
@@ -249,9 +251,9 @@ const cargarCatalogos = async () => {
   };
 
  const guardarRegistro = async () => {
-  const { idx, actividad, productos, operadores, notas, horaInicio, horaFin } = registroActual;
+  const { idx, actividad, productos, operadores, notas, horaInicio, horaFin, duracion } = registroActual;
 
-  if (!idx || !actividad || !productos.length || !operadores.length || !horaInicio || !horaFin) {
+  if (!idx || !actividad || !productos.length || !operadores.length || !horaInicio || !horaFin || !duracion) {
     toast.error(t("fill_all_fields"));
     return;
   }
@@ -300,6 +302,7 @@ const cargarCatalogos = async () => {
     notas,
     hora_inicio: new Date(horaInicio),
     hora_fin: new Date(horaFin),
+    duracion,
   };
 
   try {
@@ -604,6 +607,15 @@ const cargarCatalogos = async () => {
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
           <input type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} />
           <input type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} />
+
+          <input
+            type="number"
+            placeholder={t("duration_min")}
+            value={registroActual?.duracion}
+            onChange={(e) => setRegistroActual({ ...registroActual, duracion: e.target.value })}
+            style={{ width: "400px" }}
+          />
+
           <button onClick={guardarRegistro}>{t("save")}</button>
           <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
         </Modal>  
