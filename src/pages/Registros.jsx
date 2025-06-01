@@ -116,6 +116,7 @@ const cargarCatalogos = async () => {
       const data = doc.data();
       return {
         id: doc.id,
+        idx: data.idx || "",
         ...data,
         operadores: Array.isArray(data.operadores)
           ? data.operadores
