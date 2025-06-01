@@ -320,8 +320,7 @@ const cargarCatalogos = async () => {
     const datosCSV = filtrados.flatMap((d) => {
       const inicio = new Date(d.horaInicio);
       const fin = new Date(d.horaFin);
-      const duracionMin = Math.round((fin - inicio) / 60000);
-
+    
       return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
         [t("idx")]: registroActual?.idx || "N/A",
         [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
@@ -332,7 +331,7 @@ const cargarCatalogos = async () => {
         [t("amount")]: p.cantidad,
         [t("start_time")]: inicio.toLocaleString(),
         [t("end_time")]: fin.toLocaleString(),
-        "Duración (min)": duracionMin,
+        "Duración (min)": <Text>{registro.duracion ? `${Math.round(registro.duracion)} seg` : "-"}</Text>,
         [t("notes")]: d.notas || "N/A",
       }));
     });
@@ -445,7 +444,6 @@ const cargarCatalogos = async () => {
               {filtrados.map((r) => {
                 const inicio = new Date(r.horaInicio);
                 const fin = new Date(r.horaFin);
-                const duracionMin = Math.round((fin - inicio) / 60000);
                 return (
                   <tr key={r.id}>
                     <td>{r.idx || "N/A"}</td>
@@ -467,7 +465,7 @@ const cargarCatalogos = async () => {
                     <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                     <td>{inicio.toLocaleString()}</td>
                     <td>{fin.toLocaleString()}</td>
-                    <td>{duracionMin} min</td>
+                    <td>{<Text>{registro.duracion ? `${Math.round(registro.duracion)} seg` : "-"}</Text>} min</td>
                     <td>{r.notas || "N/A"}</td>
                     <td>
                       <button onClick={() => abrirModal(r)}>{t("edit")}</button>
@@ -515,7 +513,6 @@ const cargarCatalogos = async () => {
                 </thead>
                 <tbody>
                   {lista.map((r) => {
-                    const duracionMin = Math.round((new Date(r.horaFin) - new Date(r.horaInicio)) / 60000);
                     return (
                       <tr key={r.id}>
                         <td>{r.idx || "N/A"}</td>
@@ -537,7 +534,7 @@ const cargarCatalogos = async () => {
                         </td>
                         <td>{new Date(r.horaInicio).toLocaleString()}</td>
                         <td>{new Date(r.horaFin).toLocaleString()}</td>
-                        <td>{duracionMin} min</td>
+                        <td><Text>{registro.duracion ? `${Math.round(registro.duracion)} seg` : "-"}</Text> min</td>
                         <td>{r.notas || "N/A"}</td>
                       </tr>
                     );
