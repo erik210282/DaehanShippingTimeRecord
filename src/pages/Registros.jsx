@@ -321,7 +321,7 @@ const cargarCatalogos = async () => {
       const duracionMin = Math.round((fin - inicio) / 60000);
 
       return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
-        [t("idx")]: r.idx || "N/A", 
+        [t("idx")]: idx || "N/A", 
         [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
         [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
         [t("operator")]: Array.isArray(d.operadores)
@@ -446,7 +446,7 @@ const cargarCatalogos = async () => {
                 const duracionMin = Math.round((fin - inicio) / 60000);
                 return (
                   <tr key={r.id}>
-                    <td>{r.idx}</td>
+                    <td>{idx}</td>
                     <td>{mapaActividades[r.actividad]}</td>
                    <td>
                     {Array.isArray(r.productos)
@@ -511,7 +511,7 @@ const cargarCatalogos = async () => {
                     const duracionMin = Math.round((new Date(r.horaFin) - new Date(r.horaInicio)) / 60000);
                     return (
                       <tr key={r.id}>
-                        <td>{r.idx}</td>
+                        <td>{idx}</td>
                         <td>{mapaActividades[r.actividad]}</td>
                         <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                         <td>
@@ -548,7 +548,7 @@ const cargarCatalogos = async () => {
           <input
             type="number"
             placeholder={t("idx")}
-            value={r.idx}
+            value={idx}
             onChange={(e) => {
             const nuevos = [...registroActual.productos];
             nuevos[index].idx = e.target.value;
