@@ -272,7 +272,6 @@ const cargarCatalogos = async () => {
     if (!esNuevo) {
     const duplicado = registros.some(r =>
       r.id !== registroActual.id &&
-      r.idx === idx &&
       r.actividad === actividad &&
       JSON.stringify(r.operadores.sort()) === JSON.stringify(operadores.sort()) &&
       new Date(r.hora_inicio).getTime() === new Date(horaInicio).getTime() &&
@@ -322,7 +321,7 @@ const cargarCatalogos = async () => {
       const duracionMin = Math.round((fin - inicio) / 60000);
 
       return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
-        [t("idx")]: p.idx,
+        [t("idx")]: d.idx || "N/A",
         [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
         [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
         [t("operator")]: Array.isArray(d.operadores)
