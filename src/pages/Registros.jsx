@@ -49,6 +49,8 @@ export default function Registros() {
   const [pestañaActiva, setPestañaActiva] = useState("paginado");
   const [modoAgrupacion, setModoAgrupacion] = useState("operador");
 
+  const [registroAEliminar, setRegistroAEliminar] = useState(null);
+
   const parseFirebaseDate = (fecha) => {
     if (!fecha) return null;
     if (typeof fecha === "string" || typeof fecha === "number") {
@@ -376,6 +378,37 @@ const cargarCatalogos = async () => {
     return gruposOrdenados;
   };
 
+  <Modal
+    isOpen={registroAEliminar !== null}
+    onRequestClose={() => setRegistroAEliminar(null)}
+    className="modal"
+    overlayClassName="modal-overlay"
+  >
+    <h2>{t("confirm_delete_title")}</h2>
+    <p>{t("confirm_delete_text")}</p>
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
+      <button className="btn btn-secondary" onClick={() => setRegistroAEliminar(null)}>
+        {t("cancel")}
+      </button>
+      <button
+        className="btn btn-danger"
+        onClick={async () => {
+          try {
+            await deleteDoc(doc(db, "registros", registroAEliminar.id));
+            toast.success(t("delete_success"));
+            setRegistroAEliminar(null);
+          } catch (error) {
+            console.error("Error eliminando:", error);
+            toast.error(t("delete_error"));
+          }
+        }}
+      >
+        {t("confirm")}
+      </button>
+    </div>
+  </Modal>
+
+
   return (
     <div className="card">
       <h2>{t("records")}</h2>
@@ -469,7 +502,12 @@ const cargarCatalogos = async () => {
                     <td>{r.notas || "N/A"}</td>
                     <td>
                       <button onClick={() => abrirModal(r)}>{t("edit")}</button>
-                      <button onClick={() => eliminarRegistro(r.id)}>{t("delete")}</button>
+                      <button
+                          onClick={() => setRegistroAEliminar(registro)}
+                          className="btn btn-danger"
+                        >
+                          {t("delete")}
+                        </button>
                     </td>
                   </tr>
                 );
