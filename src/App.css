@@ -191,7 +191,7 @@ button {
 }
 
 .modal {
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.85);
   padding: 2rem;
   border-radius: 12px;
   max-width: 400px;
