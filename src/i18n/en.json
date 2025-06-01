@@ -110,6 +110,9 @@
     "enter_notes": "Notes",
     "export_success": "CSV successfully exported",
     "idx": "IDX code",
+    "confirm_delete_title": "Are you sure?",
+    "confirm_delete_text": "This action will delete the record.",
+    "confirm": "Confirm",
     
     "start_activity": "Start activity",
     "finish_activity": "Finish activity",

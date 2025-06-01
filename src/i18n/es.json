@@ -118,7 +118,10 @@
     "no_duplicate_activity": "No se permite duplicar actividad con mismo operador y horario",
     "export_success": "CSV exportado correctamente",
     "idx": "Código IDX",
-
+    "confirm_delete_title": "¿Estás seguro?",
+    "confirm_delete_text": "Esta acción eliminará el registro permanentemente.",
+    "confirm": "Confirmar",
+    
     "start_activity": "Iniciar actividad",
     "finish_activity": "Finalizar actividad",
     "start": "Iniciar",
