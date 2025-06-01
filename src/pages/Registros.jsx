@@ -394,7 +394,7 @@ const cargarCatalogos = async () => {
         className="btn btn-danger"
         onClick={async () => {
           try {
-            await deleteDoc(doc(db, "registros", registroAEliminar.id));
+            await deleteDoc(doc(db, "actividades_realizadas", registroAEliminar.id))
             toast.success(t("delete_success"));
             setRegistroAEliminar(null);
           } catch (error) {
@@ -503,7 +503,7 @@ const cargarCatalogos = async () => {
                     <td>
                       <button onClick={() => abrirModal(r)}>{t("edit")}</button>
                       <button
-                          onClick={() => setRegistroAEliminar(registro)}
+                          onClick={() => setRegistroAEliminar(r)}
                           className="btn btn-danger"
                         >
                           {t("delete")}
@@ -583,17 +583,13 @@ const cargarCatalogos = async () => {
         <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
           <h3>{esNuevo ? t("add") : t("edit")}</h3>
 
-              <input
-                type="number"
-                placeholder={t("idx")}
-                value={d.idx}
-                onChange={(e) => {
-                  const nuevos = [...registroActual.productos];
-                  nuevos[index].idx = e.target.value;
-                  setRegistroActual({ ...registroActual, productos: nuevos });
-                }}
-                style={{ width: "400px" }}
-              />
+          <input
+            type="number"
+            placeholder={t("idx")}
+            value={registroActual?.idx}
+            onChange={(e) => setRegistroActual({ ...registroActual, idx: e.target.value })}
+            style={{ width: "400px" }}
+          />
 
           <Select options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
 
