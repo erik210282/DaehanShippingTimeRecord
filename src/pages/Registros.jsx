@@ -545,6 +545,7 @@ const cargarCatalogos = async () => {
       
         <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
           <h3>{esNuevo ? t("add") : t("edit")}</h3>
+          <textarea value={registroActual?.idx} onChange={(e) => setRegistroActual({ ...registroActual, idx: e.target.value })} placeholder={t("idx")} rows={2} style={{ width: "100%", marginTop: 10 }} />  
           <Select options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
 
           {registroActual?.productos?.map((p, index) => (
@@ -588,9 +589,7 @@ const cargarCatalogos = async () => {
           >
             ➕ {t("add_product")}
           </button>
-
           <Select isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
-          <textarea value={registroActual?.idx} onChange={(e) => setRegistroActual({ ...registroActual, idx: e.target.value })} placeholder={t("idx")} rows={2} style={{ width: "100%", marginTop: 10 }} />  
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
           <input type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} />
           <input type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} />
