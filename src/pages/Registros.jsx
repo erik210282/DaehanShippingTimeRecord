@@ -446,7 +446,7 @@ const cargarCatalogos = async () => {
                 const duracionMin = Math.round((fin - inicio) / 60000);
                 return (
                   <tr key={r.id}>
-                    <td>{r.idx || "N/A"}</td>
+                    <td>{r.idx}</td>
                     <td>{mapaActividades[r.actividad]}</td>
                    <td>
                     {Array.isArray(r.productos)
@@ -511,7 +511,7 @@ const cargarCatalogos = async () => {
                     const duracionMin = Math.round((new Date(r.horaFin) - new Date(r.horaInicio)) / 60000);
                     return (
                       <tr key={r.id}>
-                        <td>{r.idx || "N/A"}</td>
+                        <td>{r.idx}</td>
                         <td>{mapaActividades[r.actividad]}</td>
                         <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                         <td>
