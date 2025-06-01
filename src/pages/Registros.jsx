@@ -612,6 +612,7 @@ const cargarCatalogos = async () => {
           <label>{t("duration_min")}</label>
             <input
               type="number"
+              className="form-control"
               value={
                 registroEditando.duracion != null
                   ? Math.round(registroEditando.duracion / 60)
@@ -620,7 +621,7 @@ const cargarCatalogos = async () => {
               onChange={(e) =>
                 setRegistroEditando({
                   ...registroEditando,
-                  duracion: Number(e.target.value)
+                  duracion: Number(e.target.value),
                 })
               }
             /> 
