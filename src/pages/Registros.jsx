@@ -645,9 +645,10 @@ const cargarCatalogos = async () => {
                 className="btn btn-danger"
                 onClick={async () => {
                   try {
-                    if (!registroAEliminar?.id) throw new Error("ID inválido");
                     await deleteDoc(doc(db, "actividades_realizadas", registroAEliminar.id));
-                    setRegistros((prev) => prev.filter((r) => r.id !== registroAEliminar.id));
+                    setRegistros((prev) =>
+                      prev.filter((r) => r.id !== registroAEliminar.id)
+                    );
                     toast.success(t("delete_success"));
                   } catch (error) {
                     toast.error(t("delete_error"));
