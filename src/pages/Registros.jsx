@@ -221,6 +221,7 @@ const cargarCatalogos = async () => {
     setEsNuevo(false);
   } else {
     setRegistroActual({
+      idx: "",
       actividad: "",
       productos: [{ producto: "", cantidad: "" }],
       operadores: [],
@@ -245,9 +246,9 @@ const cargarCatalogos = async () => {
   };
 
  const guardarRegistro = async () => {
-  const { actividad, productos, operadores, notas, horaInicio, horaFin } = registroActual;
+  const { idx, actividad, productos, operadores, notas, horaInicio, horaFin } = registroActual;
 
-  if (!actividad || !productos.length || !operadores.length || !horaInicio || !horaFin) {
+  if (!idx || !actividad || !productos.length || !operadores.length || !horaInicio || !horaFin) {
     toast.error(t("fill_all_fields"));
     return;
   }
@@ -271,6 +272,7 @@ const cargarCatalogos = async () => {
     if (!esNuevo) {
     const duplicado = registros.some(r =>
       r.id !== registroActual.id &&
+      r.idx === idx &&
       r.actividad === actividad &&
       JSON.stringify(r.operadores.sort()) === JSON.stringify(operadores.sort()) &&
       new Date(r.hora_inicio).getTime() === new Date(horaInicio).getTime() &&
@@ -289,6 +291,7 @@ const cargarCatalogos = async () => {
   }
 
   const data = {
+    idx,
     actividad,
     productos: productosLimpios,
     operadores,
@@ -319,6 +322,7 @@ const cargarCatalogos = async () => {
       const duracionMin = Math.round((fin - inicio) / 60000);
 
       return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
+        [t("idx")]: p.idx,
         [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
         [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
         [t("operator")]: Array.isArray(d.operadores)
@@ -443,6 +447,7 @@ const cargarCatalogos = async () => {
                 const duracionMin = Math.round((fin - inicio) / 60000);
                 return (
                   <tr key={r.id}>
+                    <td>{r.idx || "N/A"}</td>
                     <td>{mapaActividades[r.actividad]}</td>
                    <td>
                     {Array.isArray(r.productos)
@@ -462,7 +467,7 @@ const cargarCatalogos = async () => {
                     <td>{inicio.toLocaleString()}</td>
                     <td>{fin.toLocaleString()}</td>
                     <td>{duracionMin} min</td>
-                    <td>{r.notas || "N/A"}</td> {/* Notas */}
+                    <td>{r.notas || "N/A"}</td>
                     <td>
                       <button onClick={() => abrirModal(r)}>{t("edit")}</button>
                       <button onClick={() => eliminarRegistro(r.id)}>{t("delete")}</button>
@@ -507,7 +512,7 @@ const cargarCatalogos = async () => {
                     const duracionMin = Math.round((new Date(r.horaFin) - new Date(r.horaInicio)) / 60000);
                     return (
                       <tr key={r.id}>
-                        <td>{r.idx || "-"}</td>
+                        <td>{r.idx || "N/A"}</td>
                         <td>{mapaActividades[r.actividad]}</td>
                         <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                         <td>
