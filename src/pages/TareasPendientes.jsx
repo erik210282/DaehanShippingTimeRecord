@@ -123,15 +123,6 @@ export default function TareasPendientes() {
     }
   };
 
-  const eliminarTarea = async (id) => {
-    try {
-      await deleteDoc(doc(db, "tareas_pendientes", id));
-      toast.success(t("task_deleted"));
-    } catch {
-      toast.error(t("error_deleting"));
-    }
-  };
-
   const mostrarNombre = (id, mapa) => mapa[id] || `ID: ${id}`;
 
   return (
