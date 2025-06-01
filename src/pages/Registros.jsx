@@ -472,11 +472,28 @@ const cargarCatalogos = async () => {
                     <td>
                       <button onClick={() => abrirModal(r)}>{t("edit")}</button>
                       <button
-                          onClick={() => setRegistroAEliminar(r)}
-                          className="btn btn-danger"
-                        >
-                          {t("delete")}
-                        </button>
+                        className="btn btn-danger"
+                        onClick={async () => {
+                          try {
+                            if (!registroAEliminar?.id) throw new Error("ID inválido");
+
+                            const ref = doc(db, "actividades_realizadas", registroAEliminar.id);
+                            await deleteDoc(ref);
+
+                            setRegistros((prev) =>
+                              prev.filter((r) => r.id !== registroAEliminar.id)
+                            );
+
+                            toast.success(t("delete_success"));
+                          } catch (error) {
+                            console.error("Error eliminando:", error);
+                            toast.error(t("delete_error") + ": " + error.message);
+                          }
+                          setRegistroAEliminar(null);
+                        }}
+                      >
+                        {t("confirm")}
+                      </button>
                     </td>
                   </tr>
                 );
@@ -644,7 +661,11 @@ const cargarCatalogos = async () => {
             </div>
           </Modal>
         )}
-        <ToastContainer position="top-center" autoClose={1000} />    
+        <ToastContainer
+          position="top-center"
+          autoClose={1500}
+          style={{ zIndex: 9999, top: "80px" }}
+        />  
     </div>
   );
 }
