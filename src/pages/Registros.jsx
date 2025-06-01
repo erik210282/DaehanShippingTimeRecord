@@ -545,7 +545,19 @@ const cargarCatalogos = async () => {
       
         <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
           <h3>{esNuevo ? t("add") : t("edit")}</h3>
-          <textarea value={registroActual?.idx} onChange={(e) => setRegistroActual({ ...registroActual, idx: e.target.value })} placeholder={t("idx")} rows={2} style={{ width: "100%", marginTop: 10 }} />  
+
+              <input
+                type="number"
+                placeholder={t("idx")}
+                value={p.idx}
+                onChange={(e) => {
+                  const nuevos = [...registroActual.productos];
+                  nuevos[index].idx = e.target.value;
+                  setRegistroActual({ ...registroActual, productos: nuevos });
+                }}
+                style={{ width: "400px" }}
+              />
+
           <Select options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
 
           {registroActual?.productos?.map((p, index) => (
