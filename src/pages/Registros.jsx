@@ -24,6 +24,7 @@ export default function Registros() {
 
   const [registros, setRegistros] = useState([]);
   const [filtrados, setFiltrados] = useState([]);
+  const [registroEditando, setRegistroEditando] = useState(null);
 
   const [actividadFiltro, setActividadFiltro] = useState([]);
   const [productoFiltro, setProductoFiltro] = useState([]);
@@ -50,8 +51,6 @@ export default function Registros() {
   const [modoAgrupacion, setModoAgrupacion] = useState("operador");
 
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
-  
-  const [registroEditando, setRegistroEditando] = useState(null);
 
   const parseFirebaseDate = (fecha) => {
     if (!fecha) return null;
