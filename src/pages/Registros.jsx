@@ -614,16 +614,18 @@ const cargarCatalogos = async () => {
               type="number"
               className="form-control"
               value={
-                registroEditando.duracion != null
-                  ? registroEditando.duracion
+                registroEditando && registroEditando.duracion != null
+                  ? Math.round(registroEditando.duracion)
                   : ""
               }
-              onChange={(e) =>
-                setRegistroEditando({
-                  ...registroEditando,
-                  duracion: Number(e.target.value)
-                })
-              }
+              onChange={(e) => {
+                if (registroEditando) {
+                  setRegistroEditando({
+                    ...registroEditando,
+                    duracion: Number(e.target.value),
+                  });
+                }
+              }}
             />
             <span className="input-group-text">min</span>
           </div> 
