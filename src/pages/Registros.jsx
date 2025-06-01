@@ -272,7 +272,6 @@ const cargarCatalogos = async () => {
     if (!esNuevo) {
     const duplicado = registros.some(r =>
       r.id !== registroActual.id &&
-      r.idx === idx &&
       r.actividad === actividad &&
       JSON.stringify(r.operadores.sort()) === JSON.stringify(operadores.sort()) &&
       new Date(r.hora_inicio).getTime() === new Date(horaInicio).getTime() &&
@@ -549,7 +548,7 @@ const cargarCatalogos = async () => {
               <input
                 type="number"
                 placeholder={t("idx")}
-                value={p.idx}
+                value={d.idx}
                 onChange={(e) => {
                   const nuevos = [...registroActual.productos];
                   nuevos[index].idx = e.target.value;
