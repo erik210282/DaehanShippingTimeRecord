@@ -424,6 +424,7 @@ const cargarCatalogos = async () => {
           <table className="table">
             <thead>
               <tr>
+                <th>{t("idx")}</th>
                 <th>{t("activity")}</th>
                 <th>{t("product")}</th>
                 <th>{t("amount")}</th>
@@ -490,6 +491,7 @@ const cargarCatalogos = async () => {
               <table className="table">
                 <thead>
                   <tr>
+                    <th>{t("idx")}</th>
                     <th>{t("activity")}</th>
                     <th>{t("operator")}</th>
                     <th>{t("product")}</th>
@@ -505,6 +507,7 @@ const cargarCatalogos = async () => {
                     const duracionMin = Math.round((new Date(r.horaFin) - new Date(r.horaInicio)) / 60000);
                     return (
                       <tr key={r.id}>
+                        <td>{r.idx || "-"}</td>
                         <td>{mapaActividades[r.actividad]}</td>
                         <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                         <td>
@@ -524,7 +527,7 @@ const cargarCatalogos = async () => {
                         <td>{new Date(r.horaInicio).toLocaleString()}</td>
                         <td>{new Date(r.horaFin).toLocaleString()}</td>
                         <td>{duracionMin} min</td>
-                        <td>{r.notas || "N/A"}</td> {/* Notas */}
+                        <td>{r.notas || "N/A"}</td>
                       </tr>
                     );
                   })}
