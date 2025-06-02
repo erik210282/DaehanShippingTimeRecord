@@ -129,7 +129,7 @@ const cargarCatalogos = async () => {
         duracion: data.duracion ?? "",
       };
     });
-    nuevos.sort((a, b) => new Date(a.horaInicio) - new Date(b.horaInicio));
+    nuevos.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
     setRegistros(nuevos);
     setFiltrados(nuevos);
   };
@@ -182,7 +182,7 @@ const cargarCatalogos = async () => {
           ? r.productos.some((p) =>
               mapaProductos[p.producto]?.toLowerCase().includes(texto)
             )
-          : mapaProductos[r.producto]?.toLowerCase().includes(texto)) || // <- faltaba esto
+          : mapaProductos[r.producto]?.toLowerCase().includes(texto)) ||
         (Array.isArray(r.operadores) &&
           r.operadores.some((id) =>
             mapaOperadores[id]?.toLowerCase().includes(texto)
