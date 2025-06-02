@@ -442,6 +442,16 @@ const cargarCatalogos = async () => {
             setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
           }}>{t("clear_filters")}</button>
 
+          <button
+            onClick={() => setRegistroActual({
+              ...registroActual,
+              productos: [...registroActual.productos, { producto: "", cantidad: "" }],
+            })}
+            style={{ marginTop: "10px" }}
+          >
+            ➕ {t("add_product")}
+          </button>        
+
           <table className="table">
             <thead>
               <tr>
