@@ -129,7 +129,7 @@ export default function TareasPendientes() {
     <div className="card">
       <h2>{t("pending_tasks")}</h2>
       <button onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
-        ➕ {t("MORRO")}
+        ➕ {t("add_task")}
       </button>
 
       <table className="table">
