@@ -51,6 +51,7 @@
     "export_csv": "Export to CSV",
     "search": "Search...",
     "clear_filters": "Clear filters",
+    "add_catalog": "Add to catalog",
     
     "records": "Records",
     "duration_min": "Duration Min",
