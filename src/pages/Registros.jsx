@@ -613,21 +613,11 @@ const cargarCatalogos = async () => {
             <input
               type="number"
               className="form-control"
-              value={
-                registroEditando && registroEditando.duracion != null
-                  ? Math.round(registroEditando.duracion)
-                  : ""
+              value={registroActual?.duracion || ""}
+              onChange={(e) =>
+                setRegistroActual({ ...registroActual, duracion: Number(e.target.value) })
               }
-              onChange={(e) => {
-                if (registroEditando) {
-                  setRegistroEditando({
-                    ...registroEditando,
-                    duracion: Number(e.target.value),
-                  });
-                }
-              }}
-            /> 
-
+            />
           <button onClick={guardarRegistro}>{t("save")}</button>
           <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
         </Modal>  
