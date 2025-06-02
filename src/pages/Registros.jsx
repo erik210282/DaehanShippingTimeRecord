@@ -439,7 +439,7 @@ const cargarCatalogos = async () => {
                 <th>{t("operator")}</th>
                 <th>{t("start_time")}</th>
                 <th>{t("end_time")}</th>
-                <th>⏱ {t("duration_min")}</th>
+                <th>{t("duration_min")}</th>
                 <th>{t("notes")}</th>
                 <th>{t("actions")}</th>
               </tr>
