@@ -172,13 +172,17 @@ const cargarCatalogos = async () => {
         (Array.isArray(r.operadores) &&
           operadorFiltro.some((o) => r.operadores.includes(o.value)));
 
-      const cumpleTexto =
+     const cumpleTexto =
         !texto ||
         mapaActividades[r.actividad]?.toLowerCase().includes(texto) ||
-        mapaProductos[r.producto]?.toLowerCase().includes(texto) ||
+        (Array.isArray(r.productos)
+          ? r.productos.some((p) =>
+              mapaProductos[p.producto]?.toLowerCase().includes(texto)
+            )
+          : mapaProductos[r.producto]?.toLowerCase().includes(texto)) ||
         (Array.isArray(r.operadores) &&
-          r.operadores.some(
-            (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
+          r.operadores.some((id) =>
+            mapaOperadores[id]?.toLowerCase().includes(texto)
           ));
 
       if (modoAgrupacion === "fecha") {
