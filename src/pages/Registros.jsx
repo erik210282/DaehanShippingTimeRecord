@@ -469,7 +469,7 @@ const cargarCatalogos = async () => {
                     <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                     <td>{inicio.toLocaleString()}</td>
                     <td>{fin.toLocaleString()}</td>
-                    <td>{r.duracion ? `${Math.round(r.duracion / 60)} min` : "-"}</td>
+                    <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
                     <td>{r.notas || "N/A"}</td>
                     <td>
                       <button onClick={() => abrirModal(r)}>{t("edit")}</button>
