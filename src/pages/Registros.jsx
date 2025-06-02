@@ -170,12 +170,13 @@ const cargarCatalogos = async () => {
               productoFiltro.some((f) => f.value === p.producto)
             )
           : productoFiltro.some((f) => f.value === r.producto));
+
       const cumpleOperador =
         operadorFiltro.length === 0 ||
         (Array.isArray(r.operadores) &&
           operadorFiltro.some((o) => r.operadores.includes(o.value)));
 
-     const cumpleTexto =
+      const cumpleTexto =
         !texto ||
         mapaActividades[r.actividad]?.toLowerCase().includes(texto) ||
         (Array.isArray(r.productos)
