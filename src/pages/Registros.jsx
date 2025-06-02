@@ -165,8 +165,11 @@ const cargarCatalogos = async () => {
 
       const cumpleProducto =
         productoFiltro.length === 0 ||
-        productoFiltro.some((p) => p.value === r.producto);
-
+        (Array.isArray(r.productos)
+          ? r.productos.some((p) =>
+              productoFiltro.some((f) => f.value === p.producto)
+            )
+          : productoFiltro.some((f) => f.value === r.producto));
       const cumpleOperador =
         operadorFiltro.length === 0 ||
         (Array.isArray(r.operadores) &&
