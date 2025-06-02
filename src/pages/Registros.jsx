@@ -495,7 +495,7 @@ const cargarCatalogos = async () => {
             <option value="operador">{t("operator")}</option>
             <option value="producto">{t("product")}</option>
             <option value="actividad">{t("activity")}</option>
-            <option value="starttime">{t("fecha")}</option>
+            <option value="fecha">{t("fecha")}</option>
           </select>
 
           {Object.entries(registrosAgrupados()).map(([grupo, lista]) => (
