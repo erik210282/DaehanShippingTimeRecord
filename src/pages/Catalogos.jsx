@@ -158,7 +158,7 @@ export default function Catalogos() {
           value={filtroTexto}
           onChange={(e) => setFiltroTexto(e.target.value)}
         />
-        <button className="secondary" onClick={() => { setFiltroTexto(""); setMostrarMensajeError(false); }}>{t("clear_filters")}</button>
+        <button onClick={() => { setFiltroTexto(""); setMostrarMensajeError(false); }}>{t("clear_filters")}</button>
 
         <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
           ➕ {t("add_task")}
