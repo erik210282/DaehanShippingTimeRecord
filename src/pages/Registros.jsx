@@ -165,11 +165,10 @@ const cargarCatalogos = async () => {
 
       const cumpleProducto =
         productoFiltro.length === 0 ||
-        (Array.isArray(r.productos)
-          ? r.productos.some((p) =>
-              productoFiltro.some((f) => f.value === p.producto)
-            )
-          : productoFiltro.some((f) => f.value === r.producto));
+        (Array.isArray(r.productos) &&
+          r.productos.some((p) =>
+            productoFiltro.some((f) => f.value === p.producto)
+          ));
 
       const cumpleOperador =
         operadorFiltro.length === 0 ||
@@ -183,7 +182,7 @@ const cargarCatalogos = async () => {
           ? r.productos.some((p) =>
               mapaProductos[p.producto]?.toLowerCase().includes(texto)
             )
-          : mapaProductos[r.producto]?.toLowerCase().includes(texto)) ||
+          : mapaProductos[r.producto]?.toLowerCase().includes(texto)) || // <- faltaba esto
         (Array.isArray(r.operadores) &&
           r.operadores.some((id) =>
             mapaOperadores[id]?.toLowerCase().includes(texto)
@@ -192,13 +191,13 @@ const cargarCatalogos = async () => {
       let key = "";
 
         if (modoAgrupacion === "operador") {
-          key = Array.isArray(r.operadores) ? r.operadores.map(id => mapaOperadores[id]).join(", ") : `ID: ${r.operadores}`;
+          key = Array.isArray(r.operadores)
+            ? r.operadores.map((id) => mapaOperadores[id]).join(", ")
+            : `ID: ${r.operadores}`;
         } else if (modoAgrupacion === "producto") {
-          key = r.producto && mapaProductos[r.producto]
-            ? mapaProductos[r.producto]
-            : r.producto
-            ? `ID: ${r.producto}`
-            : t("multi_product");
+          key = Array.isArray(r.productos)
+            ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+            : mapaProductos[r.producto] || `ID: ${r.producto}`;
         } else if (modoAgrupacion === "actividad") {
           key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
         } else if (modoAgrupacion === "fecha") {
