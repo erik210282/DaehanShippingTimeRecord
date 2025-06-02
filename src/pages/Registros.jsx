@@ -631,7 +631,7 @@ const cargarCatalogos = async () => {
             })}
             style={{ marginTop: "10px" }}
           >
-            ➕ {t("add_product")}
+            ➕ {t("MMMM")}
           </button>
           <Select isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
