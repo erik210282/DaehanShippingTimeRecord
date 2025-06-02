@@ -181,7 +181,14 @@ const cargarCatalogos = async () => {
             (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
           ));
 
-      const fechaInicio = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
+      if (modoAgrupacion === "fecha") {
+        const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
+        if (!isNaN(fecha)) {
+          key = format(fecha, "yyyy-MM-dd");
+        } else {
+          key = "Sin fecha";
+        }
+      }
       const cumpleDesde = !fechaDesde || isAfter(fechaInicio, new Date(fechaDesde));
       const cumpleHasta = !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta));
 
