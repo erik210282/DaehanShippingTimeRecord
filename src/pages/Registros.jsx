@@ -463,8 +463,7 @@ const cargarCatalogos = async () => {
               ...registroActual,
               productos: [...registroActual.productos, { producto: "", cantidad: "" }],
             })}
-            style={{ marginTop: "10px" }}
-          >
+            style={{ marginBottom: 10 }}>
             ➕ {t("add_product")}
           </button>
 
