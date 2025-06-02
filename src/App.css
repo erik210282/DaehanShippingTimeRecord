@@ -29,7 +29,7 @@ body {
 
 .navbar-center {
   display: flex;
-  gap: 40px;
+  gap: 100px;
 }
 
 .navbar-center button {
