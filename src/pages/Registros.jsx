@@ -126,7 +126,7 @@ const cargarCatalogos = async () => {
           : [],
         horaInicio: parseFirebaseDate(data.hora_inicio),
         horaFin: parseFirebaseDate(data.hora_fin),
-        duracion: data.duracion || "",
+        duracion: data.duracion ?? "",
       };
     });
     nuevos.sort((a, b) => new Date(a.horaInicio) - new Date(b.horaInicio));
