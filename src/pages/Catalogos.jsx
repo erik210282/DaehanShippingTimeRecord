@@ -161,7 +161,6 @@ export default function Catalogos() {
         <button onClick={() => { setFiltroTexto(""); setMostrarMensajeError(false); }} style={{ marginBottom: 20 }}>
           {t("clear_filters")}
         </button>
-
         <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
           ➕ {t("add_catalog")}
         </button>
