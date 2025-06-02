@@ -444,17 +444,7 @@ const cargarCatalogos = async () => {
 
           <button onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
             ➕ {t("add_product")}
-          </button>
-
-          <button
-            onClick={() => setRegistroActual({
-              ...registroActual,
-              productos: [...registroActual.productos, { producto: "", cantidad: "" }],
-            })}
-            style={{ marginTop: "10px" }}
-          >
-            ➕ {t("add_product")}
-          </button>        
+          </button>          
 
           <table className="table">
             <thead>
