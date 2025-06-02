@@ -27,12 +27,23 @@ body {
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
 }
 
+.navbar-center {
+  display: flex;
+  gap: 16px;
+}
+
 .navbar-center button {
-  margin: 0 8px;
   background: none;
   border: none;
   font-size: 16px;
   cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.navbar-center button:hover {
+  background-color: #f0f0f0;
 }
 
 .navbar-right select {
