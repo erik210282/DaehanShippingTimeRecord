@@ -26,7 +26,7 @@ const Navbar = () => {
     return () => unsubscribe();
   }, []);
 
-  if (!user) return null; // Oculta navbar si no hay sesión válida
+  if (!user) return null;
 
   const handleLanguageChange = (e) => {
     i18n.changeLanguage(e.target.value);
@@ -40,7 +40,7 @@ const Navbar = () => {
 
   return (
     <div className="navbar">
-      <div className="navbar-left">
+      <div className="navbar-center">
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
         <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
