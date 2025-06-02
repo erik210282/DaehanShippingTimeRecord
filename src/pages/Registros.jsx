@@ -442,6 +442,10 @@ const cargarCatalogos = async () => {
             setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
           }}>{t("clear_filters")}</button>
 
+          <button onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
+            ➕ {t("add_product")}
+          </button>
+
           <button
             onClick={() => setRegistroActual({
               ...registroActual,
