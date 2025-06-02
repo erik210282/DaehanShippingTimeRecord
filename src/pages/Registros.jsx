@@ -201,7 +201,7 @@ const cargarCatalogos = async () => {
           const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
           key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
         }
-        
+
       const cumpleDesde = !fechaDesde || isAfter(fechaInicio, new Date(fechaDesde));
       const cumpleHasta = !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta));
 
@@ -374,27 +374,33 @@ const cargarCatalogos = async () => {
 
   const registrosAgrupados = () => {
     const grupos = {};
+
     filtrados.forEach((r) => {
       let key = "";
+
       if (modoAgrupacion === "operador") {
-        key = Array.isArray(r.operadores) ? r.operadores.map(id => mapaOperadores[id]).join(", ") : `ID: ${r.operadores}`;
+        key = Array.isArray(r.operadores)
+          ? r.operadores.map((id) => mapaOperadores[id]).join(", ")
+          : `ID: ${r.operadores}`;
       } else if (modoAgrupacion === "producto") {
-        key = r.producto && mapaProductos[r.producto]
-          ? mapaProductos[r.producto]
-          : r.producto
-          ? `ID: ${r.producto}`
-          : t("multi_product");
+        key = Array.isArray(r.productos)
+          ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+          : mapaProductos[r.producto] || `ID: ${r.producto}`;
       } else if (modoAgrupacion === "actividad") {
         key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
       } else if (modoAgrupacion === "fecha") {
-        key = format(new Date(r.horaInicio), "yyyy-MM-dd");
+        const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
+        key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
       }
+
       if (!grupos[key]) grupos[key] = [];
       grupos[key].push(r);
     });
 
     const gruposOrdenados = {};
-      Object.keys(grupos).sort((a, b) => a.localeCompare(b)).forEach((key) => {
+    Object.keys(grupos)
+      .sort((a, b) => a.localeCompare(b))
+      .forEach((key) => {
         gruposOrdenados[key] = grupos[key];
       });
 
