@@ -335,7 +335,7 @@ const cargarCatalogos = async () => {
         [t("amount")]: p.cantidad,
         [t("start_time")]: inicio.toLocaleString(),
         [t("end_time")]: fin.toLocaleString(),
-        [t("duration_min")]: d.duracion ? Math.round(d.duracion / 60) : "-",
+        [t("duration_min")]: d.duracion ? Math.round(d.duracion) : "-",
         [t("notes")]: d.notas || "N/A",
       }));
     });
