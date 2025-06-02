@@ -185,14 +185,23 @@ const cargarCatalogos = async () => {
             mapaOperadores[id]?.toLowerCase().includes(texto)
           ));
 
-      if (modoAgrupacion === "fecha") {
-        const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
-        if (!isNaN(fecha)) {
-          key = format(fecha, "yyyy-MM-dd");
-        } else {
-          key = "Sin fecha";
+      let key = "";
+
+        if (modoAgrupacion === "operador") {
+          key = Array.isArray(r.operadores) ? r.operadores.map(id => mapaOperadores[id]).join(", ") : `ID: ${r.operadores}`;
+        } else if (modoAgrupacion === "producto") {
+          key = r.producto && mapaProductos[r.producto]
+            ? mapaProductos[r.producto]
+            : r.producto
+            ? `ID: ${r.producto}`
+            : t("multi_product");
+        } else if (modoAgrupacion === "actividad") {
+          key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
+        } else if (modoAgrupacion === "fecha") {
+          const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
+          key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
         }
-      }
+        
       const cumpleDesde = !fechaDesde || isAfter(fechaInicio, new Date(fechaDesde));
       const cumpleHasta = !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta));
 
