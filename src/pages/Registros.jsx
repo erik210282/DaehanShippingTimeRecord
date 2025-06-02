@@ -538,7 +538,7 @@ const cargarCatalogos = async () => {
                         </td>
                         <td>{new Date(r.horaInicio).toLocaleString()}</td>
                         <td>{new Date(r.horaFin).toLocaleString()}</td>
-                        <td>{r.duracion ? `${Math.round(r.duracion / 60)} min` : "-"}</td>
+                        <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
                         <td>{r.notas || "N/A"}</td>
                       </tr>
                     );
@@ -554,7 +554,7 @@ const cargarCatalogos = async () => {
           <h3>{esNuevo ? t("add") : t("edit")}</h3>
 
           <input
-            type="number"
+            type="text"
             placeholder={t("idx")}
             value={registroActual?.idx}
             onChange={(e) => setRegistroActual({ ...registroActual, idx: e.target.value })}
