@@ -194,13 +194,6 @@ export default function Catalogos() {
         </table>
       </div>
 
-      <button
-        className="add-record-button"
-        onClick={() => abrirModal(null)}
-      >
-        +
-      </button>
-
       <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
         <div className="card">
           <h3>{esNuevo ? t("add") : t("edit")}</h3>
