@@ -442,10 +442,6 @@ const cargarCatalogos = async () => {
             setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
           }}>{t("clear_filters")}</button>
 
-          <button onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
-            ➕ {t("add_task")}
-          </button>
-
           <table className="table">
             <thead>
               <tr>
@@ -612,15 +608,7 @@ const cargarCatalogos = async () => {
               )}
             </div>
           ))}
-          <button
-            onClick={() => setRegistroActual({
-              ...registroActual,
-              productos: [...registroActual.productos, { producto: "", cantidad: "" }],
-            })}
-            style={{ marginTop: "10px" }}
-          >
-            ➕ {t("add_product")}
-          </button>
+          
           <Select isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
           <input type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} />
