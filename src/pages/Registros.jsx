@@ -19,6 +19,8 @@ import { onSnapshot } from "firebase/firestore";
 
 Modal.setAppElement("#root");
 
+export default function Registros() {
+
 useEffect(() => {
   async function corregirRegistrosProductosNulos() {
     const registrosRef = collection(db, "registros");
@@ -41,7 +43,7 @@ useEffect(() => {
   corregirRegistrosProductosNulos();
 }, []);
 
-export default function Registros() {
+
   const { t, i18n } = useTranslation();
 
   const [registros, setRegistros] = useState([]);
