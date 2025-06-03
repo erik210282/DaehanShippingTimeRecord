@@ -62,7 +62,7 @@ export default function TareasPendientes() {
         ...doc.data(),
       }));
       tareasList.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-      setTareas(tareasList.filter((t) => t.estado !== "finalizada"));
+      setTareas(tareasList.filter((t) => ["pendiente", "iniciada", "pausada"].includes(t.estado)));
     });
 
     return () => {
@@ -162,7 +162,13 @@ export default function TareasPendientes() {
                   : tarea.cantidad}
               </td>
               <td>{tarea.notas || "-"}</td>              
-              <td>{tarea.estado === "started" ? t("started") : t("pending")}</td>
+              <td>
+                {tarea.estado === "iniciada"
+                  ? t("started")
+                  : tarea.estado === "pausada"
+                  ? t("paused")
+                  : t("pending")}
+              </td>
               <td>
                 <button onClick={() => abrirModal(tarea)}>{t("edit")}</button>
                 <button onClick={() => setTareaAEliminar(tarea)}>{t("delete")}</button>
