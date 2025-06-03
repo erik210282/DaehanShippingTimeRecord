@@ -165,6 +165,23 @@ const cargarCatalogos = async () => {
   };
 
   useEffect(() => {
+    const unsub = onSnapshot(collection(db, "registros"), (snapshot) => {
+      const datos = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          productos: Array.isArray(data.productos) ? data.productos : [], // ✅ prevención de null
+        };
+      });
+      setRegistros(datos);
+      setFiltrados(datos);
+    });
+
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
     cargarCatalogos();
 
     const unsub = onSnapshot(collection(db, "actividades_realizadas"), actualizarRegistros);
