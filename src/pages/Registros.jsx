@@ -24,8 +24,7 @@ export default function Registros() {
 
   const [registros, setRegistros] = useState([]);
   const [filtrados, setFiltrados] = useState([]);
-  const [registroEditando, setRegistroEditando] = useState(null);
-
+  
   const [actividadFiltro, setActividadFiltro] = useState([]);
   const [productoFiltro, setProductoFiltro] = useState([]);
   const [operadorFiltro, setOperadorFiltro] = useState([]);
@@ -52,8 +51,12 @@ export default function Registros() {
 
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
 
+
+  //nuevo y sin usar
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
   const [editProductos, setEditProductos] = useState([]);
+  const [registroEditando, setRegistroEditando] = useState(null);
+
 
   const parseFirebaseDate = (fecha) => {
     if (!fecha) return null;
@@ -115,33 +118,6 @@ const cargarCatalogos = async () => {
   );
 };
 
-  const handleSeleccionProductos = (seleccion) => {
-      const productosConCantidad = seleccion.map((p) => ({
-        id: p.value,
-        cantidad: 1,
-      }));
-      setProductosSeleccionados(productosConCantidad);
-    };
-
-  const renderCantidadInputs = () => {
-    return (productosSeleccionados || []).map((p, index) => (
-      <div key={index} style={{ marginTop: 5 }}>
-        <label>{productoLabels[p.id] || p.id}</label>
-        <input
-          type="number"
-          min="1"
-          value={p.cantidad}
-          onChange={(e) => {
-            const nuevaCantidad = parseInt(e.target.value);
-            const nuevosProductos = [...productosSeleccionados];
-            nuevosProductos[index].cantidad = isNaN(nuevaCantidad) ? 1 : nuevaCantidad;
-            setProductosSeleccionados(nuevosProductos);
-          }}
-        />
-      </div>
-    ));
-  };
-
   const actualizarRegistros = (snapshot) => {
     const nuevos = snapshot.docs.map((doc) => {
       const data = doc.data();
@@ -163,23 +139,6 @@ const cargarCatalogos = async () => {
     setRegistros(nuevos);
     setFiltrados(nuevos);
   };
-
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "registros"), (snapshot) => {
-      const datos = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          productos: Array.isArray(data.productos) ? data.productos : [], // ✅ prevención de null
-        };
-      });
-      setRegistros(datos);
-      setFiltrados(datos);
-    });
-
-    return () => unsub();
-  }, []);
 
   useEffect(() => {
     cargarCatalogos();
@@ -289,9 +248,7 @@ const cargarCatalogos = async () => {
 
     setRegistroActual({
       ...registro,
-     productos: [...(productosSeleccionados || [])].sort((a, b) =>
-      (productoLabels[a.id] || a.id).localeCompare(productoLabels[b.id] || b.id)
-    ),
+      productos: Array.isArray(registro.productos) ? registro.productos : [{ producto: registro.producto, cantidad: registro.cantidad }],
       horaInicio: formatFecha(registro.horaInicio),
       horaFin: formatFecha(registro.horaFin),
     });
@@ -331,9 +288,10 @@ const cargarCatalogos = async () => {
     return;
   }
 
-  const productosLimpios = registroActual.productos.filter(
-    (p) => p.producto && p.cantidad
-  );
+  const productosLimpios = productos.map(p => ({
+    producto: p.producto,
+    cantidad: Number(p.cantidad),
+  }));
 
   if (productosLimpios.some(p => !p.producto || isNaN(p.cantidad) || p.cantidad <= 0)) {
     toast.error(t("fill_all_fields"));
@@ -366,26 +324,17 @@ const cargarCatalogos = async () => {
     return;
   }
 
-  const productosOrdenados = [...productosLimpios].sort((a, b) =>
-    (mapaProductos[a.producto] || "").localeCompare(mapaProductos[b.producto] || "")
-  );
-
-// Ordenar operadores por nombre
-  const operadoresOrdenados = [...operadores].sort((a, b) =>
-    (mapaOperadores[a] || "").localeCompare(mapaOperadores[b] || "")
-  );
-
   const data = {
     idx,
     actividad,
-    productos: productosOrdenados,
-    operadores: operadoresOrdenados,
+    productos: productosLimpios,
+    operadores,
     notas,
     hora_inicio: new Date(horaInicio),
     hora_fin: new Date(horaFin),
     duracion,
   };
-
+ 
   try {
     if (esNuevo) {
       await addDoc(collection(db, "actividades_realizadas"), data);
