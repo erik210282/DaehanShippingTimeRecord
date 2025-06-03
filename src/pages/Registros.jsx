@@ -502,13 +502,11 @@ const cargarCatalogos = async () => {
                     <td>{r.idx || "N/A"}</td>
                     <td>{mapaActividades[r.actividad]}</td>
                     <td>{mostrarProductos(r.productos)}</td>
-                  <td>
-                    {Array.isArray(r.productos)
-                      ? (r.productos || []).map((p, i) => (
-                          <div key={i}>{p.cantidad}</div>
-                        ))
-                      : r.cantidad}
-                  </td>
+                    <td>
+                      {(Array.isArray(r.productos) ? r.productos : []).map((p, i) => (
+                        <div key={i}>{p.cantidad}</div>
+                      ))}
+                    </td>
                     <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                     <td>{inicio.toLocaleString()}</td>
                     <td>{fin.toLocaleString()}</td>
