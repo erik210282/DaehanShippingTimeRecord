@@ -451,7 +451,7 @@ const cargarCatalogos = async () => {
           }}>{t("clear_filters")}</button>
 
           <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
-            ➕ {t("add_product")}
+            ➕ {t("add_record")}
           </button>          
 
           <table className="table">
