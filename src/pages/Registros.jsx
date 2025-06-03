@@ -196,7 +196,7 @@ const cargarCatalogos = async () => {
             : `ID: ${r.operadores}`;
         } else if (modoAgrupacion === "producto") {
           key = Array.isArray(r.productos)
-            ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+            ? (r.productos || []).map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
             : mapaProductos[r.producto] || `ID: ${r.producto}`;
         } else if (modoAgrupacion === "actividad") {
           key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
@@ -395,7 +395,7 @@ const cargarCatalogos = async () => {
           : `ID: ${r.operadores}`;
       } else if (modoAgrupacion === "producto") {
         key = Array.isArray(r.productos)
-          ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+          ? (r.productos || []).map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
           : mapaProductos[r.producto] || `ID: ${r.producto}`;
       } else if (modoAgrupacion === "actividad") {
         key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
