@@ -211,8 +211,8 @@ const cargarCatalogos = async () => {
           key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
         }
 
-      const cumpleDesde = !fechaDesde || isAfter(fechaInicio, new Date(fechaDesde));
-      const cumpleHasta = !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta));
+      const cumpleDesde = !fechaDesde || isAfter(r.horaInicio, new Date(fechaDesde));
+      const cumpleHasta = !fechaHasta || isBefore(r.horaInicio, new Date(fechaHasta));
 
       return (
         cumpleActividad &&
@@ -365,7 +365,7 @@ const cargarCatalogos = async () => {
         productos.forEach((p) => {
           dataExpandida.push({
             ...r,
-            producto: productosCatalogo[p.id] || p.id,
+            producto: mapaProductos[p.producto] || p.producto,
             cantidad_producto: p.cantidad || 0,
           });
         });
@@ -376,9 +376,9 @@ const cargarCatalogos = async () => {
       dataExpandida.map((r) => ({
         ID: r.id || "",
         Fecha: r.fecha || "",
-        Actividad: actividadesCatalogo[r.actividad] || r.actividad || "",
+        Actividad: mapaActividades[r.actividad] || r.actividad || "",
         Operador: (Array.isArray(r.operador)
-          ? r.operador.map((op) => operadoresCatalogo[op] || op).join(", ")
+          ? r.operador.map((op) => mapaOperadores[op] || op).join(", ")
           : operadoresCatalogo[r.operador] || r.operador || ""),
         Producto: r.producto || "",
         Cantidad: r.cantidad_producto || "",
@@ -435,7 +435,7 @@ const cargarCatalogos = async () => {
   const mostrarProductos = (productos) => {
     return (productos || []).map((p, idx) => (
       <div key={idx}>
-        {productoLabels[p.id] || p.id} ({p.cantidad})
+        {mapaProductos[p.producto] || p.id} ({p.cantidad})
       </div>
     ));
   };
