@@ -352,26 +352,42 @@ const cargarCatalogos = async () => {
 };
 
   const exportarCSV = () => {
-    const datosCSV = filtrados.flatMap((d) => {
-      const inicio = new Date(d.horaInicio);
-      const fin = new Date(d.horaFin);
-    
-      return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
-        [t("idx")]: registroActual?.idx || "N/A",
-        [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
-        [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
-        [t("operator")]: Array.isArray(d.operadores)
-          ? d.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ")
-          : "",
-        [t("amount")]: p.cantidad,
-        [t("start_time")]: inicio.toLocaleString(),
-        [t("end_time")]: fin.toLocaleString(),
-        [t("duration_min")]: d.duracion ? Math.round(d.duracion) : "-",
-        [t("notes")]: d.notas || "N/A",
-      }));
+    const dataExpandida = [];
+
+    filtrados.forEach((r) => {
+      const productos = Array.isArray(r.productos) ? r.productos : [];
+
+      if (productos.length === 0) {
+        dataExpandida.push({
+          ...r,
+          producto: "",
+          cantidad_producto: "",
+        });
+      } else {
+        productos.forEach((p) => {
+          dataExpandida.push({
+            ...r,
+            producto: productosCatalogo[p.id] || p.id,
+            cantidad_producto: p.cantidad || 0,
+          });
+        });
+      }
     });
 
-    const csv = Papa.unparse(datosCSV);
+    const csv = Papa.unparse(
+      dataExpandida.map((r) => ({
+        ID: r.id || "",
+        Fecha: r.fecha || "",
+        Actividad: actividadesCatalogo[r.actividad] || r.actividad || "",
+        Operador: (Array.isArray(r.operador)
+          ? r.operador.map((op) => operadoresCatalogo[op] || op).join(", ")
+          : operadoresCatalogo[r.operador] || r.operador || ""),
+        Producto: r.producto || "",
+        Cantidad: r.cantidad_producto || "",
+        Notas: r.notas || "",
+        Duración: r.duracion || "",
+      }))
+    );
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
