@@ -20,30 +20,6 @@ import { onSnapshot } from "firebase/firestore";
 Modal.setAppElement("#root");
 
 export default function Registros() {
-
-useEffect(() => {
-  async function corregirRegistrosProductosNulos() {
-    const registrosRef = collection(db, "registros");
-    const snapshot = await getDocs(registrosRef);
-    let corregidos = 0;
-
-    for (const documento of snapshot.docs) {
-      const data = documento.data();
-      if (data.productos === null) {
-        await updateDoc(doc(db, "registros", documento.id), {
-          productos: [],
-        });
-        corregidos++;
-      }
-    }
-
-    console.log(`Registros corregidos: ${corregidos}`);
-  }
-
-  corregirRegistrosProductosNulos();
-}, []);
-
-
   const { t, i18n } = useTranslation();
 
   const [registros, setRegistros] = useState([]);
@@ -74,7 +50,6 @@ useEffect(() => {
   const [modoAgrupacion, setModoAgrupacion] = useState("operador");
 
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
-
 
   //nuevo y sin usar
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
@@ -465,6 +440,32 @@ const cargarCatalogos = async () => {
       </div>
     ));
   };
+
+   useEffect(() => {
+    async function corregirRegistrosProductosNulos() {
+      try {
+        const registrosRef = collection(db, "registros");
+        const snapshot = await getDocs(registrosRef);
+        let corregidos = 0;
+
+        for (const docu of snapshot.docs) {
+          const data = docu.data();
+          if (data.productos === null) {
+            await updateDoc(doc(db, "registros", docu.id), {
+              productos: [],
+            });
+            corregidos++;
+          }
+        }
+
+        console.log(`✅ Registros corregidos: ${corregidos}`);
+      } catch (e) {
+        console.error("❌ Error corrigiendo registros:", e);
+      }
+    }
+
+    corregirRegistrosProductosNulos();
+  }, []);
 
   return (
     <div className="card">
