@@ -126,7 +126,7 @@ const cargarCatalogos = async () => {
           : [],
         horaInicio: parseFirebaseDate(data.hora_inicio),
         horaFin: parseFirebaseDate(data.hora_fin),
-        duracion: data.duracion ?? "",
+        duracion: data.duracion || "",
       };
     });
     nuevos.sort((a, b) => new Date(a.horaInicio) - new Date(b.horaInicio));
@@ -165,10 +165,7 @@ const cargarCatalogos = async () => {
 
       const cumpleProducto =
         productoFiltro.length === 0 ||
-        (Array.isArray(r.productos) &&
-          r.productos.some((p) =>
-            productoFiltro.some((f) => f.value === p.producto)
-          ));
+        productoFiltro.some((p) => p.value === r.producto);
 
       const cumpleOperador =
         operadorFiltro.length === 0 ||
@@ -178,33 +175,13 @@ const cargarCatalogos = async () => {
       const cumpleTexto =
         !texto ||
         mapaActividades[r.actividad]?.toLowerCase().includes(texto) ||
-        (Array.isArray(r.productos)
-          ? r.productos.some((p) =>
-              mapaProductos[p.producto]?.toLowerCase().includes(texto)
-            )
-          : mapaProductos[r.producto]?.toLowerCase().includes(texto)) ||
+        mapaProductos[r.producto]?.toLowerCase().includes(texto) ||
         (Array.isArray(r.operadores) &&
-          r.operadores.some((id) =>
-            mapaOperadores[id]?.toLowerCase().includes(texto)
+          r.operadores.some(
+            (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
           ));
 
-      let key = "";
-
-        if (modoAgrupacion === "operador") {
-          key = Array.isArray(r.operadores)
-            ? r.operadores.map((id) => mapaOperadores[id]).join(", ")
-            : ID: ${r.operadores};
-        } else if (modoAgrupacion === "producto") {
-          key = Array.isArray(r.productos)
-            ? r.productos.map((p) => mapaProductos[p.producto] || ID: ${p.producto}).join(", ")
-            : mapaProductos[r.producto] || ID: ${r.producto};
-        } else if (modoAgrupacion === "actividad") {
-          key = mapaActividades[r.actividad] || ID: ${r.actividad};
-        } else if (modoAgrupacion === "fecha") {
-          const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
-          key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
-        }
-
+      const fechaInicio = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
       const cumpleDesde = !fechaDesde || isAfter(fechaInicio, new Date(fechaDesde));
       const cumpleHasta = !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta));
 
@@ -358,7 +335,7 @@ const cargarCatalogos = async () => {
         [t("amount")]: p.cantidad,
         [t("start_time")]: inicio.toLocaleString(),
         [t("end_time")]: fin.toLocaleString(),
-        [t("duration_min")]: d.duracion ? Math.round(d.duracion) : "-",
+        [t("duration_min")]: d.duracion ? Math.round(d.duracion / 60) : "-",
         [t("notes")]: d.notas || "N/A",
       }));
     });
@@ -377,33 +354,27 @@ const cargarCatalogos = async () => {
 
   const registrosAgrupados = () => {
     const grupos = {};
-
     filtrados.forEach((r) => {
       let key = "";
-
       if (modoAgrupacion === "operador") {
-        key = Array.isArray(r.operadores)
-          ? r.operadores.map((id) => mapaOperadores[id]).join(", ")
-          : ID: ${r.operadores};
+        key = Array.isArray(r.operadores) ? r.operadores.map(id => mapaOperadores[id]).join(", ") : ID: ${r.operadores};
       } else if (modoAgrupacion === "producto") {
-        key = Array.isArray(r.productos)
-          ? r.productos.map((p) => mapaProductos[p.producto] || ID: ${p.producto}).join(", ")
-          : mapaProductos[r.producto] || ID: ${r.producto};
+        key = r.producto && mapaProductos[r.producto]
+          ? mapaProductos[r.producto]
+          : r.producto
+          ? ID: ${r.producto}
+          : t("multi_product");
       } else if (modoAgrupacion === "actividad") {
         key = mapaActividades[r.actividad] || ID: ${r.actividad};
       } else if (modoAgrupacion === "fecha") {
-        const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
-        key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
+        key = format(new Date(r.horaInicio), "yyyy-MM-dd");
       }
-
       if (!grupos[key]) grupos[key] = [];
       grupos[key].push(r);
     });
 
     const gruposOrdenados = {};
-    Object.keys(grupos)
-      .sort((a, b) => a.localeCompare(b))
-      .forEach((key) => {
+      Object.keys(grupos).sort((a, b) => a.localeCompare(b)).forEach((key) => {
         gruposOrdenados[key] = grupos[key];
       });
 
@@ -468,7 +439,7 @@ const cargarCatalogos = async () => {
                 <th>{t("operator")}</th>
                 <th>{t("start_time")}</th>
                 <th>{t("end_time")}</th>
-                <th>{t("duration_min")}</th>
+                <th>⏱ {t("duration_min")}</th>
                 <th>{t("notes")}</th>
                 <th>{t("actions")}</th>
               </tr>
@@ -524,7 +495,7 @@ const cargarCatalogos = async () => {
             <option value="operador">{t("operator")}</option>
             <option value="producto">{t("product")}</option>
             <option value="actividad">{t("activity")}</option>
-            <option value="fecha">{t("fecha")}</option>
+            <option value="starttime">{t("fecha")}</option>
           </select>
 
           {Object.entries(registrosAgrupados()).map(([grupo, lista]) => (
@@ -540,7 +511,7 @@ const cargarCatalogos = async () => {
                     <th>{t("amount")}</th>
                     <th>{t("start_time")}</th>
                     <th>{t("end_time")}</th>
-                    <th>{t("duration_min")}</th>
+                    <th>⏱ {t("duration_min")}</th>
                     <th>{t("notes")}</th>
                   </tr>
                 </thead>
