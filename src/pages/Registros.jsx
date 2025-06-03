@@ -1,4 +1,3 @@
-Al parecer borre de mi codigo en la parte de registro la posibilidad de agregar mas de un producto. Ya sea al editar o al agregar un registro nuevo. Me puedes decir que modificar para agregar esa opcion:
 import React, { useEffect, useState } from "react";
 import {
   collection,
@@ -194,13 +193,13 @@ const cargarCatalogos = async () => {
         if (modoAgrupacion === "operador") {
           key = Array.isArray(r.operadores)
             ? r.operadores.map((id) => mapaOperadores[id]).join(", ")
-            : `ID: ${r.operadores}`;
+            : ID: ${r.operadores};
         } else if (modoAgrupacion === "producto") {
           key = Array.isArray(r.productos)
-            ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
-            : mapaProductos[r.producto] || `ID: ${r.producto}`;
+            ? r.productos.map((p) => mapaProductos[p.producto] || ID: ${p.producto}).join(", ")
+            : mapaProductos[r.producto] || ID: ${r.producto};
         } else if (modoAgrupacion === "actividad") {
-          key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
+          key = mapaActividades[r.actividad] || ID: ${r.actividad};
         } else if (modoAgrupacion === "fecha") {
           const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
           key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
@@ -238,7 +237,7 @@ const cargarCatalogos = async () => {
       if (!fecha) return "";
       const d = new Date(fecha);
       const pad = (n) => String(n).padStart(2, "0");
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return ${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())};
     };
 
     setRegistroActual({
@@ -319,20 +318,11 @@ const cargarCatalogos = async () => {
     return;
   }
 
-  const productosOrdenados = [...productosLimpios].sort((a, b) =>
-    (mapaProductos[a.producto] || "").localeCompare(mapaProductos[b.producto] || "")
-  );
-
-// Ordenar operadores por nombre
-  const operadoresOrdenados = [...operadores].sort((a, b) =>
-    (mapaOperadores[a] || "").localeCompare(mapaOperadores[b] || "")
-  );
-
   const data = {
     idx,
     actividad,
-    productos: productosOrdenados,
-    operadores: operadoresOrdenados,
+    productos: productosLimpios,
+    operadores,
     notas,
     hora_inicio: new Date(horaInicio),
     hora_fin: new Date(horaFin),
@@ -360,10 +350,10 @@ const cargarCatalogos = async () => {
     
       return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
         [t("idx")]: registroActual?.idx || "N/A",
-        [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
-        [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
+        [t("activity")]: mapaActividades[d.actividad] || ID: ${d.actividad},
+        [t("product")]: mapaProductos[p.producto] || ID: ${p.producto},
         [t("operator")]: Array.isArray(d.operadores)
-          ? d.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ")
+          ? d.operadores.map((id) => mapaOperadores[id] || ID: ${id}).join(", ")
           : "",
         [t("amount")]: p.cantidad,
         [t("start_time")]: inicio.toLocaleString(),
@@ -394,13 +384,13 @@ const cargarCatalogos = async () => {
       if (modoAgrupacion === "operador") {
         key = Array.isArray(r.operadores)
           ? r.operadores.map((id) => mapaOperadores[id]).join(", ")
-          : `ID: ${r.operadores}`;
+          : ID: ${r.operadores};
       } else if (modoAgrupacion === "producto") {
         key = Array.isArray(r.productos)
-          ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
-          : mapaProductos[r.producto] || `ID: ${r.producto}`;
+          ? r.productos.map((p) => mapaProductos[p.producto] || ID: ${p.producto}).join(", ")
+          : mapaProductos[r.producto] || ID: ${r.producto};
       } else if (modoAgrupacion === "actividad") {
-        key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
+        key = mapaActividades[r.actividad] || ID: ${r.actividad};
       } else if (modoAgrupacion === "fecha") {
         const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
         key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
@@ -482,7 +472,7 @@ const cargarCatalogos = async () => {
                    <td>
                     {Array.isArray(r.productos)
                       ? r.productos.map((p, i) => (
-                          <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
+                          <div key={i}>{mapaProductos[p.producto] || ID: ${p.producto}}</div>
                         ))
                       : mapaProductos[r.producto]}
                   </td>
@@ -493,10 +483,10 @@ const cargarCatalogos = async () => {
                         ))
                       : r.cantidad}
                   </td>
-                    <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
+                    <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || ID: ${id}).join(", ") : "N/A"}</td>
                     <td>{inicio.toLocaleString()}</td>
                     <td>{fin.toLocaleString()}</td>
-                    <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
+                    <td>{r.duracion ? ${Math.round(r.duracion)} min : "-"}</td>
                     <td>{r.notas || "N/A"}</td>
                     <td>
                       <button onClick={() => abrirModal(r)}>{t("edit")}</button>
@@ -548,11 +538,11 @@ const cargarCatalogos = async () => {
                       <tr key={r.id}>
                         <td>{r.idx || "N/A"}</td>
                         <td>{mapaActividades[r.actividad]}</td>
-                        <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
+                        <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || ID: ${id}).join(", ") : "N/A"}</td>
                         <td>
                           {Array.isArray(r.productos)
                             ? r.productos.map((p, i) => (
-                                <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
+                                <div key={i}>{mapaProductos[p.producto] || ID: ${p.producto}}</div>
                               ))
                             : mapaProductos[r.producto]}
                         </td>
@@ -565,7 +555,7 @@ const cargarCatalogos = async () => {
                         </td>
                         <td>{new Date(r.horaInicio).toLocaleString()}</td>
                         <td>{new Date(r.horaFin).toLocaleString()}</td>
-                        <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
+                        <td>{r.duracion ? ${Math.round(r.duracion)} min : "-"}</td>
                         <td>{r.notas || "N/A"}</td>
                       </tr>
                     );
