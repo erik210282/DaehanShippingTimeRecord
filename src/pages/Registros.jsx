@@ -126,7 +126,7 @@ const cargarCatalogos = async () => {
           : [],
         horaInicio: parseFirebaseDate(data.hora_inicio),
         horaFin: parseFirebaseDate(data.hora_fin),
-        duracion: data.duracion || "",
+        duracion: data.duracion ?? "",
       };
     });
     nuevos.sort((a, b) => new Date(a.horaInicio) - new Date(b.horaInicio));
@@ -165,7 +165,10 @@ const cargarCatalogos = async () => {
 
       const cumpleProducto =
         productoFiltro.length === 0 ||
-        productoFiltro.some((p) => p.value === r.producto);
+        (Array.isArray(r.productos) &&
+          r.productos.some((p) =>
+            productoFiltro.some((f) => f.value === p.producto)
+          ));
 
       const cumpleOperador =
         operadorFiltro.length === 0 ||
@@ -175,13 +178,33 @@ const cargarCatalogos = async () => {
       const cumpleTexto =
         !texto ||
         mapaActividades[r.actividad]?.toLowerCase().includes(texto) ||
-        mapaProductos[r.producto]?.toLowerCase().includes(texto) ||
+        (Array.isArray(r.productos)
+          ? r.productos.some((p) =>
+              mapaProductos[p.producto]?.toLowerCase().includes(texto)
+            )
+          : mapaProductos[r.producto]?.toLowerCase().includes(texto)) ||
         (Array.isArray(r.operadores) &&
-          r.operadores.some(
-            (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
+          r.operadores.some((id) =>
+            mapaOperadores[id]?.toLowerCase().includes(texto)
           ));
 
-      const fechaInicio = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
+      let key = "";
+
+        if (modoAgrupacion === "operador") {
+          key = Array.isArray(r.operadores)
+            ? r.operadores.map((id) => mapaOperadores[id]).join(", ")
+            : `ID: ${r.operadores}`;
+        } else if (modoAgrupacion === "producto") {
+          key = Array.isArray(r.productos)
+            ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+            : mapaProductos[r.producto] || `ID: ${r.producto}`;
+        } else if (modoAgrupacion === "actividad") {
+          key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
+        } else if (modoAgrupacion === "fecha") {
+          const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
+          key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
+        }
+
       const cumpleDesde = !fechaDesde || isAfter(fechaInicio, new Date(fechaDesde));
       const cumpleHasta = !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta));
 
@@ -195,7 +218,7 @@ const cargarCatalogos = async () => {
       );
     });
 
-    resultados.sort((a, b) => new Date(a.horaInicio) - new Date(b.horaInicio));
+    resultados.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
     setFiltrados(resultados);
     setErrorBusqueda(texto && resultados.length === 0 ? t("no_results_found") : "");
   }, [
@@ -214,7 +237,7 @@ const cargarCatalogos = async () => {
       if (!fecha) return "";
       const d = new Date(fecha);
       const pad = (n) => String(n).padStart(2, "0");
-      return ${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())};
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     };
 
     setRegistroActual({
@@ -259,10 +282,9 @@ const cargarCatalogos = async () => {
     return;
   }
 
-  const productosLimpios = productos.map(p => ({
-    producto: p.producto,
-    cantidad: Number(p.cantidad),
-  }));
+  const productosLimpios = registroActual.productos.filter(
+    (p) => p.producto && p.cantidad
+  );
 
   if (productosLimpios.some(p => !p.producto || isNaN(p.cantidad) || p.cantidad <= 0)) {
     toast.error(t("fill_all_fields"));
@@ -295,11 +317,20 @@ const cargarCatalogos = async () => {
     return;
   }
 
+  const productosOrdenados = [...productosLimpios].sort((a, b) =>
+    (mapaProductos[a.producto] || "").localeCompare(mapaProductos[b.producto] || "")
+  );
+
+// Ordenar operadores por nombre
+  const operadoresOrdenados = [...operadores].sort((a, b) =>
+    (mapaOperadores[a] || "").localeCompare(mapaOperadores[b] || "")
+  );
+
   const data = {
     idx,
     actividad,
-    productos: productosLimpios,
-    operadores,
+    productos: productosOrdenados,
+    operadores: operadoresOrdenados,
     notas,
     hora_inicio: new Date(horaInicio),
     hora_fin: new Date(horaFin),
@@ -327,15 +358,15 @@ const cargarCatalogos = async () => {
     
       return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
         [t("idx")]: registroActual?.idx || "N/A",
-        [t("activity")]: mapaActividades[d.actividad] || ID: ${d.actividad},
-        [t("product")]: mapaProductos[p.producto] || ID: ${p.producto},
+        [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
+        [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
         [t("operator")]: Array.isArray(d.operadores)
-          ? d.operadores.map((id) => mapaOperadores[id] || ID: ${id}).join(", ")
+          ? d.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ")
           : "",
         [t("amount")]: p.cantidad,
         [t("start_time")]: inicio.toLocaleString(),
         [t("end_time")]: fin.toLocaleString(),
-        [t("duration_min")]: d.duracion ? Math.round(d.duracion / 60) : "-",
+        [t("duration_min")]: d.duracion ? Math.round(d.duracion) : "-",
         [t("notes")]: d.notas || "N/A",
       }));
     });
@@ -354,27 +385,33 @@ const cargarCatalogos = async () => {
 
   const registrosAgrupados = () => {
     const grupos = {};
+
     filtrados.forEach((r) => {
       let key = "";
+
       if (modoAgrupacion === "operador") {
-        key = Array.isArray(r.operadores) ? r.operadores.map(id => mapaOperadores[id]).join(", ") : ID: ${r.operadores};
+        key = Array.isArray(r.operadores)
+          ? r.operadores.map((id) => mapaOperadores[id]).join(", ")
+          : `ID: ${r.operadores}`;
       } else if (modoAgrupacion === "producto") {
-        key = r.producto && mapaProductos[r.producto]
-          ? mapaProductos[r.producto]
-          : r.producto
-          ? ID: ${r.producto}
-          : t("multi_product");
+        key = Array.isArray(r.productos)
+          ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+          : mapaProductos[r.producto] || `ID: ${r.producto}`;
       } else if (modoAgrupacion === "actividad") {
-        key = mapaActividades[r.actividad] || ID: ${r.actividad};
+        key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
       } else if (modoAgrupacion === "fecha") {
-        key = format(new Date(r.horaInicio), "yyyy-MM-dd");
+        const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
+        key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
       }
+
       if (!grupos[key]) grupos[key] = [];
       grupos[key].push(r);
     });
 
     const gruposOrdenados = {};
-      Object.keys(grupos).sort((a, b) => a.localeCompare(b)).forEach((key) => {
+    Object.keys(grupos)
+      .sort((a, b) => b.localeCompare(a))
+      .forEach((key) => {
         gruposOrdenados[key] = grupos[key];
       });
 
@@ -393,23 +430,7 @@ const cargarCatalogos = async () => {
         </button>
       </div>
 
-      <button
-        style={{
-          position: "fixed",
-          bottom: "20px",
-          right: "20px",
-          backgroundColor: "#007bff",
-          color: "white",
-          padding: "10px 20px",
-          border: "none",
-          borderRadius: "50%",
-          fontSize: "24px",
-          cursor: "pointer",
-        }}
-        onClick={() => abrirModal(null)}
-      >
-        +
-      </button>
+      
 
       {pestañaActiva === "paginado" ? (
         <div>
@@ -429,6 +450,10 @@ const cargarCatalogos = async () => {
             setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
           }}>{t("clear_filters")}</button>
 
+          <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
+            ➕ {t("add_product")}
+          </button>          
+
           <table className="table">
             <thead>
               <tr>
@@ -439,7 +464,7 @@ const cargarCatalogos = async () => {
                 <th>{t("operator")}</th>
                 <th>{t("start_time")}</th>
                 <th>{t("end_time")}</th>
-                <th>⏱ {t("duration_min")}</th>
+                <th>{t("duration_min")}</th>
                 <th>{t("notes")}</th>
                 <th>{t("actions")}</th>
               </tr>
@@ -455,7 +480,7 @@ const cargarCatalogos = async () => {
                    <td>
                     {Array.isArray(r.productos)
                       ? r.productos.map((p, i) => (
-                          <div key={i}>{mapaProductos[p.producto] || ID: ${p.producto}}</div>
+                          <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
                         ))
                       : mapaProductos[r.producto]}
                   </td>
@@ -466,10 +491,10 @@ const cargarCatalogos = async () => {
                         ))
                       : r.cantidad}
                   </td>
-                    <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || ID: ${id}).join(", ") : "N/A"}</td>
+                    <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                     <td>{inicio.toLocaleString()}</td>
                     <td>{fin.toLocaleString()}</td>
-                    <td>{r.duracion ? ${Math.round(r.duracion)} min : "-"}</td>
+                    <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
                     <td>{r.notas || "N/A"}</td>
                     <td>
                       <button onClick={() => abrirModal(r)}>{t("edit")}</button>
@@ -495,7 +520,7 @@ const cargarCatalogos = async () => {
             <option value="operador">{t("operator")}</option>
             <option value="producto">{t("product")}</option>
             <option value="actividad">{t("activity")}</option>
-            <option value="starttime">{t("fecha")}</option>
+            <option value="fecha">{t("fecha")}</option>
           </select>
 
           {Object.entries(registrosAgrupados()).map(([grupo, lista]) => (
@@ -511,7 +536,7 @@ const cargarCatalogos = async () => {
                     <th>{t("amount")}</th>
                     <th>{t("start_time")}</th>
                     <th>{t("end_time")}</th>
-                    <th>⏱ {t("duration_min")}</th>
+                    <th>{t("duration_min")}</th>
                     <th>{t("notes")}</th>
                   </tr>
                 </thead>
@@ -521,11 +546,11 @@ const cargarCatalogos = async () => {
                       <tr key={r.id}>
                         <td>{r.idx || "N/A"}</td>
                         <td>{mapaActividades[r.actividad]}</td>
-                        <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || ID: ${id}).join(", ") : "N/A"}</td>
+                        <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                         <td>
                           {Array.isArray(r.productos)
                             ? r.productos.map((p, i) => (
-                                <div key={i}>{mapaProductos[p.producto] || ID: ${p.producto}}</div>
+                                <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
                               ))
                             : mapaProductos[r.producto]}
                         </td>
@@ -538,7 +563,7 @@ const cargarCatalogos = async () => {
                         </td>
                         <td>{new Date(r.horaInicio).toLocaleString()}</td>
                         <td>{new Date(r.horaFin).toLocaleString()}</td>
-                        <td>{r.duracion ? ${Math.round(r.duracion)} min : "-"}</td>
+                        <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
                         <td>{r.notas || "N/A"}</td>
                       </tr>
                     );
@@ -563,47 +588,58 @@ const cargarCatalogos = async () => {
 
           <Select options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
 
-          {registroActual?.productos?.map((p, index) => (
-            <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+
+          {registroActual.productos?.map((p, index) => (
+            <div key={index} style={{ display: "flex", gap: "10px", marginBottom: 5 }}>
               <Select
-                options={selectProductos}
-                value={selectProductos.find((opt) => opt.value === p.producto)}
+                options={Object.entries(productos).map(([id, nombre]) => ({ value: id, label: nombre }))}
+                value={
+                  p.producto
+                    ? { value: p.producto, label: productos[p.producto] }
+                    : null
+                }
                 onChange={(e) => {
                   const nuevos = [...registroActual.productos];
                   nuevos[index].producto = e.value;
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}
-                placeholder={t("select_product")}
-                styles={{ container: (base) => ({ ...base, flex: 1 }) }}
+                placeholder={t("producto")}
               />
               <input
                 type="number"
-                placeholder={t("amount")}
                 value={p.cantidad}
                 onChange={(e) => {
                   const nuevos = [...registroActual.productos];
                   nuevos[index].cantidad = e.target.value;
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}
-                style={{ width: "400px" }}
+                placeholder={t("cantidad")}
+                style={{ width: "80px" }}
               />
-              {index > 0 && (
-                <button onClick={() => {
-                  const nuevos = registroActual.productos.filter((_, i) => i !== index);
-                  setRegistroActual({ ...registroActual, productos: nuevos });
-                }}>✖</button>
+              {registroActual.productos.length > 1 && (
+                <button
+                  onClick={() => {
+                    const nuevos = registroActual.productos.filter((_, i) => i !== index);
+                    setRegistroActual({ ...registroActual, productos: nuevos });
+                  }}
+                >
+                  ✖
+                </button>
               )}
             </div>
           ))}
           <button
-            onClick={() => setRegistroActual({
-              ...registroActual,
-              productos: [...registroActual.productos, { producto: "", cantidad: "" }],
-            })}
-            style={{ marginTop: "10px" }}
+            onClick={() =>
+              setRegistroActual({
+                ...registroActual,
+                productos: [...registroActual.productos, { producto: "", cantidad: "" }],
+              })
+            }
           >
-            ➕ {t("add_product")}
+            ➕ {t("agregar_producto")}
           </button>
+
+          
           <Select isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
           <input type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} />
