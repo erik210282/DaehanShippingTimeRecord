@@ -17,6 +17,26 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { onSnapshot } from "firebase/firestore";
 
+
+async function corregirRegistrosProductosNulos() {
+  const registrosRef = collection(db, "registros");
+  const snapshot = await getDocs(registrosRef);
+
+  let corregidos = 0;
+
+  for (const documento of snapshot.docs) {
+    const data = documento.data();
+    if (data.productos === null) {
+      await updateDoc(doc(db, "registros", documento.id), {
+        productos: [],
+      });
+      corregidos++;
+    }
+  }
+
+  console.log(`Registros corregidos: ${corregidos}`);
+}
+
 Modal.setAppElement("#root");
 
 export default function Registros() {
