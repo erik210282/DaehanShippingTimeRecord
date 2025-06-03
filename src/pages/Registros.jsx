@@ -349,52 +349,44 @@ const cargarCatalogos = async () => {
 };
 
   const exportarCSV = () => {
-    const dataExpandida = [];
+    const csvData = filtrados.flatMap((registro) => {
+      const productosValidos = Array.isArray(registro.productos)
+        ? registro.productos
+        : [];
 
-    filtrados.forEach((r) => {
-      const productos = Array.isArray(r.productos) ? r.productos : [];
-
-      if (productos.length === 0) {
-        dataExpandida.push({
-          ...r,
-          producto: "",
-          cantidad_producto: "",
-        });
-      } else {
-        productos.forEach((p) => {
-          dataExpandida.push({
-            ...r,
-            producto: mapaProductos[p.producto] || p.producto,
-            cantidad_producto: p.cantidad || 0,
-          });
-        });
-      }
+      return productosValidos.length > 0
+        ? productosValidos.map((prod) => ({
+            ...registro,
+            producto: prod.nombre,
+            cantidad: prod.cantidad,
+          }))
+        : [
+            {
+              ...registro,
+              producto: "",
+              cantidad: "",
+            },
+          ];
     });
 
-    const csv = Papa.unparse(
-      dataExpandida.map((r) => ({
-        ID: r.id || "",
-        Fecha: r.fecha || "",
-        Actividad: mapaActividades[r.actividad] || r.actividad || "",
-        Operador: (Array.isArray(r.operador)
-          ? r.operador.map((op) => mapaOperadores[op] || op).join(", ")
-          : operadoresCatalogo[r.operador] || r.operador || ""),
-        Producto: r.producto || "",
-        Cantidad: r.cantidad_producto || "",
-        Notas: r.notas || "",
-        Duración: r.duracion || "",
-      }))
-    );
+    const csv = Papa.unparse(csvData, {
+      quotes: true,
+      delimiter: ",",
+    });
+
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url;
+    link.setAttribute("href", url);
     link.setAttribute("download", "registros.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success(t("export_success") || "CSV exportado correctamente");
   };
+
+  useEffect(() => {
+    obtenerRegistros();
+  }, []);
 
   const registrosAgrupados = () => {
     const grupos = {};
@@ -431,14 +423,25 @@ const cargarCatalogos = async () => {
     return gruposOrdenados;
   };
 
-  const mostrarProductos = (productos) => {
-    if (!Array.isArray(productos)) return <div>N/A</div>;
+  const mostrarProductos = (registro) => {
+    const productosValidos = Array.isArray(registro.productos)
+      ? registro.productos
+      : [];
+    return productosValidos
+      .map((prod) => `${prod.nombre} (${prod.cantidad})`)
+      .join(", ");
+  };
 
-    return productos.map((p, idx) => (
-      <div key={idx}>
-        {mapaProductos[p.producto] || p.producto} ({p.cantidad})
-      </div>
-    ));
+   const obtenerRegistros = async () => {
+    const col = collection(db, "registros");
+    onSnapshot(col, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setRegistros(data);
+      setFiltrados(data);
+    });
   };
 
    useEffect(() => {
