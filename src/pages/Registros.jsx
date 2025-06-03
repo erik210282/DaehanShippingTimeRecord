@@ -369,24 +369,30 @@ const cargarCatalogos = async () => {
           ];
     });
 
-    const csv = Papa.unparse(csvData, {
-      quotes: true,
-      delimiter: ",",
-    });
-
+    const csv = Papa.unparse(
+      dataExpandida.map((r) => ({
+        ID: r.id || "",
+        Fecha: r.fecha || "",
+        Actividad: mapaActividades[r.actividad] || r.actividad || "",
+        Operador: (Array.isArray(r.operador)
+          ? r.operador.map((op) => mapaOperadores[op] || op).join(", ")
+          : operadoresCatalogo[r.operador] || r.operador || ""),
+        Producto: r.producto || "",
+        Cantidad: r.cantidad_producto || "",
+        Notas: r.notas || "",
+        Duración: r.duracion || "",
+      }))
+    );
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
+    link.href = url;
     link.setAttribute("download", "registros.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success(t("export_success") || "CSV exportado correctamente");
   };
-
-  useEffect(() => {
-    obtenerRegistros();
-  }, []);
 
   const registrosAgrupados = () => {
     const grupos = {};
