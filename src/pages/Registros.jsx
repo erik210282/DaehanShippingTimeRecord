@@ -541,7 +541,7 @@ const cargarCatalogos = async () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {lista.map((r) => {
+                  {lista.map((r, index) => {
                     return (
                       <tr key={r.id}>
                         <td>{r.idx || "N/A"}</td>
