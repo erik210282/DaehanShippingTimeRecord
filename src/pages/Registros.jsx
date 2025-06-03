@@ -318,11 +318,20 @@ const cargarCatalogos = async () => {
     return;
   }
 
+  const productosOrdenados = [...productosLimpios].sort((a, b) =>
+    (mapaProductos[a.producto] || "").localeCompare(mapaProductos[b.producto] || "")
+  );
+
+// Ordenar operadores por nombre
+  const operadoresOrdenados = [...operadores].sort((a, b) =>
+    (mapaOperadores[a] || "").localeCompare(mapaOperadores[b] || "")
+  );
+
   const data = {
     idx,
     actividad,
-    productos: productosLimpios,
-    operadores,
+    productos: productosOrdenados,
+    operadores: operadoresOrdenados,
     notas,
     hora_inicio: new Date(horaInicio),
     hora_fin: new Date(horaFin),
