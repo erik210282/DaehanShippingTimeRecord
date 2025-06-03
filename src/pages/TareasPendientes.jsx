@@ -125,6 +125,26 @@ export default function TareasPendientes() {
 
   const mostrarNombre = (id, mapa) => mapa[id] || `ID: ${id}`;
 
+async function corregirProductosNulos() {
+  const registrosRef = collection(db, "registros");
+  const snapshot = await getDocs(registrosRef);
+
+  let corregidos = 0;
+  for (const documento of snapshot.docs) {
+    const data = documento.data();
+    if (data.productos === null) {
+      await updateDoc(doc(db, "registros", documento.id), {
+        productos: [],
+      });
+      corregidos++;
+    }
+  }
+
+  console.log(`Registros corregidos: ${corregidos}`);
+}
+
+corregirProductosNulos();
+
   return (
     <div className="card">
       <h2>{t("pending_tasks")}</h2>
