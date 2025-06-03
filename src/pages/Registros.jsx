@@ -1,3 +1,4 @@
+Al parecer borre de mi codigo en la parte de registro la posibilidad de agregar mas de un producto. Ya sea al editar o al agregar un registro nuevo. Me puedes decir que modificar para agregar esa opcion:
 import React, { useEffect, useState } from "react";
 import {
   collection,
@@ -16,26 +17,6 @@ import { isAfter, isBefore, format } from "date-fns";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { onSnapshot } from "firebase/firestore";
-
-
-async function corregirRegistrosProductosNulos() {
-  const registrosRef = collection(db, "registros");
-  const snapshot = await getDocs(registrosRef);
-
-  let corregidos = 0;
-
-  for (const documento of snapshot.docs) {
-    const data = documento.data();
-    if (data.productos === null) {
-      await updateDoc(doc(db, "registros", documento.id), {
-        productos: [],
-      });
-      corregidos++;
-    }
-  }
-
-  console.log(`Registros corregidos: ${corregidos}`);
-}
 
 Modal.setAppElement("#root");
 
@@ -216,7 +197,7 @@ const cargarCatalogos = async () => {
             : `ID: ${r.operadores}`;
         } else if (modoAgrupacion === "producto") {
           key = Array.isArray(r.productos)
-            ? (r.productos || []).map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+            ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
             : mapaProductos[r.producto] || `ID: ${r.producto}`;
         } else if (modoAgrupacion === "actividad") {
           key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
@@ -302,9 +283,10 @@ const cargarCatalogos = async () => {
     return;
   }
 
-  const productosLimpios = registroActual.productos.filter(
-    (p) => p.producto && p.cantidad
-  );
+  const productosLimpios = productos.map(p => ({
+    producto: p.producto,
+    cantidad: Number(p.cantidad),
+  }));
 
   if (productosLimpios.some(p => !p.producto || isNaN(p.cantidad) || p.cantidad <= 0)) {
     toast.error(t("fill_all_fields"));
@@ -376,12 +358,8 @@ const cargarCatalogos = async () => {
       const inicio = new Date(d.horaInicio);
       const fin = new Date(d.horaFin);
     
-      const productos = Array.isArray(d.productos)
-        ? d.productos
-        : [{ producto: d.producto, cantidad: d.cantidad }];
-
-      return productos.map((p) => ({
-        [t("idx")]: d.idx || "N/A",
+      return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
+        [t("idx")]: registroActual?.idx || "N/A",
         [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
         [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
         [t("operator")]: Array.isArray(d.operadores)
@@ -419,7 +397,7 @@ const cargarCatalogos = async () => {
           : `ID: ${r.operadores}`;
       } else if (modoAgrupacion === "producto") {
         key = Array.isArray(r.productos)
-          ? (r.productos || []).map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+          ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
           : mapaProductos[r.producto] || `ID: ${r.producto}`;
       } else if (modoAgrupacion === "actividad") {
         key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
@@ -475,7 +453,7 @@ const cargarCatalogos = async () => {
           }}>{t("clear_filters")}</button>
 
           <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
-            ➕ {t("add_record")}
+            ➕ {t("add_product")}
           </button>          
 
           <table className="table">
@@ -494,7 +472,7 @@ const cargarCatalogos = async () => {
               </tr>
             </thead>
             <tbody>
-              {filtrados.map((r, index) => {
+              {filtrados.map((r) => {
                 const inicio = new Date(r.horaInicio);
                 const fin = new Date(r.horaFin);
                 return (
@@ -502,14 +480,18 @@ const cargarCatalogos = async () => {
                     <td>{r.idx || "N/A"}</td>
                     <td>{mapaActividades[r.actividad]}</td>
                    <td>
-                    {(r.productos || []).map((p, i) => (
-                      <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
-                    ))}
+                    {Array.isArray(r.productos)
+                      ? r.productos.map((p, i) => (
+                          <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
+                        ))
+                      : mapaProductos[r.producto]}
                   </td>
                   <td>
-                    {(r.productos || []).map((p, i) => (
-                      <div key={i}>{p.cantidad}</div>
-                    ))}
+                    {Array.isArray(r.productos)
+                      ? r.productos.map((p, i) => (
+                          <div key={i}>{p.cantidad}</div>
+                        ))
+                      : r.cantidad}
                   </td>
                     <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                     <td>{inicio.toLocaleString()}</td>
@@ -561,21 +543,25 @@ const cargarCatalogos = async () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {lista.map((r, index) => {
+                  {lista.map((r) => {
                     return (
                       <tr key={r.id}>
                         <td>{r.idx || "N/A"}</td>
                         <td>{mapaActividades[r.actividad]}</td>
                         <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                         <td>
-                          {(r.productos || []).map((p, i) => (
-                            <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
-                          ))}
+                          {Array.isArray(r.productos)
+                            ? r.productos.map((p, i) => (
+                                <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
+                              ))
+                            : mapaProductos[r.producto]}
                         </td>
                         <td>
-                          {(r.productos || []).map((p, i) => (
-                          <div key={i}>{p.cantidad}</div>
-                        ))}
+                          {Array.isArray(r.productos)
+                            ? r.productos.map((p, i) => (
+                                <div key={i}>{p.cantidad}</div>
+                              ))
+                            : r.cantidad}
                         </td>
                         <td>{new Date(r.horaInicio).toLocaleString()}</td>
                         <td>{new Date(r.horaFin).toLocaleString()}</td>
@@ -604,57 +590,38 @@ const cargarCatalogos = async () => {
 
           <Select options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
 
-
-          {registroActual.productos?.map((p, index) => (
-            <div key={index} style={{ display: "flex", gap: "10px", marginBottom: 5 }}>
+          {registroActual?.productos?.map((p, index) => (
+            <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
               <Select
-                options={Object.entries(productos).map(([id, nombre]) => ({ value: id, label: nombre }))}
-                value={
-                  p.producto
-                    ? { value: p.producto, label: productos[p.producto] }
-                    : null
-                }
+                options={selectProductos}
+                value={selectProductos.find((opt) => opt.value === p.producto)}
                 onChange={(e) => {
                   const nuevos = [...registroActual.productos];
                   nuevos[index].producto = e.value;
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}
-                placeholder={t("producto")}
+                placeholder={t("select_product")}
+                styles={{ container: (base) => ({ ...base, flex: 1 }) }}
               />
               <input
                 type="number"
+                placeholder={t("amount")}
                 value={p.cantidad}
                 onChange={(e) => {
                   const nuevos = [...registroActual.productos];
                   nuevos[index].cantidad = e.target.value;
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}
-                placeholder={t("cantidad")}
-                style={{ width: "80px" }}
+                style={{ width: "400px" }}
               />
-              {registroActual.productos.length > 1 && (
-                <button
-                  onClick={() => {
-                    const nuevos = registroActual.productos.filter((_, i) => i !== index);
-                    setRegistroActual({ ...registroActual, productos: nuevos });
-                  }}
-                >
-                  ✖
-                </button>
+              {index > 0 && (
+                <button onClick={() => {
+                  const nuevos = registroActual.productos.filter((_, i) => i !== index);
+                  setRegistroActual({ ...registroActual, productos: nuevos });
+                }}>✖</button>
               )}
             </div>
           ))}
-          <button
-            onClick={() =>
-              setRegistroActual({
-                ...registroActual,
-                productos: [...registroActual.productos, { producto: "", cantidad: "" }],
-              })
-            }
-          >
-            ➕ {t("agregar_producto")}
-          </button>
-
           
           <Select isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
