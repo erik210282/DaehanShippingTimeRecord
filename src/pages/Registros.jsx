@@ -482,18 +482,14 @@ const cargarCatalogos = async () => {
                     <td>{r.idx || "N/A"}</td>
                     <td>{mapaActividades[r.actividad]}</td>
                    <td>
-                    {Array.isArray(r.productos)
-                      ? r.productos.map((p, i) => (
-                          <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
-                        ))
-                      : mapaProductos[r.producto]}
+                    {(r.productos || []).map((p, i) => (
+                      <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
+                    ))}
                   </td>
                   <td>
-                    {Array.isArray(r.productos)
-                      ? r.productos.map((p, i) => (
-                          <div key={i}>{p.cantidad}</div>
-                        ))
-                      : r.cantidad}
+                    {(r.productos || []).map((p, i) => (
+                      <div key={i}>{p.cantidad}</div>
+                    ))}
                   </td>
                     <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                     <td>{inicio.toLocaleString()}</td>
@@ -552,18 +548,14 @@ const cargarCatalogos = async () => {
                         <td>{mapaActividades[r.actividad]}</td>
                         <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                         <td>
-                          {Array.isArray(r.productos)
-                            ? r.productos.map((p, i) => (
-                                <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
-                              ))
-                            : mapaProductos[r.producto]}
+                          {(r.productos || []).map((p, i) => (
+                            <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
+                          ))}
                         </td>
                         <td>
-                          {Array.isArray(r.productos)
-                            ? r.productos.map((p, i) => (
-                                <div key={i}>{p.cantidad}</div>
-                              ))
-                            : r.cantidad}
+                          {(r.productos || []).map((p, i) => (
+                          <div key={i}>{p.cantidad}</div>
+                        ))}
                         </td>
                         <td>{new Date(r.horaInicio).toLocaleString()}</td>
                         <td>{new Date(r.horaFin).toLocaleString()}</td>
