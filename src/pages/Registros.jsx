@@ -53,6 +53,7 @@ export default function Registros() {
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
 
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
+  const [editProductos, setEditProductos] = useState([]);
 
   const parseFirebaseDate = (fecha) => {
     if (!fecha) return null;
