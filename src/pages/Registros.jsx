@@ -139,6 +139,18 @@ const cargarCatalogos = async () => {
     setFiltrados(nuevos);
   };
 
+
+
+  useEffect(() => {
+  console.log("Registros cargados:", registros);
+}, [registros]);
+
+useEffect(() => {
+  console.log("Filtrados:", filtrados);
+}, [filtrados]);
+
+
+
   useEffect(() => {
     cargarCatalogos();
 
