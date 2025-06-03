@@ -433,9 +433,11 @@ const cargarCatalogos = async () => {
   };
 
   const mostrarProductos = (productos) => {
-    return (productos || []).map((p, idx) => (
+    if (!Array.isArray(productos)) return <div>N/A</div>;
+
+    return productos.map((p, idx) => (
       <div key={idx}>
-        {mapaProductos[p.producto] || p.id} ({p.cantidad})
+        {mapaProductos[p.producto] || p.producto} ({p.cantidad})
       </div>
     ));
   };
@@ -499,7 +501,7 @@ const cargarCatalogos = async () => {
                   <tr key={r.id}>
                     <td>{r.idx || "N/A"}</td>
                     <td>{mapaActividades[r.actividad]}</td>
-                   <td>{mostrarProductos(r.productos)}</td>
+                    <td>{mostrarProductos(r.productos)}</td>
                   <td>
                     {Array.isArray(r.productos)
                       ? (r.productos || []).map((p, i) => (
