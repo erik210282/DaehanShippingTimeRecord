@@ -282,10 +282,9 @@ const cargarCatalogos = async () => {
     return;
   }
 
-  const productosLimpios = productos.map(p => ({
-    producto: p.producto,
-    cantidad: Number(p.cantidad),
-  }));
+  const productosLimpios = registroActual.productos.filter(
+    (p) => p.producto && p.cantidad
+  );
 
   if (productosLimpios.some(p => !p.producto || isNaN(p.cantidad) || p.cantidad <= 0)) {
     toast.error(t("fill_all_fields"));
@@ -590,48 +589,45 @@ const cargarCatalogos = async () => {
           <Select options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
 
 
-          {registroActual.productos.map((p, i) => (
-            <div key={i} style={{ marginBottom: 10 }}>
+          {registroActual.productos?.map((p, index) => (
+            <div key={index} style={{ display: "flex", gap: "10px", marginBottom: 5 }}>
               <Select
-                options={Object.entries(productos).map(([id, nombre]) => ({
-                  value: id,
-                  label: nombre,
-                }))}
+                options={Object.entries(productos).map(([id, nombre]) => ({ value: id, label: nombre }))}
                 value={
                   p.producto
-                    ? { value: p.producto, label: productos[p.producto] || p.producto }
+                    ? { value: p.producto, label: productos[p.producto] }
                     : null
                 }
-                onChange={(selected) => {
+                onChange={(e) => {
                   const nuevos = [...registroActual.productos];
-                  nuevos[i].producto = selected.value;
+                  nuevos[index].producto = e.value;
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}
-                placeholder={t("select_product")}
+                placeholder={t("producto")}
               />
               <input
                 type="number"
-                placeholder={t("quantity")}
                 value={p.cantidad}
                 onChange={(e) => {
                   const nuevos = [...registroActual.productos];
-                  nuevos[i].cantidad = e.target.value;
+                  nuevos[index].cantidad = e.target.value;
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}
-                style={{ width: "100%", marginTop: 4 }}
+                placeholder={t("cantidad")}
+                style={{ width: "80px" }}
               />
-              <button
-                onClick={() => {
-                  const nuevos = registroActual.productos.filter((_, idx) => idx !== i);
-                  setRegistroActual({ ...registroActual, productos: nuevos });
-                }}
-                style={{ marginTop: 4, backgroundColor: "#dc3545", color: "white" }}
-              >
-                {t("remove")}
-              </button>
+              {registroActual.productos.length > 1 && (
+                <button
+                  onClick={() => {
+                    const nuevos = registroActual.productos.filter((_, i) => i !== index);
+                    setRegistroActual({ ...registroActual, productos: nuevos });
+                  }}
+                >
+                  ✖
+                </button>
+              )}
             </div>
           ))}
-
           <button
             onClick={() =>
               setRegistroActual({
@@ -639,10 +635,10 @@ const cargarCatalogos = async () => {
                 productos: [...registroActual.productos, { producto: "", cantidad: "" }],
               })
             }
-            style={{ marginBottom: 10, backgroundColor: "#007bff", color: "white" }}
           >
-            {t("add_product")}
+            ➕ {t("agregar_producto")}
           </button>
+
           
           <Select isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
