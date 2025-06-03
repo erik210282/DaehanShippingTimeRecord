@@ -19,6 +19,28 @@ import { onSnapshot } from "firebase/firestore";
 
 Modal.setAppElement("#root");
 
+useEffect(() => {
+  async function corregirRegistrosProductosNulos() {
+    const registrosRef = collection(db, "registros");
+    const snapshot = await getDocs(registrosRef);
+    let corregidos = 0;
+
+    for (const documento of snapshot.docs) {
+      const data = documento.data();
+      if (data.productos === null) {
+        await updateDoc(doc(db, "registros", documento.id), {
+          productos: [],
+        });
+        corregidos++;
+      }
+    }
+
+    console.log(`Registros corregidos: ${corregidos}`);
+  }
+
+  corregirRegistrosProductosNulos();
+}, []);
+
 export default function Registros() {
   const { t, i18n } = useTranslation();
 
