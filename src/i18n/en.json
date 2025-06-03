@@ -102,6 +102,8 @@
     "finish_task": "Finish Task",
     "fill_time": "Please complete the time fields",
     "started": "Started",
+    "pause": "Pause",
+    "paused": "Paused",
     "pending": "Pending",
     "not_started": "Not started",
     "flow_step": "Step",

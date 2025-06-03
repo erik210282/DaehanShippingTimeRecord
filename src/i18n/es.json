@@ -108,6 +108,8 @@
     "fill_time": "Por favor, complete los tiempos",
     "started": "Iniciada",
     "pending": "Pendiente",
+    "pause": "Pausa",
+    "paused": "Pausada",
     "not_started": "No iniciada",
     "flow_step": "Paso",
     "status_pendiente": "Pendiente",
