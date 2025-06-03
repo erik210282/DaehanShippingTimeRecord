@@ -52,6 +52,8 @@ export default function Registros() {
 
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
 
+  const [productosSeleccionados, setProductosSeleccionados] = useState([]);
+
   const parseFirebaseDate = (fecha) => {
     if (!fecha) return null;
     if (typeof fecha === "string" || typeof fecha === "number") {
@@ -111,6 +113,33 @@ const cargarCatalogos = async () => {
       .sort((a, b) => a.label.localeCompare(b.label))
   );
 };
+
+  const handleSeleccionProductos = (seleccion) => {
+      const productosConCantidad = seleccion.map((p) => ({
+        id: p.value,
+        cantidad: 1,
+      }));
+      setProductosSeleccionados(productosConCantidad);
+    };
+
+  const renderCantidadInputs = () => {
+    return (productosSeleccionados || []).map((p, index) => (
+      <div key={index} style={{ marginTop: 5 }}>
+        <label>{productoLabels[p.id] || p.id}</label>
+        <input
+          type="number"
+          min="1"
+          value={p.cantidad}
+          onChange={(e) => {
+            const nuevaCantidad = parseInt(e.target.value);
+            const nuevosProductos = [...productosSeleccionados];
+            nuevosProductos[index].cantidad = isNaN(nuevaCantidad) ? 1 : nuevaCantidad;
+            setProductosSeleccionados(nuevosProductos);
+          }}
+        />
+      </div>
+    ));
+  };
 
   const actualizarRegistros = (snapshot) => {
     const nuevos = snapshot.docs.map((doc) => {
@@ -242,7 +271,9 @@ const cargarCatalogos = async () => {
 
     setRegistroActual({
       ...registro,
-      productos: Array.isArray(registro.productos) ? registro.productos : [{ producto: registro.producto, cantidad: registro.cantidad }],
+     productos: [...(productosSeleccionados || [])].sort((a, b) =>
+      (productoLabels[a.id] || a.id).localeCompare(productoLabels[b.id] || b.id)
+    ),
       horaInicio: formatFecha(registro.horaInicio),
       horaFin: formatFecha(registro.horaFin),
     });
@@ -434,6 +465,14 @@ const cargarCatalogos = async () => {
     return gruposOrdenados;
   };
 
+  const mostrarProductos = (productos) => {
+    return (productos || []).map((p, idx) => (
+      <div key={idx}>
+        {productoLabels[p.id] || p.id} ({p.cantidad})
+      </div>
+    ));
+  };
+
   return (
     <div className="card">
       <h2>{t("records")}</h2>
@@ -493,13 +532,7 @@ const cargarCatalogos = async () => {
                   <tr key={r.id}>
                     <td>{r.idx || "N/A"}</td>
                     <td>{mapaActividades[r.actividad]}</td>
-                   <td>
-                    {Array.isArray(r.productos)
-                      ? (r.productos || []).map((p, i) => (
-                          <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
-                        ))
-                      : mapaProductos[r.producto]}
-                  </td>
+                   <td>{mostrarProductos(r.productos)}</td>
                   <td>
                     {Array.isArray(r.productos)
                       ? (r.productos || []).map((p, i) => (
