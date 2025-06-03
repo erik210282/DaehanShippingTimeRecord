@@ -474,7 +474,7 @@ const cargarCatalogos = async () => {
               </tr>
             </thead>
             <tbody>
-              {filtrados.map((r) => {
+              {filtrados.map((r, index) => {
                 const inicio = new Date(r.horaInicio);
                 const fin = new Date(r.horaFin);
                 return (
