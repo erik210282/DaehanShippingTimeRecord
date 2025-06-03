@@ -262,7 +262,7 @@ const cargarCatalogos = async () => {
       cantidad: "",
       horaInicio: "",
       horaFin: "",
-      duaacion: "",
+      duracion: "",
       notas: "",
     });
     setEsNuevo(true);
