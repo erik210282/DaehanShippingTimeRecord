@@ -589,38 +589,60 @@ const cargarCatalogos = async () => {
 
           <Select options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
 
-          {registroActual?.productos?.map((p, index) => (
-            <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+
+          {registroActual.productos.map((p, i) => (
+            <div key={i} style={{ marginBottom: 10 }}>
               <Select
-                options={selectProductos}
-                value={selectProductos.find((opt) => opt.value === p.producto)}
-                onChange={(e) => {
+                options={Object.entries(productos).map(([id, nombre]) => ({
+                  value: id,
+                  label: nombre,
+                }))}
+                value={
+                  p.producto
+                    ? { value: p.producto, label: productos[p.producto] || p.producto }
+                    : null
+                }
+                onChange={(selected) => {
                   const nuevos = [...registroActual.productos];
-                  nuevos[index].producto = e.value;
+                  nuevos[i].producto = selected.value;
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}
                 placeholder={t("select_product")}
-                styles={{ container: (base) => ({ ...base, flex: 1 }) }}
               />
               <input
                 type="number"
-                placeholder={t("amount")}
+                placeholder={t("quantity")}
                 value={p.cantidad}
                 onChange={(e) => {
                   const nuevos = [...registroActual.productos];
-                  nuevos[index].cantidad = e.target.value;
+                  nuevos[i].cantidad = e.target.value;
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}
-                style={{ width: "400px" }}
+                style={{ width: "100%", marginTop: 4 }}
               />
-              {index > 0 && (
-                <button onClick={() => {
-                  const nuevos = registroActual.productos.filter((_, i) => i !== index);
+              <button
+                onClick={() => {
+                  const nuevos = registroActual.productos.filter((_, idx) => idx !== i);
                   setRegistroActual({ ...registroActual, productos: nuevos });
-                }}>✖</button>
-              )}
+                }}
+                style={{ marginTop: 4, backgroundColor: "#dc3545", color: "white" }}
+              >
+                {t("remove")}
+              </button>
             </div>
           ))}
+
+          <button
+            onClick={() =>
+              setRegistroActual({
+                ...registroActual,
+                productos: [...registroActual.productos, { producto: "", cantidad: "" }],
+              })
+            }
+            style={{ marginBottom: 10, backgroundColor: "#007bff", color: "white" }}
+          >
+            {t("add_product")}
+          </button>
           
           <Select isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
