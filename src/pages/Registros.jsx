@@ -196,7 +196,7 @@ const cargarCatalogos = async () => {
             : `ID: ${r.operadores}`;
         } else if (modoAgrupacion === "producto") {
           key = Array.isArray(r.productos)
-            ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+            ? (r.productos || []).map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
             : mapaProductos[r.producto] || `ID: ${r.producto}`;
         } else if (modoAgrupacion === "actividad") {
           key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
@@ -395,7 +395,7 @@ const cargarCatalogos = async () => {
           : `ID: ${r.operadores}`;
       } else if (modoAgrupacion === "producto") {
         key = Array.isArray(r.productos)
-          ? r.productos.map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+          ? (r.productos || []).map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
           : mapaProductos[r.producto] || `ID: ${r.producto}`;
       } else if (modoAgrupacion === "actividad") {
         key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
@@ -479,14 +479,14 @@ const cargarCatalogos = async () => {
                     <td>{mapaActividades[r.actividad]}</td>
                    <td>
                     {Array.isArray(r.productos)
-                      ? r.productos.map((p, i) => (
+                      ? (r.productos || []).map((p, i) => (
                           <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
                         ))
                       : mapaProductos[r.producto]}
                   </td>
                   <td>
                     {Array.isArray(r.productos)
-                      ? r.productos.map((p, i) => (
+                      ? (r.productos || []).map((p, i) => (
                           <div key={i}>{p.cantidad}</div>
                         ))
                       : r.cantidad}
@@ -549,14 +549,14 @@ const cargarCatalogos = async () => {
                         <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                         <td>
                           {Array.isArray(r.productos)
-                            ? r.productos.map((p, i) => (
+                            ? (r.productos || []).map((p, i) => (
                                 <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
                               ))
                             : mapaProductos[r.producto]}
                         </td>
                         <td>
                           {Array.isArray(r.productos)
-                            ? r.productos.map((p, i) => (
+                            ? (r.productos || []).map((p, i) => (
                                 <div key={i}>{p.cantidad}</div>
                               ))
                             : r.cantidad}
