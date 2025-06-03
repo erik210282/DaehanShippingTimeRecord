@@ -529,6 +529,7 @@ const cargarCatalogos = async () => {
             </thead>
             <tbody>
               {filtrados.map((r) => {
+                console.log("Registro actual:", registro);
                 const inicio = new Date(r.horaInicio);
                 const fin = new Date(r.horaFin);
                 return (
