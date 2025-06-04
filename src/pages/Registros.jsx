@@ -6,7 +6,6 @@ import {
   updateDoc,
   addDoc,
   doc,
-  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import Select from "react-select";
@@ -16,97 +15,763 @@ import { useTranslation } from "react-i18next";
 import { isAfter, isBefore, format } from "date-fns";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { onSnapshot } from "firebase/firestore";
 
 Modal.setAppElement("#root");
+
+async function corregirRegistrosProductosNulos() {
+  const registrosRef = collection(db, "registros");
+  const snapshot = await getDocs(registrosRef);
+
+  let corregidos = 0;
+
+  for (const documento of snapshot.docs) {
+    const data = documento.data();
+    if (data.productos === null) {
+      await updateDoc(doc(db, "registros", documento.id), {
+        productos: [],
+      });
+      corregidos++;
+    }
+  }
+
+  console.log(`Registros corregidos: ${corregidos}`);
 
 export default function Registros() {
   const { t, i18n } = useTranslation();
 
   const [registros, setRegistros] = useState([]);
   const [filtrados, setFiltrados] = useState([]);
-
+  
   const [actividadFiltro, setActividadFiltro] = useState([]);
   const [productoFiltro, setProductoFiltro] = useState([]);
   const [operadorFiltro, setOperadorFiltro] = useState([]);
+  const [busquedaTexto, setBusquedaTexto] = useState("");
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
+  const [errorFecha, setErrorFecha] = useState("");
+  const [errorBusqueda, setErrorBusqueda] = useState("");
 
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [registroActual, setRegistroActual] = useState(null);
+  const [esNuevo, setEsNuevo] = useState(false);
+
+  const [mapaActividades, setMapaActividades] = useState({});
   const [mapaProductos, setMapaProductos] = useState({});
+  const [mapaOperadores, setMapaOperadores] = useState({});
 
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "registros"), (snapshot) => {
-      const nuevos = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setRegistros(nuevos);
-      setFiltrados(nuevos);
-    });
-    return () => unsubscribe();
-  }, []);
+  const [selectActividades, setSelectActividades] = useState([]);
+  const [selectProductos, setSelectProductos] = useState([]);
+  const [selectOperadores, setSelectOperadores] = useState([]);
 
-  useEffect(() => {
-    const obtenerProductos = async () => {
-      const productosSnapshot = await getDocs(collection(db, "productos"));
-      const mapa = {};
-      productosSnapshot.forEach((doc) => {
-        mapa[doc.id] = doc.data().nombre;
-      });
-      setMapaProductos(mapa);
-    };
-    obtenerProductos();
-  }, []);
+  const [pestañaActiva, setPestañaActiva] = useState("paginado");
+  const [modoAgrupacion, setModoAgrupacion] = useState("operador");
 
-  const mostrarProductos = (registro) => {
-    if (!registro || !Array.isArray(registro.productos)) return "-";
+  const [registroAEliminar, setRegistroAEliminar] = useState(null);
 
-    return registro.productos
-      .map((prod) => `${mapaProductos[prod.producto] || prod.producto} (${prod.cantidad})`)
-      .join(", ");
+  const parseFirebaseDate = (fecha) => {
+    if (!fecha) return null;
+    if (typeof fecha === "string" || typeof fecha === "number") {
+      const parsed = new Date(fecha);
+      return isNaN(parsed) ? null : parsed;
+    }
+    if (fecha.toDate) return fecha.toDate();
+    return new Date(fecha);
   };
 
+const cargarCatalogos = async () => {
+  const [actSnap, prodSnap, opSnap] = await Promise.all([
+    getDocs(collection(db, "actividades")),
+    getDocs(collection(db, "productos")),
+    getDocs(collection(db, "operadores")),
+  ]);
+
+  const actividades = {};
+  const productos = {};
+  const operadores = {};
+
+  actSnap.docs.forEach((doc) => (actividades[doc.id] = doc.data().nombre));
+  prodSnap.docs.forEach((doc) => (productos[doc.id] = doc.data().nombre));
+  opSnap.docs.forEach((doc) => (operadores[doc.id] = doc.data().nombre));
+
+  setMapaActividades(actividades);
+  setMapaProductos(productos);
+  setMapaOperadores(operadores);
+
+  setSelectActividades(
+    actSnap.docs
+      .filter((doc) => doc.data().activo !== false)
+      .map((doc) => ({
+        value: doc.id,
+        label: doc.data().nombre,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  );
+
+  setSelectProductos(
+    prodSnap.docs
+      .filter((doc) => doc.data().activo !== false)
+      .map((doc) => ({
+        value: doc.id,
+        label: doc.data().nombre,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  );
+
+  setSelectOperadores(
+    opSnap.docs
+      .filter((doc) => doc.data().activo !== false)
+      .map((doc) => ({
+        value: doc.id,
+        label: doc.data().nombre,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  );
+};
+
+  const actualizarRegistros = (snapshot) => {
+    const nuevos = snapshot.docs.map((doc) => {
+      const data = doc.data();
+
+      // 🔐 Protección contra productos mal definidos
+      const productosValidos = Array.isArray(data.productos) ? data.productos : [];
+
+      return {
+        id: doc.id,
+        idx: data.idx || "",
+        ...data,
+        productos: productosValidos, // ✅ forzar como array
+        operadores: Array.isArray(data.operadores)
+          ? data.operadores
+          : typeof data.operador === "string" && data.operador.trim()
+          ? [data.operador]
+          : [],
+        horaInicio: parseFirebaseDate(data.hora_inicio),
+        horaFin: parseFirebaseDate(data.hora_fin),
+        duracion: data.duracion ?? "",
+      };
+    });
+
+    nuevos.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
+    setRegistros(nuevos);
+    setFiltrados(nuevos);
+  };
+
+  useEffect(() => {
+    corregirRegistrosProductosNulos();
+    cargarCatalogos();
+
+    const unsub = onSnapshot(collection(db, "actividades_realizadas"), actualizarRegistros);
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (errorFecha) {
+      setErrorFecha(t("invalid_date_range"));
+    }
+  }, [i18n.language]);
+
+  useEffect(() => {
+    if (fechaDesde && fechaHasta && new Date(fechaDesde) > new Date(fechaHasta)) {
+      setErrorFecha(t("invalid_date_range"));
+      return;
+    } else {
+      setErrorFecha("");
+    }
+
+    const texto = busquedaTexto.toLowerCase();
+
+    const resultados = registros.filter((r) => {
+      if (!r.horaFin) return false;
+      const cumpleActividad =
+        actividadFiltro.length === 0 ||
+        actividadFiltro.some((a) => a.value === r.actividad);
+
+      const cumpleProducto =
+        productoFiltro.length === 0 ||
+        (Array.isArray(r.productos) &&
+          r.productos.some((p) =>
+            productoFiltro.some((f) => f.value === p.producto)
+          ));
+
+      const cumpleOperador =
+        operadorFiltro.length === 0 ||
+        (Array.isArray(r.operadores) &&
+          operadorFiltro.some((o) => r.operadores.includes(o.value)));
+
+      const cumpleTexto =
+        !texto ||
+        mapaActividades[r.actividad]?.toLowerCase().includes(texto) ||
+        (Array.isArray(r.productos)
+          ? r.productos.some((p) =>
+              mapaProductos[p.producto]?.toLowerCase().includes(texto)
+            )
+          : mapaProductos[r.producto]?.toLowerCase().includes(texto)) ||
+        (Array.isArray(r.operadores) &&
+          r.operadores.some((id) =>
+            mapaOperadores[id]?.toLowerCase().includes(texto)
+          ));
+
+      let key = "";
+
+        if (modoAgrupacion === "operador") {
+          key = Array.isArray(r.operadores)
+            ? r.operadores.map((id) => mapaOperadores[id]).join(", ")
+            : `ID: ${r.operadores}`;
+        } else if (modoAgrupacion === "producto") {
+          key = Array.isArray(r.productos)
+            ? (r.productos || []).map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+            : mapaProductos[r.producto] || `ID: ${r.producto}`;
+        } else if (modoAgrupacion === "actividad") {
+          key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
+        } else if (modoAgrupacion === "fecha") {
+          const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
+          key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
+        }
+
+      const cumpleDesde = !fechaDesde || isAfter(r.horaInicio, new Date(fechaDesde));
+      const cumpleHasta = !fechaHasta || isBefore(r.horaInicio, new Date(fechaHasta));
+
+      return (
+        cumpleActividad &&
+        cumpleProducto &&
+        cumpleOperador &&
+        cumpleTexto &&
+        cumpleDesde &&
+        cumpleHasta
+      );
+    });
+
+    resultados.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
+    setFiltrados(resultados);
+    setErrorBusqueda(texto && resultados.length === 0 ? t("no_results_found") : "");
+  }, [
+    actividadFiltro,
+    productoFiltro,
+    operadorFiltro,
+    busquedaTexto,
+    fechaDesde,
+    fechaHasta,
+    registros,
+  ]);
+
+  const abrirModal = (registro) => {
+  if (registro) {
+    const formatFecha = (fecha) => {
+      if (!fecha) return "";
+      const d = new Date(fecha);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    setRegistroActual({
+      ...registro,
+      productos: Array.isArray(registro.productos) ? registro.productos : [{ producto: registro.producto, cantidad: registro.cantidad }],
+      horaInicio: formatFecha(registro.horaInicio),
+      horaFin: formatFecha(registro.horaFin),
+    });
+    setEsNuevo(false);
+  } else {
+    setRegistroActual({
+      idx: "",
+      actividad: "",
+      productos: [{ producto: "", cantidad: "" }],
+      operadores: [],
+      cantidad: "",
+      horaInicio: "",
+      horaFin: "",
+      duracion: "",
+      notas: "",
+    });
+    setEsNuevo(true);
+  }
+  setModalAbierto(true);
+};
+
+  const eliminarRegistro = async (id) => {
+    try {
+      await deleteDoc(doc(db, "actividades_realizadas", id));
+      setRegistros(registros.filter((r) => r.id !== id));
+      toast.success(t("delete_success"));
+    } catch {
+      toast.error(t("error_deleting"));
+    }
+  };
+
+ const guardarRegistro = async () => {
+  const { idx, actividad, productos, operadores, notas, horaInicio, horaFin, duracion } = registroActual;
+
+  if (!idx || !actividad || !productos.length || !operadores.length || !horaInicio || !horaFin || !duracion) {
+    toast.error(t("fill_all_fields"));
+    return;
+  }
+
+  const productosLimpios = productos.map(p => ({
+    producto: p.producto,
+    cantidad: Number(p.cantidad),
+  }));
+
+  if (productosLimpios.some(p => !p.producto || isNaN(p.cantidad) || p.cantidad <= 0)) {
+    toast.error(t("fill_all_fields"));
+    return;
+  }
+
+  const productosDuplicados = productosLimpios.map(p => p.producto).filter((v, i, a) => a.indexOf(v) !== i);
+  if (productosDuplicados.length > 0) {
+    toast.error(t("no_duplicate_products"));
+    return;
+  }
+
+    if (!esNuevo) {
+    const duplicado = registros.some(r =>
+      r.id !== registroActual.id &&
+      r.actividad === actividad &&
+      JSON.stringify(r.operadores.sort()) === JSON.stringify(operadores.sort()) &&
+      new Date(r.hora_inicio).getTime() === new Date(horaInicio).getTime() &&
+      new Date(r.hora_fin).getTime() === new Date(horaFin).getTime()
+    );
+
+    if (duplicado) {
+      toast.error(t("no_duplicate_activity"));
+      return;
+    }
+  }
+
+  if (new Date(horaInicio).getTime() > new Date(horaFin).getTime()) {
+    toast.error(t("invalid_time_range"));
+    return;
+  }
+
+  const data = {
+    idx,
+    actividad,
+    productos: productosLimpios,
+    operadores,
+    notas,
+    hora_inicio: new Date(horaInicio),
+    hora_fin: new Date(horaFin),
+    duracion,
+  };
+ 
+  try {
+    if (esNuevo) {
+      await addDoc(collection(db, "actividades_realizadas"), data);
+    } else {
+      const ref = doc(db, "actividades_realizadas", registroActual.id);
+      await updateDoc(ref, data);
+    }
+    toast.success(t("save_success"));
+    setModalAbierto(false);
+  } catch {
+    toast.error(t("error_saving"));
+  }
+};
+
   const exportarCSV = () => {
-    const datos = filtrados.flatMap((r) => {
-      const productos = Array.isArray(r.productos) ? r.productos : [];
-      return productos.map((p) => ({
-        fecha: r.fecha,
-        actividad: r.actividad,
-        operador: r.operador,
-        producto: mapaProductos[p.producto] || p.producto,
-        cantidad: p.cantidad,
+    const csvData = filtrados.flatMap((registro) => {
+      const productos = Array.isArray(registro.productos)
+        ? registro.productos
+        : [];
+
+      if (productos.length === 0) {
+        return [{
+          actividad: mapaActividades[registro.actividad] || `ID: ${registro.actividad}`,
+          producto: "-",
+          cantidad: "-",
+          operador: Array.isArray(registro.operadores)
+            ? registro.operadores.map((op) => mapaOperadores[op] || op).join(", ")
+            : "-",
+          fechaInicio: format(registro.horaInicio, "Pp"),
+          fechaFin: format(registro.horaFin, "Pp"),
+        }];
+      }
+
+      return productos.map((prod) => ({
+        actividad: mapaActividades[registro.actividad] || `ID: ${registro.actividad}`,
+        producto: mapaProductos[prod.producto] || `ID: ${prod.producto}`,
+        cantidad: prod.cantidad,
+        operador: Array.isArray(registro.operadores)
+          ? registro.operadores.map((op) => mapaOperadores[op] || op).join(", ")
+          : "-",
+        fechaInicio: format(registro.horaInicio, "Pp"),
+        fechaFin: format(registro.horaFin, "Pp"),
       }));
     });
-    const csv = Papa.unparse(datos);
+
+    const csv = Papa.unparse(csvData);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
+    link.href = url;
     link.setAttribute("download", "registros.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success(t("export_success") || "CSV exportado correctamente");
   };
 
+  const registrosAgrupados = () => {
+    const grupos = {};
+
+    filtrados.forEach((r) => {
+      let key = "";
+
+      if (modoAgrupacion === "operador") {
+        key = Array.isArray(r.operadores)
+          ? r.operadores.map((id) => mapaOperadores[id]).join(", ")
+          : `ID: ${r.operadores}`;
+      } else if (modoAgrupacion === "producto") {
+        key = Array.isArray(r.productos)
+          ? (r.productos || []).map((p) => mapaProductos[p.producto] || `ID: ${p.producto}`).join(", ")
+          : mapaProductos[r.producto] || `ID: ${r.producto}`;
+      } else if (modoAgrupacion === "actividad") {
+        key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
+      } else if (modoAgrupacion === "fecha") {
+        const fecha = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
+        key = !isNaN(fecha) ? format(fecha, "yyyy-MM-dd") : "Sin fecha";
+      }
+
+      if (!grupos[key]) grupos[key] = [];
+      grupos[key].push(r);
+    });
+
+    const gruposOrdenados = {};
+    Object.keys(grupos)
+      .sort((a, b) => b.localeCompare(a))
+      .forEach((key) => {
+        gruposOrdenados[key] = grupos[key];
+      });
+
+    return gruposOrdenados;
+  };
+
+  const mostrarProductos = (registro) => {
+    const productosValidos = Array.isArray(registro.productos)
+      ? registro.productos
+      : [];
+
+    return productosValidos
+      .map((prod) => `${mapaProductos[prod.producto] || prod.producto} (${prod.cantidad})`)
+      .join(", ");
+  };
+
+   const obtenerRegistros = async () => {
+    const col = collection(db, "registros");
+    onSnapshot(col, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setRegistros(data);
+      setFiltrados(data);
+    });
+  };
+
+   useEffect(() => {
+    async function corregirRegistrosProductosNulos() {
+      try {
+        const registrosRef = collection(db, "registros");
+        const snapshot = await getDocs(registrosRef);
+        let corregidos = 0;
+
+        for (const docu of snapshot.docs) {
+          const data = docu.data();
+          if (data.productos === null) {
+            await updateDoc(doc(db, "registros", docu.id), {
+              productos: [],
+            });
+            corregidos++;
+          }
+        }
+
+        console.log(`✅ Registros corregidos: ${corregidos}`);
+      } catch (e) {
+        console.error("❌ Error corrigiendo registros:", e);
+      }
+    }
+
+    corregirRegistrosProductosNulos();
+  }, []);
+
   return (
-    <div>
+    <div className="card">
       <h2>{t("records")}</h2>
-      <button onClick={exportarCSV}>{t("export_csv")}</button>
-      <table>
-        <thead>
-          <tr>
-            <th>{t("date")}</th>
-            <th>{t("activity")}</th>
-            <th>{t("operator")}</th>
-            <th>{t("products")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtrados.map((r) => (
-            <tr key={r.id}>
-              <td>{r.fecha}</td>
-              <td>{r.actividad}</td>
-              <td>{r.operador}</td>
-              <td>{mostrarProductos(r)}</td>
-            </tr>
+      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+        <button onClick={() => setPestañaActiva("paginado")} disabled={pestañaActiva === "paginado"}>
+          📄 {t("records_title")}
+        </button>
+        <button onClick={() => setPestañaActiva("agrupado")} disabled={pestañaActiva === "agrupado"}>
+          📊 {t("grouped_records")}
+        </button>
+      </div>
+
+      
+
+      {pestañaActiva === "paginado" ? (
+        <div>
+          <input placeholder={t("search")} value={busquedaTexto} onChange={(e) => setBusquedaTexto(e.target.value)} />
+          {errorBusqueda && <p style={{ color: "red" }}>{errorBusqueda}</p>}
+
+          <input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+          <input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+          {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
+
+          <Select isMulti options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
+          <Select isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
+          <Select isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
+
+          <button onClick={() => {
+            setActividadFiltro([]); setProductoFiltro([]); setOperadorFiltro([]);
+            setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
+          }}>{t("clear_filters")}</button>
+
+          <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
+            ➕ {t("add_product")}
+          </button>          
+
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t("idx")}</th>
+                <th>{t("activity")}</th>
+                <th>{t("product")}</th>
+                <th>{t("amount")}</th>
+                <th>{t("operator")}</th>
+                <th>{t("start_time")}</th>
+                <th>{t("end_time")}</th>
+                <th>{t("duration_min")}</th>
+                <th>{t("notes")}</th>
+                <th>{t("actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtrados.map((r) => {
+                const inicio = new Date(r.horaInicio);
+                const fin = new Date(r.horaFin);
+                return (
+                  <tr key={r.id}>
+                    <td>{r.idx || "N/A"}</td>
+                    <td>{mapaActividades[r.actividad]}</td>
+                    <td>{mostrarProductos(r)}</td>
+                    <td>
+                      {Array.isArray(r.productos) && r.productos.length > 0
+                        ? r.productos.map((p, i) => <div key={i}>{p.cantidad}</div>)
+                        : "-"}
+                    </td>
+                    <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
+                    <td>{inicio.toLocaleString()}</td>
+                    <td>{fin.toLocaleString()}</td>
+                    <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
+                    <td>{r.notas || "N/A"}</td>
+                    <td>
+                      <button onClick={() => abrirModal(r)}>{t("edit")}</button>
+                      <button
+                        onClick={() => setRegistroAEliminar(r)}
+                        className="btn btn-danger"
+                      >
+                        {t("delete")}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <button onClick={exportarCSV}>{t("export_csv")}</button>
+        </div>
+      ) : (
+        <div>
+          <label>{t("group_by")}: </label>
+          <select value={modoAgrupacion} onChange={(e) => setModoAgrupacion(e.target.value)}>
+            <option value="operador">{t("operator")}</option>
+            <option value="producto">{t("product")}</option>
+            <option value="actividad">{t("activity")}</option>
+            <option value="fecha">{t("fecha")}</option>
+          </select>
+
+          {Object.entries(registrosAgrupados()).map(([grupo, lista]) => (
+            <div key={grupo} style={{ marginBottom: "20px" }}>
+              <h4>{grupo}</h4>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>{t("idx")}</th>
+                    <th>{t("activity")}</th>
+                    <th>{t("operator")}</th>
+                    <th>{t("product")}</th>
+                    <th>{t("amount")}</th>
+                    <th>{t("start_time")}</th>
+                    <th>{t("end_time")}</th>
+                    <th>{t("duration_min")}</th>
+                    <th>{t("notes")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lista.map((r) => {
+                    return (
+                      <tr key={r.id}>
+                        <td>{r.idx || "N/A"}</td>
+                        <td>{mapaActividades[r.actividad]}</td>
+                        <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
+                        <td>
+                          {Array.isArray(r.productos) && r.productos.length > 0
+                            ? r.productos.map((p, i) => (
+                                <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
+                              ))
+                            : "-"}
+                        </td>
+                        <td>
+                          {Array.isArray(r.productos)
+                            ? (r.productos || []).map((p, i) => (
+                                <div key={i}>{p.cantidad}</div>
+                              ))
+                            : r.cantidad}
+                        </td>
+                        <td>{new Date(r.horaInicio).toLocaleString()}</td>
+                        <td>{new Date(r.horaFin).toLocaleString()}</td>
+                        <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
+                        <td>{r.notas || "N/A"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ))}
-        </tbody>
-      </table>
-      <ToastContainer position="top-center" />
+        </div>
+      )}
+      
+        <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
+          <h3>{esNuevo ? t("add") : t("edit")}</h3>
+
+          <input
+            type="text"
+            placeholder={t("idx")}
+            value={registroActual?.idx}
+            onChange={(e) => setRegistroActual({ ...registroActual, idx: e.target.value })}
+            style={{ width: "400px" }}
+          />
+
+          <Select options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
+
+
+          {registroActual.productos?.map((p, index) => (
+            <div key={index} style={{ display: "flex", gap: "10px", marginBottom: 5 }}>
+              <Select
+                options={Object.entries(productos).map(([id, nombre]) => ({ value: id, label: nombre }))}
+                value={
+                  p.producto
+                    ? { value: p.producto, label: productos[p.producto] }
+                    : null
+                }
+                onChange={(e) => {
+                  const nuevos = [...registroActual.productos];
+                  nuevos[index].producto = e.value;
+                  setRegistroActual({ ...registroActual, productos: nuevos });
+                }}
+                placeholder={t("producto")}
+              />
+              <input
+                type="number"
+                value={p.cantidad}
+                onChange={(e) => {
+                  const nuevos = [...registroActual.productos];
+                  nuevos[index].cantidad = e.target.value;
+                  setRegistroActual({ ...registroActual, productos: nuevos });
+                }}
+                placeholder={t("cantidad")}
+                style={{ width: "80px" }}
+              />
+              {registroActual.productos.length > 1 && (
+                <button
+                  onClick={() => {
+                    const nuevos = registroActual.productos.filter((_, i) => i !== index);
+                    setRegistroActual({ ...registroActual, productos: nuevos });
+                  }}
+                >
+                  ✖
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={() =>
+              setRegistroActual({
+                ...registroActual,
+                productos: [...registroActual.productos, { producto: "", cantidad: "" }],
+              })
+            }
+          >
+            ➕ {t("agregar_producto")}
+          </button>
+
+          
+          <Select isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
+          <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
+          <input type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} />
+          <input type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} />
+
+          <label>{t("duration_min")}</label>
+            <input
+              type="number"
+              className="form-control"
+              value={registroActual?.duracion || ""}
+              onChange={(e) =>
+                setRegistroActual({ ...registroActual, duracion: Number(e.target.value) })
+              }
+            />
+          <button onClick={guardarRegistro}>{t("save")}</button>
+          <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+        </Modal>  
+
+        {registroAEliminar && registroAEliminar.id && (
+          <Modal
+            isOpen={true}
+            onRequestClose={() => setRegistroAEliminar(null)}
+            className="modal"
+            overlayClassName="modal-overlay"
+          >
+            <h2>{t("confirm_delete_title")}</h2>
+            <p>{t("confirm_delete_text")}</p>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setRegistroAEliminar(null)}
+              >
+                {t("cancel")}
+              </button>
+
+              <button
+                className="btn btn-danger"
+                onClick={async () => {
+                  try {
+                    console.log("Eliminando ID:", registroAEliminar.id);
+                    const ref = doc(db, "actividades_realizadas", registroAEliminar.id);
+                    await deleteDoc(ref);
+                    setRegistros((prev) =>
+                      prev.filter((r) => r.id !== registroAEliminar.id)
+                    );
+                    toast.success(t("delete_success"));
+                  } catch (error) {
+                    console.error("Error eliminando:", error);
+                    toast.error(t("delete_error"));
+                  } finally {
+                    setRegistroAEliminar(null);
+                  }
+                }}
+              >
+                {t("confirm")}
+              </button>
+            </div>
+          </Modal>
+        )}
+        <ToastContainer
+          position="top-center"
+          autoClose={1500}
+          style={{ zIndex: 9999, top: "80px" }}
+        />  
     </div>
   );
 }
