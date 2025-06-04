@@ -543,9 +543,9 @@ const cargarCatalogos = async () => {
                     <td>{mapaActividades[r.actividad]}</td>
                     <td>{mostrarProductos(r)}</td>
                     <td>
-                      {(Array.isArray(r.productos) ? r.productos : []).map((p, i) => (
-                        <div key={i}>{p.cantidad}</div>
-                      ))}
+                      {Array.isArray(r.productos) && r.productos.length > 0
+                        ? r.productos.map((p, i) => <div key={i}>{p.cantidad}</div>)
+                        : "-"}
                     </td>
                     <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                     <td>{inicio.toLocaleString()}</td>
@@ -604,11 +604,11 @@ const cargarCatalogos = async () => {
                         <td>{mapaActividades[r.actividad]}</td>
                         <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                         <td>
-                          {Array.isArray(r.productos)
-                            ? (r.productos || []).map((p, i) => (
+                          {Array.isArray(r.productos) && r.productos.length > 0
+                            ? r.productos.map((p, i) => (
                                 <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
                               ))
-                            : mapaProductos[r.producto]}
+                            : "-"}
                         </td>
                         <td>
                           {Array.isArray(r.productos)
