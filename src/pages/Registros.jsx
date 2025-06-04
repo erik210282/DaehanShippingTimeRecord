@@ -36,6 +36,7 @@ async function corregirRegistrosProductosNulos() {
   }
 
   console.log(`Registros corregidos: ${corregidos}`);
+}
 
 export default function Registros() {
   const { t, i18n } = useTranslation();
