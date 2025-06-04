@@ -129,7 +129,7 @@ const cargarCatalogos = async () => {
         duracion: data.duracion ?? "",
       };
     });
-    nuevos.sort((a, b) => new Date(a.horaInicio) - new Date(b.horaInicio));
+    nuevos.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
     setRegistros(nuevos);
     setFiltrados(nuevos);
   };
