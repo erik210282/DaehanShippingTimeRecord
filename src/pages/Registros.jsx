@@ -452,12 +452,12 @@ const cargarCatalogos = async () => {
   };
 
   const mostrarProductos = (registro) => {
-    const productosValidos = Array.isArray(registro.productos)
-      ? registro.productos
-      : [];
+    if (!registro || !Array.isArray(registro.productos)) return "-";
 
-    return productosValidos
-      .map((prod) => `${mapaProductos[prod.producto] || prod.producto} (${prod.cantidad})`)
+    return registro.productos
+      .map((prod) =>
+        `${mapaProductos?.[prod.producto] || prod.producto} (${prod.cantidad})`
+      )
       .join(", ");
   };
 
@@ -552,6 +552,8 @@ const cargarCatalogos = async () => {
             </thead>
             <tbody>
               {filtrados.map((r) => {
+                if (!r) return null; // Evita crasheo por registros nulos
+
                 const inicio = new Date(r.horaInicio);
                 const fin = new Date(r.horaFin);
                 return (
