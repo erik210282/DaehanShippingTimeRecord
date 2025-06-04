@@ -195,7 +195,7 @@ const cargarCatalogos = async () => {
       );
     });
 
-    resultados.sort((a, b) => new Date(a.horaInicio) - new Date(b.horaInicio));
+    resultados.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
     setFiltrados(resultados);
     setErrorBusqueda(texto && resultados.length === 0 ? t("no_results_found") : "");
   }, [
