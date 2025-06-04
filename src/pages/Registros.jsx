@@ -541,7 +541,7 @@ const cargarCatalogos = async () => {
                   <tr key={r.id}>
                     <td>{r.idx || "N/A"}</td>
                     <td>{mapaActividades[r.actividad]}</td>
-                    <td>{mostrarProductos(r.productos)}</td>
+                    <td>{mostrarProductos(r)}</td>
                     <td>
                       {(Array.isArray(r.productos) ? r.productos : []).map((p, i) => (
                         <div key={i}>{p.cantidad}</div>
