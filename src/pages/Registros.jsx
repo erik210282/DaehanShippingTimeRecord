@@ -137,6 +137,11 @@ const cargarCatalogos = async () => {
       // 🔐 Protección contra productos mal definidos
       const productosValidos = Array.isArray(data.productos) ? data.productos : [];
 
+      console.log("Registro:", doc.id, {
+        rawHoraFin: data.hora_fin,
+        parsedHoraFin: parseFirebaseDate(data.hora_fin)
+      });
+
       return {
         id: doc.id,
         idx: data.idx || "",
