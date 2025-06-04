@@ -436,8 +436,9 @@ const cargarCatalogos = async () => {
     const productosValidos = Array.isArray(registro.productos)
       ? registro.productos
       : [];
+
     return productosValidos
-      .map((prod) => `${prod.nombre} (${prod.cantidad})`)
+      .map((prod) => `${mapaProductos[prod.producto] || prod.producto} (${prod.cantidad})`)
       .join(", ");
   };
 
