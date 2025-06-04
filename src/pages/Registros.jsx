@@ -120,10 +120,15 @@ const cargarCatalogos = async () => {
   const actualizarRegistros = (snapshot) => {
     const nuevos = snapshot.docs.map((doc) => {
       const data = doc.data();
+
+      // 🔐 Protección contra productos mal definidos
+      const productosValidos = Array.isArray(data.productos) ? data.productos : [];
+
       return {
         id: doc.id,
         idx: data.idx || "",
         ...data,
+        productos: productosValidos, // ✅ forzar como array
         operadores: Array.isArray(data.operadores)
           ? data.operadores
           : typeof data.operador === "string" && data.operador.trim()
@@ -134,22 +139,11 @@ const cargarCatalogos = async () => {
         duracion: data.duracion ?? "",
       };
     });
-    nuevos.sort((a, b) => new Date(a.horaInicio) - new Date(b.horaInicio));
+
+    nuevos.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
     setRegistros(nuevos);
     setFiltrados(nuevos);
   };
-
-
-
-  useEffect(() => {
-  console.log("Registros cargados:", registros);
-}, [registros]);
-
-useEffect(() => {
-  console.log("Filtrados:", filtrados);
-}, [filtrados]);
-
-
 
   useEffect(() => {
     cargarCatalogos();
@@ -541,7 +535,6 @@ useEffect(() => {
             </thead>
             <tbody>
               {filtrados.map((r) => {
-                console.log("Registro actual:", registro);
                 const inicio = new Date(r.horaInicio);
                 const fin = new Date(r.horaFin);
                 return (
