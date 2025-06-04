@@ -356,39 +356,36 @@ const cargarCatalogos = async () => {
 
   const exportarCSV = () => {
     const csvData = filtrados.flatMap((registro) => {
-      const productosValidos = Array.isArray(registro.productos)
+      const productos = Array.isArray(registro.productos)
         ? registro.productos
         : [];
 
-      return productosValidos.length > 0
-        ? productosValidos.map((prod) => ({
-            ...registro,
-            producto: prod.nombre,
-            cantidad: prod.cantidad,
-          }))
-        : [
-            {
-              ...registro,
-              producto: "",
-              cantidad: "",
-            },
-          ];
+      if (productos.length === 0) {
+        return [{
+          actividad: mapaActividades[registro.actividad] || `ID: ${registro.actividad}`,
+          producto: "-",
+          cantidad: "-",
+          operador: Array.isArray(registro.operadores)
+            ? registro.operadores.map((op) => mapaOperadores[op] || op).join(", ")
+            : "-",
+          fechaInicio: format(registro.horaInicio, "Pp"),
+          fechaFin: format(registro.horaFin, "Pp"),
+        }];
+      }
+
+      return productos.map((prod) => ({
+        actividad: mapaActividades[registro.actividad] || `ID: ${registro.actividad}`,
+        producto: mapaProductos[prod.producto] || `ID: ${prod.producto}`,
+        cantidad: prod.cantidad,
+        operador: Array.isArray(registro.operadores)
+          ? registro.operadores.map((op) => mapaOperadores[op] || op).join(", ")
+          : "-",
+        fechaInicio: format(registro.horaInicio, "Pp"),
+        fechaFin: format(registro.horaFin, "Pp"),
+      }));
     });
 
-    const csv = Papa.unparse(
-      dataExpandida.map((r) => ({
-        ID: r.id || "",
-        Fecha: r.fecha || "",
-        Actividad: mapaActividades[r.actividad] || r.actividad || "",
-        Operador: (Array.isArray(r.operador)
-          ? r.operador.map((op) => mapaOperadores[op] || op).join(", ")
-          : operadoresCatalogo[r.operador] || r.operador || ""),
-        Producto: r.producto || "",
-        Cantidad: r.cantidad_producto || "",
-        Notas: r.notas || "",
-        Duración: r.duracion || "",
-      }))
-    );
+    const csv = Papa.unparse(csvData);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
