@@ -118,6 +118,7 @@ export default function TareasPendientes() {
       productos: listaProductos.map(p => ({ producto: p.producto, cantidad: Number(p.cantidad) })),
       notas: notas || "",      
       estado: tareaActual.estado || "pendiente",
+      operadores: tareaActual.operadores || [],
     };
 
     try {
