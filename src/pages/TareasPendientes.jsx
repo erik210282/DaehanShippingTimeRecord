@@ -279,7 +279,6 @@ export default function TareasPendientes() {
             >
               ➕ {t("add_product")}
             </button>
-            <Select isMulti options={operadores} value={operadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
             <textarea
               placeholder={t("notes")}
               value={tareaActual.notas}
