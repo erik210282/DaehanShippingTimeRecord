@@ -150,6 +150,11 @@ export default function TareasPendientes() {
     }
   };
 
+  const operadorOpciones = Object.entries(operadores).map(([id, nombre]) => ({
+    value: id,
+    label: nombre,
+  }));
+
   return (
     <div className="card">
       <h2>{t("pending_tasks")}</h2>
@@ -279,6 +284,23 @@ export default function TareasPendientes() {
             >
               ➕ {t("add_product")}
             </button>
+            <Select
+              isMulti
+              options={operadorOpciones}
+              value={
+                tareaActual?.operadores?.map((opId) => ({
+                  value: opId,
+                  label: operadores[opId] || opId,
+                })) || []
+              }
+              onChange={(e) =>
+                setTareaActual({
+                  ...tareaActual,
+                  operadores: e.map((i) => i.value),
+                })
+              }
+              placeholder={t("select_operator")}
+            />
             <textarea
               placeholder={t("notes")}
               value={tareaActual.notas}
