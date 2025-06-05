@@ -176,8 +176,15 @@ export default function TareasPendientes() {
                   : tarea.cantidad}
               </td>
               <td>{tarea.notas || "-"}</td>              
-              <td style={{ color: estadoVisual(tarea.estado).color, fontWeight: "bold" }}>
-                {estadoVisual(tarea.estado).icono} {estadoVisual(tarea.estado).texto}
+              <td style={{ fontWeight: "bold" }}>
+                {(() => {
+                  const estadoVisual = estadoVisual(tarea.estado);
+                  return (
+                    <span style={{ color: estadoVisual.color }}>
+                      {estadoVisual.icono} {estadoVisual.texto}
+                    </span>
+                  );
+                })()}
               </td>
               <td>
                 <button onClick={() => abrirModal(tarea)}>{t("edit")}</button>
