@@ -126,18 +126,16 @@ export default function TareasPendientes() {
 
   const mostrarNombre = (id, mapa) => mapa[id] || `ID: ${id}`;
 
-  function estadoVisual(estado) {
+  const obtenerEstadoVisual = (estado) => {
     switch (estado) {
-      case "pendiente":
-        return { icono: "🟡", color: "#FFD700" }; // amarillo
       case "iniciada":
-        return { icono: "🟢", color: "#32CD32" }; // verde
+        return { color: "green", icono: "🟢", texto: t("started") };
       case "pausada":
-        return { icono: "🔴", color: "#DC143C" }; // rojo
+        return { color: "red", icono: "🔴", texto: t("paused") };
       default:
-        return { icono: "⚪", color: "#CCCCCC" }; // gris
+        return { color: "goldenrod", icono: "🟡", texto: t("pending") };
     }
-  } 
+  };
 
   return (
     <div className="card">
@@ -178,7 +176,7 @@ export default function TareasPendientes() {
               <td>{tarea.notas || "-"}</td>              
               <td style={{ fontWeight: "bold" }}>
                 {(() => {
-                  const estadoVisual = estadoVisual(tarea.estado);
+                  const estadoVisual = obtenerEstadoVisual(tarea.estado);
                   return (
                     <span style={{ color: estadoVisual.color }}>
                       {estadoVisual.icono} {estadoVisual.texto}
