@@ -27,6 +27,19 @@ export default function TareasPendientes() {
   const [tareaActual, setTareaActual] = useState(null);
   const { t, i18n } = useTranslation();
   const [tareaAEliminar, setTareaAEliminar] = useState(null);
+  const [operadores, setOperadores] = useState({});
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "operadores"), (snap) => {
+      const datos = {};
+      snap.forEach((doc) => {
+        datos[doc.id] = doc.data().nombre;
+      });
+      setOperadores(datos);
+    });
+
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const unsubAct = onSnapshot(collection(db, "actividades"), (snapshot) => {
@@ -151,6 +164,7 @@ export default function TareasPendientes() {
             <th>{t("activity")}</th>
             <th>{t("product")}</th>
             <th>{t("amount")}</th>
+            <th>{t("operator")}</th>
             <th>{t("notes")}</th>            
             <th>{t("status")}</th>
             <th>{t("actions")}</th>
@@ -172,6 +186,11 @@ export default function TareasPendientes() {
                 {Array.isArray(tarea.productos)
                   ? tarea.productos.map((p, i) => <div key={i}>{p.cantidad}</div>)
                   : tarea.cantidad}
+              </td>
+              <td>
+                {tarea.estado === "iniciada" && Array.isArray(tarea.operadores)
+                  ? tarea.operadores.map((id) => operadores[id] || `ID: ${id}`).join(", ")
+                  : "-"}
               </td>
               <td>{tarea.notas || "-"}</td>              
               <td style={{ fontWeight: "bold" }}>
