@@ -151,10 +151,9 @@ export default function TareasPendientes() {
     }
   };
 
-  const operadorOpciones = Object.entries(operadores).map(([id, nombre]) => ({
-    value: id,
-    label: nombre,
-  }));
+  const operadorOpciones = Object.entries(operadores)
+    .map(([id, nombre]) => ({ value: id, label: nombre }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   return (
     <div className="card">
