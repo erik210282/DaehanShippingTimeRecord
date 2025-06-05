@@ -189,7 +189,9 @@ export default function TareasPendientes() {
               </td>
               <td>
                 {tarea.estado === "iniciada" && Array.isArray(tarea.operadores)
-                  ? tarea.operadores.map((id) => operadores[id] || `ID: ${id}`).join(", ")
+                  ? tarea.operadores.map((opId, i) => (
+                      <div key={i}>{mostrarNombre(opId, operadores)}</div>
+                    ))
                   : "-"}
               </td>
               <td>{tarea.notas || "-"}</td>              
