@@ -188,7 +188,7 @@ export default function TareasPendientes() {
                   : tarea.cantidad}
               </td>
               <td>
-                {tarea.estado === "iniciada" && Array.isArray(tarea.operadores)
+                {Array.isArray(tarea.operadores) && tarea.operadores.length > 0
                   ? tarea.operadores.map((opId, i) => (
                       <div key={i}>{mostrarNombre(opId, operadores)}</div>
                     ))
