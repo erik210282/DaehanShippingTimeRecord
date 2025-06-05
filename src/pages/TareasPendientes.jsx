@@ -126,6 +126,19 @@ export default function TareasPendientes() {
 
   const mostrarNombre = (id, mapa) => mapa[id] || `ID: ${id}`;
 
+  function estadoVisual(estado) {
+    switch (estado) {
+      case "pendiente":
+        return { icono: "🟡", color: "#FFD700" }; // amarillo
+      case "iniciada":
+        return { icono: "🟢", color: "#32CD32" }; // verde
+      case "pausada":
+        return { icono: "🔴", color: "#DC143C" }; // rojo
+      default:
+        return { icono: "⚪", color: "#CCCCCC" }; // gris
+    }
+  } 
+
   return (
     <div className="card">
       <h2>{t("pending_tasks")}</h2>
@@ -163,12 +176,8 @@ export default function TareasPendientes() {
                   : tarea.cantidad}
               </td>
               <td>{tarea.notas || "-"}</td>              
-              <td>
-                {tarea.estado === "iniciada"
-                  ? t("started")
-                  : tarea.estado === "pausada"
-                  ? t("paused")
-                  : t("pending")}
+              <td style={{ color: estadoVisual(tarea.estado).color, fontWeight: "bold" }}>
+                {obtenerEstadoVisual(tarea.estado).icono} {obtenerEstadoVisual(tarea.estado).texto}
               </td>
               <td>
                 <button onClick={() => abrirModal(tarea)}>{t("edit")}</button>
