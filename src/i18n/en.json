@@ -111,6 +111,7 @@
     "status_pendiente": "Pending",
     "status_iniciada": "Started",
     "add_task": "Add Task",
+    "add_product": "Add Product",
     "enter_notes": "Notes",
     "export_success": "CSV successfully exported",
     "idx": "IDX code",
