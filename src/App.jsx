@@ -86,7 +86,10 @@ const AppContent = () => (
         } />
         <Route path="/configuracion-tareas" element={
           <ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>
-        } />
+        } />        
+        <Route path="/dashboard-lecturas" element={
+          <ProtectedRoute><LecturaDashboard /></ProtectedRoute>
+          } />
       </Routes>
     </div>
   </div>
