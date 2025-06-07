@@ -16,6 +16,7 @@ import Modal from "react-modal";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useTranslation } from "react-i18next";
+import {  trackedAddDoc, trackedUpdateDoc, trackedDeleteDoc, trackedOnSnapshot, trackedGetDocs, trackedGetDoc } from "../utils/firestoreLogger";
 
 Modal.setAppElement("#root");
 
@@ -30,19 +31,23 @@ export default function TareasPendientes() {
   const [operadores, setOperadores] = useState({});
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "operadores"), (snap) => {
+    const unsub = trackedOnSnapshot(collection(db, "operadores"), (snap) => {
       const datos = {};
       snap.forEach((doc) => {
         datos[doc.id] = doc.data().nombre;
       });
       setOperadores(datos);
+    },
+    {
+      pagina: "Tareas Pendientes",
+      seccion: "onSnapshot Operadores 1",
     });
 
     return () => unsub();
   }, []);
 
   useEffect(() => {
-    const unsubAct = onSnapshot(collection(db, "actividades"), (snapshot) => {
+    const unsubAct = trackedOnSnapshot(collection(db, "actividades"), (snapshot) => {
       const act = {};
       snapshot.forEach((doc) => {
         const data = doc.data();
@@ -54,9 +59,13 @@ export default function TareasPendientes() {
         Object.entries(act).sort(([, a], [, b]) => a.localeCompare(b))
       );
       setActividades(ordenadas);
+    },
+    {
+      pagina: "Tareas Pendientes",
+      seccion: "onSnapshot Actividades 2",
     });
 
-    const unsubProd = onSnapshot(collection(db, "productos"), (snapshot) => {
+    const unsubProd = trackedOnSnapshot(collection(db, "productos"), (snapshot) => {
       const prod = {};
       snapshot.forEach((doc) => {
         const data = doc.data();
@@ -68,15 +77,23 @@ export default function TareasPendientes() {
         Object.entries(prod).sort(([, a], [, b]) => a.localeCompare(b))
       );
       setProductos(ordenadas);
+    },
+    {
+      pagina: "Tareas Pendientes",
+      seccion: "onSnapshot Productos 3",
     });
 
-    const unsubTareas = onSnapshot(collection(db, "tareas_pendientes"), (snapshot) => {
+    const unsubTareas = trackedOnSnapshot(collection(db, "tareas_pendientes"), (snapshot) => {
       const tareasList = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
       tareasList.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
       setTareas(tareasList.filter((t) => ["pendiente", "iniciada", "pausada"].includes(t.estado)));
+    },
+    {
+      pagina: "Tareas Pendientes",
+      seccion: "onSnapshot Lista de Tareas 4",
     });
 
     return () => {
@@ -123,12 +140,18 @@ export default function TareasPendientes() {
 
     try {
       if (tareaActual.id) {
-        await updateDoc(doc(db, "tareas_pendientes", tareaActual.id), datos);
+        await trackedUpdateDoc(doc(db, "tareas_pendientes", tareaActual.id), datos, {
+        pagina: "Tareas Pendientes",
+        seccion: "Actualizar Tareas Pendientes 5"
+      });
         toast.success(t("task_updated"));
       } else {
-        await addDoc(collection(db, "tareas_pendientes"), {
+        await trackedAddDoc(collection(db, "tareas_pendientes"), {
           ...datos,
           createdAt: serverTimestamp(),
+        }, {
+          pagina: "Tareas Pendientes",
+          seccion: "Agrega Tareas Pendientes 6",
         });
         toast.success(t("task_added"));
       }
@@ -333,7 +356,10 @@ export default function TareasPendientes() {
               onClick={async () => {
                 try {
                   if (!tareaAEliminar?.id) throw new Error("ID inválido");
-                  await deleteDoc(doc(db, "tareas_pendientes", tareaAEliminar.id));
+                  await trackedDeleteDoc(doc(db, "tareas_pendientes", tareaAEliminar.id), {
+                    pagina: "Tareas Pendientes",
+                    seccion: "Eliminar Tareas Pendientes 7",
+                  });
                   toast.success(t("task_deleted"));
                 } catch (error) {
                   console.error("Error eliminando:", error);

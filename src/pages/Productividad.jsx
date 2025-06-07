@@ -15,6 +15,8 @@ import {
   Legend,
 } from "chart.js";
 import Papa from "papaparse";
+import {  trackedAddDoc, trackedUpdateDoc, trackedDeleteDoc, trackedOnSnapshot, trackedGetDocs, trackedGetDoc } from "../utils/firestoreLogger";
+
 
 ChartJS.register(
   BarElement,
@@ -42,10 +44,22 @@ export default function Productividad() {
   useEffect(() => {
     const cargarDatos = async () => {
       const [regSnap, opSnap, actSnap, prodSnap] = await Promise.all([
-        getDocs(collection(db, "actividades_realizadas")),
-        getDocs(collection(db, "operadores")),
-        getDocs(collection(db, "actividades")),
-        getDocs(collection(db, "productos")),
+        trackedGetDocs(collection(db, "actividades_realizadas"), {
+        pagina: "Registros",
+        seccion: "Obtiene Actividades Realizadas 1",
+      }),
+        trackedGetDocs(collection(db, "operadores"), {
+        pagina: "Registros",
+        seccion: "Obtiene operadores 2",
+      }),
+        trackedGetDocs(collection(db, "actividades"), {
+        pagina: "Registros",
+        seccion: "Obtiene Actividades 3",
+      }),
+        trackedGetDocs(collection(db, "productos"), {
+        pagina: "Registros",
+        seccion: "Obtiene Productos 4",
+      }),
       ]);
 
       const operadoresMap = {};

@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../App.css";
+import {  trackedAddDoc, trackedUpdateDoc, trackedDeleteDoc, trackedOnSnapshot, trackedGetDocs, trackedGetDoc } from "../utils/firestoreLogger";
 
 Modal.setAppElement("#root");
 
@@ -32,7 +33,10 @@ export default function Catalogos() {
 
   useEffect(() => {
     const cargarDatos = async () => {
-      const snap = await getDocs(collection(db, catalogoActivo));
+      const snap = await trackedGetDocs(collection(db, catalogoActivo), {
+        pagina: "Catalogos",
+        seccion: "Obtiene Catalogo Activo 1",
+      });
       const docs = snap.docs.map((doc) => ({
         id: doc.id,
         nombre: doc.data().nombre,
@@ -63,11 +67,17 @@ export default function Catalogos() {
     const nuevoItem = { nombre, activo };
     try {
       if (esNuevo) {
-        const docRef = await addDoc(collection(db, catalogoActivo), nuevoItem);
+        const docRef = await trackedAddDoc(collection(db, catalogoActivo), nuevoItem, {
+        pagina: "Catalogos",
+        seccion: "Obtiene Nuevo items 2",
+      });
         setItems([...items, { id: docRef.id, ...nuevoItem }]);
       } else {
         const ref = doc(db, catalogoActivo, itemActual.id);
-        await updateDoc(ref, nuevoItem);
+        await trackedUpdateDoc(ref, nuevoItem, {
+        pagina: "Catalogos",
+        seccion: "Actualiza nuevos items 3",
+      });
         setItems(items.map((i) => (i.id === itemActual.id ? { id: itemActual.id, ...nuevoItem } : i)));
       }
       toast.success(t("save_success"));
@@ -79,7 +89,10 @@ export default function Catalogos() {
 
   const eliminarItem = async (id) => {
     try {
-      const registrosSnap = await getDocs(query(collection(db, "actividades_realizadas")));
+      const registrosSnap = await trackedGetDocs(query(collection(db, "actividades_realizadas")), {
+        pagina: "Catalogos",
+        seccion: "Obtiene Actividades Realizadas 4",
+      });
       const usados = registrosSnap.docs.some((doc) => {
         const data = doc.data();
         return (
@@ -90,11 +103,17 @@ export default function Catalogos() {
       });
 
       if (usados) {
-        await updateDoc(doc(db, catalogoActivo, id), { activo: false });
+        await trackedUpdateDoc(doc(db, catalogoActivo, id), { activo: false }, {
+        pagina: "Catalogos",
+        seccion: "Actualiza Catalogos 5",
+      });
         setItems(items.map((i) => (i.id === id ? { ...i, activo: false } : i)));
         toast.info(t("item_in_use"));
       } else {
-        await deleteDoc(doc(db, catalogoActivo, id));
+        await trackedDeleteDoc(doc(db, catalogoActivo, id), {
+        pagina: "Catalogos",
+        seccion: "Elimina items 6",
+      });
         setItems(items.filter((i) => i.id !== id));
         toast.success(t("delete_success"));
       }

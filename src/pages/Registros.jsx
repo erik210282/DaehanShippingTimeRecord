@@ -16,6 +16,7 @@ import { isAfter, isBefore, format } from "date-fns";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { onSnapshot } from "firebase/firestore";
+import {  trackedAddDoc, trackedUpdateDoc, trackedDeleteDoc, trackedOnSnapshot, trackedGetDocs, trackedGetDoc } from "../utils/firestoreLogger";
 
 Modal.setAppElement("#root");
 
@@ -64,9 +65,18 @@ export default function Registros() {
 
 const cargarCatalogos = async () => {
   const [actSnap, prodSnap, opSnap] = await Promise.all([
-    getDocs(collection(db, "actividades")),
-    getDocs(collection(db, "productos")),
-    getDocs(collection(db, "operadores")),
+    trackedGetDocs(collection(db, "actividades"), {
+        pagina: "Registros",
+        seccion: "Obtiene Actividades 1",
+      }),
+    trackedGetDocs(collection(db, "productos"), {
+        pagina: "Registros",
+        seccion: "Obtiene Productos 2",
+      }),
+    trackedGetDocs(collection(db, "operadores"), {
+        pagina: "Registros",
+        seccion: "Obtiene Operadores 3",
+      }),
   ]);
 
   const actividades = {};
@@ -137,7 +147,10 @@ const cargarCatalogos = async () => {
   useEffect(() => {
     cargarCatalogos();
 
-    const unsub = onSnapshot(collection(db, "actividades_realizadas"), actualizarRegistros);
+    const unsub = trackedOnSnapshot(collection(db, "actividades_realizadas"), actualizarRegistros, {
+        pagina: "Registros",
+        seccion: "onSnapshot Actualizar registros 4",
+      });
     return () => unsub();
   }, []);
 
@@ -243,7 +256,10 @@ const cargarCatalogos = async () => {
 
   const eliminarRegistro = async (id) => {
     try {
-      await deleteDoc(doc(db, "actividades_realizadas", id));
+      await trackedDeleteDoc(doc(db, "actividades_realizadas", id), {
+        pagina: "Registros",
+        seccion: "Eliminar Actividades Realizadas 5",
+      });
       setRegistros(registros.filter((r) => r.id !== id));
       toast.success(t("delete_success"));
     } catch {
@@ -308,10 +324,16 @@ const cargarCatalogos = async () => {
 
   try {
     if (esNuevo) {
-      await addDoc(collection(db, "actividades_realizadas"), data);
+      await trackedAddDoc(collection(db, "actividades_realizadas"), data, {
+          pagina: "Registros",
+          seccion: "Agrega Actividades Realizadas 6",
+        });
     } else {
       const ref = doc(db, "actividades_realizadas", registroActual.id);
-      await updateDoc(ref, data);
+      await trackedUpdateDoc(ref, data, {
+        pagina: "Registros",
+        seccion: "Obtiene Actividades Realizadas 7",
+      });
     }
     toast.success(t("save_success"));
     setModalAbierto(false);
@@ -646,7 +668,10 @@ const cargarCatalogos = async () => {
                   try {
                     console.log("Eliminando ID:", registroAEliminar.id);
                     const ref = doc(db, "actividades_realizadas", registroAEliminar.id);
-                    await deleteDoc(ref);
+                    await trackedDeleteDoc(ref, {
+                      pagina: "Registros",
+                      seccion: "Eliminar Registros 8",
+                    });
                     setRegistros((prev) =>
                       prev.filter((r) => r.id !== registroAEliminar.id)
                     );
