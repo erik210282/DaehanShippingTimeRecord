@@ -12,7 +12,7 @@ import {
   doc
 } from "firebase/firestore";
 
-import { logLectura } from "./logLectura";
+import { logLectura } from "../utils/logLectura";
 
 // 🔍 getDocs wrapper
 export const trackedGetDocs = async (ref, meta = {}) => {
