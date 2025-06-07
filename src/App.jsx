@@ -13,6 +13,7 @@ import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { auth } from "./firebase/config";
 import { useEffect, useState } from "react";
+import LecturaDashboard from './pages/LecturaDashboard';
 
 const Navbar = () => {
   const navigate = useNavigate();
