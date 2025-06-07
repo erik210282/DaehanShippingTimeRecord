@@ -8,12 +8,12 @@ import Login from "./pages/Login";
 import TareasPendientes from "./pages/TareasPendientes";
 import TareasOperario from "./pages/TareasOperario";
 import ConfiguracionTareas from "./pages/ConfiguracionTareas";
+import LecturaDashboard from './pages/LecturaDashboard';
 import { useTranslation } from "react-i18next";
 import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { auth } from "./firebase/config";
 import { useEffect, useState } from "react";
-import LecturaDashboard from './pages/LecturaDashboard';
 
 const Navbar = () => {
   const navigate = useNavigate();
