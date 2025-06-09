@@ -21,6 +21,7 @@ const LecturaDashboard = () => {
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [mostrarTabla, setMostrarTabla] = useState(true);
 
   useEffect(() => {
     const cargarLogs = async () => {
@@ -123,6 +124,36 @@ const LecturaDashboard = () => {
       <h3>Total de eventos registrados (lecturas + escrituras): {totalEventos}</h3>
 
       <button onClick={exportarCSV}>Exportar CSV</button>
+      <button onClick={() => setMostrarTabla(!mostrarTabla)}>
+        {mostrarTabla ? "Ocultar tabla" : "Mostrar tabla"}
+      </button>
+
+      {mostrarTabla && (
+        <table border="1" style={{ marginTop: 20, width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th>Página</th>
+              <th>Usuario</th>
+              <th>Sección</th>
+              <th>Tipo</th>
+              <th>Cantidad</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logsFiltrados.map((log, index) => (
+              <tr key={index}>
+                <td>{log.pagina || "—"}</td>
+                <td>{log.email || "—"}</td>
+                <td>{log.seccion || "—"}</td>
+                <td>{log.tipo}</td>
+                <td>{log.cantidad || 1}</td>
+                <td>{new Date(log.timestamp?.seconds * 1000 || log.timestamp).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       {renderBarChart("Por Página", agruparPorCampo("pagina"))}
       {renderBarChart("Por Usuario", agruparPorCampo("email"))}
