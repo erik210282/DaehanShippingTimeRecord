@@ -5,6 +5,7 @@ import {
   deleteDoc,
   updateDoc,
   addDoc,
+  onSnapshot,
   doc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
@@ -15,8 +16,14 @@ import { useTranslation } from "react-i18next";
 import { isAfter, isBefore, format } from "date-fns";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { onSnapshot } from "firebase/firestore";
-import {  trackedAddDoc, trackedUpdateDoc, trackedDeleteDoc, trackedOnSnapshot, trackedGetDocs, trackedGetDoc } from "../utils/firestoreLogger";
+import {
+  trackedAddDoc,
+  trackedUpdateDoc,
+  trackedDeleteDoc,
+  trackedOnSnapshot,
+  trackedGetDocs,
+  trackedGetDoc
+} from "../utils/firestoreLogger";
 
 Modal.setAppElement("#root");
 

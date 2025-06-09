@@ -16,7 +16,14 @@ import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../App.css";
-import {  trackedAddDoc, trackedUpdateDoc, trackedDeleteDoc, trackedOnSnapshot, trackedGetDocs, trackedGetDoc } from "../utils/firestoreLogger";
+import {
+  trackedAddDoc,
+  trackedUpdateDoc,
+  trackedDeleteDoc,
+  trackedOnSnapshot,
+  trackedGetDocs,
+  trackedGetDoc
+} from "../utils/firestoreLogger";
 
 Modal.setAppElement("#root");
 

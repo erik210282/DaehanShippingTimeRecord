@@ -15,7 +15,14 @@ import {
   Legend,
 } from "chart.js";
 import Papa from "papaparse";
-import {  trackedAddDoc, trackedUpdateDoc, trackedDeleteDoc, trackedOnSnapshot, trackedGetDocs, trackedGetDoc } from "../utils/firestoreLogger";
+import {
+  trackedAddDoc,
+  trackedUpdateDoc,
+  trackedDeleteDoc,
+  trackedOnSnapshot,
+  trackedGetDocs,
+  trackedGetDoc
+} from "../utils/firestoreLogger";
 
 
 ChartJS.register(
