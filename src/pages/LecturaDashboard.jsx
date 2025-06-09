@@ -58,7 +58,8 @@ const LecturaDashboard = () => {
       const key = log[campo] || "sin valor";
       conteo[key] = (conteo[key] || 0) + (log.cantidad || 1);
     });
-    return conteo;
+    // Ordenar alfabéticamente por clave
+    return Object.fromEntries(Object.entries(conteo).sort((a, b) => a[0].localeCompare(b[0])));
   };
 
   const agruparPorHora = () => {
@@ -68,7 +69,8 @@ const LecturaDashboard = () => {
       const hora = format(ts, "yyyy-MM-dd HH:00");
       conteo[hora] = (conteo[hora] || 0) + (log.cantidad || 1);
     });
-    return conteo;
+    // Ordenar por fecha/hora
+    return Object.fromEntries(Object.entries(conteo).sort(([a], [b]) => new Date(a) - new Date(b)));
   };
 
   const exportarCSV = () => {
@@ -99,6 +101,12 @@ const LecturaDashboard = () => {
         }}
       />
     </div>
+  );
+
+  const logsOrdenadosPorFecha = [...logsFiltrados].sort(
+    (a, b) =>
+      new Date(a.timestamp?.seconds * 1000 || a.timestamp) -
+      new Date(b.timestamp?.seconds * 1000 || b.timestamp)
   );
 
   return (
@@ -141,7 +149,7 @@ const LecturaDashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {logsFiltrados.map((log, index) => (
+            {logsOrdenadosPorFecha.map((log, index) => (
               <tr key={index}>
                 <td>{log.pagina || "—"}</td>
                 <td>{log.email || "—"}</td>
