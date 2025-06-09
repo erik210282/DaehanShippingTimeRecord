@@ -2,10 +2,6 @@ import { addDoc, getDoc, getDocs, updateDoc, deleteDoc, setDoc, onSnapshot, coll
 import { db } from "../firebase/config"; // Ajusta si usas otra ruta para config
 import { getAuth } from "firebase/auth";
 
-// Solo disponible en móvil
-import { Platform } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 const generarAnonId = () => {
   return "anon_" + Math.random().toString(36).substring(2, 10);
 };
