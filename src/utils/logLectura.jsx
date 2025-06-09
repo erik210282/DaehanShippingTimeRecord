@@ -1,5 +1,5 @@
 import { addDoc, getDoc, getDocs, updateDoc, deleteDoc, setDoc, onSnapshot, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "../../web/src/firebase/config"; // Ajusta si usas otra ruta para config
+import { db } from "../firebase/config"; // Ajusta si usas otra ruta para config
 import { getAuth } from "firebase/auth";
 
 // Solo disponible en móvil
