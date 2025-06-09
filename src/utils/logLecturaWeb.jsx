@@ -1,4 +1,4 @@
-import { addDoc, getDoc, getDocs, updateDoc, deleteDoc, setDoc, onSnapshot, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase/config"; // Ajusta si usas otra ruta para config
 import { getAuth } from "firebase/auth";
 
