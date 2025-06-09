@@ -1,4 +1,4 @@
-// LecturaDashboard.jsx
+
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase/config";
 import { collection, getDocs } from "firebase/firestore";
@@ -20,7 +20,7 @@ const LecturaDashboard = () => {
   const [logs, setLogs] = useState([]);
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const [filtroTipo, setFiltroTipo] = useState("todos"); // lectura | escritura | todos
+  const [filtroTipo, setFiltroTipo] = useState("todos");
 
   useEffect(() => {
     const cargarLogs = async () => {
@@ -49,11 +49,13 @@ const LecturaDashboard = () => {
       : logs.filter((log) => log.tipo === filtroTipo)
   );
 
+  const totalEventos = logsFiltrados.reduce((acc, log) => acc + (log.cantidad || 1), 0);
+
   const agruparPorCampo = (campo) => {
     const conteo = {};
     logsFiltrados.forEach((log) => {
       const key = log[campo] || "sin valor";
-      conteo[key] = (conteo[key] || 0) + 1;
+      conteo[key] = (conteo[key] || 0) + (log.cantidad || 1);
     });
     return conteo;
   };
@@ -63,7 +65,7 @@ const LecturaDashboard = () => {
     logsFiltrados.forEach((log) => {
       const ts = new Date(log.timestamp?.seconds * 1000 || log.timestamp);
       const hora = format(ts, "yyyy-MM-dd HH:00");
-      conteo[hora] = (conteo[hora] || 0) + 1;
+      conteo[hora] = (conteo[hora] || 0) + (log.cantidad || 1);
     });
     return conteo;
   };
@@ -117,6 +119,8 @@ const LecturaDashboard = () => {
           <option value="escritura">Escrituras</option>
         </select>
       </div>
+
+      <h3>Total de eventos registrados (lecturas + escrituras): {totalEventos}</h3>
 
       <button onClick={exportarCSV}>Exportar CSV</button>
 
