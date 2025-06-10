@@ -19,17 +19,19 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const session = supabase.auth.session();  // Usar la sesión activa
-    setUser(session?.user);
+    const obtenerSesion = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user);
+    };
 
-    // Suscribirse a cambios de estado de sesión en Supabase
+    obtenerSesion();
+
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user);
     });
 
-    // Limpiar el listener al desmontar
     return () => {
-      authListener?.unsubscribe();
+      authListener?.subscription?.unsubscribe?.(); // ✅ limpiar correctamente
     };
   }, []);
 
