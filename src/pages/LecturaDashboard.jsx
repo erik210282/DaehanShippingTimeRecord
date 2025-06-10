@@ -74,6 +74,12 @@ const LecturaDashboard = () => {
   };
 
   const exportarCSV = () => {
+    const logsFiltrados = filtrados.map((log) => {
+      return {
+        ...log,
+        timestamp: log.timestamp?.toDate().toLocaleString() || "",
+      };
+    });
     const csv = Papa.unparse(logsFiltrados);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
