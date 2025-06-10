@@ -156,7 +156,7 @@ const LecturaDashboard = () => {
                 <td>{log.seccion || "—"}</td>
                 <td>{log.tipo}</td>
                 <td>{log.cantidad || 1}</td>
-                <td>{log.timestamp}</td>
+                <td>{new Date(log.timestamp?.seconds * 1000 || log.timestamp).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
