@@ -54,78 +54,54 @@ export default function Registros() {
   };
 
 const cargarCatalogos = async () => {
-  const [actRes, prodRes, opRes] = await Promise.all([
-    supabase
-      .from("actividades")
-      .select("id, nombre")
-      .then((res) => {
-        console.log("[Registros] Obtiene Actividades 1", res);
-        return res;
-      }),
-    supabase
-      .from("productos")
-      .select("id, nombre")
-      .then((res) => {
-        console.log("[Registros] Obtiene Productos 2", res);
-        return res;
-      }),
-    supabase
-      .from("operadores")
-      .select("id, nombre")
-      .then((res) => {
-        console.log("[Registros] Obtiene Operadores 3", res);
-        return res;
-      }),
-  ]);
+  try {
+    const [{ data: actData, error: actErr }, { data: prodData, error: prodErr }, { data: opData, error: opErr }] =
+      await Promise.all([
+        supabase.from("actividades").select("id, nombre"),
+        supabase.from("productos").select("id, nombre"),
+        supabase.from("operadores").select("id, nombre"),
+      ]);
 
-  const actividades = {};
-  const productos = {};
-  const operadores = {};
+    if (actErr) console.error("[Registros] Error Actividades", actErr);
+    if (prodErr) console.error("[Registros] Error Productos", prodErr);
+    if (opErr) console.error("[Registros] Error Operadores", opErr);
 
-  if (actRes.data) {
-    actRes.data.forEach((doc) => (actividades[doc.id] = doc.nombre));
-  }
-  if (prodRes.data) {
-    prodRes.data.forEach((doc) => (productos[doc.id] = doc.nombre));
-  }
-  if (opRes.data) {
-    opRes.data.forEach((doc) => (operadores[doc.id] = doc.nombre));
-  }
+    const actividades = {};
+    const productos = {};
+    const operadores = {};
 
-  setMapaActividades(actividades);
-  setMapaProductos(productos);
-  setMapaOperadores(operadores);
+    actData?.forEach((doc) => (actividades[doc.id] = doc.nombre));
+    prodData?.forEach((doc) => (productos[doc.id] = doc.nombre));
+    opData?.forEach((doc) => (operadores[doc.id] = doc.nombre));
+
+    setMapaActividades(actividades);
+    setMapaProductos(productos);
+    setMapaOperadores(operadores);
+
+    setSelectActividades(
+      actData
+        ?.filter((doc) => doc.activo !== false)
+        .map((doc) => ({ value: doc.id, label: doc.nombre }))
+        .sort((a, b) => a.label.localeCompare(b.label)) || []
+    );
+
+    setSelectProductos(
+      prodData
+        ?.filter((doc) => doc.activo !== false)
+        .map((doc) => ({ value: doc.id, label: doc.nombre }))
+        .sort((a, b) => a.label.localeCompare(b.label)) || []
+    );
+
+    setSelectOperadores(
+      opData
+        ?.filter((doc) => doc.activo !== false)
+        .map((doc) => ({ value: doc.id, label: doc.nombre }))
+        .sort((a, b) => a.label.localeCompare(b.label)) || []
+    );
+  } catch (e) {
+    console.error("Error general en cargarCatalogos:", e);
+  }
 };
-
-  setSelectActividades(
-  (actRes.data || [])
-    .filter((doc) => doc.activo !== false)
-    .map((doc) => ({
-      value: doc.id,
-      label: doc.nombre,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label))
-);
-
-setSelectProductos(
-  (prodRes.data || [])
-    .filter((doc) => doc.activo !== false)
-    .map((doc) => ({
-      value: doc.id,
-      label: doc.nombre,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label))
-);
-
-setSelectOperadores(
-  (opRes.data || [])
-    .filter((doc) => doc.activo !== false)
-    .map((doc) => ({
-      value: doc.id,
-      label: doc.nombre,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label))
-);
 
 const actualizarRegistros = async () => {
   const { data, error } = await supabase
