@@ -74,14 +74,14 @@ const LecturaDashboard = () => {
   };
 
   const exportarCSV = () => {
-  const logsFiltrados = filtrados.map((log) => {
+  const datosParaExportar = logsFiltrados.map((log) => {
     return {
       ...log,
-      timestamp: log.timestamp?.toDate().toLocaleString() || "",
+      timestamp: new Date(log.timestamp?.seconds * 1000 || log.timestamp).toLocaleString(),
     };
   });
 
-  const csv = Papa.unparse(logsFiltrados);
+  const csv = Papa.unparse(datosParaExportar);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
