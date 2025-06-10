@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebase/config";
+import React, { useEffect, useState, useMemo } from "react";
+import supabase from "../supabase/client";
 import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -15,196 +14,173 @@ import {
   Legend,
 } from "chart.js";
 import Papa from "papaparse";
-import {
-  trackedAddDoc,
-  trackedUpdateDoc,
-  trackedDeleteDoc,
-  trackedOnSnapshot,
-  trackedGetDocs,
-  trackedGetDoc
-} from "../utils/firestoreLogger";
-
 
 ChartJS.register(
   BarElement,
   CategoryScale,
   LinearScale,
   ArcElement,
-  Tooltip,
-  
+  Tooltip, 
   Legend
 );
 
 export default function Productividad() {
   const { t } = useTranslation();
+
   const [registros, setRegistros] = useState([]);
+  const [operadores, setOperadores] = useState({});
+  const [productos, setProductos] = useState({});
+  const [actividades, setActividades] = useState({});
+
   const [agrupadoPor, setAgrupadoPor] = useState("actividad");
-  const [agrupadoPor2, setAgrupadoPor2] = useState(""); // Segunda selección para tabla cruzada
+  const [agrupadoPor2, setAgrupadoPor2] = useState(""); 
   const [tipoGrafica, setTipoGrafica] = useState("bar");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const [errorFecha, setErrorFecha] = useState(""); // Estado para manejar los errores de fecha
-  const [operadores, setOperadores] = useState({});
-  const [actividades, setActividades] = useState({});
-  const [productos, setProductos] = useState({});
+  const [errorFecha, setErrorFecha] = useState(""); 
 
   useEffect(() => {
     const cargarDatos = async () => {
-      const [regSnap, opSnap, actSnap, prodSnap] = await Promise.all([
-        trackedGetDocs(collection(db, "actividades_realizadas"), {
-        pagina: "Registros",
-        seccion: "Obtiene Actividades Realizadas 1",
-      }),
-        trackedGetDocs(collection(db, "operadores"), {
-        pagina: "Registros",
-        seccion: "Obtiene operadores 2",
-      }),
-        trackedGetDocs(collection(db, "actividades"), {
-        pagina: "Registros",
-        seccion: "Obtiene Actividades 3",
-      }),
-        trackedGetDocs(collection(db, "productos"), {
-        pagina: "Registros",
-        seccion: "Obtiene Productos 4",
-      }),
-      ]);
+      const [regSnap, opSnap, prodSnap, actSnap] = await Promise.all([
+              supabase.from("actividades_realizadas").select("*"),
+              supabase.from("operadores").select("id, nombre"),
+              supabase.from("productos").select("id, nombre"),
+              supabase.from("actividades").select("id, nombre"),
+        ]);
 
-      const operadoresMap = {};
-      const actividadesMap = {};
-      const productosMap = {};
+      const mapById = (arr) =>
+        arr?.data?.reduce((acc, cur) => {
+          acc[cur.id] = cur.nombre;
+          return acc;
+        }, {}) || {};
 
-      opSnap.docs.forEach((doc) => (operadoresMap[doc.id] = doc.data().nombre));
-      actSnap.docs.forEach((doc) => (actividadesMap[doc.id] = doc.data().nombre));
-      prodSnap.docs.forEach((doc) => (productosMap[doc.id] = doc.data().nombre));
+      setOperadores(mapById(opSnap));
+      setProductos(mapById(prodSnap));
+      setActividades(mapById(actSnap));
 
-      setOperadores(operadoresMap);
-      setActividades(actividadesMap);
-      setProductos(productosMap);
-
-      const registros = regSnap.docs
-      .map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }))
-      .filter((r) => r.estado === "completed");
-      setRegistros(registros);
+      const registrosFiltrados = regSnap?.data?.filter((r) => r.estado === "completed") || [];
+      setRegistros(registrosFiltrados);
     };
 
-    cargarDatos();
-  }, []);
+   cargarDatos();
 
-  const validarFechas = () => {
-    if (desde && hasta) {
-      if (new Date(desde) > new Date(hasta)) {
-        if (errorFecha !== t("invalid_date_range")) { 
-          setErrorFecha(t("invalid_date_range"));
-        }
-        return false;
-      } else {
-        if (errorFecha !== "") { 
-          setErrorFecha("");
-        }
-        return true;
-      }
+    const canal = supabase
+      .channel("realtime-productividad")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "actividades_realizadas" },
+        () => cargarDatos()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "operadores" },
+        () => cargarDatos()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "productos" },
+        () => cargarDatos()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "actividades" },
+        () => cargarDatos()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, []);
+          
+ const validarFechas = () => {
+    if (desde && hasta && new Date(desde) > new Date(hasta)) {
+      setErrorFecha(t("invalid_date_range"));
+      return false;
     }
+    setErrorFecha("");
     return true;
   };
 
   const filtrarRegistros = () => {
     if (!validarFechas()) return [];
-
-    const registrosFiltrados = registros.filter((r) => {
-      const inicio = r.hora_inicio?.toDate?.();
+    return registros.filter((r) => {
+      const inicio = new Date(r.hora_inicio);
       if (!inicio) return false;
-      if (desde && new Date(inicio) < new Date(desde)) return false;
-      if (hasta && new Date(inicio) > new Date(hasta)) return false;
+      if (desde && inicio < new Date(desde)) return false;
+      if (hasta && inicio > new Date(hasta)) return false;
       return true;
     });
-    return registrosFiltrados;
   };
 
   const calcularPromedioTiempo = () => {
-    const promedios = {};
+    const datos = {};
     filtrarRegistros().forEach((r) => {
       let claves = [];
-      if (agrupadoPor === "operador") claves = r.operadores || [];
+      if (agrupadoPor === "operador") claves = Array.isArray(r.operadores) ? r.operadores : [];
       else if (agrupadoPor === "actividad") claves = [r.actividad];
-      else if (agrupadoPor === "producto") {
-        claves = Array.isArray(r.productos)
-          ? r.productos.map((p) => p.producto)
-          : [r.producto];
-      }
+      else if (agrupadoPor === "producto") claves = [r.producto];
+
+      const horaInicio = new Date(r.hora_inicio);
+      const horaFin = new Date(r.hora_fin);
+      if (!horaInicio || !horaFin || isNaN(horaInicio) || isNaN(horaFin)) return;
+      const duracionMin = (horaFin - horaInicio) / 60000;
 
       claves.forEach((clave) => {
-        const horaInicio = r.hora_inicio?.toDate?.() ?? new Date(r.hora_inicio);
-        const horaFinRaw = r.hora_fin?.toDate?.() ?? new Date(r.hora_fin);
-        const horaFinValidada = isNaN(horaFinRaw?.getTime?.()) ? null : horaFinRaw;
-        if (!horaInicio || !horaFinValidada) return;
-
-        const duracionMinutos = (horaFinValidada - horaInicio) / 60000;
-        if (!promedios[clave]) promedios[clave] = { totalTiempo: 0, count: 0 };
-        promedios[clave].totalTiempo += duracionMinutos;
-        promedios[clave].count += 1;
+        if (!datos[clave]) datos[clave] = { total: 0, count: 0 };
+        datos[clave].total += duracionMin;
+        datos[clave].count += 1;
       });
     });
 
-    const promediosFinales = {};
-    Object.keys(promedios).forEach((clave) => {
-      promediosFinales[clave] = Math.round(promedios[clave].totalTiempo / promedios[clave].count);
-    });
-    return promediosFinales;
+    const resultado = {};
+    for (const clave in datos) {
+      const { total, count } = datos[clave];
+      resultado[clave] = Math.round(total / count);
+    }
+    return resultado;
   };
 
   const calcularPromedioCruzado = () => {
-    const promediosCruzados = {};
+    const datos = {};
     filtrarRegistros().forEach((r) => {
       let claves = [];
       let claves2 = [];
 
-      if (agrupadoPor === "operador") claves = r.operadores || [];
+      if (agrupadoPor === "operador") claves = Array.isArray(r.operadores) ? r.operadores : [];
       else if (agrupadoPor === "actividad") claves = [r.actividad];
-      else if (agrupadoPor === "producto") {
-        claves = Array.isArray(r.productos)
-          ? r.productos.map((p) => p.producto)
-          : [r.producto];
-      }
+      else if (agrupadoPor === "producto") claves = [r.producto];
 
-      if (agrupadoPor2 === "operador") claves2 = r.operadores || [];
+      if (agrupadoPor2 === "operador") claves2 = Array.isArray(r.operadores) ? r.operadores : [];
       else if (agrupadoPor2 === "actividad") claves2 = [r.actividad];
-      else if (agrupadoPor2 === "producto") {
-        claves2 = Array.isArray(r.productos)
-          ? r.productos.map((p) => p.producto)
-          : [r.producto];
-      }
+      else if (agrupadoPor2 === "producto") claves2 = [r.producto];
 
-      claves.forEach((clave) => {
-        claves2.forEach((clave2) => {
-          const horaInicio = r.hora_inicio?.toDate?.() ?? new Date(r.hora_inicio);
-          const horaFinRaw = r.hora_fin?.toDate?.() ?? new Date(r.hora_fin);
-          const horaFinValidada = isNaN(horaFinRaw?.getTime?.()) ? null : horaFinRaw;
-          if (!horaInicio || !horaFinValidada) return;
+      const horaInicio = new Date(r.hora_inicio);
+      const horaFin = new Date(r.hora_fin);
+      if (!horaInicio || !horaFin || isNaN(horaInicio) || isNaN(horaFin)) return;
+      const duracionMin = (horaFin - horaInicio) / 60000;
 
-          const duracionMinutos = (horaFinValidada - horaInicio) / 60000;
-          const key = `${clave} - ${clave2}`;
-          if (!promediosCruzados[key])
-            promediosCruzados[key] = { totalTiempo: 0, count: 0 };
-          promediosCruzados[key].totalTiempo += duracionMinutos;
-          promediosCruzados[key].count += 1;
+      claves.forEach((k1) => {
+        claves2.forEach((k2) => {
+          const key = `${k1} - ${k2}`;
+          if (!datos[key]) datos[key] = { total: 0, count: 0 };
+          datos[key].total += duracionMin;
+          datos[key].count += 1;
         });
       });
     });
 
-    const promediosFinalesCruzados = {};
-    Object.keys(promediosCruzados).forEach((clave) => {
-      const { totalTiempo, count } = promediosCruzados[clave];
-      promediosFinalesCruzados[clave] = count > 0 ? Math.round(totalTiempo / count) : 0;
-    });
-    return promediosFinalesCruzados;
+    const resultado = {};
+    for (const key in datos) {
+      const { total, count } = datos[key];
+      resultado[key] = Math.round(total / count);
+    }
+    return resultado;
   };
 
-  const datosPromedio = calcularPromedioTiempo();
-  const datosPromedioCruzado = calcularPromedioCruzado();
-  
+  const datosPromedio = useMemo(() => calcularPromedioTiempo(), [registros, agrupadoPor, desde, hasta]);
+  const datosPromedioCruzado = useMemo(() => calcularPromedioCruzado(), [registros, agrupadoPor, agrupadoPor2, desde, hasta]);
+
   const etiquetasOrdenadas = Object.keys(datosPromedio)
   .sort((a, b) => {
     const nombreA = agrupadoPor === "operador" ? operadores[a] : agrupadoPor === "actividad" ? actividades[a] : productos[a];
@@ -239,62 +215,51 @@ const etiquetasCruzadas = clavesCruzadasOrdenadas.map((clave) => {
   return `${nombre1} - ${nombre2}`;
 });
 
-const promediosCruzados = clavesCruzadasOrdenadas.map((clave) => datosPromedioCruzado[clave]);
+const promediosCruzados = clavesCruzadasOrdenadas.map((k) => datosPromedioCruzado[k]);
 
- const colores = [
-  "rgba(255, 99, 132, 0.5)",
-  "rgba(54, 162, 235, 0.5)",
-  "rgba(255, 206, 86, 0.5)",
-  "rgba(75, 192, 192, 0.5)",
-  "rgba(153, 102, 255, 0.5)",
-  "rgba(255, 159, 64, 0.5)",
-  "rgba(199, 199, 199, 0.5)",
-  "rgba(83, 102, 255, 0.5)",
-  "rgba(255, 99, 255, 0.5)",
-  "rgba(0, 191, 255, 0.5)"
-];
-
-const datosGrafica = {
-  labels: etiquetas,
-  datasets: [
-    {
-      label: t("average_time_minutes"),
-      data: promedios,
-      backgroundColor: etiquetas.map((_, index) => colores[index % colores.length])
-    }
-  ]
-};
+  const datosGrafica = {
+    labels: agrupadoPor2 ? etiquetasCruzadas : etiquetas,
+    datasets: [
+      {
+        label: t("average_time_minutes"),
+        data: agrupadoPor2 ? promediosCruzados : promedios,
+        backgroundColor: (agrupadoPor2 ? etiquetasCruzadas : etiquetas).map(
+          (_, i) =>
+            [
+              "rgba(255, 99, 132, 0.5)",
+              "rgba(54, 162, 235, 0.5)",
+              "rgba(255, 206, 86, 0.5)",
+              "rgba(75, 192, 192, 0.5)",
+              "rgba(153, 102, 255, 0.5)",
+              "rgba(255, 159, 64, 0.5)",
+              "rgba(199, 199, 199, 0.5)",
+              "rgba(83, 102, 255, 0.5)",
+              "rgba(255, 99, 255, 0.5)",
+              "rgba(0, 191, 255, 0.5)",
+            ][i % 10]
+        ),
+      },
+    ],
+  };
 
   const exportarCSV = () => {
-    let datosCSV = [];
-
-    if (agrupadoPor2 && etiquetasCruzadas.length) {
-      // Exportar datos cruzados
-      datosCSV = etiquetasCruzadas.map((etiqueta, index) => ({
-        [agrupadoPor2 ? `${t(agrupadoPor)} - ${t(agrupadoPor2)}` : t(agrupadoPor)]: etiqueta,
-        [t("average_time_minutes")]: promediosCruzados[index],
-      }));
-    } else {
-      // Exportar datos simples
-      datosCSV = etiquetas.map((etiqueta, index) => ({
-        [agrupadoPor2 ? `${t(agrupadoPor)} - ${t(agrupadoPor2)}` : t(agrupadoPor)]: etiqueta,
-        [t("average_time_minutes")]: promedios[index],
-      }));
-    }
+    const datosCSV = (agrupadoPor2 ? etiquetasCruzadas : etiquetas).map((etiqueta, i) => ({
+      [agrupadoPor2 ? `${t(agrupadoPor)} - ${t(agrupadoPor2)}` : t(agrupadoPor)]: etiqueta,
+      [t("average_time_minutes")]: agrupadoPor2 ? promediosCruzados[i] : promedios[i],
+    }));
 
     const csv = Papa.unparse(datosCSV);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "promedios_productividad.csv");
+    link.setAttribute("download", "productividad.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success(t("export_success") || "CSV exportado correctamente");
+    toast.success(t("export_success"));
   };
 
-  // Función para limpiar filtros
   const limpiarFiltros = () => {
     setDesde("");
     setHasta("");

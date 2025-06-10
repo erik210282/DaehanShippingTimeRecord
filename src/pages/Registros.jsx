@@ -1,14 +1,4 @@
 import React, { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  deleteDoc,
-  updateDoc,
-  addDoc,
-  onSnapshot,
-  doc,
-} from "firebase/firestore";
-import { db } from "../firebase/config";
 import Select from "react-select";
 import Modal from "react-modal";
 import Papa from "papaparse";
@@ -16,14 +6,8 @@ import { useTranslation } from "react-i18next";
 import { isAfter, isBefore, format } from "date-fns";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import {
-  trackedAddDoc,
-  trackedUpdateDoc,
-  trackedDeleteDoc,
-  trackedOnSnapshot,
-  trackedGetDocs,
-  trackedGetDoc
-} from "../utils/firestoreLogger";
+import supabase from "../supabase/client";
+
 
 Modal.setAppElement("#root");
 
@@ -60,29 +44,37 @@ export default function Registros() {
 
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
 
-  const parseFirebaseDate = (fecha) => {
+  const parseFecha = (fecha) => {
     if (!fecha) return null;
     if (typeof fecha === "string" || typeof fecha === "number") {
       const parsed = new Date(fecha);
       return isNaN(parsed) ? null : parsed;
     }
-    if (fecha.toDate) return fecha.toDate();
-    return new Date(fecha);
+    return new Date(fecha); // Supabase ya devuelve ISO strings o Date
   };
 
 const cargarCatalogos = async () => {
-  const [actSnap, prodSnap, opSnap] = await Promise.all([
-    trackedGetDocs(collection(db, "actividades"), {
-        pagina: "Registros",
-        seccion: "Obtiene Actividades 1",
+  const [actRes, prodRes, opRes] = await Promise.all([
+    supabase
+      .from("actividades")
+      .select("id, nombre")
+      .then((res) => {
+        console.log("[Registros] Obtiene Actividades 1", res);
+        return res;
       }),
-    trackedGetDocs(collection(db, "productos"), {
-        pagina: "Registros",
-        seccion: "Obtiene Productos 2",
+    supabase
+      .from("productos")
+      .select("id, nombre")
+      .then((res) => {
+        console.log("[Registros] Obtiene Productos 2", res);
+        return res;
       }),
-    trackedGetDocs(collection(db, "operadores"), {
-        pagina: "Registros",
-        seccion: "Obtiene Operadores 3",
+    supabase
+      .from("operadores")
+      .select("id, nombre")
+      .then((res) => {
+        console.log("[Registros] Obtiene Operadores 3", res);
+        return res;
       }),
   ]);
 
@@ -90,145 +82,186 @@ const cargarCatalogos = async () => {
   const productos = {};
   const operadores = {};
 
-  actSnap.docs.forEach((doc) => (actividades[doc.id] = doc.data().nombre));
-  prodSnap.docs.forEach((doc) => (productos[doc.id] = doc.data().nombre));
-  opSnap.docs.forEach((doc) => (operadores[doc.id] = doc.data().nombre));
+  if (actRes.data) {
+    actRes.data.forEach((doc) => (actividades[doc.id] = doc.nombre));
+  }
+  if (prodRes.data) {
+    prodRes.data.forEach((doc) => (productos[doc.id] = doc.nombre));
+  }
+  if (opRes.data) {
+    opRes.data.forEach((doc) => (operadores[doc.id] = doc.nombre));
+  }
 
   setMapaActividades(actividades);
   setMapaProductos(productos);
   setMapaOperadores(operadores);
-
-  setSelectActividades(
-    actSnap.docs
-      .filter((doc) => doc.data().activo !== false)
-      .map((doc) => ({
-        value: doc.id,
-        label: doc.data().nombre,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label))
-  );
-
-  setSelectProductos(
-    prodSnap.docs
-      .filter((doc) => doc.data().activo !== false)
-      .map((doc) => ({
-        value: doc.id,
-        label: doc.data().nombre,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label))
-  );
-
-  setSelectOperadores(
-    opSnap.docs
-      .filter((doc) => doc.data().activo !== false)
-      .map((doc) => ({
-        value: doc.id,
-        label: doc.data().nombre,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label))
-  );
 };
 
-  const actualizarRegistros = (snapshot) => {
-    const nuevos = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        idx: data.idx || "",
-        ...data,
-        operadores: Array.isArray(data.operadores)
-          ? data.operadores
-          : typeof data.operador === "string" && data.operador.trim()
-          ? [data.operador]
-          : [],
-        horaInicio: parseFirebaseDate(data.hora_inicio),
-        horaFin: parseFirebaseDate(data.hora_fin),
-        duracion: data.duracion ?? "",
-      };
-    });
-    nuevos.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
-    setRegistros(nuevos);
-    setFiltrados(nuevos);
+  setSelectActividades(
+  (actRes.data || [])
+    .filter((doc) => doc.activo !== false)
+    .map((doc) => ({
+      value: doc.id,
+      label: doc.nombre,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+);
+
+setSelectProductos(
+  (prodRes.data || [])
+    .filter((doc) => doc.activo !== false)
+    .map((doc) => ({
+      value: doc.id,
+      label: doc.nombre,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+);
+
+setSelectOperadores(
+  (opRes.data || [])
+    .filter((doc) => doc.activo !== false)
+    .map((doc) => ({
+      value: doc.id,
+      label: doc.nombre,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+);
+
+const actualizarRegistros = async () => {
+  const { data, error } = await supabase
+    .from("actividades_realizadas")
+    .select("*");
+
+  if (error) {
+    console.error("Error cargando registros:", error);
+    return;
+  }
+
+  const nuevos = (data || []).map((doc) => ({
+    id: doc.id,
+    idx: doc.idx || "",
+    ...doc,
+    operadores: Array.isArray(doc.operadores)
+      ? doc.operadores
+      : typeof doc.operador === "string" && doc.operador.trim()
+      ? [doc.operador]
+      : [],
+    horaInicio: parseFecha(doc.hora_inicio),
+    horaFin: parseFecha(doc.hora_fin),
+    duracion: doc.duracion ?? "",
+  }));
+
+  nuevos.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
+  setRegistros(nuevos);
+  setFiltrados(nuevos);
+};
+
+  useEffect(() => {
+  cargarCatalogos();
+  actualizarRegistros(); // carga inicial
+
+  const canal = supabase
+    .channel("Registros - onSnapshot Actualizar registros 4")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "actividades_realizadas",
+      },
+      () => {
+        console.log("[Registros] Cambio detectado en actividades_realizadas");
+        actualizarRegistros(); // recarga en tiempo real
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(canal);
   };
+}, []);
 
   useEffect(() => {
-    cargarCatalogos();
+  if (errorFecha) {
+    setErrorFecha(t("invalid_date_range")); // Vuelve a traducir el error al cambiar idioma
+  }
+}, [i18n.language]);
 
-    const unsub = trackedOnSnapshot(collection(db, "actividades_realizadas"), actualizarRegistros, {
-        pagina: "Registros",
-        seccion: "onSnapshot Actualizar registros 4",
-      });
-    return () => unsub();
-  }, []);
+useEffect(() => {
+  if (fechaDesde && fechaHasta) {
+    const desde = new Date(fechaDesde);
+    const hasta = new Date(fechaHasta);
 
-  useEffect(() => {
-    if (errorFecha) {
+    if (desde > hasta) {
       setErrorFecha(t("invalid_date_range"));
-    }
-  }, [i18n.language]);
-
-  useEffect(() => {
-    if (fechaDesde && fechaHasta && new Date(fechaDesde) > new Date(fechaHasta)) {
-      setErrorFecha(t("invalid_date_range"));
-      return;
     } else {
       setErrorFecha("");
     }
+  }
+}, [fechaDesde, fechaHasta, t]);
 
-    const texto = busquedaTexto.toLowerCase();
+ useEffect(() => {
+  const texto = busquedaTexto.toLowerCase();
 
-    const resultados = registros.filter((r) => {
-      if (!r.horaFin) return false;
-      const cumpleActividad =
-        actividadFiltro.length === 0 ||
-        actividadFiltro.some((a) => a.value === r.actividad);
+  const resultados = registros.filter((r) => {
+    if (!r.horaFin) return false;
 
-      const cumpleProducto =
-        productoFiltro.length === 0 ||
-        productoFiltro.some((p) => p.value === r.producto);
+    const cumpleActividad =
+      actividadFiltro.length === 0 ||
+      actividadFiltro.some((a) => a.value === r.actividad);
 
-      const cumpleOperador =
-        operadorFiltro.length === 0 ||
-        (Array.isArray(r.operadores) &&
-          operadorFiltro.some((o) => r.operadores.includes(o.value)));
+    const cumpleProducto =
+      productoFiltro.length === 0 ||
+      productoFiltro.some((p) => p.value === r.producto);
 
-      const cumpleTexto =
-        !texto ||
-        mapaActividades[r.actividad]?.toLowerCase().includes(texto) ||
-        mapaProductos[r.producto]?.toLowerCase().includes(texto) ||
-        (Array.isArray(r.operadores) &&
-          r.operadores.some(
-            (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
-          ));
+    const cumpleOperador =
+      operadorFiltro.length === 0 ||
+      (Array.isArray(r.operadores) &&
+        operadorFiltro.some((o) => r.operadores.includes(o.value)));
 
-      const fechaInicio = r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
-      const cumpleDesde = !fechaDesde || isAfter(fechaInicio, new Date(fechaDesde));
-      const cumpleHasta = !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta));
-
-      return (
-        cumpleActividad &&
-        cumpleProducto &&
-        cumpleOperador &&
-        cumpleTexto &&
-        cumpleDesde &&
-        cumpleHasta
+    const cumpleTexto =
+      !texto ||
+      mapaActividades[r.actividad]?.toLowerCase().includes(texto) ||
+      mapaProductos[r.producto]?.toLowerCase().includes(texto) ||
+      r.operadores?.some(
+        (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
       );
-    });
 
-    resultados.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
-    setFiltrados(resultados);
-    setErrorBusqueda(texto && resultados.length === 0 ? t("no_results_found") : "");
-  }, [
-    actividadFiltro,
-    productoFiltro,
-    operadorFiltro,
-    busquedaTexto,
-    fechaDesde,
-    fechaHasta,
-    registros,
-  ]);
+    const fechaInicio =
+      r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
 
-  const abrirModal = (registro) => {
+    const cumpleDesde =
+      !fechaDesde || isAfter(fechaInicio, new Date(fechaDesde));
+
+    const cumpleHasta =
+      !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta));
+
+    return (
+      cumpleActividad &&
+      cumpleProducto &&
+      cumpleOperador &&
+      cumpleTexto &&
+      cumpleDesde &&
+      cumpleHasta
+    );
+  });
+
+  resultados.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
+
+  setFiltrados(resultados);
+  setErrorBusqueda(texto && resultados.length === 0 ? t("no_results_found") : "");
+}, [
+  actividadFiltro,
+  productoFiltro,
+  operadorFiltro,
+  busquedaTexto,
+  fechaDesde,
+  fechaHasta,
+  registros,
+  t,
+]);
+
+ const abrirModal = (registro) => {
   if (registro) {
     const formatFecha = (fecha) => {
       if (!fecha) return "";
@@ -239,7 +272,9 @@ const cargarCatalogos = async () => {
 
     setRegistroActual({
       ...registro,
-      productos: Array.isArray(registro.productos) ? registro.productos : [{ producto: registro.producto, cantidad: registro.cantidad }],
+      productos: Array.isArray(registro.productos)
+        ? registro.productos
+        : [{ producto: registro.producto, cantidad: registro.cantidad }],
       horaInicio: formatFecha(registro.horaInicio),
       horaFin: formatFecha(registro.horaFin),
     });
@@ -253,7 +288,7 @@ const cargarCatalogos = async () => {
       cantidad: "",
       horaInicio: "",
       horaFin: "",
-      duaacion: "",
+      duracion: "", // <-- corregido aquí
       notas: "",
     });
     setEsNuevo(true);
@@ -262,49 +297,82 @@ const cargarCatalogos = async () => {
 };
 
   const eliminarRegistro = async (id) => {
-    try {
-      await trackedDeleteDoc(doc(db, "actividades_realizadas", id), {
-        pagina: "Registros",
-        seccion: "Eliminar Actividades Realizadas 5",
-      });
-      setRegistros(registros.filter((r) => r.id !== id));
-      toast.success(t("delete_success"));
-    } catch {
-      toast.error(t("error_deleting"));
-    }
-  };
+  try {
+    const { error } = await supabase
+      .from("actividades_realizadas")
+      .delete()
+      .eq("id", id);
+
+    // Reemplazo de trackedDeleteDoc (puedes adaptarlo a tu sistema si lo tienes en Supabase)
+    console.log("[Registros] Eliminar Actividades Realizadas 5", id);
+
+    if (error) throw error;
+
+    setRegistros(registros.filter((r) => r.id !== id));
+    toast.success(t("delete_success"));
+  } catch (e) {
+    console.error("Error eliminando registro:", e);
+    toast.error(t("error_deleting"));
+  }
+};
 
  const guardarRegistro = async () => {
-  const { idx, actividad, productos, operadores, notas, horaInicio, horaFin, duracion } = registroActual;
+  const {
+    idx,
+    actividad,
+    productos,
+    operadores,
+    notas,
+    horaInicio,
+    horaFin,
+    duracion,
+  } = registroActual;
 
-  if (!idx || !actividad || !productos.length || !operadores.length || !horaInicio || !horaFin || !duracion) {
+  if (
+    !idx ||
+    !actividad ||
+    !productos.length ||
+    !operadores.length ||
+    !horaInicio ||
+    !horaFin ||
+    !duracion
+  ) {
     toast.error(t("fill_all_fields"));
     return;
   }
 
-  const productosLimpios = productos.map(p => ({
+  const productosLimpios = productos.map((p) => ({
     producto: p.producto,
     cantidad: Number(p.cantidad),
   }));
 
-  if (productosLimpios.some(p => !p.producto || isNaN(p.cantidad) || p.cantidad <= 0)) {
+  if (
+    productosLimpios.some(
+      (p) => !p.producto || isNaN(p.cantidad) || p.cantidad <= 0
+    )
+  ) {
     toast.error(t("fill_all_fields"));
     return;
   }
 
-  const productosDuplicados = productosLimpios.map(p => p.producto).filter((v, i, a) => a.indexOf(v) !== i);
+  const productosDuplicados = productosLimpios
+    .map((p) => p.producto)
+    .filter((v, i, a) => a.indexOf(v) !== i);
+
   if (productosDuplicados.length > 0) {
     toast.error(t("no_duplicate_products"));
     return;
   }
 
-    if (!esNuevo) {
-    const duplicado = registros.some(r =>
-      r.id !== registroActual.id &&
-      r.actividad === actividad &&
-      JSON.stringify(r.operadores.sort()) === JSON.stringify(operadores.sort()) &&
-      new Date(r.hora_inicio).getTime() === new Date(horaInicio).getTime() &&
-      new Date(r.hora_fin).getTime() === new Date(horaFin).getTime()
+  if (!esNuevo) {
+    const duplicado = registros.some(
+      (r) =>
+        r.id !== registroActual.id &&
+        r.actividad === actividad &&
+        JSON.stringify((r.operadores || []).sort()) ===
+          JSON.stringify([...operadores].sort()) &&
+        new Date(r.hora_inicio).getTime() === new Date(horaInicio).getTime() &&
+        new Date(r.hora_fin).getTime() === new Date(horaFin).getTime()
     );
 
     if (duplicado) {
@@ -323,7 +391,7 @@ const cargarCatalogos = async () => {
     actividad,
     productos: productosLimpios,
     operadores,
-    notas,
+    notas: notas || "",
     hora_inicio: new Date(horaInicio),
     hora_fin: new Date(horaFin),
     duracion,
@@ -331,84 +399,98 @@ const cargarCatalogos = async () => {
 
   try {
     if (esNuevo) {
-      await trackedAddDoc(collection(db, "actividades_realizadas"), data, {
-          pagina: "Registros",
-          seccion: "Agrega Actividades Realizadas 6",
-        });
+      const { error } = await supabase
+        .from("actividades_realizadas")
+        .insert([data]);
+
+      console.log("[Registros] Agrega Actividades Realizadas 6", data);
+      if (error) throw error;
     } else {
-      const ref = doc(db, "actividades_realizadas", registroActual.id);
-      await trackedUpdateDoc(ref, data, {
-        pagina: "Registros",
-        seccion: "Obtiene Actividades Realizadas 7",
-      });
+      const { error } = await supabase
+        .from("actividades_realizadas")
+        .update(data)
+        .eq("id", registroActual.id);
+
+      console.log("[Registros] Actualiza Actividades Realizadas 7", data);
+      if (error) throw error;
     }
+
     toast.success(t("save_success"));
     setModalAbierto(false);
-  } catch {
+  } catch (error) {
+    console.error("Error guardando registro:", error);
     toast.error(t("error_saving"));
   }
 };
 
   const exportarCSV = () => {
-    const datosCSV = filtrados.flatMap((d) => {
-      const inicio = new Date(d.horaInicio);
-      const fin = new Date(d.horaFin);
-    
-      return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
-        [t("idx")]: registroActual?.idx || "N/A",
-        [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
-        [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
-        [t("operator")]: Array.isArray(d.operadores)
-          ? d.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ")
-          : "",
-        [t("amount")]: p.cantidad,
-        [t("start_time")]: inicio.toLocaleString(),
-        [t("end_time")]: fin.toLocaleString(),
-        [t("duration_min")]: d.duracion ? Math.round(d.duracion) : "-",
-        [t("notes")]: d.notas || "N/A",
-      }));
-    });
+  const datosCSV = filtrados.flatMap((d) => {
+    const inicio = new Date(d.horaInicio);
+    const fin = new Date(d.horaFin);
 
-    const csv = Papa.unparse(datosCSV);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "registros.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success(t("export_success") || "CSV exportado correctamente");
-  };
+    return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
+      [t("idx")]: d.idx || "N/A",
+      [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
+      [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
+      [t("operator")]: Array.isArray(d.operadores)
+        ? d.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ")
+        : "",
+      [t("amount")]: p.cantidad,
+      [t("start_time")]: inicio.toLocaleString(),
+      [t("end_time")]: fin.toLocaleString(),
+      [t("duration_min")]: d.duracion ? Math.round(d.duracion) : "-",
+      [t("notes")]: d.notas || "N/A",
+    }));
+  });
+
+  const csv = Papa.unparse(datosCSV);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "registros.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  toast.success(t("export_success") || "CSV exportado correctamente");
+};
 
   const registrosAgrupados = () => {
-    const grupos = {};
-    filtrados.forEach((r) => {
-      let key = "";
-      if (modoAgrupacion === "operador") {
-        key = Array.isArray(r.operadores) ? r.operadores.map(id => mapaOperadores[id]).join(", ") : `ID: ${r.operadores}`;
-      } else if (modoAgrupacion === "producto") {
-        key = r.producto && mapaProductos[r.producto]
-          ? mapaProductos[r.producto]
-          : r.producto
-          ? `ID: ${r.producto}`
-          : t("multi_product");
-      } else if (modoAgrupacion === "actividad") {
-        key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
-      } else if (modoAgrupacion === "fecha") {
-        key = format(new Date(r.horaInicio), "yyyy-MM-dd");
-      }
-      if (!grupos[key]) grupos[key] = [];
-      grupos[key].push(r);
+  const grupos = {};
+
+  filtrados.forEach((r) => {
+    let key = "";
+
+    if (modoAgrupacion === "operador") {
+      key = Array.isArray(r.operadores)
+        ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ")
+        : `ID: ${r.operadores}`;
+    } else if (modoAgrupacion === "producto") {
+      const productos = Array.isArray(r.productos) ? r.productos : [{ producto: r.producto }];
+      const nombres = productos.map((p) =>
+        mapaProductos[p.producto] || `ID: ${p.producto}`
+      );
+      key = nombres.length === 1 ? nombres[0] : t("multi_product");
+    } else if (modoAgrupacion === "actividad") {
+      key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
+    } else if (modoAgrupacion === "fecha") {
+      key = format(new Date(r.horaInicio), "yyyy-MM-dd");
+    }
+
+    if (!grupos[key]) grupos[key] = [];
+    grupos[key].push(r);
+  });
+
+  const gruposOrdenados = {};
+  Object.keys(grupos)
+    .sort((a, b) => a.localeCompare(b))
+    .forEach((key) => {
+      gruposOrdenados[key] = grupos[key];
     });
 
-    const gruposOrdenados = {};
-      Object.keys(grupos).sort((a, b) => a.localeCompare(b)).forEach((key) => {
-        gruposOrdenados[key] = grupos[key];
-      });
-
-    return gruposOrdenados;
-  };
+  return gruposOrdenados;
+};
 
   return (
     <div className="card">
@@ -480,7 +562,7 @@ const cargarCatalogos = async () => {
                 return (
                   <tr key={r.id}>
                     <td>{r.idx || "N/A"}</td>
-                    <td>{mapaActividades[r.actividad]}</td>
+                    <td>{mapaActividades[r.actividad] || `ID: ${r.actividad}`}</td>
                    <td>
                     {Array.isArray(r.productos)
                       ? r.productos.map((p, i) => (
@@ -549,7 +631,7 @@ const cargarCatalogos = async () => {
                     return (
                       <tr key={r.id}>
                         <td>{r.idx || "N/A"}</td>
-                        <td>{mapaActividades[r.actividad]}</td>
+                        <td>{mapaActividades[r.actividad] || `ID: ${r.actividad}`}</td>
                         <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                         <td>
                           {Array.isArray(r.productos)
@@ -617,14 +699,14 @@ const cargarCatalogos = async () => {
                 style={{ width: "400px" }}
               />
               {index > 0 && (
-                <button onClick={() => {
+                <button type="button" onClick={() => {
                   const nuevos = registroActual.productos.filter((_, i) => i !== index);
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}>✖</button>
               )}
             </div>
           ))}
-          <button
+          <button type="button" 
             onClick={() => setRegistroActual({
               ...registroActual,
               productos: [...registroActual.productos, { producto: "", cantidad: "" }],
@@ -647,8 +729,8 @@ const cargarCatalogos = async () => {
                 setRegistroActual({ ...registroActual, duracion: Number(e.target.value) })
               }
             />
-          <button onClick={guardarRegistro}>{t("save")}</button>
-          <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+          <button type="button" onClick={guardarRegistro}>{t("save")}</button>
+          <button type="button" onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
         </Modal>  
 
         {registroAEliminar && registroAEliminar.id && (
@@ -673,12 +755,15 @@ const cargarCatalogos = async () => {
                 className="btn btn-danger"
                 onClick={async () => {
                   try {
-                    console.log("Eliminando ID:", registroAEliminar.id);
-                    const ref = doc(db, "actividades_realizadas", registroAEliminar.id);
-                    await trackedDeleteDoc(ref, {
-                      pagina: "Registros",
-                      seccion: "Eliminar Registros 8",
-                    });
+                    console.log("[Registros] Eliminar Registros 8:", registroAEliminar.id);
+
+                    const { error } = await supabase
+                      .from("actividades_realizadas")
+                      .delete()
+                      .eq("id", registroAEliminar.id);
+
+                    if (error) throw error;
+
                     setRegistros((prev) =>
                       prev.filter((r) => r.id !== registroAEliminar.id)
                     );
@@ -700,7 +785,7 @@ const cargarCatalogos = async () => {
           position="top-center"
           autoClose={1500}
           style={{ zIndex: 9999, top: "80px" }}
-        />  
+        />
     </div>
   );
 }

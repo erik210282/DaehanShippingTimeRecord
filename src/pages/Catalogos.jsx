@@ -1,29 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  deleteDoc,
-  updateDoc,
-  addDoc,
-  doc,
-  query,
-  where,
-} from "firebase/firestore";
-import { db } from "../firebase/config";
+import supabase from "../supabase/client";
 import Modal from "react-modal";
 import Papa from "papaparse";
 import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../App.css";
-import {
-  trackedAddDoc,
-  trackedUpdateDoc,
-  trackedDeleteDoc,
-  trackedOnSnapshot,
-  trackedGetDocs,
-  trackedGetDoc
-} from "../utils/firestoreLogger";
 
 Modal.setAppElement("#root");
 
@@ -40,16 +22,17 @@ export default function Catalogos() {
 
   useEffect(() => {
     const cargarDatos = async () => {
-      const snap = await trackedGetDocs(collection(db, catalogoActivo), {
-        pagina: "Catalogos",
-        seccion: "Obtiene Catalogo Activo 1",
-      });
-      const docs = snap.docs.map((doc) => ({
-        id: doc.id,
-        nombre: doc.data().nombre,
-        activo: doc.data().activo ?? true,
-      }));
-      setItems(docs);
+      const { data, error } = await supabase
+        .from(catalogoActivo)
+        .select("id, nombre, activo");
+
+      if (!error) {
+        setItems(data.map((i) => ({
+          id: i.id,
+          nombre: i.nombre,
+          activo: i.activo ?? true,
+        })));
+      }
     };
     cargarDatos();
   }, [catalogoActivo]);
@@ -71,21 +54,28 @@ export default function Catalogos() {
       toast.error(t("fill_all_fields"));
       return;
     }
-    const nuevoItem = { nombre, activo };
+
     try {
       if (esNuevo) {
-        const docRef = await trackedAddDoc(collection(db, catalogoActivo), nuevoItem, {
-        pagina: "Catalogos",
-        seccion: "Obtiene Nuevo items 2",
-      });
-        setItems([...items, { id: docRef.id, ...nuevoItem }]);
+        const { data, error } = await supabase
+          .from(catalogoActivo)
+          .insert([{ nombre, activo }])
+          .select();
+
+        if (!error && data?.[0]) {
+          setItems([...items, { id: data[0].id, nombre, activo }]);
+        }
       } else {
-        const ref = doc(db, catalogoActivo, itemActual.id);
-        await trackedUpdateDoc(ref, nuevoItem, {
-        pagina: "Catalogos",
-        seccion: "Actualiza nuevos items 3",
-      });
-        setItems(items.map((i) => (i.id === itemActual.id ? { id: itemActual.id, ...nuevoItem } : i)));
+        const { error } = await supabase
+          .from(catalogoActivo)
+          .update({ nombre, activo })
+          .eq("id", itemActual.id);
+
+        if (!error) {
+          setItems(items.map((i) =>
+            i.id === itemActual.id ? { id: itemActual.id, nombre, activo } : i
+          ));
+        }
       }
       toast.success(t("save_success"));
       setModalAbierto(false);
@@ -96,31 +86,34 @@ export default function Catalogos() {
 
   const eliminarItem = async (id) => {
     try {
-      const registrosSnap = await trackedGetDocs(query(collection(db, "actividades_realizadas")), {
-        pagina: "Catalogos",
-        seccion: "Obtiene Actividades Realizadas 4",
-      });
-      const usados = registrosSnap.docs.some((doc) => {
-        const data = doc.data();
-        return (
-          data.actividad === id ||
-          data.producto === id ||
-          (Array.isArray(data.operadores) && data.operadores.includes(id))
-        );
-      });
+      const { data, error } = await supabase
+        .from("actividades_realizadas")
+        .select("*");
+
+      if (error) throw error;
+
+      const usados = data.some((d) =>
+        d.actividad === id ||
+        d.producto === id ||
+        (Array.isArray(d.operadores) && d.operadores.includes(id))
+      );
 
       if (usados) {
-        await trackedUpdateDoc(doc(db, catalogoActivo, id), { activo: false }, {
-        pagina: "Catalogos",
-        seccion: "Actualiza Catalogos 5",
-      });
-        setItems(items.map((i) => (i.id === id ? { ...i, activo: false } : i)));
+        await supabase
+          .from(catalogoActivo)
+          .update({ activo: false })
+          .eq("id", id);
+
+        setItems(items.map((i) =>
+          i.id === id ? { ...i, activo: false } : i
+        ));
         toast.info(t("item_in_use"));
       } else {
-        await trackedDeleteDoc(doc(db, catalogoActivo, id), {
-        pagina: "Catalogos",
-        seccion: "Elimina items 6",
-      });
+        await supabase
+          .from(catalogoActivo)
+          .delete()
+          .eq("id", id);
+
         setItems(items.filter((i) => i.id !== id));
         toast.success(t("delete_success"));
       }
@@ -133,9 +126,10 @@ export default function Catalogos() {
     const datosCSV = [...items]
       .sort((a, b) => a.nombre.localeCompare(b.nombre))
       .map((d) => ({
-      [t("name")]: d.nombre || `ID: ${d.id}`,
-      [t("status")]: d.activo ? t("active") : t("inactive"),
-    }));
+        [t("name")]: d.nombre || `ID: ${d.id}`,
+        [t("status")]: d.activo ? t("active") : t("inactive"),
+      }));
+
     const csv = Papa.unparse(datosCSV);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -157,11 +151,7 @@ export default function Catalogos() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (filtroTexto && itemsFiltrados.length === 0) {
-        setMostrarMensajeError(true);
-      } else {
-        setMostrarMensajeError(false);
-      }
+      setMostrarMensajeError(filtroTexto && itemsFiltrados.length === 0);
     }, 500);
     return () => clearTimeout(timer);
   }, [filtroTexto, itemsFiltrados]);
@@ -190,7 +180,6 @@ export default function Catalogos() {
         <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
           ➕ {t("add_catalog")}
         </button>
-
       </div>
 
       {mostrarMensajeError && <p style={{ color: "red" }}>{t("no_results_found")}</p>}

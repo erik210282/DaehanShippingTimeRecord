@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import supabase from '../supabase/client';
 import Papa from 'papaparse';
 import Select from 'react-select';
 
@@ -13,36 +12,43 @@ export default function ExportCSV() {
   const [productos, setProductos] = useState([]);
   const [operadores, setOperadores] = useState([]);
 
-  // Cargar listas de selección desde Firebase
-  useEffect(() => {
+   useEffect(() => {
     const cargarDatos = async () => {
-      const actSnap = await getDocs(collection(db, 'actividades'));
-      const prodSnap = await getDocs(collection(db, 'productos'));
-      const opSnap = await getDocs(collection(db, 'operadores'));
+      const [actRes, prodRes, opRes] = await Promise.all([
+        supabase.from('actividades').select('id, nombre'),
+        supabase.from('productos').select('id, nombre'),
+        supabase.from('operadores').select('id, nombre'),
+      ]);
 
-      setActividades(
-        actSnap.docs.map(doc => ({ label: doc.data().nombre, value: doc.id }))
-      );
-      setProductos(
-        prodSnap.docs.map(doc => ({ label: doc.data().nombre, value: doc.id }))
-      );
-      setOperadores(
-        opSnap.docs.map(doc => ({ label: doc.data().nombre, value: doc.id }))
-      );
+      if (!actRes.error) {
+        setActividades(actRes.data.map(a => ({ label: a.nombre, value: a.id })));
+      }
+      if (!prodRes.error) {
+        setProductos(prodRes.data.map(p => ({ label: p.nombre, value: p.id })));
+      }
+      if (!opRes.error) {
+        setOperadores(opRes.data.map(o => ({ label: o.nombre, value: o.id })));
+      }
     };
 
     cargarDatos();
   }, []);
 
   const exportarDatos = async () => {
-    const snapshot = await getDocs(collection(db, 'actividades_realizadas'));
-    let datos = snapshot.docs.map(doc => doc.data());
+    const { data, error } = await supabase.from('actividades_realizadas').select('*');
+
+    if (error) {
+      console.error('Error al obtener datos:', error);
+      return;
+    }
+
+    let datos = data;
 
     // Filtrar según lo seleccionado
     datos = datos.filter(d => {
       const cumpleActividad = !actividad || d.actividad === actividad.value;
       const cumpleProducto = !producto || d.producto === producto.value;
-      const cumpleOperador = !operador || d.operadores.includes(operador.value);
+      const cumpleOperador = !operador || (Array.isArray(d.operadores) && d.operadores.includes(operador.value));
       return cumpleActividad && cumpleProducto && cumpleOperador;
     });
 
@@ -50,10 +56,10 @@ export default function ExportCSV() {
     const datosCSV = datos.map(d => ({
       Actividad: d.actividad,
       Producto: d.producto,
-      Operadores: d.operadores.join(', '),
+      Operadores: Array.isArray(d.operadores) ? d.operadores.join(', ') : '',
       Cantidad: d.cantidad,
-      HoraInicio: d.horaInicio?.toDate().toLocaleString(),
-      HoraFin: d.horaFin?.toDate().toLocaleString()
+      HoraInicio: d.horaInicio ? new Date(d.horaInicio).toLocaleString() : '',
+      HoraFin: d.horaFin ? new Date(d.horaFin).toLocaleString() : ''
     }));
 
     const csv = Papa.unparse(datosCSV);

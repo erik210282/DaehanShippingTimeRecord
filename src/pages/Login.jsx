@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import "../App.css";
-import logo from "../assets/Daehan2.png"; // Ruta del logo que subiste
+import logo from "../assets/Daehan.png";
+import supabase from "../supabase/client";
+
 
 export default function Login() {
   const { t } = useTranslation();
@@ -21,14 +21,23 @@ export default function Login() {
     setError("");
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      localStorage.setItem("usuario", JSON.stringify(userCredential.user));
-      navigate("/tareas-pendientes");
-    } catch (err) {
-      console.error("Login error:", err.message);
-      setError(t("login_error"));
-    }
-  };
+        const { data, error: loginError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (loginError) {
+          throw loginError;
+        }
+
+        localStorage.setItem("usuario", JSON.stringify(data.user));
+
+        navigate("/tareas-pendientes");
+      } catch (err) {
+        console.error("Login error:", err.message);
+        setError(t("login_error")); // Muestra el mensaje de error traducido
+      }
+    };
 
   return (
     <div className="app-container" style={{ justifyContent: "center", backgroundColor: "#f9f9f9" }}>

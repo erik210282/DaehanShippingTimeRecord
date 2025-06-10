@@ -1,29 +1,10 @@
-// TareasPendientes.jsx
 import React, { useEffect, useState } from "react";
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  getDocs,
-  serverTimestamp,
-  onSnapshot,
-} from "firebase/firestore";
-import { db } from "../firebase/config";
+import supabase from "../supabase/client";
 import Select from "react-select";
 import Modal from "react-modal";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useTranslation } from "react-i18next";
-import {
-  trackedAddDoc,
-  trackedUpdateDoc,
-  trackedDeleteDoc,
-  trackedOnSnapshot,
-  trackedGetDocs,
-  trackedGetDoc
-} from "../utils/firestoreLogger";
 
 Modal.setAppElement("#root");
 
@@ -38,77 +19,142 @@ export default function TareasPendientes() {
   const [operadores, setOperadores] = useState({});
 
   useEffect(() => {
-    const unsub = trackedOnSnapshot(collection(db, "operadores"), (snap) => {
+  const fetchOperadores = async () => {
+    const { data, error } = await supabase
+      .from("operadores")
+      .select("id, nombre");
+
+    if (!error && data) {
       const datos = {};
-      snap.forEach((doc) => {
-        datos[doc.id] = doc.data().nombre;
+      data.forEach((doc) => {
+        datos[doc.id] = doc.nombre;
       });
       setOperadores(datos);
-    },
-    {
-      pagina: "Tareas Pendientes",
-      seccion: "onSnapshot Operadores 1",
-    });
+    }
+  };
 
-    return () => unsub();
-  }, []);
+  fetchOperadores();
+
+  const channel = supabase
+    .channel("Tareas Pendientes - onSnapshot Operadores 1")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "operadores",
+      },
+      (payload) => {
+        // Re-fetch en cada cambio
+        fetchOperadores();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   useEffect(() => {
-    const unsubAct = trackedOnSnapshot(collection(db, "actividades"), (snapshot) => {
+  // ACTIVIDADES
+  const fetchActividades = async () => {
+    const { data, error } = await supabase
+      .from("actividades")
+      .select("id, nombre, activo");
+
+    if (!error && data) {
       const act = {};
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.activo !== false) {
-          act[doc.id] = data.nombre;
+      data.forEach((doc) => {
+        if (doc.activo !== false) {
+          act[doc.id] = doc.nombre;
         }
       });
       const ordenadas = Object.fromEntries(
         Object.entries(act).sort(([, a], [, b]) => a.localeCompare(b))
       );
       setActividades(ordenadas);
-    },
-    {
-      pagina: "Tareas Pendientes",
-      seccion: "onSnapshot Actividades 2",
-    });
+    }
+  };
 
-    const unsubProd = trackedOnSnapshot(collection(db, "productos"), (snapshot) => {
+  // PRODUCTOS
+  const fetchProductos = async () => {
+    const { data, error } = await supabase
+      .from("productos")
+      .select("id, nombre, activo");
+
+    if (!error && data) {
       const prod = {};
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.activo !== false) {
-          prod[doc.id] = data.nombre;
+      data.forEach((doc) => {
+        if (doc.activo !== false) {
+          prod[doc.id] = doc.nombre;
         }
       });
       const ordenadas = Object.fromEntries(
         Object.entries(prod).sort(([, a], [, b]) => a.localeCompare(b))
       );
       setProductos(ordenadas);
-    },
-    {
-      pagina: "Tareas Pendientes",
-      seccion: "onSnapshot Productos 3",
-    });
+    }
+  };
 
-    const unsubTareas = trackedOnSnapshot(collection(db, "tareas_pendientes"), (snapshot) => {
-      const tareasList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      tareasList.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-      setTareas(tareasList.filter((t) => ["pendiente", "iniciada", "pausada"].includes(t.estado)));
-    },
-    {
-      pagina: "Tareas Pendientes",
-      seccion: "onSnapshot Lista de Tareas 4",
-    });
+  // TAREAS
+  const fetchTareas = async () => {
+    const { data, error } = await supabase
+      .from("tareas_pendientes")
+      .select("*");
 
-    return () => {
-      unsubAct();
-      unsubProd();
-      unsubTareas();
-    };
-  }, []);
+    if (!error && data) {
+      const tareasList = data
+        .map((doc) => ({
+          id: doc.id,
+          ...doc,
+        }))
+        .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
+        .filter((t) => ["pendiente", "iniciada", "pausada"].includes(t.estado));
+
+      setTareas(tareasList);
+    }
+  };
+
+  // Ejecutar inicialmente
+  fetchActividades();
+  fetchProductos();
+  fetchTareas();
+
+  // Canales de tiempo real
+  const canalActividades = supabase
+    .channel("Tareas Pendientes - onSnapshot Actividades 2")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "actividades" },
+      fetchActividades
+    )
+    .subscribe();
+
+  const canalProductos = supabase
+    .channel("Tareas Pendientes - onSnapshot Productos 3")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "productos" },
+      fetchProductos
+    )
+    .subscribe();
+
+  const canalTareas = supabase
+    .channel("Tareas Pendientes - onSnapshot Lista de Tareas 4")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "tareas_pendientes" },
+      fetchTareas
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(canalActividades);
+    supabase.removeChannel(canalProductos);
+    supabase.removeChannel(canalTareas);
+  };
+}, []);
 
   const abrirModal = (tarea = null) => {
     setTareaActual(
@@ -123,50 +169,70 @@ export default function TareasPendientes() {
   };
 
   const guardarTarea = async () => {
-    const { idx, actividad, productos: listaProductos, notas } = tareaActual;
+  const { idx, actividad, productos: listaProductos, notas } = tareaActual;
 
-    if (!actividad || !idx || listaProductos.some(p => !p.producto || !p.cantidad)) {
-      toast.error(t("fill_all_fields"));
-      return;
-    }
+  if (!actividad || !idx || listaProductos.some(p => !p.producto || !p.cantidad)) {
+    toast.error(t("fill_all_fields"));
+    return;
+  }
 
-    const productosDuplicados = listaProductos.map(p => p.producto).filter((v, i, a) => a.indexOf(v) !== i);
-    if (productosDuplicados.length > 0) {
-      toast.error(t("no_duplicate_products"));
-      return;
-    }
+  const productosDuplicados = listaProductos
+    .map(p => p.producto)
+    .filter((v, i, a) => a.indexOf(v) !== i);
+  if (productosDuplicados.length > 0) {
+    toast.error(t("no_duplicate_products"));
+    return;
+  }
 
-    const datos = {
-      idx: idx || "",
-      actividad,
-      productos: listaProductos.map(p => ({ producto: p.producto, cantidad: Number(p.cantidad) })),
-      notas: notas || "",      
-      estado: tareaActual.estado || "pendiente",
-      operadores: tareaActual.operadores || [],
-    };
-
-    try {
-      if (tareaActual.id) {
-        await trackedUpdateDoc(doc(db, "tareas_pendientes", tareaActual.id), datos, {
-        pagina: "Tareas Pendientes",
-        seccion: "Actualizar Tareas Pendientes 5"
-      });
-        toast.success(t("task_updated"));
-      } else {
-        await trackedAddDoc(collection(db, "tareas_pendientes"), {
-          ...datos,
-          createdAt: serverTimestamp(),
-        }, {
-          pagina: "Tareas Pendientes",
-          seccion: "Agrega Tareas Pendientes 6",
-        });
-        toast.success(t("task_added"));
-      }
-      setModalAbierto(false);
-    } catch (error) {
-      toast.error(t("error_saving"));
-    }
+  const datos = {
+    idx: idx || "",
+    actividad,
+    productos: listaProductos.map(p => ({
+      producto: p.producto,
+      cantidad: Number(p.cantidad),
+    })),
+    notas: notas || "",
+    estado: tareaActual.estado || "pendiente",
+    operadores: tareaActual.operadores || [],
   };
+
+  try {
+    if (tareaActual.id) {
+      // UPDATE
+      const { error } = await supabase
+        .from("tareas_pendientes")
+        .update(datos)
+        .eq("id", tareaActual.id);
+
+      // Tracking manual
+      console.log("[Tareas Pendientes] Actualizar Tareas Pendientes 5", datos);
+
+      if (error) throw error;
+      toast.success(t("task_updated"));
+    } else {
+      // INSERT
+      const { error } = await supabase
+        .from("tareas_pendientes")
+        .insert([
+          {
+            ...datos,
+            createdAt: new Date(), // Supabase no tiene serverTimestamp, usamos Date()
+          },
+        ]);
+
+      // Tracking manual
+      console.log("[Tareas Pendientes] Agrega Tareas Pendientes 6", datos);
+
+      if (error) throw error;
+      toast.success(t("task_added"));
+    }
+
+    setModalAbierto(false);
+  } catch (error) {
+    console.error("Error guardando tarea:", error);
+    toast.error(t("error_saving"));
+  }
+};
 
   const mostrarNombre = (id, mapa) => mapa[id] || `ID: ${id}`;
 
@@ -276,7 +342,11 @@ export default function TareasPendientes() {
               <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
                 <Select
                   options={Object.entries(productos).map(([id, nombre]) => ({ value: id, label: nombre }))}
-                  value={p.producto ? { value: p.producto, label: productos[p.producto] } : null}
+                  value={
+                    p.producto && productos[p.producto]
+                      ? { value: p.producto, label: productos[p.producto] }
+                      : null
+                  }
                   onChange={(e) => {
                     const nuevos = [...tareaActual.productos];
                     nuevos[index].producto = e.value;
@@ -288,7 +358,7 @@ export default function TareasPendientes() {
                 <input
                   type="number"
                   placeholder={t("amount")}
-                  value={p.cantidad}
+                  value={p.cantidad ?? ""}
                   onChange={(e) => {
                     const nuevos = [...tareaActual.productos];
                     nuevos[index].cantidad = e.target.value;
@@ -363,10 +433,16 @@ export default function TareasPendientes() {
               onClick={async () => {
                 try {
                   if (!tareaAEliminar?.id) throw new Error("ID inválido");
-                  await trackedDeleteDoc(doc(db, "tareas_pendientes", tareaAEliminar.id), {
-                    pagina: "Tareas Pendientes",
-                    seccion: "Eliminar Tareas Pendientes 7",
-                  });
+
+                  const { error } = await supabase
+                    .from("tareas_pendientes")
+                    .delete()
+                    .eq("id", tareaAEliminar.id);
+
+                  // Tracking manual opcional
+                  console.log("[Tareas Pendientes] Eliminar Tareas Pendientes 7", tareaAEliminar.id);
+
+                  if (error) throw error;
                   toast.success(t("task_deleted"));
                 } catch (error) {
                   console.error("Error eliminando:", error);

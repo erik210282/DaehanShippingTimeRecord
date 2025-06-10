@@ -6,14 +6,12 @@ import Catalogos from "./pages/Catalogos";
 import Usuarios from "./pages/Usuarios";
 import Login from "./pages/Login";
 import TareasPendientes from "./pages/TareasPendientes";
-import TareasOperario from "./pages/TareasOperario";
 import ConfiguracionTareas from "./pages/ConfiguracionTareas";
-import LecturaDashboard from './pages/LecturaDashboard';
 import { useTranslation } from "react-i18next";
 import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { auth } from "./firebase/config";
 import { useEffect, useState } from "react";
+import supabase from "../supabase/client";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -21,10 +19,18 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
+    const session = supabase.auth.session();  // Usar la sesión activa
+    setUser(session?.user);
+
+    // Suscribirse a cambios de estado de sesión en Supabase
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user);
     });
-    return () => unsubscribe();
+
+    // Limpiar el listener al desmontar
+    return () => {
+      authListener?.unsubscribe();
+    };
   }, []);
 
   if (!user) return null;
@@ -33,9 +39,8 @@ const Navbar = () => {
     i18n.changeLanguage(e.target.value);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("usuario");
-    auth.signOut();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();  // Cerrar sesión con Supabase
     navigate("/");
   };
 
@@ -82,15 +87,9 @@ const AppContent = () => (
         <Route path="/usuarios" element={
           <ProtectedRoute><Usuarios /></ProtectedRoute>
         } />
-        <Route path="/tareas-operario" element={
-          <ProtectedRoute><TareasOperario /></ProtectedRoute>
-        } />
         <Route path="/configuracion-tareas" element={
           <ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>
-        } />        
-        <Route path="/dashboard-lecturas" element={
-          <ProtectedRoute><LecturaDashboard /></ProtectedRoute>
-          } />
+        } />  
       </Routes>
     </div>
   </div>
