@@ -74,22 +74,23 @@ const LecturaDashboard = () => {
   };
 
   const exportarCSV = () => {
-    const logsFiltrados = filtrados.map((log) => {
-      return {
-        ...log,
-        timestamp: log.timestamp?.toDate().toLocaleString() || "",
-      };
-    });
-    const csv = Papa.unparse(logsFiltrados);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "logs.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const logsFiltrados = filtrados.map((log) => {
+    return {
+      ...log,
+      timestamp: log.timestamp?.toDate().toLocaleString() || "",
+    };
+  });
+
+  const csv = Papa.unparse(logsFiltrados);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "logs.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
   const renderBarChart = (titulo, data) => (
     <div style={{ marginBottom: "30px" }}>
