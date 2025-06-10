@@ -45,7 +45,6 @@ export default function TareasPendientes() {
         table: "operadores",
       },
       (payload) => {
-        // Re-fetch en cada cambio
         fetchOperadores();
       }
     )
