@@ -52,36 +52,11 @@ export default function TareasPendientes() {
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
         .filter((t) => ["pendiente", "iniciada", "pausada"].includes(t.estado));
 
-      setTareas((prev) => {
-        const tareaIds = prev.map((t) => t.id); // Extraemos los IDs de las tareas actuales
-        const nuevasTareas = tareasList.filter((t) => !tareaIds.includes(t.id)); // Filtramos las nuevas tareas que no estén en el estado actual
+      console.log("🧠 Tareas actualizadas desde Supabase:", tareasList);
+      setTareas(tareasList);
+        };
 
-        // Actualiza todas las tareas, no solo las nuevas
-        const tareasActualizadas = prev.map((t) => {
-          const tareaModificada = tareasList.find((nuevaTarea) => nuevaTarea.id === t.id);
-          if (tareaModificada) {
-            // Si la tarea existe en la base de datos, actualizamos los campos
-            return {
-              ...t,
-              idx: tareaModificada.idx,
-              actividad: tareaModificada.actividad,
-              productos: tareaModificada.productos,
-              cantidad: tareaModificada.cantidad,
-              operador: tareaModificada.operador,
-              notas: tareaModificada.notas,
-              estado: tareaModificada.estado,
-            };
-          }
-          return t;
-        });
-
-        // Si hay tareas nuevas, las agregamos
-        return [...tareasActualizadas, ...nuevasTareas];
-      });
-    }
-  };
-
- useEffect(() => {
+  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         console.log("👁️ Web: ventana visible de nuevo, recargando tareas...");
@@ -318,11 +293,6 @@ export default function TareasPendientes() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
-
-  useEffect(() => {
-    console.log("🚀 Componente TareasPendientes montado: recargando tareas");
-    fetchTareas();
   }, []);
 
   return (
