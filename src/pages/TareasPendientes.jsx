@@ -119,6 +119,9 @@ export default function TareasPendientes() {
 }, []);
 
   useEffect(() => {
+    if (location.pathname !== "/tareas-pendientes") return;
+    console.log("✅ Activando canales para tareas_pendientes");
+
   // Función para obtener actividades
   const fetchActividades = async () => {
     const { data, error } = await supabase
@@ -165,44 +168,33 @@ export default function TareasPendientes() {
 
   // Canales de tiempo real
   const canalActividades = supabase
-    .channel("Tareas Pendientes - onSnapshot Actividades 2")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "actividades" },
-      fetchActividades
-    )
+    .channel("canal_actividades")
+    .on("postgres_changes", { event: "*", schema: "public", table: "actividades" }, fetchActividades)
     .subscribe();
 
   const canalProductos = supabase
-    .channel("Tareas Pendientes - onSnapshot Productos 3")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "productos" },
-      fetchProductos
-    )
+    .channel("canal_productos")
+    .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, fetchProductos)
     .subscribe();
 
   const canalTareas = supabase
-    .channel("realtime_tareas_pendientes")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "tareas_pendientes" },
-      (payload) => {
-        console.log("🔄 Tarea modificada:", payload);
-        fetchTareas();
-      }
-    )
+    .channel("canal_tareas_pendientes")
+    .on("postgres_changes", { event: "*", schema: "public", table: "tareas_pendientes" }, (payload) => {
+      console.log("📡 Evento realtime recibido:", payload);
+      fetchTareas();
+    })
     .subscribe();
 
   console.log("📡 Canal realtime activado para tareas_pendientes");
 
-  // Limpieza de los canales al desmontar el componente
   return () => {
-    supabase.removeChannel(canalActividades);
-    supabase.removeChannel(canalProductos);
-    supabase.removeChannel(canalTareas);
-  };
-}, []);
+      console.log("🧹 Canal desmontado (saliste de tareas-pendientes)");
+      supabase.removeChannel(canalActividades);
+      supabase.removeChannel(canalProductos);
+      supabase.removeChannel(canalTareas);
+    };
+  }, [location.pathname]);
+
 
   const abrirModal = (tarea = null) => {
     setTareaActual(
@@ -314,35 +306,10 @@ export default function TareasPendientes() {
     };
   }, []);
 
-
-  useEffect(() => {
-    const recargarSiEsTareasPendientes = () => {
-      if (location.pathname === "/tareas-pendientes") {
-        console.log("🔁 Reenfocado o reapareció la pestaña → recargar tareas");
-        fetchTareas();
-      }
-    };
-
-    window.addEventListener("focus", recargarSiEsTareasPendientes);
-    document.addEventListener("visibilitychange", recargarSiEsTareasPendientes);
-
-    return () => {
-      window.removeEventListener("focus", recargarSiEsTareasPendientes);
-      document.removeEventListener("visibilitychange", recargarSiEsTareasPendientes);
-    };
-  }, [location.pathname]);
-
   useEffect(() => {
     console.log("🚀 Componente TareasPendientes montado: recargando tareas");
     fetchTareas();
   }, []);
-
-  useEffect(() => {
-    if (location.pathname === "/tareas-pendientes") {
-      console.log("↩️ Regresó a /tareas-pendientes, recargando tareas");
-      fetchTareas();
-    }
-  }, [location.pathname]);
 
   return (
     <div className="card">
