@@ -343,6 +343,8 @@ export default function TareasPendientes() {
                   return (
                     <span style={{ 
                         color: estadoVisual.color,
+                        fontSize: "16px",
+                        fontWeight: "bold",
                         textShadow: "-1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white" 
                         }}>
                       {estadoVisual.icono} {estadoVisual.texto}
