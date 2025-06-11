@@ -9,6 +9,8 @@ import { useTranslation } from "react-i18next";
 
 Modal.setAppElement("#root");
 
+let canalTareas = null;
+
 export default function TareasPendientes() {
   const location = useLocation();
   const [tareas, setTareas] = useState([]);
@@ -132,6 +134,11 @@ export default function TareasPendientes() {
     fetchOperadores();
     fetchTareas();
 
+    if (canalTareas) {
+      console.log("♻️ Reutilizando canal tareas_pendientes");
+      return;
+    }
+
     const canalTareas = supabase
       .channel("canal_tareas")
       .on("postgres_changes", { event: "*", schema: "public", table: "tareas_pendientes" }, fetchTareas)
@@ -155,10 +162,14 @@ export default function TareasPendientes() {
     return () => {
       console.log("🧹 Limpiando canales al salir de tareas-pendientes");
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      supabase.removeChannel(canalTareas);
       supabase.removeChannel(canalActividades);
       supabase.removeChannel(canalProductos);
       supabase.removeChannel(canalOperadores);
+      if (canalTareas) {
+        console.log("🧹 Cerrando canal tareas_pendientes");
+        supabase.removeChannel(canalTareas);
+        canalTareas = null;
+      }
     };
   }, [location.pathname]);
 
