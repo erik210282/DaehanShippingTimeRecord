@@ -177,22 +177,39 @@ export default function TareasPendientes() {
   }, [location.pathname]);
 
 
-  const abrirModal = (tarea = null) => {
-    // Forzar la búsqueda del objeto actualizado desde la lista actual
-    const tareaActualizada = tarea?.id
-      ? tareas.find((t) => t.id === tarea.id)
-      : null;
-
-    setTareaActual(
-      tareaActualizada || {
+  const abrirModal = async (tarea = null) => {
+    if (!tarea) {
+      setTareaActual({
         idx: "",
         actividad: "",
         productos: [{ producto: "", cantidad: "" }],
         operadores: [],
         notas: "",
-        estado: tareaActual.estado || "pendiente",
-      }
-    );
+        estado: "pendiente",
+      });
+      setModalAbierto(true);
+      return;
+    }
+
+    // ✅ Forzar lectura desde Supabase para asegurar la versión actualizada
+    const { data, error } = await supabase
+      .from("tareas_pendientes")
+      .select("*")
+      .eq("id", tarea.id)
+      .single();
+
+    if (error || !data) {
+      toast.error("Error cargando tarea actualizada");
+      return;
+    }
+
+    setTareaActual({
+      ...data,
+      productos: data.productos || [{ producto: "", cantidad: "" }],
+      operadores: data.operadores || [],
+      notas: data.notas || "",
+      estado: data.estado || "pendiente",
+    });
 
     setModalAbierto(true);
   };
