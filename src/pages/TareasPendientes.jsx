@@ -55,7 +55,10 @@ export default function TareasPendientes() {
         .filter((t) => ["pendiente", "iniciada", "pausada"].includes(t.estado));
 
       console.log("🧠 Tareas actualizadas desde Supabase:", tareasList);
-      setTareas(tareasList);
+      setTareas([]); // Limpia antes
+      setTimeout(() => {
+        setTareas(tareasList);
+      }, 0);
     }
   };
 
