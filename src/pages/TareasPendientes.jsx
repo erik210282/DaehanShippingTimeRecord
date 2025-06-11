@@ -188,8 +188,9 @@ export default function TareasPendientes() {
         idx: "",
         actividad: "",
         productos: [{ producto: "", cantidad: "" }],
+        operadores: [],
         notas: "",
-        estado: tareaActual.estado,
+        estado: tareaActual.estado || "pendiente",
       }
     );
 
