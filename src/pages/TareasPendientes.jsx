@@ -54,13 +54,23 @@ export default function TareasPendientes() {
         const tareaIds = prev.map((t) => t.id); // Extraemos los IDs de las tareas actuales
         const nuevasTareas = tareasList.filter((t) => !tareaIds.includes(t.id)); // Filtramos las nuevas tareas que no estén en el estado actual
 
-        if (nuevasTareas.length > 0) {
-          // Si hay tareas nuevas, las agregamos
-          return [...prev, ...nuevasTareas];
-        }
+        // Actualiza todas las tareas, no solo las nuevas
+        const tareasActualizadas = prev.map((t) => {
+          const tareaModificada = tareasList.find((nuevaTarea) => nuevaTarea.id === t.id);
+          if (tareaModificada) {
+            // Si la tarea existe en la base de datos, actualizamos los campos
+            return {
+              ...t,
+              idx: tareaModificada.idx,
+              actividad: tareaModificada.actividad,
+              estado: tareaModificada.estado,
+            };
+          }
+          return t;
+        });
 
-        // Si no hay nuevas tareas, devolvemos el estado anterior (sin cambios)
-        return prev;
+        // Si hay tareas nuevas, las agregamos
+        return [...tareasActualizadas, ...nuevasTareas];
       });
     }
   };
