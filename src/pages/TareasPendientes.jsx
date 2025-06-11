@@ -178,14 +178,20 @@ export default function TareasPendientes() {
 
 
   const abrirModal = (tarea = null) => {
+    // Forzar la búsqueda del objeto actualizado desde la lista actual
+    const tareaActualizada = tarea?.id
+      ? tareas.find((t) => t.id === tarea.id)
+      : null;
+
     setTareaActual(
-      tarea || {
+      tareaActualizada || {
         idx: "",
         actividad: "",
         productos: [{ producto: "", cantidad: "" }],
-        notas: "",        
+        notas: "",
       }
     );
+
     setModalAbierto(true);
   };
 
