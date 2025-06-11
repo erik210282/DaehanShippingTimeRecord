@@ -343,7 +343,7 @@ export default function TareasPendientes() {
                   return (
                     <span style={{ 
                         color: estadoVisual.color,
-                        textShadow: "-1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black" 
+                        textShadow: "-1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white" 
                         }}>
                       {estadoVisual.icono} {estadoVisual.texto}
                     </span>
