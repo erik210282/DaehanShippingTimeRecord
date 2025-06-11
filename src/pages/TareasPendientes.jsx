@@ -130,22 +130,10 @@ export default function TareasPendientes() {
 
       setTareas((prev) => {
         const nueva = [...tareasList];
+        const jsonPrev = JSON.stringify(prev);
+        const jsonNueva = JSON.stringify(nueva);
 
-        const esDiferente = () => {
-          if (prev.length !== nueva.length) return true;
-          for (let i = 0; i < nueva.length; i++) {
-            if (
-              prev[i].id !== nueva[i].id ||
-              prev[i].estado !== nueva[i].estado ||
-              prev[i].updatedAt !== nueva[i].updatedAt
-            ) {
-              return true;
-            }
-          }
-          return false;
-        };
-
-        return esDiferente() ? nueva : prev;
+        return jsonPrev !== jsonNueva ? nueva : prev;
       });
     }
   };
