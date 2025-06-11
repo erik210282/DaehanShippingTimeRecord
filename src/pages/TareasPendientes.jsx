@@ -145,7 +145,9 @@ export default function TareasPendientes() {
     canalTareas = supabase
       .channel("canal_tareas")
       .on("postgres_changes", { event: "*", schema: "public", table: "tareas_pendientes" }, fetchTareas)
-      .subscribe();
+      .subscribe((status) => {
+        console.log("📶 Estado del canal tareas_pendientes:", status);
+      });
 
     const canalActividades = supabase
       .channel("canal_actividades")
