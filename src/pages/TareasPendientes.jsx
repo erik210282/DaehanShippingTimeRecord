@@ -73,85 +73,115 @@ export default function TareasPendientes() {
 
   useEffect(() => {
     if (location.pathname !== "/tareas-pendientes") return;
+    console.log("✅ Activando canales para tareas_pendientes");
 
-    console.log("✅ Entrando a tareas-pendientes, iniciando canales y carga");
+  // Función para obtener actividades
+  const fetchActividades = async () => {
+    const { data, error } = await supabase
+      .from("actividades")
+      .select("id, nombre, activo");
 
-    // Cargar datos
-    const fetchActividades = async () => {
-      const { data, error } = await supabase
-        .from("actividades")
-        .select("id, nombre, activo");
-      if (!error && data) {
-        const act = {};
-        data.forEach((doc) => {
-          if (doc.activo !== false) act[doc.id] = doc.nombre;
-        });
-        setActividades(
-          Object.fromEntries(
-            Object.entries(act).sort(([, a], [, b]) => a.localeCompare(b))
-          )
-        );
-      }
-    };
-
-    const fetchProductos = async () => {
-      const { data, error } = await supabase
-        .from("productos")
-        .select("id, nombre, activo");
-      if (!error && data) {
-        const prod = {};
-        data.forEach((doc) => {
-          if (doc.activo !== false) prod[doc.id] = doc.nombre;
-        });
-        setProductos(
-          Object.fromEntries(
-            Object.entries(prod).sort(([, a], [, b]) => a.localeCompare(b))
-          )
-        );
-      }
-    };
-
-    fetchActividades();
-    fetchProductos();
-    fetchTareas();
-
-    // Canales
-    const canalActividades = supabase
-      .channel("canal_actividades")
-      .on("postgres_changes", { event: "*", schema: "public", table: "actividades" }, fetchActividades)
-      .subscribe();
-
-    const canalProductos = supabase
-      .channel("canal_productos")
-      .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, fetchProductos)
-      .subscribe();
-
-    const canalTareas = supabase
-      .channel("canal_tareas_pendientes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "tareas_pendientes",
-        },
-        (payload) => {
-          console.log("📡 Evento realtime recibido:", payload.eventType, payload.new);
-          if (["INSERT", "UPDATE", "DELETE"].includes(payload.eventType)) {
-            fetchTareas();
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("📡 Canal realtime activado para tareas_pendientes");
+    if (!error && data) {
+      const act = {};
+      data.forEach((doc) => {
+        if (doc.activo !== false) {
+          act[doc.id] = doc.nombre;
         }
       });
+      const ordenadas = Object.fromEntries(
+        Object.entries(act).sort(([, a], [, b]) => a.localeCompare(b))
+      );
+      setActividades(ordenadas);
+    }
+  };
 
-    return () => {
+  // Función para obtener productos
+  const fetchProductos = async () => {
+    const { data, error } = await supabase
+      .from("productos")
+      .select("id, nombre, activo");
+
+    if (!error && data) {
+      const prod = {};
+      data.forEach((doc) => {
+        if (doc.activo !== false) {
+          prod[doc.id] = doc.nombre;
+        }
+      });
+      const ordenadas = Object.fromEntries(
+        Object.entries(prod).sort(([, a], [, b]) => a.localeCompare(b))
+      );
+      setProductos(ordenadas);
+    }
+  };
+
+  const fetchOperadores = async () => {
+    const { data, error } = await supabase
+      .from("operadores")
+      .select("id, nombre, activo");
+
+    if (!error && data) {
+      const ops = {};
+      data.forEach((doc) => {
+        if (doc.activo !== false) ops[doc.id] = doc.nombre;
+      });
+      const ordenadas = Object.fromEntries(
+        Object.entries(ops).sort(([, a], [, b]) => a.localeCompare(b))
+      );
+      setOperadores(ordenadas);
+    }
+  };
+
+  fetchActividades();
+  fetchProductos();
+  fetchOperadores();
+  fetchTareas();
+
+  // Canales de tiempo real
+  const canalActividades = supabase
+    .channel("canal_actividades")
+    .on("postgres_changes", { event: "*", schema: "public", table: "actividades" }, fetchActividades)
+    .subscribe();
+
+  const canalProductos = supabase
+    .channel("canal_productos")
+    .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, fetchProductos)
+    .subscribe();
+
+  const canalOperadores = supabase
+    .channel("canal_operadores")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "operadores" },
+      fetchOperadores
+    )
+    .subscribe();
+
+  const canalTareas = supabase
+    .channel("canal_tareas_pendientes")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "tareas_pendientes",
+      },
+      (payload) => {
+        console.log("📡 Evento realtime recibido:", payload.eventType, payload.new);
+        if (["INSERT", "UPDATE", "DELETE"].includes(payload.eventType)) {
+          fetchTareas();
+        }
+      }
+    )
+    .subscribe();
+
+  console.log("📡 Canal realtime activado para tareas_pendientes");
+
+  return () => {
       console.log("🧹 Canal desmontado (saliste de tareas-pendientes)");
       supabase.removeChannel(canalActividades);
       supabase.removeChannel(canalProductos);
+      supabase.removeChannel(canalOperadores);
       supabase.removeChannel(canalTareas);
     };
   }, [location.pathname]);
