@@ -266,13 +266,9 @@ export default function TareasPendientes() {
 
         if (error) throw error;
         toast.success(t("task_added"));
-
-        // Agregar la nueva tarea al estado local sin duplicados
-        setTareas((prev) => [...prev, { ...datos, id: Date.now() }]);
       }
 
       setModalAbierto(false);
-      fetchTareas(); // También llamamos a fetchTareas si necesitas volver a cargar las tareas.
     } catch (error) {
       console.error("Error guardando tarea:", error);
       toast.error(t("error_saving"));
