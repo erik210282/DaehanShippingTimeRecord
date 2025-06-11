@@ -269,6 +269,7 @@ export default function TareasPendientes() {
       }
 
       setModalAbierto(false);
+      fetchTareas(); // También llamamos a fetchTareas si necesitas volver a cargar las tareas.
     } catch (error) {
       console.error("Error guardando tarea:", error);
       toast.error(t("error_saving"));
