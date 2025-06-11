@@ -115,23 +115,27 @@ export default function TareasPendientes() {
   };
 
   useEffect(() => {
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible" && location.pathname === "/tareas-pendientes") {
-      console.log("👁️ Web: pestaña activa, recargando tareas...");
-      fetchTareas();
-    }
-  };
-  document.addEventListener("visibilitychange", handleVisibilityChange);
+    if (location.pathname !== "/tareas-pendientes") return;
 
-  console.log("✅ Montando canales de Supabase (una sola vez)");
+    console.log("✅ Montando canales de Supabase para /tareas-pendientes");
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        console.log("👁️ Volvió a la pestaña: actualizando tareas...");
+        fetchTareas();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     fetchActividades();
     fetchProductos();
-    fetchOperadores?.(); 
+    fetchOperadores();
+    fetchTareas();
 
-    if (location.pathname === "/tareas-pendientes") {
-      fetchTareas();
-    }
+    const canalTareas = supabase
+      .channel("canal_tareas")
+      .on("postgres_changes", { event: "*", schema: "public", table: "tareas_pendientes" }, fetchTareas)
+      .subscribe();
 
     const canalActividades = supabase
       .channel("canal_actividades")
@@ -143,39 +147,20 @@ export default function TareasPendientes() {
       .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, fetchProductos)
       .subscribe();
 
-    const canalTareas = supabase
-      .channel("canal_tareas_pendientes")
-      .on("postgres_changes", {
-        event: "*",
-        schema: "public",
-        table: "tareas_pendientes",
-      }, (payload) => {
-        console.log("📡 Evento realtime recibido:", payload.eventType, payload.new);
-        if (location.pathname === "/tareas-pendientes") {
-          fetchTareas();
-        }
-      })
-      .subscribe();
-
     const canalOperadores = supabase
       .channel("canal_operadores")
-      .on("postgres_changes", {
-        event: "*",
-        schema: "public",
-        table: "operadores",
-      }, () => {
-        fetchOperadores?.(); // solo si tienes esa función declarada
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "operadores" }, fetchOperadores)
       .subscribe();
 
     return () => {
+      console.log("🧹 Limpiando canales al salir de tareas-pendientes");
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      supabase.removeChannel(canalTareas);
       supabase.removeChannel(canalActividades);
       supabase.removeChannel(canalProductos);
-      supabase.removeChannel(canalTareas);
       supabase.removeChannel(canalOperadores);
     };
-  }, []);
+  }, [location.pathname]);
 
 
   const abrirModal = (tarea = null) => {
