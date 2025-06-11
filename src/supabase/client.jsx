@@ -6,7 +6,3 @@ const supabase = createClient(
 );
 
 export default supabase;
-
-
-// ⚠️ Temporalmente, expón supabase globalmente para depuración:
-window.supabase = supabase;
