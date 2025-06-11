@@ -113,7 +113,22 @@ export default function TareasPendientes() {
 
       setTareas((prev) => {
         const nueva = [...tareasList];
-        return JSON.stringify(prev) !== JSON.stringify(nueva) ? nueva : prev;
+
+        const esDiferente = () => {
+          if (prev.length !== nueva.length) return true;
+          for (let i = 0; i < nueva.length; i++) {
+            if (
+              prev[i].id !== nueva[i].id ||
+              prev[i].estado !== nueva[i].estado ||
+              prev[i].updatedAt !== nueva[i].updatedAt
+            ) {
+              return true;
+            }
+          }
+          return false;
+        };
+
+        return esDiferente() ? nueva : prev;
       });
     }
   };
@@ -220,7 +235,7 @@ export default function TareasPendientes() {
         .insert([
           {
             ...datos,
-            createdAt: new Date(), // Supabase no tiene serverTimestamp, usamos Date()
+            createdAt: new Date().toISOString(),
           },
         ]);
 
