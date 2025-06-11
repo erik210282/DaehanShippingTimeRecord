@@ -54,7 +54,8 @@ export default function TareasPendientes() {
 
       console.log("🧠 Tareas actualizadas desde Supabase:", tareasList);
       setTareas(tareasList);
-        };
+    }
+  };
 
   useEffect(() => {
     const handleVisibilityChange = () => {
