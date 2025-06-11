@@ -108,14 +108,16 @@ export default function TareasPendientes() {
           id: doc.id,
           ...doc,
         }))
-        .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
         .filter((t) => ["pendiente", "iniciada", "pausada"].includes(t.estado));
 
-      setTareas(tareasList);
+      setTareas((prev) => {
+        const nueva = [...tareasList];
+        return JSON.stringify(prev) !== JSON.stringify(nueva) ? nueva : prev;
+      });
     }
   };
 
-  // Ejecutar inicialmente
   fetchActividades();
   fetchProductos();
   fetchTareas();
@@ -144,7 +146,10 @@ export default function TareasPendientes() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "tareas_pendientes" },
-      fetchTareas
+      (payload) => {
+        console.log("🔄 Tarea modificada:", payload);
+      fetchTareas();
+      }
     )
     .subscribe();
 
