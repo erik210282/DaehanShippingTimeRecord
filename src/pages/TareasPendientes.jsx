@@ -189,6 +189,7 @@ export default function TareasPendientes() {
         actividad: "",
         productos: [{ producto: "", cantidad: "" }],
         notas: "",
+        estado: tareaActual.estado,
       }
     );
 
