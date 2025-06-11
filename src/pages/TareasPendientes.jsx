@@ -227,13 +227,7 @@ export default function TareasPendientes() {
         toast.success(t("task_updated"));
 
         // Actualizamos la tarea localmente también
-        setTareas((prev) =>
-          prev.map((t) =>
-            t.id === tareaActual.id
-              ? { ...t, idx: datos.idx, actividad: datos.actividad, productos: datos.productos, operadores: datos.operadores, notas: datos.notas, estado: datos.estado }
-              : t
-          )
-        );
+        await fetchTareas();
       } else {
         // INSERT
         const { error } = await supabase
