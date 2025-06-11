@@ -246,24 +246,33 @@ export default function TareasPendientes() {
 
         if (error) throw error;
         toast.success(t("task_updated"));
+
+        // Actualizamos la tarea localmente también
+        setTareas((prev) =>
+          prev.map((t) =>
+            t.id === tareaActual.id
+              ? { ...t, idx: datos.idx, actividad: datos.actividad, estado: datos.estado }
+              : t
+          )
+        );
       } else {
         // INSERT
         const { error } = await supabase
           .from("tareas_pendientes")
-          .insert([
-            {
-              ...datos,
-              createdAt: new Date().toISOString(),
-            },
-          ]);
+          .insert([{
+            ...datos,
+            createdAt: new Date().toISOString(),
+          }]);
 
         if (error) throw error;
         toast.success(t("task_added"));
+
+        // Agregar la nueva tarea al estado local sin duplicados
+        setTareas((prev) => [...prev, { ...datos, id: Date.now() }]);
       }
 
-      fetchTareas();
-
       setModalAbierto(false);
+      fetchTareas(); // También llamamos a fetchTareas si necesitas volver a cargar las tareas.
     } catch (error) {
       console.error("Error guardando tarea:", error);
       toast.error(t("error_saving"));
