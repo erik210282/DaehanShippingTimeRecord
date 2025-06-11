@@ -50,11 +50,17 @@ export default function TareasPendientes() {
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
         .filter((t) => ["pendiente", "iniciada", "pausada"].includes(t.estado));
 
-      // Evitar duplicados basados en ID
       setTareas((prev) => {
-        const tareaIds = prev.map((t) => t.id); // IDs de tareas actuales
-        const nuevasTareas = tareasList.filter((tarea) => !tareaIds.includes(tarea.id)); // Filtra las tareas nuevas
-        return [...prev, ...nuevasTareas]; // Agrega solo las nuevas tareas
+        const tareaIds = prev.map((t) => t.id); // Extraemos los IDs de las tareas actuales
+        const nuevasTareas = tareasList.filter((t) => !tareaIds.includes(t.id)); // Filtramos las nuevas tareas que no estén en el estado actual
+
+        if (nuevasTareas.length > 0) {
+          // Si hay tareas nuevas, las agregamos
+          return [...prev, ...nuevasTareas];
+        }
+
+        // Si no hay nuevas tareas, devolvemos el estado anterior (sin cambios)
+        return prev;
       });
     }
   };
