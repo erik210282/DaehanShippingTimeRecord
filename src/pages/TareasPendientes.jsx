@@ -137,6 +137,14 @@ export default function TareasPendientes() {
     fetchOperadores();
     fetchTareas();
 
+    const socket = supabase.getChannels()[0]?.socket;
+    if (socket && socket.conn && socket.conn.readyState === 3) {
+      console.warn("🔌 WebSocket cerrado. Reconectando...");
+      socket.disconnect(() => {
+        socket.connect();
+      });
+    }
+
     if (canalTareas) {
       console.log("♻️ Reutilizando canal tareas_pendientes");
       return;
