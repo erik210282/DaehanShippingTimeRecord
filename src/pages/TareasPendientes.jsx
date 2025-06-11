@@ -18,6 +18,23 @@ export default function TareasPendientes() {
   const [tareaAEliminar, setTareaAEliminar] = useState(null);
   const [operadores, setOperadores] = useState({});
 
+  const colorActividad = (nombreActividad) => {
+    switch (nombreActividad?.toLowerCase()) {
+      case "load":
+        return "#B2FBA5"; // verde
+      case "unload":
+        return "#AEC6CF"; // Azulado
+      case "stage":
+        return "#f580ff"; // Morado
+      case "label":
+        return "#F1BA8B"; // Naranja
+      case "scan":
+        return "#FFF44F"; // Amarillo
+      default:
+        return "#F0F0F0"; // Grisazul
+    }
+  };
+
   useEffect(() => {
   const fetchOperadores = async () => {
     const { data, error } = await supabase
@@ -292,7 +309,12 @@ export default function TareasPendientes() {
         </thead>
         <tbody key={i18n.language}>
           {tareas.map((tarea) => (
-            <tr key={tarea.id}>
+            <tr
+              key={tarea.id}
+              style={{
+                backgroundColor: colorActividad(actividades[tarea.actividad] || tarea.nombre_actividad || tarea.actividad)
+              }}
+            >
               <td>{tarea.idx || "-"}</td>
               <td>{mostrarNombre(tarea.actividad, actividades)}</td>
               <td>
