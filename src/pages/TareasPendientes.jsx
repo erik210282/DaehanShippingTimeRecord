@@ -72,122 +72,83 @@ export default function TareasPendientes() {
   }, []);
 
   useEffect(() => {
-  const fetchOperadores = async () => {
-    const { data, error } = await supabase
-      .from("operadores")
-      .select("id, nombre");
-
-    if (!error && data) {
-      const datos = {};
-      data.forEach((doc) => {
-        datos[doc.id] = doc.nombre;
-      });
-      setOperadores(datos);
-    }
-  };
-
-  fetchOperadores();
-
-  const channel = supabase
-    .channel("Tareas Pendientes - onSnapshot Operadores 1")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "operadores",
-      },
-      (payload) => {
-        fetchOperadores();
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, []);
-
-  useEffect(() => {
     if (location.pathname !== "/tareas-pendientes") return;
-    console.log("✅ Activando canales para tareas_pendientes");
 
-  // Función para obtener actividades
-  const fetchActividades = async () => {
-    const { data, error } = await supabase
-      .from("actividades")
-      .select("id, nombre, activo");
+    console.log("✅ Entrando a tareas-pendientes, iniciando canales y carga");
 
-    if (!error && data) {
-      const act = {};
-      data.forEach((doc) => {
-        if (doc.activo !== false) {
-          act[doc.id] = doc.nombre;
-        }
-      });
-      const ordenadas = Object.fromEntries(
-        Object.entries(act).sort(([, a], [, b]) => a.localeCompare(b))
-      );
-      setActividades(ordenadas);
-    }
-  };
-
-  // Función para obtener productos
-  const fetchProductos = async () => {
-    const { data, error } = await supabase
-      .from("productos")
-      .select("id, nombre, activo");
-
-    if (!error && data) {
-      const prod = {};
-      data.forEach((doc) => {
-        if (doc.activo !== false) {
-          prod[doc.id] = doc.nombre;
-        }
-      });
-      const ordenadas = Object.fromEntries(
-        Object.entries(prod).sort(([, a], [, b]) => a.localeCompare(b))
-      );
-      setProductos(ordenadas);
-    }
-  };
-
-  fetchActividades();
-  fetchProductos();
-  fetchTareas();
-
-  // Canales de tiempo real
-  const canalActividades = supabase
-    .channel("canal_actividades")
-    .on("postgres_changes", { event: "*", schema: "public", table: "actividades" }, fetchActividades)
-    .subscribe();
-
-  const canalProductos = supabase
-    .channel("canal_productos")
-    .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, fetchProductos)
-    .subscribe();
-
-  const canalTareas = supabase
-    .channel("canal_tareas_pendientes")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "tareas_pendientes",
-      },
-      (payload) => {
-        console.log("📡 Evento realtime recibido:", payload.eventType, payload.new);
-        if (["INSERT", "UPDATE", "DELETE"].includes(payload.eventType)) {
-          fetchTareas();
-        }
+    // Cargar datos
+    const fetchActividades = async () => {
+      const { data, error } = await supabase
+        .from("actividades")
+        .select("id, nombre, activo");
+      if (!error && data) {
+        const act = {};
+        data.forEach((doc) => {
+          if (doc.activo !== false) act[doc.id] = doc.nombre;
+        });
+        setActividades(
+          Object.fromEntries(
+            Object.entries(act).sort(([, a], [, b]) => a.localeCompare(b))
+          )
+        );
       }
-    )
-    .subscribe();
+    };
 
-  console.log("📡 Canal realtime activado para tareas_pendientes");
+    const fetchProductos = async () => {
+      const { data, error } = await supabase
+        .from("productos")
+        .select("id, nombre, activo");
+      if (!error && data) {
+        const prod = {};
+        data.forEach((doc) => {
+          if (doc.activo !== false) prod[doc.id] = doc.nombre;
+        });
+        setProductos(
+          Object.fromEntries(
+            Object.entries(prod).sort(([, a], [, b]) => a.localeCompare(b))
+          )
+        );
+      }
+    };
 
-  return () => {
+    fetchActividades();
+    fetchProductos();
+    fetchTareas();
+
+    // Canales
+    const canalActividades = supabase
+      .channel("canal_actividades")
+      .on("postgres_changes", { event: "*", schema: "public", table: "actividades" }, fetchActividades)
+      .subscribe();
+
+    const canalProductos = supabase
+      .channel("canal_productos")
+      .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, fetchProductos)
+      .subscribe();
+
+    const canalTareas = supabase
+      .channel("canal_tareas_pendientes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tareas_pendientes",
+        },
+        (payload) => {
+          console.log("📡 Evento realtime recibido:", payload.eventType, payload.new);
+          if (["INSERT", "UPDATE", "DELETE"].includes(payload.eventType)) {
+            fetchTareas();
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("📡 Canal realtime activado para tareas_pendientes");
+        }
+      });
+
+    return () => {
       console.log("🧹 Canal desmontado (saliste de tareas-pendientes)");
       supabase.removeChannel(canalActividades);
       supabase.removeChannel(canalProductos);
