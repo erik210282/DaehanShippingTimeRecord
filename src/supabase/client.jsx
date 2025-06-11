@@ -6,3 +6,8 @@ const supabase = createClient(
 );
 
 export default supabase;
+
+// Solo en desarrollo: exponer Supabase a la consola del navegador
+if (process.env.NODE_ENV === "development") {
+  window.supabase = supabase;
+}
