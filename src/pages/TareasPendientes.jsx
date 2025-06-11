@@ -315,10 +315,20 @@ export default function TareasPendientes() {
   }, []);
 
   useEffect(() => {
-    if (location.pathname === "/tareas-pendientes") {
-      console.log("📍 Ruta activa: tareas-pendientes → recargando");
-      fetchTareas();
-    }
+    const recargarSiEsTareasPendientes = () => {
+      if (location.pathname === "/tareas-pendientes") {
+        console.log("🔁 Reenfocado o reapareció la pestaña → recargar tareas");
+        fetchTareas();
+      }
+    };
+
+    window.addEventListener("focus", recargarSiEsTareasPendientes);
+    document.addEventListener("visibilitychange", recargarSiEsTareasPendientes);
+
+    return () => {
+      window.removeEventListener("focus", recargarSiEsTareasPendientes);
+      document.removeEventListener("visibilitychange", recargarSiEsTareasPendientes);
+    };
   }, [location.pathname]);
 
   useEffect(() => {
