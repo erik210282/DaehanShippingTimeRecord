@@ -251,7 +251,7 @@ export default function TareasPendientes() {
         setTareas((prev) =>
           prev.map((t) =>
             t.id === tareaActual.id
-              ? { ...t, idx: datos.idx, actividad: datos.actividad, estado: datos.estado }
+              ? { ...t, idx: datos.idx, actividad: datos.actividad, productos: datos.productos, operadores: datos.operadores, notas: datos.notas, estado: datos.estado }
               : t
           )
         );
