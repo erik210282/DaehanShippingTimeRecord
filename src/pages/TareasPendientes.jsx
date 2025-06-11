@@ -57,24 +57,6 @@ export default function TareasPendientes() {
     }
   };
 
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        console.log("👁️ Web: ventana visible de nuevo, recargando tareas...");
-        fetchTareas();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (location.pathname !== "/tareas-pendientes") return;
-    console.log("✅ Activando canales para tareas_pendientes");
-
   // Función para obtener actividades
   const fetchActividades = async () => {
     const { data, error } = await supabase
@@ -132,59 +114,68 @@ export default function TareasPendientes() {
     }
   };
 
-  fetchActividades();
-  fetchProductos();
-  fetchOperadores();
-  fetchTareas();
+  useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible" && location.pathname === "/tareas-pendientes") {
+      console.log("👁️ Web: pestaña activa, recargando tareas...");
+      fetchTareas();
+    }
+  };
+  document.addEventListener("visibilitychange", handleVisibilityChange);
 
-  // Canales de tiempo real
-  const canalActividades = supabase
-    .channel("canal_actividades")
-    .on("postgres_changes", { event: "*", schema: "public", table: "actividades" }, fetchActividades)
-    .subscribe();
+  console.log("✅ Montando canales de Supabase (una sola vez)");
 
-  const canalProductos = supabase
-    .channel("canal_productos")
-    .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, fetchProductos)
-    .subscribe();
+    fetchActividades();
+    fetchProductos();
+    fetchOperadores?.(); 
 
-  const canalOperadores = supabase
-    .channel("canal_operadores")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "operadores" },
-      fetchOperadores
-    )
-    .subscribe();
+    if (location.pathname === "/tareas-pendientes") {
+      fetchTareas();
+    }
 
-  const canalTareas = supabase
-    .channel("canal_tareas_pendientes")
-    .on(
-      "postgres_changes",
-      {
+    const canalActividades = supabase
+      .channel("canal_actividades")
+      .on("postgres_changes", { event: "*", schema: "public", table: "actividades" }, fetchActividades)
+      .subscribe();
+
+    const canalProductos = supabase
+      .channel("canal_productos")
+      .on("postgres_changes", { event: "*", schema: "public", table: "productos" }, fetchProductos)
+      .subscribe();
+
+    const canalTareas = supabase
+      .channel("canal_tareas_pendientes")
+      .on("postgres_changes", {
         event: "*",
         schema: "public",
         table: "tareas_pendientes",
-      },
-      (payload) => {
+      }, (payload) => {
         console.log("📡 Evento realtime recibido:", payload.eventType, payload.new);
-        if (["INSERT", "UPDATE", "DELETE"].includes(payload.eventType)) {
+        if (location.pathname === "/tareas-pendientes") {
           fetchTareas();
         }
-      }
-    )
-    .subscribe();
+      })
+      .subscribe();
 
-  console.log("📡 Canal realtime activado para tareas_pendientes");
+    const canalOperadores = supabase
+      .channel("canal_operadores")
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "operadores",
+      }, () => {
+        fetchOperadores?.(); // solo si tienes esa función declarada
+      })
+      .subscribe();
 
-  return () => {
-      console.log("🧹 Canal desmontado (saliste de tareas-pendientes)");
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(canalActividades);
       supabase.removeChannel(canalProductos);
-      supabase.removeChannel(canalOperadores);
       supabase.removeChannel(canalTareas);
+      supabase.removeChannel(canalOperadores);
     };
-  }, [location.pathname]);
+  }, []);
 
 
   const abrirModal = (tarea = null) => {
