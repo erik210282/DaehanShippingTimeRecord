@@ -63,6 +63,10 @@ export default function TareasPendientes() {
               ...t,
               idx: tareaModificada.idx,
               actividad: tareaModificada.actividad,
+              productos: tareaModificada.productos,
+              cantidad: tareaModificada.cantidad,
+              operador: tareaModificada.operador,
+              notas: tareaModificada.notas,
               estado: tareaModificada.estado,
             };
           }
