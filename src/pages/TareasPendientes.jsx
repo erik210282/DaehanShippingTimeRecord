@@ -6,7 +6,6 @@ import { useLocation } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useTranslation } from "react-i18next";
-import { AppState, Platform } from "react-native";
 
 Modal.setAppElement("#root");
 
@@ -82,30 +81,17 @@ export default function TareasPendientes() {
     }
   };
 
-  useEffect(() => {
+ useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        console.log("👀 Página visible de nuevo, recargando tareas pendientes...");
-        cargarTareas(); // usa aquí tu función real
+        console.log("👁️ Web: ventana visible de nuevo, recargando tareas...");
+        fetchTareas();
       }
     };
 
-    if (Platform.OS === "web") {
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-    }
-
-    const appStateSubscription = AppState.addEventListener("change", (nextAppState) => {
-      if (nextAppState === "active") {
-        console.log("📱 App activa de nuevo, recargando tareas pendientes...");
-        cargarTareas(); // usa aquí tu función real
-      }
-    });
-
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      if (Platform.OS === "web") {
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-      }
-      appStateSubscription.remove();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
