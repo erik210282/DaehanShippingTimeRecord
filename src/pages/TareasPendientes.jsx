@@ -183,7 +183,7 @@ export default function TareasPendientes() {
     .subscribe();
 
   const canalTareas = supabase
-    .channel("Tareas Pendientes - onSnapshot Lista de Tareas 4")
+    .channel("Tareas Pendientes - onSnapshot Lista de Tareas 4", { config: { broadcast: { self: true } } })
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "tareas_pendientes" },
@@ -320,6 +320,11 @@ export default function TareasPendientes() {
       fetchTareas();
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    console.log("🚀 Componente TareasPendientes montado: recargando tareas");
+    fetchTareas();
+  }, []);
 
   return (
     <div className="card">
