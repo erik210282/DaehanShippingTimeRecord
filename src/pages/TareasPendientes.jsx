@@ -162,16 +162,12 @@ export default function TareasPendientes() {
     return () => {
       console.log("🧹 Limpiando canales al salir de tareas-pendientes");
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      supabase.removeChannel(canalActividades);
-      supabase.removeChannel(canalProductos);
-      supabase.removeChannel(canalOperadores);
-      if (canalTareas && canalTareas.state !== "closed") {
-        console.log("🧹 Cerrando canal tareas_pendientes");
-        supabase.removeChannel(canalTareas);
-        canalTareas = null;
-      } else {
-        console.log("⚠️ Canal ya estaba cerrado o no inicializado");
-      }
+
+      // 🔁 Esta línea es más segura para prevenir errores de reconexión
+      supabase.removeAllChannels();
+
+      // Limpieza de canalTareas también
+      canalTareas = null;
     };
   }, [location.pathname]);
 
