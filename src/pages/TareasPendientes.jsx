@@ -165,10 +165,12 @@ export default function TareasPendientes() {
       supabase.removeChannel(canalActividades);
       supabase.removeChannel(canalProductos);
       supabase.removeChannel(canalOperadores);
-      if (canalTareas) {
+      if (canalTareas && canalTareas.state !== "closed") {
         console.log("🧹 Cerrando canal tareas_pendientes");
         supabase.removeChannel(canalTareas);
         canalTareas = null;
+      } else {
+        console.log("⚠️ Canal ya estaba cerrado o no inicializado");
       }
     };
   }, [location.pathname]);
