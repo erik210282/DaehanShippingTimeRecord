@@ -183,7 +183,7 @@ export default function TareasPendientes() {
     .subscribe();
 
   const canalTareas = supabase
-    .channel("Tareas Pendientes - onSnapshot Lista de Tareas 4", { config: { broadcast: { self: true } } })
+    .channel("realtime_tareas_pendientes")
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "tareas_pendientes" },
@@ -193,6 +193,8 @@ export default function TareasPendientes() {
       }
     )
     .subscribe();
+
+  console.log("📡 Canal realtime activado para tareas_pendientes");
 
   // Limpieza de los canales al desmontar el componente
   return () => {
@@ -302,17 +304,16 @@ export default function TareasPendientes() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        console.log("👀 Página visible, recargando tareas");
+        console.log("👁️ Volvió a estar visible, recargando tareas...");
         fetchTareas();
       }
     };
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
+
 
   useEffect(() => {
     const recargarSiEsTareasPendientes = () => {
@@ -335,6 +336,13 @@ export default function TareasPendientes() {
     console.log("🚀 Componente TareasPendientes montado: recargando tareas");
     fetchTareas();
   }, []);
+
+  useEffect(() => {
+    if (location.pathname === "/tareas-pendientes") {
+      console.log("↩️ Regresó a /tareas-pendientes, recargando tareas");
+      fetchTareas();
+    }
+  }, [location.pathname]);
 
   return (
     <div className="card">
