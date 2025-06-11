@@ -227,7 +227,7 @@ export default function TareasPendientes() {
         toast.success(t("task_updated"));
 
         // Actualizamos la tarea localmente también
-        await fetchTareas();
+      await fetchTareas();
       } else {
         // INSERT
         const { error } = await supabase
@@ -242,6 +242,7 @@ export default function TareasPendientes() {
       }
 
       setModalAbierto(false);
+      
       fetchTareas(); // También llamamos a fetchTareas si necesitas volver a cargar las tareas.
     } catch (error) {
       console.error("Error guardando tarea:", error);
