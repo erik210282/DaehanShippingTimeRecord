@@ -139,7 +139,7 @@ export default function TareasPendientes() {
       return;
     }
 
-    const canalTareas = supabase
+    canalTareas = supabase
       .channel("canal_tareas")
       .on("postgres_changes", { event: "*", schema: "public", table: "tareas_pendientes" }, fetchTareas)
       .subscribe();
@@ -270,29 +270,6 @@ export default function TareasPendientes() {
   const operadorOpciones = Object.entries(operadores)
     .map(([id, nombre]) => ({ value: id, label: nombre }))
     .sort((a, b) => a.label.localeCompare(b.label));
-
-  useEffect(() => {
-    const canalTemporal = supabase
-      .channel("debug_listener")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "tareas_pendientes" },
-        (payload) => {
-          console.log("🛰️ DEBUG - Evento captado después del primer render:", payload);
-          // ⚠️ Solo si estamos en tareas-pendientes
-          if (window.location.pathname === "/tareas-pendientes") {
-            fetchTareas();
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log("🛰️ Canal debug_listener status:", status);
-      });
-
-    return () => {
-      supabase.removeChannel(canalTemporal);
-    };
-  }, []);
 
   return (
     <div className="card">
