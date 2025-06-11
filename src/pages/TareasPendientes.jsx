@@ -314,6 +314,13 @@ export default function TareasPendientes() {
     };
   }, []);
 
+  useEffect(() => {
+    if (location.pathname === "/tareas-pendientes") {
+      console.log("📍 Ruta activa: tareas-pendientes → recargando");
+      fetchTareas();
+    }
+  }, [location.pathname]);
+
   return (
     <div className="card">
       <h2>{t("pending_tasks")}</h2>
