@@ -169,10 +169,20 @@ export default function TareasPendientes() {
 
   const canalTareas = supabase
     .channel("canal_tareas_pendientes")
-    .on("postgres_changes", { event: "*", schema: "public", table: "tareas_pendientes" }, (payload) => {
-      console.log("📡 Evento realtime recibido:", payload);
-      fetchTareas();
-    })
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "tareas_pendientes",
+      },
+      (payload) => {
+        console.log("📡 Evento realtime recibido:", payload.eventType, payload.new);
+        if (["INSERT", "UPDATE", "DELETE"].includes(payload.eventType)) {
+          fetchTareas();
+        }
+      }
+    )
     .subscribe();
 
   console.log("📡 Canal realtime activado para tareas_pendientes");
@@ -282,19 +292,6 @@ export default function TareasPendientes() {
   const operadorOpciones = Object.entries(operadores)
     .map(([id, nombre]) => ({ value: id, label: nombre }))
     .sort((a, b) => a.label.localeCompare(b.label));
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        console.log("👁️ Volvió a estar visible, recargando tareas...");
-        fetchTareas();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
 
   return (
     <div className="card">
