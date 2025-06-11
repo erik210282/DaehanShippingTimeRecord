@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import supabase from "../supabase/client";
 import Select from "react-select";
 import Modal from "react-modal";
+import { useLocation } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useTranslation } from "react-i18next";
@@ -9,6 +10,7 @@ import { useTranslation } from "react-i18next";
 Modal.setAppElement("#root");
 
 export default function TareasPendientes() {
+  const location = useLocation();
   const [tareas, setTareas] = useState([]);
   const [actividades, setActividades] = useState({});
   const [productos, setProductos] = useState({});
@@ -296,6 +298,21 @@ export default function TareasPendientes() {
   const operadorOpciones = Object.entries(operadores)
     .map(([id, nombre]) => ({ value: id, label: nombre }))
     .sort((a, b) => a.label.localeCompare(b.label));
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        console.log("👀 Página visible, recargando tareas");
+        fetchTareas();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   return (
     <div className="card">
