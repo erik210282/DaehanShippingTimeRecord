@@ -138,22 +138,25 @@ export default function TareasPendientes() {
     fetchTareas();
 
     const socket = supabase.getChannels()[0]?.socket;
-    if (socket?.conn?.readyState === 3) { // 3 = CLOSED
-      console.warn("🔌 WebSocket cerrado. Reconectando...");
-      socket.disconnect(() => socket.connect());
-    }
-
-    if (canalTareas) {
-      console.log("♻️ Reutilizando canal tareas_pendientes");
-      return;
-    }
-
-    canalTareas = supabase
-      .channel("canal_tareas")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tareas_pendientes" }, fetchTareas)
-      .subscribe((status) => {
-        console.log("📶 Estado del canal tareas_pendientes:", status);
+    if (socket?.conn?.readyState === 3) {
+      console.warn("🔌 WebSocket estaba cerrado. Reconectando...");
+      socket.disconnect(() => {
+        socket.connect();
       });
+    }
+
+    if (!canalTareas) {
+      setTimeout(() => {
+        canalTareas = supabase
+          .channel("canal_tareas")
+          .on("postgres_changes", { event: "*", schema: "public", table: "tareas_pendientes" }, fetchTareas)
+          .subscribe((status) => {
+            console.log("📶 Estado del canal tareas_pendientes:", status);
+          });
+      }, 100);
+    } else {
+      console.log("♻️ Reutilizando canal tareas_pendientes");
+    }
 
     const canalActividades = supabase
       .channel("canal_actividades")
@@ -174,13 +177,20 @@ export default function TareasPendientes() {
       console.log("🧹 Limpiando canales al salir de tareas-pendientes");
       document.removeEventListener("visibilitychange", handleVisibilityChange);
 
-      // 🔁 Esta línea es más segura para prevenir errores de reconexión
-      supabase.removeAllChannels();
-
-      // Limpieza de canalTareas también
+      // ✅ Elimina canal anterior
+      supabase.removeChannel(canalTareas);
       canalTareas = null;
+
+      // ✅ Forzar reconexión del WebSocket si está cerrado
+      const socket = supabase.getChannels()[0]?.socket;
+      if (socket?.conn?.readyState === 3) { // 3 = CLOSED
+        console.warn("🔌 WebSocket estaba cerrado. Reconectando...");
+        socket.disconnect(() => {
+          socket.connect();
+        });
+      }
     };
-  }, [location.pathname]);
+    }, [location.pathname]);
 
 
   const abrirModal = async (tarea = null) => {
