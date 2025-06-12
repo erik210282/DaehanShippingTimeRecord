@@ -153,7 +153,7 @@ export default function TareasPendientes() {
           .subscribe((status) => {
             console.log("📶 Estado del canal tareas_pendientes:", status);
           });
-      }, 50);
+      }, 100);
     } else {
       console.log("♻️ Reutilizando canal tareas_pendientes");
     }
