@@ -19,6 +19,7 @@
     "load_error": "Error al cargar los datos.",
     "no_results_found": "No se encontraron resultados.",
     "confirm_delete": "¿Estás seguro de que deseas eliminar este registro?",
+    "user_deleted": "Usuario eliminado",
     
     "login_title": "Iniciar sesión",
     "login_error": "Error al iniciar sesión",
