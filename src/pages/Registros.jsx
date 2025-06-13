@@ -455,8 +455,9 @@ useEffect(() => {
       key = nombres.length === 1 ? nombres[0] : t("multi_product");
     } else if (modoAgrupacion === "actividad") {
       key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
-    } else if (modoAgrupacion === "fecha") {
-      key = format(new Date(r.horaInicio), "yyyy-MM-dd");
+    } else if (modoAgrupacion === "starttime") {
+      const fecha = new Date(r.horaInicio);
+      key = format(fecha, "yyyy-MM-dd"); 
     }
 
     if (!grupos[key]) grupos[key] = [];
