@@ -465,14 +465,24 @@ useEffect(() => {
   });
 
   const gruposOrdenados = {};
-  Object.keys(grupos)
-    .sort((a, b) => a.localeCompare(b))
-    .forEach((key) => {
-      gruposOrdenados[key] = grupos[key];
-    });
+    if (modoAgrupacion === "starttime") {
+      // Si estamos agrupando por fecha, ordenar los grupos por fecha de lo más reciente a lo más antiguo
+      Object.keys(grupos)
+        .sort((a, b) => new Date(b) - new Date(a)) // Ordenar fechas (más nuevo primero)
+        .forEach((key) => {
+          gruposOrdenados[key] = grupos[key];
+        });
+    } else {
+      // Si no estamos agrupando por fecha, mantener el orden alfabético o por otro criterio
+      Object.keys(grupos)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach((key) => {
+          gruposOrdenados[key] = grupos[key];
+        });
+    }
 
-  return gruposOrdenados;
-};
+    return gruposOrdenados;
+  };
 
   return (
     <div className="card">
