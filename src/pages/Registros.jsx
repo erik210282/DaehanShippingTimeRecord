@@ -201,7 +201,7 @@ useEffect(() => {
       r.operadores?.some(
         (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
       ) ||
-      r.idx.toLowerCase().includes(texto) || 
+      (r.idx && r.idx.toLowerCase().includes(texto)) || 
       r.productos?.some((p) => p.producto.toLowerCase().includes(texto));
 
     const fechaInicio =
