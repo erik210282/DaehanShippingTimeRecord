@@ -189,8 +189,8 @@ useEffect(() => {
       productoFiltro.length === 0 ||
       (Array.isArray(r.productos) &&
         productoFiltro.some((o) => 
-          r.productos.some((p) => p.producto === o.value)
-      ));
+          r.productos.some((p) => mapaProductos[p.producto]?.toLowerCase().includes(o.label.toLowerCase()))
+        ));
 
     const cumpleOperador =
       operadorFiltro.length === 0 ||
