@@ -188,7 +188,9 @@ useEffect(() => {
     const cumpleProducto =
       productoFiltro.length === 0 ||
       (Array.isArray(r.productos) &&
-        productoFiltro.some((o) => r.productos.includes(o.value)));
+        productoFiltro.some((o) => 
+          r.productos.some((p) => p.producto === o.value)
+      ));
 
     const cumpleOperador =
       operadorFiltro.length === 0 ||
@@ -199,7 +201,7 @@ useEffect(() => {
       !texto ||
       mapaActividades[r.actividad]?.toLowerCase().includes(texto) ||
       r.productos?.some(
-        (id) => mapaProductos[id]?.toLowerCase().includes(texto)
+        (id) => mapaProductos[p.producto]?.toLowerCase().includes(texto)
       ) ||
       r.operadores?.some(
         (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
