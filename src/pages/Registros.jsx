@@ -479,24 +479,6 @@ useEffect(() => {
         </button>
       </div>
 
-      <button
-        style={{
-          position: "fixed",
-          bottom: "20px",
-          right: "20px",
-          backgroundColor: "#007bff",
-          color: "white",
-          padding: "10px 20px",
-          border: "none",
-          borderRadius: "50%",
-          fontSize: "24px",
-          cursor: "pointer",
-        }}
-        onClick={() => abrirModal(null)}
-      >
-        +
-      </button>
-
       {pestañaActiva === "paginado" ? (
         <div>
           <input placeholder={t("search")} value={busquedaTexto} onChange={(e) => setBusquedaTexto(e.target.value)} />
@@ -515,11 +497,11 @@ useEffect(() => {
             setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
           }}>{t("clear_filters")}</button>
 
+          <button onClick={exportarCSV}>{t("export_csv")}</button>
+
           <button onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
             ➕ {t("add_record")}
-          </button>
-
-          <button onClick={exportarCSV}>{t("export_csv")}</button>
+          </button>          
 
           <table className="table">
             <thead>
