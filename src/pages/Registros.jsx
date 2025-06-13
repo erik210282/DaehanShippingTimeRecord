@@ -16,7 +16,6 @@ export default function Registros() {
 
   const [registros, setRegistros] = useState([]);
   const [filtrados, setFiltrados] = useState([]);
-  const [registroEditando, setRegistroEditando] = useState(null);
 
   const [actividadFiltro, setActividadFiltro] = useState([]);
   const [productoFiltro, setProductoFiltro] = useState([]);
@@ -516,6 +515,12 @@ useEffect(() => {
             setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
           }}>{t("clear_filters")}</button>
 
+          <button onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
+            ➕ {t("add_record")}
+          </button>
+
+          <button onClick={exportarCSV}>{t("export_csv")}</button>
+
           <table className="table">
             <thead>
               <tr>
@@ -572,8 +577,6 @@ useEffect(() => {
               })}
             </tbody>
           </table>
-
-          <button onClick={exportarCSV}>{t("export_csv")}</button>
         </div>
       ) : (
         <div>
