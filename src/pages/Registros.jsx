@@ -201,7 +201,7 @@ useEffect(() => {
       !texto ||
       mapaActividades[r.actividad]?.toLowerCase().includes(texto) ||
       r.productos?.some(
-        (id) => mapaProductos[p.producto]?.toLowerCase().includes(texto)
+        (p) => mapaProductos[p.producto]?.toLowerCase().includes(texto)
       ) ||
       r.operadores?.some(
         (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
