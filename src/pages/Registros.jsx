@@ -501,7 +501,7 @@ useEffect(() => {
 
           <button onClick={exportarCSV}>{t("export_csv")}</button>
 
-          <button onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
+          <button onClick={() => abrirModal()}>
             ➕ {t("add_record")}
           </button>          
 
