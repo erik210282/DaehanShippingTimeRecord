@@ -187,7 +187,8 @@ useEffect(() => {
 
     const cumpleProducto =
       productoFiltro.length === 0 ||
-      productoFiltro.some((p) => p.value === r.producto);
+      (Array.isArray(r.productos) &&
+        productoFiltro.some((o) => r.productos.includes(o.value)));
 
     const cumpleOperador =
       operadorFiltro.length === 0 ||
