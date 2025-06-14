@@ -656,7 +656,7 @@ useEffect(() => {
             <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
               <Select
                 options={selectProductos}
-                value={selectProductos.find((opt) => opt.value === p.producto)}
+                value={selectProductos.find((opt) => opt.value === p.producto) || null}
                 onChange={(e) => {
                   const nuevos = [...registroActual.productos];
                   nuevos[index].producto = e.value;
