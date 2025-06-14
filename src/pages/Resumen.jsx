@@ -10,8 +10,38 @@ export default function Resumen() {
   const [usuarios, setUsuarios] = useState({});
 
   useEffect(() => {
+    const cargarDatos = async () => {
+      const { data: actividadesData } = await supabase
+        .from("actividades_realizadas")
+        .select("*");
+
+      const { data: productosData } = await supabase.from("productos").select("id, nombre");
+      const { data: usuariosData } = await supabase.from("operadores").select("id, nombre");
+
+      const mapaProductos = {};
+      productosData?.forEach((p) => {
+        mapaProductos[p.id] = p.nombre;
+      });
+
+      const mapaUsuarios = {};
+      usuariosData?.forEach((u) => {
+        mapaUsuarios[u.id] = u.nombre;
+      });
+
+      // Ordenar manualmente por la primera fecha disponible
+      const actividadesOrdenadas = (actividadesData || []).sort((a, b) => {
+        const fechaA = a.fecha_stage || a.fecha_label || a.fecha_scan || a.fecha_load || a.fecha_unload || "";
+        const fechaB = b.fecha_stage || b.fecha_label || b.fecha_scan || b.fecha_load || b.fecha_unload || "";
+        return new Date(fechaA) - new Date(fechaB);
+      });
+
+      setProductos(mapaProductos);
+      setUsuarios(mapaUsuarios);
+      setActividades(actividadesOrdenadas);
+    };
+
     cargarDatos();
-  }, []); 
+  }, []);
 
   const cargarDatos = async () => {
     const { data: actividadesData } = await supabase
