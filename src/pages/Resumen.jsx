@@ -10,6 +10,7 @@ export default function Resumen() {
   const [fechaFin, setFechaFin] = useState("");
   const [productosDict, setProductosDict] = useState({});
   const [operadoresDict, setOperadoresDict] = useState({});
+  const [modoAgrupacion, setModoAgrupacion] = useState("idx");
 
   useEffect(() => {
     const cargarCatalogos = async () => {
