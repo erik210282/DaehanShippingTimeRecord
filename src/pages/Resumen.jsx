@@ -81,12 +81,17 @@ export default function Resumen() {
     }
   };
 
-  const renderPaso = (etapas, tipo) => {
-    const paso = etapas[tipo];
+  const renderPaso = (actividades, tipo) => {
+    const paso = [...actividades]
+      .filter((a) => a[`fecha_${tipo}`])
+      .sort((a, b) => new Date(a[`fecha_${tipo}`]) - new Date(b[`fecha_${tipo}`]))[0];
+
+    if (!paso) return <td style={{ backgroundColor: colorActividad(tipo) }}>-</td>;
+
     return (
       <td style={{ backgroundColor: colorActividad(tipo), padding: "5px" }}>
-        <div>{usuarios[paso?.operador] || "-"}</div>
-        <div style={{ fontSize: "0.8em" }}>{formatearFecha(paso?.fecha)}</div>
+        <div>{usuarios[paso[`operador_${tipo}`]] || "-"}</div>
+        <div style={{ fontSize: "0.8em" }}>{formatearFecha(paso[`fecha_${tipo}`])}</div>
       </td>
     );
   };
@@ -113,10 +118,10 @@ export default function Resumen() {
               <td>{r.idx}</td>
               <td>{r.productos.map((p, i) => <div key={i}>{p}</div>)}</td>
               <td>{r.cantidades.map((c, i) => <div key={i}>{c}</div>)}</td>
-              {renderPaso(r.etapas, "stage")}
-              {renderPaso(r.etapas, "label")}
-              {renderPaso(r.etapas, "scan")}
-              {renderPaso(r.etapas, "load")}
+              {renderPaso(actividadesPorIdx[idx], "stage")}
+              {renderPaso(actividadesPorIdx[idx], "label")}
+              {renderPaso(actividadesPorIdx[idx], "scan")}
+              {renderPaso(actividadesPorIdx[idx], "load")}
               <td>{r.notas.join(" | ")}</td>
             </tr>
           ))}
