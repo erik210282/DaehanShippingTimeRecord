@@ -55,9 +55,7 @@ export default function Usuarios() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      const lista = (data.users || []).filter(
-        (u) => u.email !== usuarioLogueado?.email
-      );
+      const lista = (data.users || []).filter();
 
       setUsuarios(lista);
     } catch (error) {
@@ -127,21 +125,24 @@ export default function Usuarios() {
       <h2>{t("user_management")}</h2>
 
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-       <input
-        type="email"
-        placeholder={t("email_placeholder") || "Escribe correo"}
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        autoComplete="off"
-      />
-
-      <input
-        type="password"
-        placeholder={t("password_placeholder") || "Escribe contraseña"}
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        autoComplete="off"
-      />
+       <form autoComplete="off">
+        <input
+          type="email"
+          name="email"
+          placeholder={t("email_placeholder") || "Escribe correo"}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="off"
+        />
+        <input
+          type="password"
+          name="password"
+          placeholder={t("password_placeholder") || "Escribe contraseña"}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
+        />
+      </form>
         <button className="primary" onClick={crearUsuario}>
           {t("create_user")}
         </button>
