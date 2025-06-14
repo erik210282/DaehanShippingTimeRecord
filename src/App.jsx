@@ -5,6 +5,7 @@ import Productividad from "./pages/Productividad";
 import Catalogos from "./pages/Catalogos";
 import Usuarios from "./pages/Usuarios";
 import Login from "./pages/Login";
+import Resumen from "./pages/Resumen";
 import TareasPendientes from "./pages/TareasPendientes";
 import ConfiguracionTareas from "./pages/ConfiguracionTareas";
 import { useTranslation } from "react-i18next";
@@ -50,6 +51,7 @@ const Navbar = () => {
     <div className="navbar">
       <div className="navbar-center">
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
+        <button onClick={() => navigate("/resumen")}>{t("resumen")}</button>
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
         <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
@@ -76,6 +78,9 @@ const AppContent = () => (
 
         <Route path="/tareas-pendientes" element={
           <ProtectedRoute><TareasPendientes /></ProtectedRoute>
+        } />
+        <Route path="/resumen" element={
+          <ProtectedRoute><Resumen /></ProtectedRoute>
         } />
         <Route path="/registros" element={
           <ProtectedRoute><Registros /></ProtectedRoute>
