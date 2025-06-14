@@ -8,6 +8,29 @@ export default function Resumen() {
   const [filtroIdx, setFiltroIdx] = useState("");
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
+  const [productosDict, setProductosDict] = useState({});
+  const [operadoresDict, setOperadoresDict] = useState({});
+
+  useEffect(() => {
+    const cargarCatalogos = async () => {
+      const { data: productos } = await supabase.from("productos").select("id, nombre");
+      const { data: operadores } = await supabase.from("operadores").select("id, nombre");
+
+      const prodDict = {};
+      productos?.forEach((p) => {
+        prodDict[p.id] = p.nombre;
+      });
+      const opDict = {};
+      operadores?.forEach((op) => {
+        opDict[op.id] = op.nombre;
+      });
+
+      setProductosDict(prodDict);
+      setOperadoresDict(opDict);
+    };
+
+    cargarCatalogos();
+  }, []);
 
   useEffect(() => {
     const fetchResumen = async () => {
@@ -36,7 +59,7 @@ export default function Resumen() {
         if (!resumenPorIdx[idx]) {
           resumenPorIdx[idx] = {
             idx,
-            producto: productos?.[0]?.producto || "",
+            producto: productos?.[0]?.producto ? productosDict[productos[0].producto] || productos[0].producto : "",
             cantidad: productos?.[0]?.cantidad || "",
             stage: null,
             label: null,
@@ -47,7 +70,10 @@ export default function Resumen() {
           };
         }
 
-        const operadorNombre = Array.isArray(operadores) ? operadores.join(", ") : operadores;
+        const operadorNombre = Array.isArray(operadores)
+          ? operadores.map((id) => operadoresDict[id] || id).join(", ")
+          : operadores;
+
         const registro = `${operadorNombre} (${new Date(hora_inicio).toLocaleString()})`;
 
         if (tipo && typeof tipo === "string") {
@@ -67,8 +93,10 @@ export default function Resumen() {
       setResumenData(resumenArray);
     };
 
-    fetchResumen();
-  }, [filtroIdx, fechaInicio, fechaFin]);
+    if (Object.keys(productosDict).length && Object.keys(operadoresDict).length) {
+      fetchResumen();
+    }
+  }, [filtroIdx, fechaInicio, fechaFin, productosDict, operadoresDict]);
 
   return (
     <div style={{ padding: 16 }}>
