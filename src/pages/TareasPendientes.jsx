@@ -42,8 +42,9 @@ export default function TareasPendientes() {
   // Función para obtener tareas pendientes
   const fetchTareas = async () => {
     const { data, error } = await supabase
-      .from("tareas_pendientes")
-      .select("*");
+    .from("tareas_pendientes")
+    .select("*")
+    .not("estado", "eq", "finalizada");
 
     if (!error && data) {
       const tareasList = data
