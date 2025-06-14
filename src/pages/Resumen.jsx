@@ -77,7 +77,7 @@ export default function Resumen() {
   const formatearFecha = (fecha) => {
     if (!fecha) return "-";
     const d = new Date(fecha);
-    return d.toLocaleString();
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   const colorActividad = (nombreActividad) => {
