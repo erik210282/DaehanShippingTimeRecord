@@ -33,7 +33,6 @@ export default function Resumen() {
     });
     setUsuarios(mapaUsuarios);
 
-    // Agrupar por IDX
     const agrupado = {};
     (actividades || []).forEach((a) => {
       if (!agrupado[a.idx]) {
@@ -42,16 +41,21 @@ export default function Resumen() {
           productos: a.productos || [],
           notas: a.notas || "",
           cantidad: a.productos?.[0]?.cantidad || "-",
-          stage: {},
-          label: {},
-          scan: {},
-          load: {},
+          etapas: {
+            stage: null,
+            label: null,
+            scan: null,
+            load: null,
+          },
         };
       }
-      if (a.nombre_actividad?.toLowerCase() === "stage") agrupado[a.idx].stage = a;
-      if (a.nombre_actividad?.toLowerCase() === "label") agrupado[a.idx].label = a;
-      if (a.nombre_actividad?.toLowerCase() === "scan") agrupado[a.idx].scan = a;
-      if (a.nombre_actividad?.toLowerCase() === "load") agrupado[a.idx].load = a;
+      const tipo = a.nombre_actividad?.toLowerCase();
+      if (agrupado[a.idx].etapas[tipo] === null) {
+        agrupado[a.idx].etapas[tipo] = {
+          operador: a.operadores?.[0] || a.operador_stage || a.operador_label || a.operador_scan || a.operador_load || null,
+          fecha: a.fecha_stage || a.fecha_label || a.fecha_scan || a.fecha_load || a.fecha || null,
+        };
+      }
     });
 
     const lista = Object.values(agrupado).sort((a, b) => `${b.idx}`.localeCompare(`${a.idx}`));
@@ -69,10 +73,10 @@ export default function Resumen() {
     }
   };
 
-  const celda = (actividad, tipo) => (
+  const celda = (etapa, tipo) => (
     <td style={{ backgroundColor: colorActividad(tipo), padding: "4px" }}>
-      <div>{usuarios[actividad?.operador_stage || actividad?.operador_label || actividad?.operador_scan || actividad?.operador_load] || "-"}</div>
-      <div style={{ fontSize: "0.8em" }}>{actividad?.fecha_stage || actividad?.fecha_label || actividad?.fecha_scan || actividad?.fecha_load || "-"}</div>
+      <div>{usuarios[etapa?.operador] || "-"}</div>
+      <div style={{ fontSize: "0.8em" }}>{etapa?.fecha ? new Date(etapa.fecha).toLocaleString() : "-"}</div>
     </td>
   );
 
@@ -106,10 +110,10 @@ export default function Resumen() {
                   <div key={j}>{p.cantidad}</div>
                 ))}
               </td>
-              {celda(r.stage, "stage")}
-              {celda(r.label, "label")}
-              {celda(r.scan, "scan")}
-              {celda(r.load, "load")}
+              {celda(r.etapas.stage, "stage")}
+              {celda(r.etapas.label, "label")}
+              {celda(r.etapas.scan, "scan")}
+              {celda(r.etapas.load, "load")}
               <td>{r.notas}</td>
             </tr>
           ))}
