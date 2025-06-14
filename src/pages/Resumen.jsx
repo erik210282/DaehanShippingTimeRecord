@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../supabase/client";
 import { useTranslation } from "react-i18next";
 import "react-toastify/dist/ReactToastify.css";
-
+import supabase from "../supabase/client";
 
 export default function Resumen() {
   const { t } = useTranslation();
