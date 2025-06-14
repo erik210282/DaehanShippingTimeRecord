@@ -164,7 +164,6 @@ export default function Catalogos() {
         <button className="primary" onClick={() => setCatalogoActivo("actividades")}>{t("activities")}</button>
         <button className="primary" onClick={() => setCatalogoActivo("productos")}>{t("products")}</button>
         <button className="primary" onClick={() => setCatalogoActivo("operadores")}>{t("operators")}</button>
-        <button className="primary" onClick={exportarCSV}>{t("export_csv")}</button>
       </div>
 
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
@@ -180,6 +179,7 @@ export default function Catalogos() {
         <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
           ➕ {t("add_catalog")}
         </button>
+        <button className="primary" onClick={exportarCSV}>{t("export_csv")}</button>
       </div>
 
       {mostrarMensajeError && <p style={{ color: "red" }}>{t("no_results_found")}</p>}
