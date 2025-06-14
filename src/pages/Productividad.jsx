@@ -58,7 +58,7 @@ export default function Productividad() {
       setProductos(mapById(prodSnap));
       setActividades(mapById(actSnap));
 
-      const registrosFiltrados = regSnap?.data?.filter((r) => r.estado === "completed") || [];
+      const registrosFiltrados = regSnap?.data?.filter((r) => r.estado === "finalizada") || [];
       setRegistros(registrosFiltrados);
     };
 
