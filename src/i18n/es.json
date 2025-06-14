@@ -25,6 +25,7 @@
     "error_deleting_user": "Error al eliminar usuario",
     "email_placeholder": "Escribir correo electronico",
     "password_placeholder": "Escribir contraseña",
+    "summary": "Resumen de Actividades",
 
     "login_title": "Iniciar sesión",
     "login_error": "Error al iniciar sesión",

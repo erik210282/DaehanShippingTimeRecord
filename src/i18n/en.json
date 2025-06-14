@@ -25,6 +25,7 @@
     "error_deleting_user": "Error deleting user",
     "email_placeholder": "Write an email",
     "password_placeholder": "Write a password",
+    "summary": "Summary of Activitiess",
     
     "login_title": "Login",
     "login_error": "Login failed",

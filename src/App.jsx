@@ -51,7 +51,7 @@ const Navbar = () => {
     <div className="navbar">
       <div className="navbar-center">
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
-        <button onClick={() => navigate("/resumen")}>{t("resumen")}</button>
+        <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
         <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
