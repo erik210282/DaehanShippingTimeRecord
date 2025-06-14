@@ -11,19 +11,7 @@ export default function Resumen() {
 
   useEffect(() => {
     const cargarDatos = async () => {
-      const { data: actividades } = await supabase
-        .from("actividades_realizadas")
-        .select(`
-          *,
-          operador_stage,
-          operador_label,
-          operador_scan,
-          operador_load,
-          fecha_stage,
-          fecha_label,
-          fecha_scan,
-          fecha_load
-        `);
+      const { data: actividades } = await supabase.from("actividades_realizadas").select("*");
       const { data: productosData } = await supabase.from("productos").select("id, nombre");
       const { data: usuariosData } = await supabase.from("operadores").select("id, nombre");
 
