@@ -189,10 +189,10 @@ export default function Productividad() {
   });
 
 const etiquetas = etiquetasOrdenadas.map((clave) => {
-  if (agrupadoPor === "operador") return operadores[clave] || `ID: ${clave}`;
-  if (agrupadoPor === "actividad") return actividades[clave] || `ID: ${clave}`;
-  if (agrupadoPor === "producto") return productos[clave] || `ID: ${clave}`;
-  return clave;
+  if (agrupadoPor === "operador") return operadores?.[clave] || `ID: ${clave || "desconocido"}`;
+  if (agrupadoPor === "actividad") return actividades?.[clave] || `ID: ${clave || "desconocido"}`;
+  if (agrupadoPor === "producto") return productos?.[clave] || `ID: ${clave || "desconocido"}`;
+  return clave || "desconocido";
 });
 
 const promedios = etiquetasOrdenadas.map((clave) => datosPromedio[clave]);
