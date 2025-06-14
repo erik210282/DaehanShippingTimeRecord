@@ -139,6 +139,8 @@ export default function Catalogos() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    toast.success(t("export_success") || "CSV exportado correctamente");
   };
 
   const itemsFiltrados = items
@@ -182,6 +184,7 @@ export default function Catalogos() {
         <button onClick={() => exportarCSV()} style={{ marginBottom: 20 }}>
           {t("export_csv")}
         </button>
+        <button onClick={exportarCSV}>{t("export_csv")}</button>
       </div>
 
       {mostrarMensajeError && <p style={{ color: "red" }}>{t("no_results_found")}</p>}
