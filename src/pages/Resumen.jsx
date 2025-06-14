@@ -5,14 +5,22 @@ import supabase from "../supabase/client";
 export default function Resumen() {
   const { t } = useTranslation();
   const [resumenData, setResumenData] = useState([]);
+  const [filtroIdx, setFiltroIdx] = useState("");
+  const [fechaInicio, setFechaInicio] = useState("");
+  const [fechaFin, setFechaFin] = useState("");
 
   useEffect(() => {
     const fetchResumen = async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("actividades_realizadas")
         .select("*")
         .eq("estado", "finalizada")
         .order("createdAt", { ascending: true });
+
+      if (fechaInicio) query = query.gte("createdAt", fechaInicio);
+      if (fechaFin) query = query.lte("createdAt", fechaFin);
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("❌ Error al cargar actividades:", error);
@@ -22,14 +30,14 @@ export default function Resumen() {
       const resumenPorIdx = {};
 
       data.forEach((actividad) => {
-        const { idx, actividad: tipo, operadores, hora_inicio, notas, createdAt, productos, cantidad } = actividad;
-        if (!idx) return;
+        const { idx, actividad: tipo, operadores, hora_inicio, notas, createdAt, productos } = actividad;
+        if (!idx || (filtroIdx && !idx.includes(filtroIdx))) return;
 
         if (!resumenPorIdx[idx]) {
           resumenPorIdx[idx] = {
             idx,
             producto: productos?.[0]?.producto || "",
-            cantidad: cantidad || "",
+            cantidad: productos?.[0]?.cantidad || "",
             stage: null,
             label: null,
             scan: null,
@@ -49,22 +57,45 @@ export default function Resumen() {
           }
         }
 
-        // Guardar la nota más reciente por idx
         if (!resumenPorIdx[idx].fechaNotas || new Date(createdAt) > new Date(resumenPorIdx[idx].fechaNotas)) {
           resumenPorIdx[idx].notas = notas || "";
           resumenPorIdx[idx].fechaNotas = createdAt;
         }
       });
 
-      setResumenData(Object.values(resumenPorIdx));
+      const resumenArray = Object.values(resumenPorIdx).sort((a, b) => b.idx.localeCompare(a.idx));
+      setResumenData(resumenArray);
     };
 
     fetchResumen();
-  }, []);
+  }, [filtroIdx, fechaInicio, fechaFin]);
 
   return (
     <div style={{ padding: 16 }}>
       <h2>{t("Resumen de Actividades por IDX")}</h2>
+
+      <div style={{ marginBottom: 12 }}>
+        <input
+          type="text"
+          placeholder={t("Buscar por IDX")}
+          value={filtroIdx}
+          onChange={(e) => setFiltroIdx(e.target.value)}
+          style={{ marginRight: 10, padding: 4 }}
+        />
+        <input
+          type="date"
+          value={fechaInicio}
+          onChange={(e) => setFechaInicio(e.target.value)}
+          style={{ marginRight: 10, padding: 4 }}
+        />
+        <input
+          type="date"
+          value={fechaFin}
+          onChange={(e) => setFechaFin(e.target.value)}
+          style={{ padding: 4 }}
+        />
+      </div>
+
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
