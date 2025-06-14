@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
 
-const apiBase = "https://daehanshippingbackend.onrender.com";
+const API_URL = "https://daehanshippingbackend.onrender.com";
+const API_KEY = "clave-super-secreta-$hipping*2025*";
 
 export default function Usuarios() {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [usuarios, setUsuarios] = useState([]);
+  const [mostrarUsuarios, setMostrarUsuarios] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [nuevosPasswords, setNuevosPasswords] = useState({});
+  const [cargando, setCargando] = useState(false);
 
-  useEffect(() => {
-    cargarUsuarios();
-  }, []);
+  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario"));
 
   const crearUsuario = async () => {
     if (!email || !password) {
@@ -23,33 +24,46 @@ export default function Usuarios() {
     }
 
     try {
-      const response = await fetch(`${apiBase}/create-user`, {
+      const res = await fetch(`${API_URL}/create-user`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY,
+        },
         body: JSON.stringify({ email, password }),
       });
 
-      if (response.ok) {
-        setMensaje(t("success_user_created"));
-        setEmail("");
-        setPassword("");
-        cargarUsuarios();
-      } else {
-        const data = await response.json();
-        setMensaje(`${t("error_user_creation")}: ${data.error}`);
-      }
-    } catch (e) {
-      setMensaje(t("network_error"));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setMensaje(t("success_user_created"));
+      setEmail("");
+      setPassword("");
+      if (mostrarUsuarios) cargarUsuarios();
+    } catch (error) {
+      setMensaje(`${t("error_user_creation")}: ${error.message}`);
     }
   };
 
   const cargarUsuarios = async () => {
+    setCargando(true);
     try {
-      const response = await fetch(`${apiBase}/list-users`);
-      const data = await response.json();
-      setUsuarios(data.users || []);
-    } catch {
+      const res = await fetch(`${API_URL}/list-users`, {
+        headers: { "x-api-key": API_KEY },
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      const lista = (data.users || []).filter(
+        (u) => u.email !== usuarioLogueado?.email
+      );
+
+      setUsuarios(lista);
+    } catch (error) {
       setMensaje(t("network_error"));
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -61,20 +75,22 @@ export default function Usuarios() {
     }
 
     try {
-      const response = await fetch(`${apiBase}/update-password`, {
+      const res = await fetch(`${API_URL}/update-password`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY,
+        },
         body: JSON.stringify({ uid, password: nuevoPassword }),
       });
 
-      if (response.ok) {
-        setMensaje(t("success_password_updated"));
-        setNuevosPasswords((prev) => ({ ...prev, [uid]: "" }));
-      } else {
-        setMensaje(t("error_password_update"));
-      }
-    } catch {
-      setMensaje(t("network_error"));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setMensaje(t("success_password_updated"));
+      setNuevosPasswords((prev) => ({ ...prev, [uid]: "" }));
+    } catch (error) {
+      setMensaje(t("error_password_update"));
     }
   };
 
@@ -82,16 +98,28 @@ export default function Usuarios() {
     if (!window.confirm(t("confirm_delete_user"))) return;
 
     try {
-      await fetch(`${apiBase}/delete-user`, {
+      const res = await fetch(`${API_URL}/delete-user`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY,
+        },
         body: JSON.stringify({ uid }),
       });
-      cargarUsuarios();
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
       setMensaje(t("user_deleted"));
-    } catch {
-      setMensaje(t("network_error"));
+      cargarUsuarios();
+    } catch (error) {
+      setMensaje(t("error_deleting_user"));
     }
+  };
+
+  const alternarMostrarUsuarios = () => {
+    if (!mostrarUsuarios) cargarUsuarios();
+    setMostrarUsuarios(!mostrarUsuarios);
   };
 
   return (
@@ -114,14 +142,15 @@ export default function Usuarios() {
         <button className="primary" onClick={crearUsuario}>
           {t("create_user")}
         </button>
-        <button className="secondary" onClick={cargarUsuarios}>
-          {t("show_users")}
+        <button className="secondary" onClick={alternarMostrarUsuarios}>
+          {mostrarUsuarios ? t("hide_users") : t("show_users")}
         </button>
       </div>
 
       {mensaje && <p style={{ marginTop: "1rem", color: "#007bff" }}>{mensaje}</p>}
+      {cargando && <p>{t("loading")}...</p>}
 
-      {usuarios.length > 0 && (
+      {mostrarUsuarios && usuarios.length > 0 && (
         <div style={{ marginTop: "1.5rem", overflowX: "auto" }}>
           <table className="table">
             <thead>

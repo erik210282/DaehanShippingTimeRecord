@@ -20,6 +20,9 @@
     "no_results_found": "No results found.",
     "confirm_delete": "Are you sure you want to delete this record?",
     "user_deleted": "User deleted",
+    "hide_users": "Hide users",
+    "loading": "Loading",
+    "error_deleting_user": "Error deleting user",
     
     "login_title": "Login",
     "login_error": "Login failed",

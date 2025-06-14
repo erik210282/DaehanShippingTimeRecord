@@ -20,7 +20,10 @@
     "no_results_found": "No se encontraron resultados.",
     "confirm_delete": "¿Estás seguro de que deseas eliminar este registro?",
     "user_deleted": "Usuario eliminado",
-    
+    "hide_users": "Ocultar usuarios",
+    "loading": "Cargando",
+    "error_deleting_user": "Error al eliminar usuario",
+
     "login_title": "Iniciar sesión",
     "login_error": "Error al iniciar sesión",
     
