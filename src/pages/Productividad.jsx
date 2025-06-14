@@ -119,7 +119,7 @@ export default function Productividad() {
       let claves = [];
       if (agrupadoPor === "operador") claves = Array.isArray(r.operadores) ? r.operadores : [];
       else if (agrupadoPor === "actividad") claves = [r.actividad];
-      else if (agrupadoPor === "producto") claves = [r.producto];
+      else if (agrupadoPor === "producto") claves = Array.isArray(r.producto) ? r.producto : [r.producto];
 
       const horaInicio = new Date(r.hora_inicio);
       const horaFin = new Date(r.hora_fin);
@@ -149,11 +149,11 @@ export default function Productividad() {
 
       if (agrupadoPor === "operador") claves = Array.isArray(r.operadores) ? r.operadores : [];
       else if (agrupadoPor === "actividad") claves = [r.actividad];
-      else if (agrupadoPor === "producto") claves = [r.producto];
+      else if (agrupadoPor === "producto") claves = Array.isArray(r.producto) ? r.producto : [r.producto];
 
       if (agrupadoPor2 === "operador") claves2 = Array.isArray(r.operadores) ? r.operadores : [];
       else if (agrupadoPor2 === "actividad") claves2 = [r.actividad];
-      else if (agrupadoPor2 === "producto") claves2 = [r.producto];
+      else if (agrupadoPor2 === "producto") claves2 = Array.isArray(r.producto) ? r.producto : [r.producto];
 
       const horaInicio = new Date(r.hora_inicio);
       const horaFin = new Date(r.hora_fin);
