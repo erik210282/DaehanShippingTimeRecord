@@ -23,6 +23,8 @@
     "hide_users": "Hide users",
     "loading": "Loading",
     "error_deleting_user": "Error deleting user",
+    "email_placeholder": "Write an email",
+    "password_placeholder": "Write a password",
     
     "login_title": "Login",
     "login_error": "Login failed",

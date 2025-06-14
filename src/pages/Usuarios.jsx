@@ -127,18 +127,21 @@ export default function Usuarios() {
       <h2>{t("user_management")}</h2>
 
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-        <input
-          type="email"
-          placeholder={t("email")}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder={t("password")}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+       <input
+        type="email"
+        placeholder={t("email_placeholder") || "Escribe correo"}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        autoComplete="off"
+      />
+
+      <input
+        type="password"
+        placeholder={t("password_placeholder") || "Escribe contraseña"}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        autoComplete="off"
+      />
         <button className="primary" onClick={crearUsuario}>
           {t("create_user")}
         </button>

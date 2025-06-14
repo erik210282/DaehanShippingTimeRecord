@@ -23,6 +23,8 @@
     "hide_users": "Ocultar usuarios",
     "loading": "Cargando",
     "error_deleting_user": "Error al eliminar usuario",
+    "email_placeholder": "Escribir correo electronico",
+    "password_placeholder": "Escribir contraseña",
 
     "login_title": "Iniciar sesión",
     "login_error": "Error al iniciar sesión",
