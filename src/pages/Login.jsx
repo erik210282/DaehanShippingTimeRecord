@@ -40,7 +40,17 @@ export default function Login() {
     };
 
   return (
-    <div className="app-container" style={{ justifyContent: "center", backgroundColor: "#f9f9f9" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
+        backgroundColor: "#f9f9f9",
+        padding: "1rem",
+      }}
+    >
       <div className="content" style={{ maxWidth: "400px", width: "100%", backgroundColor: "white", padding: "2rem", borderRadius: "8px", boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" }}>
         
         {/* Logotipo */}
