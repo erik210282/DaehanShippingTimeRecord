@@ -43,16 +43,24 @@ export default function Login() {
     <div
       style={{
         minHeight: "100vh",
+        width: "100vw",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         overflow: "hidden",
         backgroundColor: "#f9f9f9",
-        padding: "1rem",
       }}
     >
-      <div className="content" style={{ maxWidth: "400px", width: "100%", backgroundColor: "white", padding: "2rem", borderRadius: "8px", boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" }}>
-        
+      <div
+        style={{
+          maxWidth: "400px",
+          width: "100%",
+          backgroundColor: "white",
+          padding: "2rem",
+          borderRadius: "8px",
+          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+        }}
+      >
         {/* Logotipo */}
         <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
           <img src={logo} alt="Logo" style={{ width: "150px" }} />
@@ -60,32 +68,71 @@ export default function Login() {
 
         <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>{t("login")}</h2>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleLogin} autoComplete="off">
           <label>{t("email")}</label>
           <input
             type="email"
+            name="email"
+            autoComplete="off"
             placeholder={t("email")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={{ width: "100%", padding: "10px", marginBottom: "1rem", borderRadius: "4px", border: "1px solid #ccc" }}
+            style={{
+              width: "100%",
+              padding: "10px",
+              marginBottom: "1rem",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+            }}
           />
 
           <label>{t("password")}</label>
           <input
             type="password"
+            name="password"
+            autoComplete="new-password"
             placeholder={t("password")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={{ width: "100%", padding: "10px", marginBottom: "1rem", borderRadius: "4px", border: "1px solid #ccc" }}
+            style={{
+              width: "100%",
+              padding: "10px",
+              marginBottom: "1rem",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+            }}
           />
 
-          <button type="submit" className="primary" style={{ width: "100%", padding: "12px", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", marginTop: "1rem" }}>
+          <button
+            type="submit"
+            className="primary"
+            style={{
+              width: "100%",
+              padding: "12px",
+              backgroundColor: "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              marginTop: "1rem",
+            }}
+          >
             {t("submit")}
           </button>
 
-          {error && <p style={{ color: "red", marginTop: "1rem", textAlign: "center" }}>{error}</p>}
+          {error && (
+            <p
+              style={{
+                color: "red",
+                marginTop: "1rem",
+                textAlign: "center",
+              }}
+            >
+              {error}
+            </p>
+          )}
         </form>
       </div>
     </div>
