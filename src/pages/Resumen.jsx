@@ -3,7 +3,8 @@ import { supabase } from "../supabase/client";
 import { useTranslation } from "react-i18next";
 import "react-toastify/dist/ReactToastify.css";
 
-export default function ResumenProcesos() {
+
+export default function Resumen() {
   const { t } = useTranslation();
   const [actividades, setActividades] = useState([]);
   const [productos, setProductos] = useState({});
@@ -11,7 +12,7 @@ export default function ResumenProcesos() {
 
   useEffect(() => {
     cargarDatos();
-  }, []);
+  }, []); 
 
   const cargarDatos = async () => {
     const { data: actividadesData } = await supabase
