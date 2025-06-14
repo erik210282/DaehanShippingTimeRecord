@@ -179,7 +179,7 @@ export default function Catalogos() {
         <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
           ➕ {t("add_catalog")}
         </button>
-        <button onClick={() => exportarCSV} style={{ marginBottom: 20 }}>
+        <button onClick={() => exportarCSV()} style={{ marginBottom: 20 }}>
           {t("export_csv")}
         </button>
       </div>
