@@ -34,69 +34,69 @@ export default function Resumen() {
 
   useEffect(() => {
     const fetchResumen = async () => {
-      let query = supabase
-        .from("actividades_realizadas")
-        .select("*")
-        .eq("estado", "finalizada")
-        .order("createdAt", { ascending: true });
-
-      if (fechaInicio) query = query.gte("createdAt", fechaInicio);
-      if (fechaFin) query = query.lte("createdAt", fechaFin);
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error("❌ Error al cargar actividades:", error);
-        return;
+      if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length) {
+        return; // Espera a que se carguen los catálogos
       }
 
-      const resumenPorIdx = {};
+      const { data, error } = await supabase.from("actividades_realizadas").select("*");
+      if (error) return;
 
-      data.forEach((actividad) => {
-        const { idx, actividad: tipo, operadores, hora_inicio, notas, createdAt, productos } = actividad;
-        if (!idx || (filtroIdx && !idx.includes(filtroIdx))) return;
+      const agrupadas = {};
 
-        if (!resumenPorIdx[idx]) {
-          resumenPorIdx[idx] = {
-            idx,
-            producto: productos?.[0]?.producto ? productosDict[productos[0].producto] || productos[0].producto : "",
-            cantidad: productos?.[0]?.cantidad || "",
+      data.forEach((act) => {
+        if (!act.estado || act.estado !== "finalizada") return;
+        if (!act.idx) return;
+
+        const fecha = new Date(act.hora_inicio);
+        if (
+          (fechaInicio && new Date(fecha) < new Date(fechaInicio)) ||
+          (fechaFin && new Date(fecha) > new Date(fechaFin))
+        ) {
+          return;
+        }
+
+        const key = act.idx;
+        if (!agrupadas[key]) {
+          agrupadas[key] = {
+            idx: act.idx,
+            producto: productosDict?.[act.productos?.[0]?.producto] || "-",
+            cantidad: act.productos?.[0]?.cantidad || "-",
             stage: null,
             label: null,
             scan: null,
             load: null,
             notas: "",
-            fechaNotas: null,
           };
         }
 
-        const operadorNombre = Array.isArray(operadores) && operadores.length > 0
-          ? operadores.map((id) => operadoresDict[id] || id).join(", ")
+        const nombreActividad = act.actividad?.toLowerCase();
+        const operador = Array.isArray(act.operadores)
+          ? act.operadores.map(id => operadoresDict[id] || id).join(", ")
           : "-";
+        const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
 
-        const registro = `${operadorNombre} (${new Date(hora_inicio).toLocaleString()})`;
-
-        if (tipo && typeof tipo === "string") {
-          const key = tipo.toLowerCase();
-          if (["stage", "label", "scan", "load"].includes(key)) {
-            resumenPorIdx[idx][key] = registro;
-          }
+        if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
+          agrupadas[key][nombreActividad] = `${operador} (${hora})`;
         }
 
-        if (!resumenPorIdx[idx].fechaNotas || new Date(createdAt) > new Date(resumenPorIdx[idx].fechaNotas)) {
-          resumenPorIdx[idx].notas = notas || "";
-          resumenPorIdx[idx].fechaNotas = createdAt;
-        }
+        agrupadas[key].notas = act.notas || agrupadas[key].notas;
       });
 
-      const resumenArray = Object.values(resumenPorIdx).sort((a, b) => b.idx.localeCompare(a.idx));
-      setResumenData(resumenArray);
+      let resultado = Object.values(agrupadas);
+
+      if (modoAgrupacion === "idx") {
+        resultado = resultado.sort((a, b) => b.idx.localeCompare(a.idx));
+      }
+
+      if (filtroIdx) {
+        resultado = resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase()));
+      }
+
+      setResumenData(resultado);
     };
 
-    if (Object.keys(productosDict).length && Object.keys(operadoresDict).length) {
-      fetchResumen();
-    }
-  }, [filtroIdx, fechaInicio, fechaFin, productosDict, operadoresDict]);
+    fetchResumen();
+  }, [productosDict, operadoresDict, filtroIdx, fechaInicio, fechaFin, modoAgrupacion]);
 
   return (
     <div style={{ padding: 16 }}>
