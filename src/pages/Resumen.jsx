@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabase/client";
+import supabase from "../supabase/client";
 import { useTranslation } from "react-i18next";
 import "react-toastify/dist/ReactToastify.css";
-import supabase from "../supabase/client";
 
 export default function Resumen() {
   const { t } = useTranslation();
@@ -21,7 +20,7 @@ export default function Resumen() {
       .order("fecha_stage", { ascending: true });
 
     const { data: productosData } = await supabase.from("productos").select("id, nombre");
-    const { data: usuariosData } = await supabase.from("usuarios").select("id, nombre");
+     const { data: usuariosData } = await supabase.from("operadores").select("id, nombre");
 
     const mapaProductos = {};
     productosData?.forEach((p) => {
