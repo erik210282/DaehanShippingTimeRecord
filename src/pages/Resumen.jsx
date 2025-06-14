@@ -70,9 +70,9 @@ export default function Resumen() {
           };
         }
 
-        const operadorNombre = Array.isArray(operadores)
+        const operadorNombre = Array.isArray(operadores) && operadores.length > 0
           ? operadores.map((id) => operadoresDict[id] || id).join(", ")
-          : operadores;
+          : "-";
 
         const registro = `${operadorNombre} (${new Date(hora_inicio).toLocaleString()})`;
 
