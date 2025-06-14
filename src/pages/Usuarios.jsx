@@ -125,7 +125,6 @@ export default function Usuarios() {
       <h2>{t("user_management")}</h2>
 
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-       <form autoComplete="off">
         <input
           type="email"
           name="email"
@@ -142,7 +141,6 @@ export default function Usuarios() {
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
         />
-      </form>
         <button className="primary" onClick={crearUsuario}>
           {t("create_user")}
         </button>
