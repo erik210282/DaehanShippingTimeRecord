@@ -27,7 +27,16 @@ export default function Resumen() {
 
       const agrupado = {};
       actividades?.forEach((act) => {
-        if (!agrupado[act.idx]) agrupado[act.idx] = { productos: [], cantidades: [], etapas: {}, notas: [] };
+        if (!agrupado[act.idx]) {
+          agrupado[act.idx] = {
+            productos: [],
+            cantidades: [],
+            etapas: {},
+            notas: [],
+            actividades: [],
+          };
+        }
+        agrupado[act.idx].actividades.push(act);
 
         (Array.isArray(act.productos) ? act.productos : []).forEach((p) => {
           agrupado[act.idx].productos.push(p.producto);
@@ -53,6 +62,7 @@ export default function Resumen() {
           cantidades: info.cantidades,
           etapas: info.etapas,
           notas: info.notas,
+          actividades: info.actividades,
         }))
         .sort((a, b) => b.idx.localeCompare(a.idx));
 
@@ -118,10 +128,10 @@ export default function Resumen() {
               <td>{r.idx}</td>
               <td>{r.productos.map((p, i) => <div key={i}>{p}</div>)}</td>
               <td>{r.cantidades.map((c, i) => <div key={i}>{c}</div>)}</td>
-              {renderPaso(actividadesPorIdx[idx], "stage")}
-              {renderPaso(actividadesPorIdx[idx], "label")}
-              {renderPaso(actividadesPorIdx[idx], "scan")}
-              {renderPaso(actividadesPorIdx[idx], "load")}
+                {renderPaso(r.actividades, "stage")}
+                {renderPaso(r.actividades, "label")}
+                {renderPaso(r.actividades, "scan")}
+                {renderPaso(r.actividades, "load")}
               <td>{r.notas.join(" | ")}</td>
             </tr>
           ))}
