@@ -55,7 +55,7 @@ export default function Usuarios() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      const lista = (data.users || []).filter();
+      const lista = data.users || [];
 
       setUsuarios(lista);
     } catch (error) {
