@@ -14,14 +14,18 @@ export default function Resumen() {
   const [modoAgrupacion, setModoAgrupacion] = useState("idx");
 
   useEffect(() => {
-    const cargarCatalogos = async () => {
-      const { data: productos } = await supabase.from("productos").select("id, nombre");
-      const { data: operadores } = await supabase.from("operadores").select("id, nombre");
+    const cargarDatos = async () => {
+      // 1. Cargar catálogos
+      const [{ data: productos }, { data: operadores }] = await Promise.all([
+        supabase.from("productos").select("id, nombre"),
+        supabase.from("operadores").select("id, nombre"),
+      ]);
 
       const prodDict = {};
       productos?.forEach((p) => {
         prodDict[p.id] = p.nombre;
       });
+
       const opDict = {};
       operadores?.forEach((op) => {
         opDict[op.id] = op.nombre;
@@ -29,13 +33,8 @@ export default function Resumen() {
 
       setProductosDict(prodDict);
       setOperadoresDict(opDict);
-    };
 
-    cargarCatalogos();
-  }, []);
-
-  useEffect(() => {
-    const fetchResumen = async () => {
+      // 2. Cargar actividades
       const { data, error } = await supabase.from("actividades_realizadas").select("*");
       if (error || !data) return;
 
@@ -54,29 +53,27 @@ export default function Resumen() {
         if (!agrupadas[key]) {
           agrupadas[key] = {
             idx: act.idx,
-            producto: productosDict?.[act.productos?.[0]?.producto] || "-",
+            producto: prodDict?.[act.productos?.[0]?.producto] || "-",
             cantidad: act.productos?.[0]?.cantidad || "-",
             stage: null,
             label: null,
             scan: null,
             load: null,
             notas: "",
-            fechaNotas: null
+            fechaNotas: null,
           };
         }
 
         const nombreActividad = act.actividad?.toLowerCase();
         const operadorNombre = Array.isArray(act.operadores)
-          ? act.operadores.map((id) => operadoresDict?.[id] ?? `ID:${id}`).join(", ")
+          ? act.operadores.map((id) => opDict?.[id] ?? `ID:${id}`).join(", ")
           : "-";
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
 
-        // Asignar operador + hora si es stage/label/scan/load
         if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
           agrupadas[key][nombreActividad] = `${operadorNombre} (${hora})`;
         }
 
-        // Solo si es la actividad más reciente, guarda la nota
         if (
           !agrupadas[key].fechaNotas ||
           new Date(act.createdAt) > new Date(agrupadas[key].fechaNotas)
@@ -101,8 +98,9 @@ export default function Resumen() {
       setResumenData(resultado);
     };
 
-    fetchResumen();
-  }, [productosDict, operadoresDict, filtroIdx, fechaInicio, fechaFin, modoAgrupacion]);
+    cargarDatos();
+  }, [filtroIdx, fechaInicio, fechaFin, modoAgrupacion]);
+
 
 
   return (
