@@ -14,27 +14,29 @@ export default function Resumen() {
   const [modoAgrupacion, setModoAgrupacion] = useState("idx");
 
   useEffect(() => {
-    const cargarDatos = async () => {
-      // 1. Cargar catálogos
+    const cargarCatalogos = async () => {
       const [{ data: productos }, { data: operadores }] = await Promise.all([
         supabase.from("productos").select("id, nombre"),
         supabase.from("operadores").select("id, nombre"),
       ]);
 
       const prodDict = {};
-      productos?.forEach((p) => {
-        prodDict[p.id] = p.nombre;
-      });
+      productos?.forEach((p) => { prodDict[p.id] = p.nombre; });
+      setProductosDict(prodDict);
 
       const opDict = {};
-      operadores?.forEach((op) => {
-        opDict[op.id] = op.nombre;
-      });
-
-      setProductosDict(prodDict);
+      operadores?.forEach((op) => { opDict[op.id] = op.nombre; });
       setOperadoresDict(opDict);
+    };
 
-      // 2. Cargar actividades
+    cargarCatalogos();
+  }, []);
+
+  // ✅ Espera a que los catálogos estén cargados antes de usar
+  useEffect(() => {
+    if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length) return;
+
+    const cargarDatos = async () => {
       const { data, error } = await supabase.from("actividades_realizadas").select("*");
       if (error || !data) return;
 
@@ -45,15 +47,15 @@ export default function Resumen() {
 
         const fecha = new Date(act.hora_inicio);
         if (
-          (fechaInicio && new Date(fecha) < new Date(fechaInicio)) ||
-          (fechaFin && new Date(fecha) > new Date(fechaFin))
+          (fechaInicio && fecha < new Date(fechaInicio)) ||
+          (fechaFin && fecha > new Date(fechaFin))
         ) return;
 
         const key = act.idx;
         if (!agrupadas[key]) {
           agrupadas[key] = {
             idx: act.idx,
-            producto: prodDict?.[act.productos?.[0]?.producto] || "-",
+            producto: productosDict[act.productos?.[0]?.producto] || "-",
             cantidad: act.productos?.[0]?.cantidad || "-",
             stage: null,
             label: null,
@@ -67,20 +69,18 @@ export default function Resumen() {
         const nombreActividad = act.actividad?.toLowerCase();
         let operadorNombre = "-";
         if (Array.isArray(act.operadores)) {
-          operadorNombre = act.operadores.map((id) => opDict[id] || id).join(", ");
-        } else if (typeof act.operadores === "string" && act.operadores.trim()) {
-          operadorNombre = opDict[act.operadores] || act.operadores;
+          operadorNombre = act.operadores.map((id) => operadoresDict[id] || `ID:${id}`).join(", ");
+        } else if (typeof act.operadores === "string") {
+          operadorNombre = operadoresDict[act.operadores] || act.operadores;
         }
+
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
 
         if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
           agrupadas[key][nombreActividad] = `${operadorNombre} (${hora})`;
         }
 
-        if (
-          !agrupadas[key].fechaNotas ||
-          new Date(act.createdAt) > new Date(agrupadas[key].fechaNotas)
-        ) {
+        if (!agrupadas[key].fechaNotas || new Date(act.createdAt) > new Date(agrupadas[key].fechaNotas)) {
           agrupadas[key].notas = act.notas || "";
           agrupadas[key].fechaNotas = act.createdAt;
         }
@@ -93,18 +93,14 @@ export default function Resumen() {
       }
 
       if (filtroIdx) {
-        resultado = resultado.filter((r) =>
-          r.idx?.toLowerCase().includes(filtroIdx.toLowerCase())
-        );
+        resultado = resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase()));
       }
 
       setResumenData(resultado);
     };
 
     cargarDatos();
-  }, [filtroIdx, fechaInicio, fechaFin, modoAgrupacion]);
-
-
+  }, [productosDict, operadoresDict, filtroIdx, fechaInicio, fechaFin, modoAgrupacion]);
 
   return (
     <div style={{ padding: 16 }}>
