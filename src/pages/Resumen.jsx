@@ -48,9 +48,7 @@ export default function Resumen() {
         if (
           (fechaInicio && new Date(fecha) < new Date(fechaInicio)) ||
           (fechaFin && new Date(fecha) > new Date(fechaFin))
-        ) {
-          return;
-        }
+        ) return;
 
         const key = act.idx;
         if (!agrupadas[key]) {
@@ -63,20 +61,29 @@ export default function Resumen() {
             scan: null,
             load: null,
             notas: "",
+            fechaNotas: null
           };
         }
 
         const nombreActividad = act.actividad?.toLowerCase();
-        const operador = Array.isArray(act.operadores)
-          ? act.operadores.map((id) => operadoresDict[id] || id).join(", ")
+        const operadorNombre = Array.isArray(act.operadores)
+          ? act.operadores.map(id => operadoresDict?.[id] || `ID:${id}`).join(", ")
           : "-";
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
 
+        // Asignar operador + hora si es stage/label/scan/load
         if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
-          agrupadas[key][nombreActividad] = `${operador} (${hora})`;
+          agrupadas[key][nombreActividad] = `${operadorNombre} (${hora})`;
         }
 
-        agrupadas[key].notas = act.notas || agrupadas[key].notas;
+        // Solo si es la actividad más reciente, guarda la nota
+        if (
+          !agrupadas[key].fechaNotas ||
+          new Date(act.createdAt) > new Date(agrupadas[key].fechaNotas)
+        ) {
+          agrupadas[key].notas = act.notas || "";
+          agrupadas[key].fechaNotas = act.createdAt;
+        }
       });
 
       let resultado = Object.values(agrupadas);
