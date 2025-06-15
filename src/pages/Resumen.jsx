@@ -11,30 +11,57 @@ export default function Resumen() {
   const [fechaFin, setFechaFin] = useState("");
   const [productosDict, setProductosDict] = useState({});
   const [operadoresDict, setOperadoresDict] = useState({});
+  const [actividadesDict, setActividadesDict] = useState({});
 
   useEffect(() => {
-    const cargarCatalogos = async () => {
-      const { data: productos, error: errorProductos } = await supabase.from("productos").select("id, nombre");
-      const { data: operadores, error: errorOperadores } = await supabase.from("operadores").select("id, nombre");
+    const cargarCatalogosYActividades = async () => {
+      // 1. Cargar actividades
+      const { data: actividades, error: errorActividades } = await supabase
+        .from("actividades")
+        .select("id, nombre");
+
+      if (errorActividades) {
+        console.error("❌ Error cargando actividades:", errorActividades);
+        return;
+      }
+
+      const actDict = {};
+      actividades?.forEach((a) => {
+        actDict[a.id] = a.nombre?.toLowerCase().trim();
+      });
+      console.log("🔁 Actividades cargadas:", actDict);
+      setActividadesDict(actDict);
+
+      // 2. Cargar productos y operadores
+      const [{ data: productos, error: errorProductos }, { data: operadores, error: errorOperadores }] =
+        await Promise.all([
+          supabase.from("productos").select("id, nombre"),
+          supabase.from("operadores").select("id, nombre"),
+        ]);
 
       if (errorProductos || errorOperadores) {
         console.error("❌ Error cargando catálogos", { errorProductos, errorOperadores });
         return;
       }
 
-      const p = {};
-      productos?.forEach((prod) => (p[prod.id] = prod.nombre));
-      const o = {};
-      operadores?.forEach((op) => (o[op.id] = op.nombre));
+      const prodDict = {};
+      productos?.forEach((p) => {
+        prodDict[p.id] = p.nombre;
+      });
 
-      console.log("📦 Productos cargados:", p);
-      console.log("👤 Operadores cargados:", o);
+      const opDict = {};
+      operadores?.forEach((op) => {
+        opDict[op.id] = op.nombre;
+      });
 
-      setProductosDict(p);
-      setOperadoresDict(o);
+      console.log("📦 Productos cargados:", prodDict);
+      console.log("👤 Operadores cargados:", opDict);
+
+      setProductosDict(prodDict);
+      setOperadoresDict(opDict);
     };
 
-    cargarCatalogos();
+    cargarCatalogosYActividades();
   }, []);
 
   useEffect(() => {
@@ -75,7 +102,7 @@ export default function Resumen() {
           };
         }
 
-        const nombreActividad = act.actividad?.toLowerCase().trim();
+        const nombreActividad = actividadesDict[act.actividad]?.toLowerCase().trim() || "";
         console.log("🔍 Actividad detectada:", act.actividad, "→", nombreActividad);
 
         let operadorNombre = "-";
