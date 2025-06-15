@@ -75,7 +75,8 @@ export default function Resumen() {
           };
         }
 
-        const nombreActividad = act.actividad?.toLowerCase();
+        const nombreActividad = act.actividad?.toLowerCase().trim();
+        console.log("🔍 Actividad detectada:", act.actividad, "→", nombreActividad);
 
         let operadorNombre = "-";
         if (Array.isArray(act.operadores)) {
