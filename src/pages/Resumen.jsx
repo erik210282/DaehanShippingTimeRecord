@@ -65,9 +65,12 @@ export default function Resumen() {
         }
 
         const nombreActividad = act.actividad?.toLowerCase();
-        const operadorNombre = Array.isArray(act.operadores)
-          ? act.operadores.map((id) => opDict?.[id] ?? `ID:${id}`).join(", ")
-          : "-";
+        let operadorNombre = "-";
+        if (Array.isArray(act.operadores)) {
+          operadorNombre = act.operadores.map((id) => opDict[id] || id).join(", ");
+        } else if (typeof act.operadores === "string" && act.operadores.trim()) {
+          operadorNombre = opDict[act.operadores] || act.operadores;
+        }
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
 
         if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
