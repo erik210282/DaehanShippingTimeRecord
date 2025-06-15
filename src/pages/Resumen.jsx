@@ -14,33 +14,40 @@ export default function Resumen() {
 
   useEffect(() => {
     const cargarCatalogos = async () => {
-      const [{ data: productos }, { data: operadores }] = await Promise.all([
-        supabase.from("productos").select("id, nombre"),
-        supabase.from("operadores").select("id, nombre"),
-      ]);
+      const { data: productos, error: errorProductos } = await supabase.from("productos").select("id, nombre");
+      const { data: operadores, error: errorOperadores } = await supabase.from("operadores").select("id, nombre");
 
-      const prodDict = {};
-      productos?.forEach((p) => {
-        prodDict[p.id] = p.nombre;
-      });
-      setProductosDict(prodDict);
+      if (errorProductos || errorOperadores) {
+        console.error("❌ Error cargando catálogos", { errorProductos, errorOperadores });
+        return;
+      }
 
-      const opDict = {};
-      operadores?.forEach((op) => {
-        opDict[op.id] = op.nombre;
-      });
-      setOperadoresDict(opDict);
+      const p = {};
+      productos?.forEach((prod) => (p[prod.id] = prod.nombre));
+      const o = {};
+      operadores?.forEach((op) => (o[op.id] = op.nombre));
+
+      console.log("📦 Productos cargados:", p);
+      console.log("👤 Operadores cargados:", o);
+
+      setProductosDict(p);
+      setOperadoresDict(o);
     };
 
     cargarCatalogos();
   }, []);
 
   useEffect(() => {
-    if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length) return;
-
     const fetchResumen = async () => {
+      if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length) return;
+
       const { data, error } = await supabase.from("actividades_realizadas").select("*");
-      if (error || !data) return;
+      if (error || !data) {
+        console.error("❌ Error cargando actividades:", error);
+        return;
+      }
+
+      console.log("🧾 Actividades obtenidas:", data);
 
       const agrupadas = {};
 
@@ -49,14 +56,14 @@ export default function Resumen() {
 
         const fecha = new Date(act.hora_inicio);
         if (
-          (fechaInicio && new Date(fecha) < new Date(fechaInicio)) ||
-          (fechaFin && new Date(fecha) > new Date(fechaFin))
+          (fechaInicio && fecha < new Date(fechaInicio)) ||
+          (fechaFin && fecha > new Date(fechaFin))
         ) return;
 
         const key = act.idx;
         if (!agrupadas[key]) {
           agrupadas[key] = {
-            idx: act.idx,
+            idx: key,
             producto: productosDict?.[act.productos?.[0]?.producto] || "-",
             cantidad: act.productos?.[0]?.cantidad || "-",
             stage: null,
@@ -69,17 +76,19 @@ export default function Resumen() {
         }
 
         const nombreActividad = act.actividad?.toLowerCase();
+
         let operadorNombre = "-";
         if (Array.isArray(act.operadores)) {
-          operadorNombre = act.operadores.map((id) => operadoresDict[id] || id).join(", ");
+          operadorNombre = act.operadores.map((id) => operadoresDict[id] || `ID:${id}`).join(", ");
         } else if (typeof act.operadores === "string" && act.operadores.trim()) {
           operadorNombre = operadoresDict[act.operadores] || act.operadores;
         }
 
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
+        const registro = `${operadorNombre} (${hora})`;
 
         if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
-          agrupadas[key][nombreActividad] = `${operadorNombre} (${hora})`;
+          agrupadas[key][nombreActividad] = registro;
         }
 
         if (!agrupadas[key].fechaNotas || new Date(act.createdAt) > new Date(agrupadas[key].fechaNotas)) {
@@ -89,12 +98,13 @@ export default function Resumen() {
       });
 
       const resultado = Object.values(agrupadas).sort((a, b) => b.idx.localeCompare(a.idx));
+      const filtrado = filtroIdx
+        ? resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase()))
+        : resultado;
 
-      if (filtroIdx) {
-        setResumenData(resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase())));
-      } else {
-        setResumenData(resultado);
-      }
+      console.log("📊 Resumen final:", filtrado);
+
+      setResumenData(filtrado);
     };
 
     fetchResumen();
@@ -129,7 +139,7 @@ export default function Resumen() {
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th>{t("idx")}</th>
+            <th>{t("Código IDX")}</th>
             <th>{t("product")}</th>
             <th>{t("quantity")}</th>
             <th style={{ background: "#f580ff" }}>{t("Stage")}</th>
@@ -140,8 +150,8 @@ export default function Resumen() {
           </tr>
         </thead>
         <tbody>
-          {resumenData.map((fila) => (
-            <tr key={fila.idx}>
+          {resumenData.map((fila, i) => (
+            <tr key={i}>
               <td>{fila.idx}</td>
               <td>{fila.producto}</td>
               <td>{fila.cantidad}</td>
