@@ -36,18 +36,13 @@ export default function Resumen() {
 
   useEffect(() => {
     const fetchResumen = async () => {
-      if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length) {
-        return; // Espera a que se carguen los catálogos
-      }
-
       const { data, error } = await supabase.from("actividades_realizadas").select("*");
-      if (error) return;
+      if (error || !data) return;
 
       const agrupadas = {};
 
       data.forEach((act) => {
-        if (!act.estado || act.estado !== "finalizada") return;
-        if (!act.idx) return;
+        if (act.estado !== "finalizada" || !act.idx) return;
 
         const fecha = new Date(act.hora_inicio);
         if (
@@ -73,7 +68,7 @@ export default function Resumen() {
 
         const nombreActividad = act.actividad?.toLowerCase();
         const operador = Array.isArray(act.operadores)
-          ? act.operadores.map(id => operadoresDict[id] || id).join(", ")
+          ? act.operadores.map((id) => operadoresDict[id] || id).join(", ")
           : "-";
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
 
@@ -91,7 +86,9 @@ export default function Resumen() {
       }
 
       if (filtroIdx) {
-        resultado = resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase()));
+        resultado = resultado.filter((r) =>
+          r.idx?.toLowerCase().includes(filtroIdx.toLowerCase())
+        );
       }
 
       setResumenData(resultado);
@@ -99,6 +96,7 @@ export default function Resumen() {
 
     fetchResumen();
   }, [productosDict, operadoresDict, filtroIdx, fechaInicio, fechaFin, modoAgrupacion]);
+
 
   return (
     <div style={{ padding: 16 }}>
