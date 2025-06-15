@@ -23,13 +23,12 @@ export default function Resumen() {
       productos?.forEach((p) => {
         prodDict[p.id] = p.nombre;
       });
+      setProductosDict(prodDict);
 
       const opDict = {};
       operadores?.forEach((op) => {
         opDict[op.id] = op.nombre;
       });
-
-      setProductosDict(prodDict);
       setOperadoresDict(opDict);
     };
 
@@ -37,9 +36,9 @@ export default function Resumen() {
   }, []);
 
   useEffect(() => {
-    const cargarActividades = async () => {
-      if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length) return;
+    if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length) return;
 
+    const fetchResumen = async () => {
       const { data, error } = await supabase.from("actividades_realizadas").select("*");
       if (error || !data) return;
 
@@ -50,8 +49,8 @@ export default function Resumen() {
 
         const fecha = new Date(act.hora_inicio);
         if (
-          (fechaInicio && fecha < new Date(fechaInicio)) ||
-          (fechaFin && fecha > new Date(fechaFin))
+          (fechaInicio && new Date(fecha) < new Date(fechaInicio)) ||
+          (fechaFin && new Date(fecha) > new Date(fechaFin))
         ) return;
 
         const key = act.idx;
@@ -72,8 +71,8 @@ export default function Resumen() {
         const nombreActividad = act.actividad?.toLowerCase();
         let operadorNombre = "-";
         if (Array.isArray(act.operadores)) {
-          operadorNombre = act.operadores.map((id) => operadoresDict[id] || `ID:${id}`).join(", ");
-        } else if (typeof act.operadores === "string") {
+          operadorNombre = act.operadores.map((id) => operadoresDict[id] || id).join(", ");
+        } else if (typeof act.operadores === "string" && act.operadores.trim()) {
           operadorNombre = operadoresDict[act.operadores] || act.operadores;
         }
 
@@ -89,29 +88,17 @@ export default function Resumen() {
         }
       });
 
-      let resultado = Object.values(agrupadas);
-
-      resultado = resultado.sort((a, b) => b.idx.localeCompare(a.idx));
+      const resultado = Object.values(agrupadas).sort((a, b) => b.idx.localeCompare(a.idx));
 
       if (filtroIdx) {
-        resultado = resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase()));
+        setResumenData(resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase())));
+      } else {
+        setResumenData(resultado);
       }
-
-      setResumenData(resultado);
     };
 
-    cargarActividades();
+    fetchResumen();
   }, [productosDict, operadoresDict, filtroIdx, fechaInicio, fechaFin]);
-
-  const colorActividad = (nombre) => {
-    switch (nombre) {
-      case "stage": return "#f580ff";
-      case "label": return "#F1BA8B";
-      case "scan": return "#FFF44F";
-      case "load": return "#B2FBA5";
-      default: return "#eee";
-    }
-  };
 
   return (
     <div style={{ padding: 16 }}>
@@ -142,13 +129,13 @@ export default function Resumen() {
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th>IDX</th>
+            <th>{t("idx")}</th>
             <th>{t("product")}</th>
             <th>{t("quantity")}</th>
-            <th style={{ background: colorActividad("stage") }}>{t("Stage")}</th>
-            <th style={{ background: colorActividad("label") }}>{t("Label")}</th>
-            <th style={{ background: colorActividad("scan") }}>{t("Scan")}</th>
-            <th style={{ background: colorActividad("load") }}>{t("Load")}</th>
+            <th style={{ background: "#f580ff" }}>{t("Stage")}</th>
+            <th style={{ background: "#F1BA8B" }}>{t("Label")}</th>
+            <th style={{ background: "#FFF44F" }}>{t("Scan")}</th>
+            <th style={{ background: "#B2FBA5" }}>{t("Load")}</th>
             <th>{t("notes")}</th>
           </tr>
         </thead>
