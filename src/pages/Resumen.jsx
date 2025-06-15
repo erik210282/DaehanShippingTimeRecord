@@ -67,7 +67,7 @@ export default function Resumen() {
 
         const nombreActividad = act.actividad?.toLowerCase();
         const operadorNombre = Array.isArray(act.operadores)
-          ? act.operadores.map(id => operadoresDict?.[id] || `ID:${id}`).join(", ")
+          ? act.operadores.map((id) => operadoresDict?.[id] ?? `ID:${id}`).join(", ")
           : "-";
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
 
