@@ -130,7 +130,13 @@ export default function Resumen() {
         }
 
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
-        const registro = `${operadorNombre} (${hora})`;
+        const registro = (
+          <>
+            <strong>{operadorNombre}</strong>
+            <br />
+            <span style={{ opacity: 0.7 }}>{hora}</span>
+          </>
+        );
 
         if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
           agrupadas[key][nombreActividad] = registro;
