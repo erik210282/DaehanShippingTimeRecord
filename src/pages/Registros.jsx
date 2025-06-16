@@ -563,7 +563,7 @@ useEffect(() => {
                     <td>{inicio.toLocaleString()}</td>
                     <td>{fin.toLocaleString()}</td>
                     <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
-                    <td>{r.notas || "N/A"}</td>
+                    <td>{r.notas || "-"}</td>
                     <td>
                       <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
                         <button onClick={() => abrirModal(r)}>{t("edit")}</button>
