@@ -509,16 +509,18 @@ useEffect(() => {
           <Select isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
           <Select isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
 
-          <button onClick={() => {
-            setActividadFiltro([]); setProductoFiltro([]); setOperadorFiltro([]);
-            setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
-          }}>{t("clear_filters")}</button>
+          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+            <button onClick={() => {
+              setActividadFiltro([]); setProductoFiltro([]); setOperadorFiltro([]);
+              setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
+            }}>{t("clear_filters")}</button>
 
-          <button onClick={exportarCSV}>{t("export_csv")}</button>
+            <button onClick={exportarCSV}>{t("export_csv")}</button>
 
-          <button onClick={() => abrirModal()}>
-            ➕ {t("add_record")}
-          </button>          
+            <button onClick={() => abrirModal()}>
+              ➕ {t("add_record")}
+            </button>        
+          </div>  
 
           <table className="table">
             <thead>
