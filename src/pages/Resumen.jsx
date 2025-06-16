@@ -13,6 +13,23 @@ export default function Resumen() {
   const [operadoresDict, setOperadoresDict] = useState({});
   const [actividadesDict, setActividadesDict] = useState({});
 
+  const colorActividad = (nombreActividad) => {
+    switch (nombreActividad?.toLowerCase()) {
+      case "load":
+        return "#B2FBA5"; // verde
+      case "unload":
+        return "#AEC6CF"; // Azulado
+      case "stage":
+        return "#f580ff"; // Morado
+      case "label":
+        return "#F1BA8B"; // Naranja
+      case "scan":
+        return "#FFF44F"; // Amarillo
+      default:
+        return "#F0F0F0"; // Grisazul
+    }
+  };
+
   useEffect(() => {
     const cargarCatalogosYActividades = async () => {
       // 1. Cargar actividades
@@ -164,30 +181,30 @@ export default function Resumen() {
         />
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #ccc" }}>
         <thead>
           <tr>
             <th>{t("Código IDX")}</th>
             <th>{t("product")}</th>
             <th>{t("quantity")}</th>
-            <th style={{ background: "#f580ff" }}>{t("Stage")}</th>
-            <th style={{ background: "#F1BA8B" }}>{t("Label")}</th>
-            <th style={{ background: "#FFF44F" }}>{t("Scan")}</th>
-            <th style={{ background: "#B2FBA5" }}>{t("Load")}</th>
+            <th>{t("Stage")}</th>
+            <th>{t("Label")}</th>
+            <th>{t("Scan")}</th>
+            <th>{t("Load")}</th>
             <th>{t("notes")}</th>
           </tr>
         </thead>
         <tbody>
           {resumenData.map((fila, i) => (
             <tr key={i}>
-              <td>{fila.idx}</td>
-              <td>{fila.producto}</td>
-              <td>{fila.cantidad}</td>
-              <td>{fila.stage || "-"}</td>
-              <td>{fila.label || "-"}</td>
-              <td>{fila.scan || "-"}</td>
-              <td>{fila.load || "-"}</td>
-              <td>{fila.notas}</td>
+              <td style={{ border: "1px solid #ccc" }}>{fila.idx}</td>
+              <td style={{ border: "1px solid #ccc" }}>{fila.producto}</td>
+              <td style={{ border: "1px solid #ccc" }}>{fila.cantidad}</td>
+              <td style={{ backgroundColor: colorActividad("stage"), border: "1px solid #ccc" }}>{fila.stage || "-"}</td>
+              <td style={{ backgroundColor: colorActividad("label"), border: "1px solid #ccc" }}>{fila.label || "-"}</td>
+              <td style={{ backgroundColor: colorActividad("scan"), border: "1px solid #ccc" }}>{fila.scan || "-"}</td>
+              <td style={{ backgroundColor: colorActividad("load"), border: "1px solid #ccc" }}>{fila.load || "-"}</td>
+              <td style={{ border: "1px solid #ccc" }}>{fila.notas}</td>
             </tr>
           ))}
         </tbody>
