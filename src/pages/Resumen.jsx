@@ -156,8 +156,8 @@ export default function Resumen() {
   }, [productosDict, operadoresDict, filtroIdx, fechaInicio, fechaFin]);
 
   return (
-    <div style={{ padding: 16 }}>
-      <h2>{t("Resumen de Actividades por IDX")}</h2>
+    <div className="card">
+      <h2>{t("summary")}</h2>
 
       <div style={{ marginBottom: 12 }}>
         <input
@@ -181,7 +181,7 @@ export default function Resumen() {
         />
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #ccc" }}>
+      <table className="table">
         <thead>
           <tr>
             <th>{t("Código IDX")}</th>
