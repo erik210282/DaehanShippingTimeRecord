@@ -565,13 +565,15 @@ useEffect(() => {
                     <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
                     <td>{r.notas || "N/A"}</td>
                     <td>
-                      <button onClick={() => abrirModal(r)}>{t("edit")}</button>
-                      <button
-                        onClick={() => setRegistroAEliminar(r)}
-                        className="btn btn-danger"
-                      >
-                        {t("delete")}
-                      </button>
+                      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                        <button onClick={() => abrirModal(r)}>{t("edit")}</button>
+                        <button
+                          onClick={() => setRegistroAEliminar(r)}
+                          className="btn btn-danger"
+                        >
+                          {t("delete")}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
