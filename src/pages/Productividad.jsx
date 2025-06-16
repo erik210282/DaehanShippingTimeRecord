@@ -123,10 +123,8 @@ export default function Productividad() {
         ? r.productos.map((p) => p.producto)
         : [r.productos?.producto];
 
-      const horaInicio = new Date(r.hora_inicio);
-      const horaFin = new Date(r.hora_fin);
-      if (!horaInicio || !horaFin || isNaN(horaInicio) || isNaN(horaFin)) return;
-      const duracionMin = (horaFin - horaInicio) / 60000;
+      if (typeof r.duracion !== "number") return;
+      const duracionMin = r.duracion;
 
       claves.forEach((clave) => {
         if (!datos[clave]) datos[clave] = { total: 0, count: 0 };
@@ -161,10 +159,8 @@ export default function Productividad() {
         ? r.productos.map((p) => p.producto)
         : [r.productos?.producto];
 
-      const horaInicio = new Date(r.hora_inicio);
-      const horaFin = new Date(r.hora_fin);
-      if (!horaInicio || !horaFin || isNaN(horaInicio) || isNaN(horaFin)) return;
-      const duracionMin = (horaFin - horaInicio) / 60000;
+      if (typeof r.duracion !== "number") return;
+      const duracionMin = r.duracion;
 
       claves.forEach((k1) => {
         claves2.forEach((k2) => {
