@@ -197,14 +197,14 @@ export default function Resumen() {
         <tbody>
           {resumenData.map((fila, i) => (
             <tr key={i}>
-              <td style={{ border: "1px solid #ccc" }}>{fila.idx}</td>
-              <td style={{ border: "1px solid #ccc" }}>{fila.producto}</td>
-              <td style={{ border: "1px solid #ccc" }}>{fila.cantidad}</td>
-              <td style={{ backgroundColor: colorActividad("stage"), border: "1px solid #ccc" }}>{fila.stage || "-"}</td>
-              <td style={{ backgroundColor: colorActividad("label"), border: "1px solid #ccc" }}>{fila.label || "-"}</td>
-              <td style={{ backgroundColor: colorActividad("scan"), border: "1px solid #ccc" }}>{fila.scan || "-"}</td>
-              <td style={{ backgroundColor: colorActividad("load"), border: "1px solid #ccc" }}>{fila.load || "-"}</td>
-              <td style={{ border: "1px solid #ccc" }}>{fila.notas}</td>
+              <td>{fila.idx}</td>
+              <td>{fila.producto}</td>
+              <td>{fila.cantidad}</td>
+              <td style={{ backgroundColor: colorActividad("stage")}}>{fila.stage || "-"}</td>
+              <td style={{ backgroundColor: colorActividad("label")}}>{fila.label || "-"}</td>
+              <td style={{ backgroundColor: colorActividad("scan")}}>{fila.scan || "-"}</td>
+              <td style={{ backgroundColor: colorActividad("load")}}>{fila.load || "-"}</td>
+              <td>{fila.notas}</td>
             </tr>
           ))}
         </tbody>
