@@ -108,8 +108,8 @@ export default function Resumen() {
         if (!agrupadas[key]) {
           agrupadas[key] = {
             idx: key,
-            producto: [],
-            cantidad: [],
+            productos: [],
+            cantidades: [],
             stage: null,
             label: null,
             scan: null,
@@ -118,6 +118,8 @@ export default function Resumen() {
             fechaNotas: null,
           };
         }
+
+        console.log("🧩 Verificando productos de actividad:", act);
 
         if (Array.isArray(act.productos)) {
           act.productos.forEach((item) => {
