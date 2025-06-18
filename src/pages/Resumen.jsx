@@ -108,8 +108,8 @@ export default function Resumen() {
         if (!agrupadas[key]) {
           agrupadas[key] = {
             idx: key,
-            producto: productosDict?.[act.productos?.[0]?.producto] || "-",
-            cantidad: act.productos?.[0]?.cantidad || "-",
+            producto: [],
+            cantidad: [],
             stage: null,
             label: null,
             scan: null,
@@ -117,6 +117,16 @@ export default function Resumen() {
             notas: "",
             fechaNotas: null,
           };
+        }
+
+        if (Array.isArray(act.productos)) {
+          act.productos.forEach((item) => {
+            const nombreProducto = productosDict?.[item.producto];
+            if (nombreProducto && !agrupadas[key].productos.includes(nombreProducto)) {
+              agrupadas[key].productos.push(nombreProducto);
+              agrupadas[key].cantidades.push(item.cantidad);
+            }
+          });
         }
 
         const nombreActividad = actividadesDict[act.actividad]?.toLowerCase().trim() || "";
@@ -204,8 +214,8 @@ export default function Resumen() {
           {resumenData.map((fila, i) => (
             <tr key={i}>
               <td>{fila.idx}</td>
-              <td>{fila.producto}</td>
-              <td>{fila.cantidad}</td>
+              <td>{fila.productos?.join(", ") || "-"}</td>
+              <td>{fila.cantidades?.join(", ") || "-"}</td>
               <td style={{ backgroundColor: colorActividad("stage")}}>{fila.stage || "-"}</td>
               <td style={{ backgroundColor: colorActividad("label")}}>{fila.label || "-"}</td>
               <td style={{ backgroundColor: colorActividad("scan")}}>{fila.scan || "-"}</td>
