@@ -711,8 +711,10 @@ useEffect(() => {
                 setRegistroActual({ ...registroActual, duracion: Number(e.target.value) })
               }
             />
-          <button type="button" onClick={guardarRegistro}>{t("save")}</button>
-          <button type="button" onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+            <button type="button" onClick={guardarRegistro}>{t("save")}</button>
+            <button type="button" onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+          </div>
         </Modal>  
 
         {registroAEliminar && registroAEliminar.id && (

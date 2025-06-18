@@ -203,8 +203,10 @@ export default function Catalogos() {
                 <td>{item.nombre}</td>
                 <td>{item.activo ? t("active") : t("inactive")}</td>
                 <td>
-                  <button className="edit-btn" onClick={() => abrirModal(item)}>{t("edit")}</button>
-                  <button className="delete-btn" onClick={() => eliminarItem(item.id)}>{t("delete")}</button>
+                  <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                    <button className="edit-btn" onClick={() => abrirModal(item)}>{t("edit")}</button>
+                    <button className="delete-btn" onClick={() => eliminarItem(item.id)}>{t("delete")}</button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -227,8 +229,10 @@ export default function Catalogos() {
               onChange={() => setItemActual({ ...itemActual, activo: !itemActual?.activo })}
             /> {t("active")}
           </label>
-          <button className="primary" onClick={guardarItem}>{t("save")}</button>
-          <button className="secondary" onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+            <button className="primary" onClick={guardarItem}>{t("save")}</button>
+            <button className="secondary" onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+          </div>
         </div>
       </Modal>
 

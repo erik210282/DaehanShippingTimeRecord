@@ -377,8 +377,10 @@ export default function TareasPendientes() {
                 })()}
               </td>
               <td>
-                <button onClick={() => abrirModal(tarea)}>{t("edit")}</button>
-                <button onClick={() => setTareaAEliminar(tarea)}>{t("delete")}</button>
+                <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                  <button onClick={() => abrirModal(tarea)}>{t("edit")}</button>
+                  <button onClick={() => setTareaAEliminar(tarea)}>{t("delete")}</button>
+                </div>
               </td>
             </tr>
           ))}
@@ -477,10 +479,12 @@ export default function TareasPendientes() {
               onChange={(e) => setTareaActual({ ...tareaActual, notas: e.target.value })}
               rows={2}
               style={{ width: "100%", marginTop: "10px" }}
-            />            
-
-            <button onClick={guardarTarea}>{t("save")}</button>
-            <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+            />   
+            
+            <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+              <button onClick={guardarTarea}>{t("save")}</button>
+              <button onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+            </div>
           </>
         )}
       </Modal>

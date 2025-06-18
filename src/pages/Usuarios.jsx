@@ -141,12 +141,14 @@ export default function Usuarios() {
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
         />
-        <button className="primary" onClick={crearUsuario}>
-          {t("create_user")}
-        </button>
-        <button className="secondary" onClick={alternarMostrarUsuarios}>
-          {mostrarUsuarios ? t("hide_users") : t("show_users")}
-        </button>
+        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <button className="primary" onClick={crearUsuario}>
+            {t("create_user")}
+          </button>
+          <button className="secondary" onClick={alternarMostrarUsuarios}>
+            {mostrarUsuarios ? t("hide_users") : t("show_users")}
+          </button>
+        </div>
       </div>
 
       {mensaje && <p style={{ marginTop: "1rem", color: "#007bff" }}>{mensaje}</p>}
@@ -182,12 +184,14 @@ export default function Usuarios() {
                     />
                   </td>
                   <td>
-                    <button className="edit-btn" onClick={() => actualizarPassword(u.uid)}>
-                      {t("update_password")}
-                    </button>
-                    <button className="delete-btn" onClick={() => eliminarUsuario(u.uid)}>
-                      {t("delete_user")}
-                    </button>
+                    <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                      <button className="edit-btn" onClick={() => actualizarPassword(u.uid)}>
+                        {t("update_password")}
+                      </button>
+                      <button className="delete-btn" onClick={() => eliminarUsuario(u.uid)}>
+                        {t("delete_user")}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
