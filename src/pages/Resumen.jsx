@@ -150,8 +150,15 @@ export default function Resumen() {
           </>
         );
 
-        if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
-          agrupadas[key][nombreActividad] = registro;
+        if (nombreActividad) {
+          if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
+            agrupadas[key][nombreActividad] = registro;
+          } else {
+            console.warn("⚠️ Actividad no reconocida aún:", act.actividad);
+          }
+        } else {
+          // Muestra igual aunque el nombre aún no esté en actividadesDict
+          agrupadas[key]["actividad_desconocida"] = registro;
         }
 
         if (!agrupadas[key].fechaNotas || new Date(act.createdAt) > new Date(agrupadas[key].fechaNotas)) {
