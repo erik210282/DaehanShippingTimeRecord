@@ -166,7 +166,7 @@ useEffect(() => {
   if (fechaDesde && fechaHasta) {
     const desde = new Date(fechaDesde);
     const hasta = new Date(fechaHasta);
-    hasta.setHours(23,59,59,999);
+    hasta.setHours(23, 59, 59, 999);
 
     if (desde > hasta) {
       setErrorFecha(t("invalid_date_range"));
@@ -216,7 +216,7 @@ useEffect(() => {
       !fechaDesde || isAfter(fechaInicio, new Date(fechaDesde));
 
     const cumpleHasta =
-      !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta).setHours(23,59,59,999));
+      !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta).setHours(23, 59, 59, 999));
 
     return (
       cumpleActividad &&
