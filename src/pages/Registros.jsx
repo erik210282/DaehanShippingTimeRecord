@@ -103,16 +103,29 @@ const cargarCatalogos = async () => {
 };
 
 const actualizarRegistros = async () => {
-  const { data, error } = await supabase
-    .from("actividades_realizadas")
-    .select("*");
+  const PAGE = 1000;
+  let from = 0;
+  let acumulado = [];
 
-  if (error) {
-    console.error("Error cargando registros:", error);
-    return;
+  while (true) {
+    const { data: chunk, error } = await supabase
+      .from("actividades_realizadas")
+      .select("*")
+      .order("hora_inicio", { ascending: false }) // puedes usar "createdAt" si prefieres
+      .range(from, from + PAGE - 1);
+
+    if (error) {
+      console.error("Error cargando registros:", error);
+      return;
+    }
+    if (!chunk || chunk.length === 0) break;
+
+    acumulado = acumulado.concat(chunk);
+    if (chunk.length < PAGE) break;
+    from += PAGE;
   }
 
-  const nuevos = (data || []).map((doc) => ({
+  const nuevos = (acumulado || []).map((doc) => ({
     id: doc.id,
     idx: doc.idx || "",
     ...doc,
@@ -126,6 +139,7 @@ const actualizarRegistros = async () => {
     duracion: doc.duracion ?? "",
   }));
 
+  // orden descendente por horaInicio como ya lo tenías
   nuevos.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
   setRegistros(nuevos);
   setFiltrados(nuevos);
@@ -212,11 +226,10 @@ useEffect(() => {
     const fechaInicio =
       r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
 
-    const cumpleDesde =
-      !fechaDesde || isAfter(fechaInicio, new Date(fechaDesde));
-
-    const cumpleHasta =
-      !fechaHasta || isBefore(fechaInicio, new Date(fechaHasta).setHours(23, 59, 59, 999));
+    const limiteDesde = fechaDesde ? new Date(`${fechaDesde}T00:00:00`) : null;
+    const limiteHasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999`) : null;
+    const cumpleDesde = !limiteDesde || fechaInicio >= limiteDesde;
+    const cumpleHasta = !limiteHasta || fechaInicio <= limiteHasta; 
 
     return (
       cumpleActividad &&
