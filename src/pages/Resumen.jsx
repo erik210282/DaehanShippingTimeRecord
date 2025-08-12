@@ -85,11 +85,35 @@ export default function Resumen() {
     const fetchResumen = async () => {
       if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length) return;
 
-      const { data, error } = await supabase.from("actividades_realizadas").select("*");
-      if (error || !data) {
-        console.error("❌ Error cargando actividades:", error);
-        return;
+      const PAGE = 1000;
+      let from = 0;
+      let todo = [];
+
+      while (true) {
+        const { data: chunk, error } = await supabase
+          .from("actividades_realizadas")
+          .select("*")
+          .order("createdAt", { ascending: true }) // o "hora_inicio" si prefieres
+          .range(from, from + PAGE - 1);
+
+        if (error) {
+          console.error("❌ Error cargando actividades:", error);
+          return;
+        }
+        if (!chunk || chunk.length === 0) break;
+
+        todo = todo.concat(chunk);
+
+        // Si el tramo vino más chico que PAGE, ya no hay más páginas
+        if (chunk.length < PAGE) break;
+
+        from += PAGE;
       }
+
+      // Trabajaremos con 'data' como antes
+      const data = todo;
+      console.log("🧾 Actividades obtenidas (paginadas):", data);
+      if (!data.length) return;
 
       console.log("🧾 Actividades obtenidas:", data);
 
@@ -99,10 +123,8 @@ export default function Resumen() {
         if (act.estado !== "finalizada" || !act.idx) return;
 
         const fecha = new Date(act.hora_inicio);
-        if (
-          (fechaInicio && fecha < new Date(fechaInicio)) ||
-          (fechaFin && fecha > new Date(fechaFin))
-        ) return;
+        if (fechaInicio && fecha < new Date(`${fechaInicio}T00:00:00`)) return;
+        if (fechaFin && fecha > new Date(`${fechaFin}T23:59:59.999`)) return;
 
         const key = act.idx;
         if (!agrupadas[key]) {
