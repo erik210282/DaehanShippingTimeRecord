@@ -103,7 +103,7 @@ const cargarCatalogos = async () => {
 };
 
 const actualizarRegistros = async () => {
-  const PAGE = 100;
+  const PAGE = 10;
   let from = 0;
   let acumulado = [];
 
