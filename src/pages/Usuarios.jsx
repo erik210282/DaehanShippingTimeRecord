@@ -9,6 +9,9 @@ export default function Usuarios() {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState('');
+  const [role, setRole] = useState('operador'); 
+  const [isActive, setIsActive] = useState(true);
   const [usuarios, setUsuarios] = useState([]);
   const [mostrarUsuarios, setMostrarUsuarios] = useState(false);
   const [mensaje, setMensaje] = useState("");
@@ -30,7 +33,13 @@ export default function Usuarios() {
           "Content-Type": "application/json",
           "x-api-key": API_KEY,
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          display_name: displayName,
+          role,
+          is_active: isActive,
+        }),
       });
 
       const data = await res.json();
@@ -141,6 +150,32 @@ export default function Usuarios() {
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
         />
+
+        <input
+          type="text"
+          placeholder="Nombre para mostrar (opcional)"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          autoComplete="off"
+        />
+
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+        >
+          <option value="operador">Operador</option>
+          <option value="supervisor">Supervisor</option>
+        </select>
+
+        <label style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+          />
+          Activo
+        </label>
+
         <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
           <button className="primary" onClick={crearUsuario}>
             {t("create_user")}
