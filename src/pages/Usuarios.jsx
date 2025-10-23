@@ -196,6 +196,8 @@ export default function Usuarios() {
               <tr>
                 <th>{t("email")}</th>
                 <th>{t("user_id")}</th>
+                <th>{t("rol")}</th>
+                <th>{t("activo")}</th>
                 <th>{t("new_password")}</th>
                 <th>{t("actions")}</th>
               </tr>
@@ -205,6 +207,37 @@ export default function Usuarios() {
                 <tr key={u.uid}>
                   <td>{u.email}</td>
                   <td>{u.uid}</td>
+                  <td>
+                    <select
+                      value={u.role || 'operador'}
+                      onChange={async (e) => {
+                        await fetch(`${API_URL}/update-user-role`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                          body: JSON.stringify({ uid: u.uid, role: e.target.value }),
+                        });
+                        cargarUsuarios();
+                      }}
+                    >
+                      <option value="operador">Operador</option>
+                      <option value="supervisor">Supervisor</option>
+                    </select>
+                  </td>
+
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={u.is_active ?? true}
+                      onChange={async (e) => {
+                        await fetch(`${API_URL}/update-user-role`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                          body: JSON.stringify({ uid: u.uid, is_active: e.target.checked }),
+                        });
+                        cargarUsuarios();
+                      }}
+                    />
+                  </td>
                   <td>
                     <input
                       type="password"
