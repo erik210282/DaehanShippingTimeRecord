@@ -70,57 +70,57 @@ export default function Login() {
 
         <form onSubmit={handleLogin} autoComplete="off">
           <label>{t("email")}</label>
-          <input
-            type="email"
-            name="email"
-            autoComplete="off"
-            placeholder={t("email")}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginBottom: "1rem",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-            }}
-          />
+            <input
+              type="email"
+              name="email"
+              autoComplete="new-email"
+              placeholder={t("email")}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "1rem",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+              }}
+            />
 
           <label>{t("password")}</label>
-          <input
-            type="password"
-            name="password"
-            autoComplete="new-password"
-            placeholder={t("password")}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginBottom: "1rem",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-            }}
-          />
+            <input
+              type="password"
+              name="password"
+              autoComplete="new-password"
+              placeholder={t("password")}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "1rem",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+              }}
+            />
 
           <button
-            type="submit"
-            className="primary"
-            style={{
-              width: "100%",
-              padding: "12px",
-              backgroundColor: "#007bff",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              marginTop: "1rem",
-            }}
-          >
-            {t("submit")}
-          </button>
+              type="submit"
+              className="primary"
+              style={{
+                width: "100%",
+                padding: "12px",
+                backgroundColor: "#007bff",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                marginTop: "1rem",
+              }}
+            >
+              {t("submit")}
+            </button>
 
           {error && (
             <p
