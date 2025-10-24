@@ -1,7 +1,8 @@
 // src/components/RequireSupervisor.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabase/client";
+import supabase from "./supabase/client";
+
 
 export default function RequireSupervisor({ children }) {
   const navigate = useNavigate();
