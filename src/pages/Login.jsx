@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import "../App.css";
 import logo from "../assets/Daehan.png";
-import supabase from "../supabase/client";
+import { supabase } from "../supabase/client";
 
 
 export default function Login() {

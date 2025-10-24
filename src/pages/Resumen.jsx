@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import supabase from "../supabase/client";
+import { supabase } from "../supabase/client";
 import { format } from "date-fns";
 
 export default function Resumen() {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import supabase from "../supabase/client";
+import { supabase } from "../supabase/client";
 import Select from "react-select";
 import Modal from "react-modal";
 import { useLocation } from "react-router-dom";
