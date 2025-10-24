@@ -68,7 +68,7 @@ export default function Login() {
 
         <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>{t("login")}</h2>
 
-        <form onSubmit={handleLogin} autoComplete="off">
+        <form onSubmit={handleLogin} autoComplete="on">
           <label>{t("email")}</label>
             <input
               type="email"
@@ -86,6 +86,7 @@ export default function Login() {
                 border: "1px solid #ccc",
               }}
             />
+
 
           <label>{t("password")}</label>
             <input
