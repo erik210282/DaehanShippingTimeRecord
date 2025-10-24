@@ -13,6 +13,7 @@ import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
 import supabase from "./supabase/client";
+import RequireSupervisor from "./components/RequireSupervisor";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -70,6 +71,7 @@ const Navbar = () => {
 };
 
 const AppContent = () => (
+  <RequireSupervisor>
   <div className="app-container">
     <Navbar />
     <div className="content">
@@ -100,6 +102,7 @@ const AppContent = () => (
       </Routes>
     </div>
   </div>
+  </RequireSupervisor>
 );
 
 const App = () => (
