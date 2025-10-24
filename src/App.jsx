@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
-import supabase from "./supabase/client";
+import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
 
 const Navbar = () => {
@@ -70,39 +70,51 @@ const Navbar = () => {
   );
 };
 
-const AppContent = () => (
+// 1) Área privada protegida por rol supervisor
+const PrivateArea = () => (
   <RequireSupervisor>
-  <div className="app-container">
-    <Navbar />
-    <div className="content">
-      <Routes>
-        <Route path="/" element={<Login />} />
-
-        <Route path="/tareas-pendientes" element={
-          <ProtectedRoute><TareasPendientes /></ProtectedRoute>
-        } />
-        <Route path="/resumen" element={
-          <ProtectedRoute><Resumen /></ProtectedRoute>
-        } />
-        <Route path="/registros" element={
-          <ProtectedRoute><Registros /></ProtectedRoute>
-        } />
-        <Route path="/productividad" element={
-          <ProtectedRoute><Productividad /></ProtectedRoute>
-        } />
-        <Route path="/catalogos" element={
-          <ProtectedRoute><Catalogos /></ProtectedRoute>
-        } />
-        <Route path="/usuarios" element={
-          <ProtectedRoute><Usuarios /></ProtectedRoute>
-        } />
-        <Route path="/configuracion-tareas" element={
-          <ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>
-        } />  
-      </Routes>
+    <div className="app-container">
+      <Navbar />
+      <div className="content">
+        <Routes>
+          <Route path="/tareas-pendientes" element={
+            <ProtectedRoute><TareasPendientes /></ProtectedRoute>
+          } />
+          <Route path="/resumen" element={
+            <ProtectedRoute><Resumen /></ProtectedRoute>
+          } />
+          <Route path="/registros" element={
+            <ProtectedRoute><Registros /></ProtectedRoute>
+          } />
+          <Route path="/productividad" element={
+            <ProtectedRoute><Productividad /></ProtectedRoute>
+          } />
+          <Route path="/catalogos" element={
+            <ProtectedRoute><Catalogos /></ProtectedRoute>
+          } />
+          <Route path="/usuarios" element={
+            <ProtectedRoute><Usuarios /></ProtectedRoute>
+          } />
+          <Route path="/configuracion-tareas" element={
+            <ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>
+          } />
+        </Routes>
+      </div>
     </div>
-  </div>
   </RequireSupervisor>
+);
+
+// 2) Contenedor de rutas públicas/privadas
+const AppContent = () => (
+  <div className="app-root">
+    <Routes>
+      {/* Login público: NO va dentro de RequireSupervisor */}
+      <Route path="/" element={<Login />} />
+
+      {/* Todo lo demás cae en el área privada protegida */}
+      <Route path="/*" element={<PrivateArea />} />
+    </Routes>
+  </div>
 );
 
 const App = () => (
