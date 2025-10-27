@@ -189,7 +189,18 @@ export default function Resumen() {
         }
       });
 
-      const resultado = Object.values(agrupadas).sort((a, b) => Number(b.idx)-Number(a.idx));
+      const resultado = Object.values(agrupadas).sort((a, b) => {
+        const aNum = Number(a.idx);
+        const bNum = Number(b.idx);
+
+        // 🧠 Si ambos son numéricos, ordena por número
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return bNum - aNum; // descendente (mayor primero)
+        }
+
+        // 🔠 Si son alfanuméricos, usa orden natural de texto
+        return b.idx.localeCompare(a.idx, undefined, { numeric: true, sensitivity: "base" });
+      });
       const filtrado = filtroIdx
         ? resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase()))
         : resultado;
