@@ -189,7 +189,7 @@ export default function Resumen() {
         }
       });
 
-      const resultado = Object.values(agrupadas).sort((a, b) => b.idx.localeCompare(a.idx));
+      const resultado = Object.values(agrupadas).sort((a, b) => Number(b.idx)-Number(a.idx));
       const filtrado = filtroIdx
         ? resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase()))
         : resultado;
