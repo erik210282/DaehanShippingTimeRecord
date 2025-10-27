@@ -193,20 +193,23 @@ export default function Resumen() {
         const aNum = Number(a.idx);
         const bNum = Number(b.idx);
 
-        // 🧠 Si ambos son numéricos, ordena por número
+        // Si ambos idx son numéricos, ordena como números (descendente)
         if (!isNaN(aNum) && !isNaN(bNum)) {
-          return bNum - aNum; // descendente (mayor primero)
+          return bNum - aNum;
         }
 
-        // 🔠 Si son alfanuméricos, usa orden natural de texto
+        // Si alguno es alfanumérico, usa orden natural de texto (también descendente)
         return b.idx.localeCompare(a.idx, undefined, { numeric: true, sensitivity: "base" });
       });
+
+      // 🧹 Aplicar filtro de búsqueda por IDX si existe
       const filtrado = filtroIdx
         ? resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase()))
         : resultado;
 
       console.log("📊 Resumen final:", filtrado);
 
+      // 💾 Actualizar estado
       setResumenData(filtrado);
     };
 
