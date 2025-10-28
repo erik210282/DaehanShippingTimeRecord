@@ -278,12 +278,12 @@ export default function Productividad() {
 
       if (agrupadoPor === "operador") {
         // ✅ usar normalización robusta
-        claves = normalizarOperadores(r.operadores);
+        claves = normalizarOperadores(r.operadores ?? r.operador ?? r.operator ?? null);
       } else if (agrupadoPor === "actividad") {
         claves = [r.actividad];
       } else if (agrupadoPor === "producto") {
         // ✅ usar normalización robusta
-        claves = normalizarProductos(r.productos);
+        claves = normalizarProductos(r.productos ?? r.producto ?? r.product ?? null);
       }
 
       // ✅ aceptar "16", "16 min", o calcular desde timestamps
@@ -334,20 +334,16 @@ export default function Productividad() {
 
       // Grupo 1
       if (agrupadoPor === "operador") {
-        claves = normalizarOperadores(r.operadores);
-      } else if (agrupadoPor === "actividad") {
-        claves = [r.actividad];
+        claves = normalizarOperadores(r.operadores ?? r.operador ?? r.operator ?? null);
       } else if (agrupadoPor === "producto") {
-        claves = normalizarProductos(r.productos);
+        claves = normalizarProductos(r.productos ?? r.producto ?? r.product ?? null);
       }
 
       // Grupo 2
       if (agrupadoPor2 === "operador") {
-        claves2 = normalizarOperadores(r.operadores);
-      } else if (agrupadoPor2 === "actividad") {
-        claves2 = [r.actividad];
+        claves2 = normalizarOperadores(r.operadores ?? r.operador ?? r.operator ?? null);
       } else if (agrupadoPor2 === "producto") {
-        claves2 = normalizarProductos(r.productos);
+        claves2 = normalizarProductos(r.productos ?? r.producto ?? r.product ?? null);
       }
 
       // Duración robusta
