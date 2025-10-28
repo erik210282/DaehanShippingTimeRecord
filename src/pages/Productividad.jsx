@@ -278,12 +278,32 @@ export default function Productividad() {
 
       if (agrupadoPor === "operador") {
         // ✅ usar normalización robusta
-        claves = normalizarOperadores(r.operadores ?? r.operador ?? r.operator ?? null);
+        const rawOperador =
+          r.operadores ??
+          r.operador ??
+          r.operator ??
+          r.operador_id ??
+          r.operadores_id ??
+          r.operadores_ids ??
+          r.operator_id ??
+          null;
+
+        claves = normalizarOperadores(rawOperador);
       } else if (agrupadoPor === "actividad") {
-        claves = [r.actividad];
+        claves = [r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id];
       } else if (agrupadoPor === "producto") {
         // ✅ usar normalización robusta
-        claves = normalizarProductos(r.productos ?? r.producto ?? r.product ?? null);
+        const rawProducto =
+          r.productos ??
+          r.producto ??
+          r.product ??
+          r.producto_id ??
+          r.productos_id ??
+          r.productos_ids ??
+          r.product_id ??
+          null;
+
+        claves = normalizarProductos(rawProducto);
       }
 
       // ✅ aceptar "16", "16 min", o calcular desde timestamps
@@ -334,16 +354,32 @@ export default function Productividad() {
 
       // Grupo 1
       if (agrupadoPor === "operador") {
-        claves = normalizarOperadores(r.operadores ?? r.operador ?? r.operator ?? null);
+        const rawOperador =
+          r.operadores ?? r.operador ?? r.operator ??
+          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ?? null;
+        claves = normalizarOperadores(rawOperador);
       } else if (agrupadoPor === "producto") {
-        claves = normalizarProductos(r.productos ?? r.producto ?? r.product ?? null);
+        const rawProducto =
+          r.productos ?? r.producto ?? r.product ??
+          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ?? null;
+        claves = normalizarProductos(rawProducto);
+      } else if (agrupadoPor === "actividad") {
+        claves = [r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id];
       }
 
       // Grupo 2
-      if (agrupadoPor2 === "operador") {
-        claves2 = normalizarOperadores(r.operadores ?? r.operador ?? r.operator ?? null);
+     if (agrupadoPor2 === "operador") {
+        const rawOperador2 =
+          r.operadores ?? r.operador ?? r.operator ??
+          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ?? null;
+        claves2 = normalizarOperadores(rawOperador2);
       } else if (agrupadoPor2 === "producto") {
-        claves2 = normalizarProductos(r.productos ?? r.producto ?? r.product ?? null);
+        const rawProducto2 =
+          r.productos ?? r.producto ?? r.product ??
+          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ?? null;
+        claves2 = normalizarProductos(rawProducto2);
+      } else if (agrupadoPor2 === "actividad") {
+        claves2 = [r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id];
       }
 
       // Duración robusta
