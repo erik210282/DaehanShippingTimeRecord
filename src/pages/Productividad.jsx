@@ -110,11 +110,22 @@ export default function Productividad() {
     );
 
     canal.subscribe();
+    const intervalo = setInterval(async () => {
+        const { data: nuevosOps } = await supabase.from("operadores").select("id, nombre");
+        setOperadores(mapById({ data: nuevosOps }));
 
-    // 🧹 Limpiar canal al desmontar
-    return () => {
-      supabase.removeChannel(canal);
-    };
+        const { data: nuevosProd } = await supabase.from("productos").select("id, nombre");
+        setProductos(mapById({ data: nuevosProd }));
+
+        const { data: nuevasActs } = await supabase.from("actividades").select("id, nombre");
+        setActividades(mapById({ data: nuevasActs }));
+      }, 10000);
+
+      // 🧹 Limpiar canal al desmontar
+      return () => {
+        clearInterval(intervalo);
+        supabase.removeChannel(canal);
+      };
   }, []);
           
  const validarFechas = () => {
