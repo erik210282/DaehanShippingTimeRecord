@@ -40,54 +40,78 @@ export default function Productividad() {
   const [errorFecha, setErrorFecha] = useState(""); 
 
   useEffect(() => {
+    const mapById = (arr) =>
+      arr?.data?.reduce((acc, cur) => {
+        acc[cur.id] = cur.nombre;
+        return acc;
+      }, {}) || {};
+
+    // 🧩 Función principal para cargar todos los datos
     const cargarDatos = async () => {
       const [regSnap, opSnap, prodSnap, actSnap] = await Promise.all([
-              supabase.from("actividades_realizadas").select("*"),
-              supabase.from("operadores").select("id, nombre"),
-              supabase.from("productos").select("id, nombre"),
-              supabase.from("actividades").select("id, nombre"),
-        ]);
-
-      const mapById = (arr) =>
-        arr?.data?.reduce((acc, cur) => {
-          acc[cur.id] = cur.nombre;
-          return acc;
-        }, {}) || {};
+        supabase.from("actividades_realizadas").select("*"),
+        supabase.from("operadores").select("id, nombre"),
+        supabase.from("productos").select("id, nombre"),
+        supabase.from("actividades").select("id, nombre"),
+      ]);
 
       setOperadores(mapById(opSnap));
       setProductos(mapById(prodSnap));
       setActividades(mapById(actSnap));
 
-      const registrosFiltrados = regSnap?.data?.filter((r) => r.estado === "finalizada") || [];
-      setRegistros(registrosFiltrados);
+      // Esperar un breve momento para asegurar que React actualice los estados
+      setTimeout(() => {
+        const registrosFiltrados = regSnap?.data?.filter((r) => r.estado === "finalizada") || [];
+        setRegistros(registrosFiltrados);
+      }, 150);
     };
 
-   cargarDatos();
+    // 🟢 Cargar los datos al iniciar
+    cargarDatos();
 
-    const canal = supabase
-      .channel("realtime-productividad")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "actividades_realizadas" },
-        () => cargarDatos()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "operadores" },
-        () => cargarDatos()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "productos" },
-        () => cargarDatos()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "actividades" },
-        () => cargarDatos()
-      )
-      .subscribe();
+    // 🛰️ Configurar canal Realtime para todas las tablas
+    const canal = supabase.channel("realtime-productividad-mejorado");
 
+    // ✅ Actividades realizadas → refresca todo
+    canal.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "actividades_realizadas" },
+      () => cargarDatos()
+    );
+
+    // ✅ Operadores → actualiza solo el catálogo de operadores
+    canal.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "operadores" },
+      async () => {
+        const { data: nuevos } = await supabase.from("operadores").select("id, nombre");
+        setOperadores(mapById({ data: nuevos }));
+      }
+    );
+
+    // ✅ Productos → actualiza solo el catálogo de productos
+    canal.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "productos" },
+      async () => {
+        const { data: nuevos } = await supabase.from("productos").select("id, nombre");
+        setProductos(mapById({ data: nuevos }));
+      }
+    );
+
+    // ✅ Actividades → actualiza solo el catálogo de actividades
+    canal.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "actividades" },
+      async () => {
+        const { data: nuevos } = await supabase.from("actividades").select("id, nombre");
+        setActividades(mapById({ data: nuevos }));
+      }
+    );
+
+    canal.subscribe();
+
+    // 🧹 Limpiar canal al desmontar
     return () => {
       supabase.removeChannel(canal);
     };
