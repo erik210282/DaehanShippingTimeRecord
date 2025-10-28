@@ -241,20 +241,23 @@ export default function Productividad() {
 
   const calcularPromedioTiempo = () => {
     const datos = {};
+
     filtrarRegistros().forEach((r) => {
       let claves = [];
-      if (agrupadoPor === "operador") {
-        if (Array.isArray(r.operadores)) claves = r.operadores;
-        else if (typeof r.operadores === "string" && r.operadores.trim()) claves = [r.operadores.trim()];
-        else claves = [];
-      }
-      else if (agrupadoPor === "actividad") claves = [r.actividad];
-      else if (agrupadoPor === "producto") claves = Array.isArray(r.productos)
-        ? r.productos.map((p) => p.producto)
-        : [r.productos?.producto];
 
-      if (typeof r.duracion !== "number") return;
-      const duracionMin = r.duracion;
+      if (agrupadoPor === "operador") {
+        // ✅ usar normalización robusta
+        claves = normalizarOperadores(r.operadores);
+      } else if (agrupadoPor === "actividad") {
+        claves = [r.actividad];
+      } else if (agrupadoPor === "producto") {
+        // ✅ usar normalización robusta
+        claves = normalizarProductos(r.productos);
+      }
+
+      // ✅ aceptar "16", "16 min", o calcular desde timestamps
+      const duracionMin = getDuracionMin(r);
+      if (!Number.isFinite(duracionMin)) return;
 
       claves.forEach((clave) => {
         if (!datos[clave]) datos[clave] = { total: 0, count: 0 };
@@ -273,32 +276,32 @@ export default function Productividad() {
 
   const calcularPromedioCruzado = () => {
     const datos = {};
+
     filtrarRegistros().forEach((r) => {
       let claves = [];
       let claves2 = [];
 
+      // Grupo 1
       if (agrupadoPor === "operador") {
-        if (Array.isArray(r.operadores)) claves = r.operadores;
-        else if (typeof r.operadores === "string" && r.operadores.trim()) claves = [r.operadores.trim()];
-        else claves = [];
+        claves = normalizarOperadores(r.operadores);
+      } else if (agrupadoPor === "actividad") {
+        claves = [r.actividad];
+      } else if (agrupadoPor === "producto") {
+        claves = normalizarProductos(r.productos);
       }
-      else if (agrupadoPor === "actividad") claves = [r.actividad];
-      else if (agrupadoPor === "producto") claves = Array.isArray(r.productos)
-        ? r.productos.map((p) => p.producto)
-        : [r.productos?.producto];
 
+      // Grupo 2
       if (agrupadoPor2 === "operador") {
-        if (Array.isArray(r.operadores)) claves2 = r.operadores;
-        else if (typeof r.operadores === "string" && r.operadores.trim()) claves2 = [r.operadores.trim()];
-        else claves2 = [];
+        claves2 = normalizarOperadores(r.operadores);
+      } else if (agrupadoPor2 === "actividad") {
+        claves2 = [r.actividad];
+      } else if (agrupadoPor2 === "producto") {
+        claves2 = normalizarProductos(r.productos);
       }
-      else if (agrupadoPor2 === "actividad") claves2 = [r.actividad];
-      else if (agrupadoPor2 === "producto") claves2 = Array.isArray(r.productos)
-        ? r.productos.map((p) => p.producto)
-        : [r.productos?.producto];
 
-      if (typeof r.duracion !== "number") return;
-      const duracionMin = r.duracion;
+      // Duración robusta
+      const duracionMin = getDuracionMin(r);
+      if (!Number.isFinite(duracionMin)) return;
 
       claves.forEach((k1) => {
         claves2.forEach((k2) => {
@@ -319,7 +322,8 @@ export default function Productividad() {
   };
 
  const datosPromedio = useMemo(() => {
-  const base = calcularPromedioTiempo();
+    const base = calcularPromedioTiempo();
+
     if (agrupadoPor === "operador") {
       Object.keys(operadores || {}).forEach((id) => {
         if (base[id] == null) base[id] = 0;
@@ -333,6 +337,7 @@ export default function Productividad() {
         if (base[id] == null) base[id] = 0;
       });
     }
+
     return base;
   }, [registros, agrupadoPor, desde, hasta, operadores, actividades, productos]);
 
