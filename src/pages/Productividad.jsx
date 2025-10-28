@@ -306,6 +306,29 @@ export default function Productividad() {
         claves = normalizarProductos(rawProducto);
       }
 
+      if (agrupadoPor === "operador") {
+        const rawOperador =
+          r.operadores ?? r.operador ?? r.operator ??
+          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ?? null;
+
+        // 🔎 Pega aquí
+        if (!rawOperador || (Array.isArray(rawOperador) && rawOperador.length === 0)) {
+          console.debug("SIN OPERADOR RAW", { id: r.id, rawOperador: rawOperador, registro: r });
+        }
+
+        claves = normalizarOperadores(rawOperador);
+      } else if (agrupadoPor === "producto") {
+        const rawProducto =
+          r.productos ?? r.producto ?? r.product ??
+          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ?? null;
+
+        // 🔎 Pega aquí también
+        if (!rawProducto || (Array.isArray(rawProducto) && rawProducto.length === 0)) {
+          console.debug("SIN PRODUCTO RAW", { id: r.id, rawProducto: rawProducto, registro: r });
+        }
+
+        claves = normalizarProductos(rawProducto);
+      }
       // ✅ aceptar "16", "16 min", o calcular desde timestamps
       const duracionMin = getDuracionMin(r);
       if (claves.length === 0) {
