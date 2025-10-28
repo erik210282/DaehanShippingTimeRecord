@@ -139,11 +139,17 @@ export default function Productividad() {
 
   const filtrarRegistros = () => {
     if (!validarFechas()) return [];
+    const start = desde ? new Date(`${desde}T00:00:00.000`) : null;
+    const end   = hasta ? new Date(`${hasta}T23:59:59.999`) : null;
+
     return registros.filter((r) => {
-      const inicio = new Date(r.hora_inicio);
+      // Usa hora_inicio y si viene nulo, cae a createdAt
+      const stamp = r.hora_inicio || r.createdAt;
+      const inicio = stamp ? new Date(stamp) : null;
       if (!inicio) return false;
-      if (desde && inicio < new Date(desde)) return false;
-      if (hasta && inicio > new Date(hasta)) return false;
+
+      if (start && inicio < start) return false;
+      if (end && inicio > end) return false;
       return true;
     });
   };
@@ -152,7 +158,11 @@ export default function Productividad() {
     const datos = {};
     filtrarRegistros().forEach((r) => {
       let claves = [];
-      if (agrupadoPor === "operador") claves = Array.isArray(r.operadores) ? r.operadores : [];
+      if (agrupadoPor === "operador") {
+        if (Array.isArray(r.operadores)) claves = r.operadores;
+        else if (typeof r.operadores === "string" && r.operadores.trim()) claves = [r.operadores.trim()];
+        else claves = [];
+      }
       else if (agrupadoPor === "actividad") claves = [r.actividad];
       else if (agrupadoPor === "producto") claves = Array.isArray(r.productos)
         ? r.productos.map((p) => p.producto)
@@ -182,13 +192,21 @@ export default function Productividad() {
       let claves = [];
       let claves2 = [];
 
-      if (agrupadoPor === "operador") claves = Array.isArray(r.operadores) ? r.operadores : [];
+      if (agrupadoPor === "operador") {
+        if (Array.isArray(r.operadores)) claves = r.operadores;
+        else if (typeof r.operadores === "string" && r.operadores.trim()) claves = [r.operadores.trim()];
+        else claves = [];
+      }
       else if (agrupadoPor === "actividad") claves = [r.actividad];
       else if (agrupadoPor === "producto") claves = Array.isArray(r.productos)
         ? r.productos.map((p) => p.producto)
         : [r.productos?.producto];
 
-      if (agrupadoPor2 === "operador") claves2 = Array.isArray(r.operadores) ? r.operadores : [];
+      if (agrupadoPor2 === "operador") {
+        if (Array.isArray(r.operadores)) claves2 = r.operadores;
+        else if (typeof r.operadores === "string" && r.operadores.trim()) claves2 = [r.operadores.trim()];
+        else claves2 = [];
+      }
       else if (agrupadoPor2 === "actividad") claves2 = [r.actividad];
       else if (agrupadoPor2 === "producto") claves2 = Array.isArray(r.productos)
         ? r.productos.map((p) => p.producto)
@@ -215,7 +233,24 @@ export default function Productividad() {
     return resultado;
   };
 
-  const datosPromedio = useMemo(() => calcularPromedioTiempo(), [registros, agrupadoPor, desde, hasta]);
+ const datosPromedio = useMemo(() => {
+  const base = calcularPromedioTiempo();
+    if (agrupadoPor === "operador") {
+      Object.keys(operadores || {}).forEach((id) => {
+        if (base[id] == null) base[id] = 0;
+      });
+    } else if (agrupadoPor === "actividad") {
+      Object.keys(actividades || {}).forEach((id) => {
+        if (base[id] == null) base[id] = 0;
+      });
+    } else if (agrupadoPor === "producto") {
+      Object.keys(productos || {}).forEach((id) => {
+        if (base[id] == null) base[id] = 0;
+      });
+    }
+    return base;
+  }, [registros, agrupadoPor, desde, hasta, operadores, actividades, productos]);
+
   const datosPromedioCruzado = useMemo(() => calcularPromedioCruzado(), [registros, agrupadoPor, agrupadoPor2, desde, hasta]);
 
   const etiquetasOrdenadas = Object.keys(datosPromedio)
