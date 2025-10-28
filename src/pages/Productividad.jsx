@@ -152,10 +152,21 @@ export default function Productividad() {
     });
   };
 
+  const norm = (s = "") =>
+  s
+    .toString()
+    .normalize("NFD")                     // separa acentos
+    .replace(/[\u0300-\u036f]/g, "")      // quita acentos
+    .replace(/\u00A0/g, " ")              // NBSP -> espacio normal
+    .replace(/\s+/g, " ")                 // colapsa múltiples espacios
+    .trim()
+    .toLowerCase();
+
   const operadoresNombreToId = useMemo(() => {
     const out = {};
     Object.entries(operadores || {}).forEach(([id, nombre]) => {
-      if (nombre) out[nombre.trim().toLowerCase()] = id;
+      const k = norm(nombre);
+      if (k) out[k] = id;
     });
     return out;
   }, [operadores]);
@@ -163,7 +174,8 @@ export default function Productividad() {
   const productosNombreToId = useMemo(() => {
     const out = {};
     Object.entries(productos || {}).forEach(([id, nombre]) => {
-      if (nombre) out[nombre.trim().toLowerCase()] = id;
+      const k = norm(nombre);
+      if (k) out[k] = id;
     });
     return out;
   }, [productos]);
@@ -204,67 +216,55 @@ export default function Productividad() {
 
   // Normaliza r.operadores a un array de IDs válidos (acepta array, string, objeto)
   const normalizarOperadores = (op) => {
-    const pushVal = (s, acc) => {
-      const v = s.trim();
-      if (!v) return;
-      // Si es nombre, mapea a id; si no hay id, deja el string
-      const byName = operadoresNombreToId[v.toLowerCase()];
-      acc.push(byName || v);
-    };
-
     const ids = [];
+    const push = (raw) => {
+      const k = norm(raw);
+      if (!k) return;
+      const id = operadoresNombreToId[k] || raw.toString().trim();
+      ids.push(id);
+    };
 
     if (Array.isArray(op)) {
       op.forEach((item) => {
         if (typeof item === "string") {
-          // Puede venir "Carlos, Jeannine"
-          item.split(/[;,]/).forEach((p) => pushVal(p, ids));
+          item.split(/[;,|]/).forEach(push);             // soporta "A, B" o "A;B"
         } else if (item && typeof item === "object") {
-          // soporta {id|value|uid|operador|nombre}
           const raw =
-            item.id ||
-            item.value ||
-            item.uid ||
-            item.operador ||
-            (item.nombre ? operadoresNombreToId[item.nombre.trim().toLowerCase()] : null);
-          if (raw) pushVal(String(raw), ids);
+            item.id || item.value || item.uid || item.operador ||
+            (item.nombre ? operadoresNombreToId[norm(item.nombre)] : null);
+          if (raw) push(raw);
         }
       });
     } else if (typeof op === "string") {
-      op.split(/[;,]/).forEach((p) => pushVal(p, ids));
+      op.split(/[;,|]/).forEach(push);
     }
 
-    // Únicos y no vacíos
     return [...new Set(ids.filter(Boolean))];
   };
 
   const normalizarProductos = (prod) => {
-    const pushVal = (s, acc) => {
-      const v = s.trim();
-      if (!v) return;
-      // Si llega el nombre, mapea a id; si no existe en catálogo, deja el string (clave suelta)
-      const byName = productosNombreToId[v.toLowerCase()];
-      acc.push(byName || v);
-    };
-
     const out = [];
+    const push = (raw) => {
+      const k = norm(raw);
+      if (!k) return;
+      const id = productosNombreToId[k] || raw.toString().trim();
+      out.push(id);
+    };
 
     if (Array.isArray(prod)) {
       prod.forEach((p) => {
         if (p && typeof p === "object") {
-          // Estructuras comunes { producto: 'id' } ó { nombre: 'MS Headliner' }
-          if (p.producto) pushVal(String(p.producto), out);
-          else if (p.nombre) pushVal(String(p.nombre), out);
+          if (p.producto) push(p.producto);
+          else if (p.nombre) push(p.nombre);
         } else if (typeof p === "string") {
-          // Puede venir "MS Headliner, HL TSLH"
-          p.split(/[;,]/).forEach((q) => pushVal(q, out));
+          p.split(/[;,|]/).forEach(push);
         }
       });
     } else if (prod && typeof prod === "object") {
-      if (prod.producto) pushVal(String(prod.producto), out);
-      else if (prod.nombre) pushVal(String(prod.nombre), out);
+      if (prod.producto) push(prod.producto);
+      else if (prod.nombre) push(prod.nombre);
     } else if (typeof prod === "string") {
-      prod.split(/[;,]/).forEach((q) => pushVal(q, out));
+      prod.split(/[;,|]/).forEach(push);
     }
 
     return [...new Set(out.filter(Boolean))];
@@ -293,6 +293,20 @@ export default function Productividad() {
       }
       if (!Number.isFinite(getDuracionMin(r))) {
         console.log("DEBUG duracion invalida", { r, dur: r.duracion });
+      }
+      if (agrupadoPor === "producto") {
+        claves.forEach((k) => {
+          if (!productos[k]) {
+            console.debug("Producto fuera de catálogo (usando clave libre):", k);
+          }
+        });
+      }
+      if (agrupadoPor === "operador") {
+        claves.forEach((k) => {
+          if (!operadores[k]) {
+            console.debug("Operador fuera de catálogo (usando clave libre):", k);
+          }
+        });
       }
       if (!Number.isFinite(duracionMin)) return;
 
