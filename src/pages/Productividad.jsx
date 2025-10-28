@@ -160,6 +160,14 @@ export default function Productividad() {
     return out;
   }, [operadores]);
 
+  const productosNombreToId = useMemo(() => {
+    const out = {};
+    Object.entries(productos || {}).forEach(([id, nombre]) => {
+      if (nombre) out[nombre.trim().toLowerCase()] = id;
+    });
+    return out;
+  }, [productos]);
+
   const getDuracionMin = (r) => {
     // 1) número directo
     if (typeof r.duracion === "number" && Number.isFinite(r.duracion)) return r.duracion;
@@ -196,46 +204,69 @@ export default function Productividad() {
 
   // Normaliza r.operadores a un array de IDs válidos (acepta array, string, objeto)
   const normalizarOperadores = (op) => {
+    const pushVal = (s, acc) => {
+      const v = s.trim();
+      if (!v) return;
+      // Si es nombre, mapea a id; si no hay id, deja el string
+      const byName = operadoresNombreToId[v.toLowerCase()];
+      acc.push(byName || v);
+    };
+
     const ids = [];
+
     if (Array.isArray(op)) {
       op.forEach((item) => {
         if (typeof item === "string") {
-          const s = item.trim();
-          const byName = operadoresNombreToId[s.toLowerCase()];
-          ids.push(byName || s);
+          // Puede venir "Carlos, Jeannine"
+          item.split(/[;,]/).forEach((p) => pushVal(p, ids));
         } else if (item && typeof item === "object") {
-          const id =
+          // soporta {id|value|uid|operador|nombre}
+          const raw =
             item.id ||
             item.value ||
             item.uid ||
             item.operador ||
             (item.nombre ? operadoresNombreToId[item.nombre.trim().toLowerCase()] : null);
-          if (id) ids.push(String(id).trim());
+          if (raw) pushVal(String(raw), ids);
         }
       });
-    } else if (typeof op === "string" && op.trim()) {
-      const s = op.trim();
-      const byName = operadoresNombreToId[s.toLowerCase()];
-      ids.push(byName || s);
+    } else if (typeof op === "string") {
+      op.split(/[;,]/).forEach((p) => pushVal(p, ids));
     }
+
+    // Únicos y no vacíos
     return [...new Set(ids.filter(Boolean))];
   };
 
   const normalizarProductos = (prod) => {
+    const pushVal = (s, acc) => {
+      const v = s.trim();
+      if (!v) return;
+      // Si llega el nombre, mapea a id; si no existe en catálogo, deja el string (clave suelta)
+      const byName = productosNombreToId[v.toLowerCase()];
+      acc.push(byName || v);
+    };
+
     const out = [];
+
     if (Array.isArray(prod)) {
       prod.forEach((p) => {
-        if (p && typeof p === "object" && p.producto) {
-          out.push(String(p.producto));
+        if (p && typeof p === "object") {
+          // Estructuras comunes { producto: 'id' } ó { nombre: 'MS Headliner' }
+          if (p.producto) pushVal(String(p.producto), out);
+          else if (p.nombre) pushVal(String(p.nombre), out);
         } else if (typeof p === "string") {
-          out.push(p.trim());
+          // Puede venir "MS Headliner, HL TSLH"
+          p.split(/[;,]/).forEach((q) => pushVal(q, out));
         }
       });
-    } else if (prod && typeof prod === "object" && prod.producto) {
-      out.push(String(prod.producto));
+    } else if (prod && typeof prod === "object") {
+      if (prod.producto) pushVal(String(prod.producto), out);
+      else if (prod.nombre) pushVal(String(prod.nombre), out);
     } else if (typeof prod === "string") {
-      out.push(prod.trim());
+      prod.split(/[;,]/).forEach((q) => pushVal(q, out));
     }
+
     return [...new Set(out.filter(Boolean))];
   };
 
@@ -257,6 +288,12 @@ export default function Productividad() {
 
       // ✅ aceptar "16", "16 min", o calcular desde timestamps
       const duracionMin = getDuracionMin(r);
+      if (claves.length === 0) {
+        console.log("DEBUG sin claves", { r });
+      }
+      if (!Number.isFinite(getDuracionMin(r))) {
+        console.log("DEBUG duracion invalida", { r, dur: r.duracion });
+      }
       if (!Number.isFinite(duracionMin)) return;
 
       claves.forEach((clave) => {
