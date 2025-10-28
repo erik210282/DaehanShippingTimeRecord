@@ -143,15 +143,100 @@ export default function Productividad() {
     const end   = hasta ? new Date(`${hasta}T23:59:59.999`) : null;
 
     return registros.filter((r) => {
-      // Usa hora_inicio y si viene nulo, cae a createdAt
       const stamp = r.hora_inicio || r.createdAt;
       const inicio = stamp ? new Date(stamp) : null;
       if (!inicio) return false;
-
       if (start && inicio < start) return false;
       if (end && inicio > end) return false;
       return true;
     });
+  };
+
+  const operadoresNombreToId = useMemo(() => {
+    const out = {};
+    Object.entries(operadores || {}).forEach(([id, nombre]) => {
+      if (nombre) out[nombre.trim().toLowerCase()] = id;
+    });
+    return out;
+  }, [operadores]);
+
+  const getDuracionMin = (r) => {
+    // 1) número directo
+    if (typeof r.duracion === "number" && Number.isFinite(r.duracion)) return r.duracion;
+
+    // 2) string tipo "16" o "16 min"
+    if (typeof r.duracion === "string") {
+      const match = r.duracion.match(/-?\d+(\.\d+)?/);
+      if (match) {
+        const n = Number(match[0]);
+        if (Number.isFinite(n)) return n;
+      }
+    }
+
+    // 3) fallback: calcula por timestamps (sin descontar pausas)
+    if (r.hora_inicio && r.hora_fin) {
+      const ini = new Date(r.hora_inicio).getTime();
+      const fin = new Date(r.hora_fin).getTime();
+      if (Number.isFinite(ini) && Number.isFinite(fin) && fin > ini) {
+        return Math.round((fin - ini) / 60000);
+      }
+    }
+
+    // 4) último intento: createdAt / updatedAt
+    if (r.createdAt && r.updatedAt) {
+      const ini = new Date(r.createdAt).getTime();
+      const fin = new Date(r.updatedAt).getTime();
+      if (Number.isFinite(ini) && Number.isFinite(fin) && fin > ini) {
+        return Math.round((fin - ini) / 60000);
+      }
+    }
+
+    return null;
+  };
+
+  // Normaliza r.operadores a un array de IDs válidos (acepta array, string, objeto)
+  const normalizarOperadores = (op) => {
+    const ids = [];
+    if (Array.isArray(op)) {
+      op.forEach((item) => {
+        if (typeof item === "string") {
+          const s = item.trim();
+          const byName = operadoresNombreToId[s.toLowerCase()];
+          ids.push(byName || s);
+        } else if (item && typeof item === "object") {
+          const id =
+            item.id ||
+            item.value ||
+            item.uid ||
+            item.operador ||
+            (item.nombre ? operadoresNombreToId[item.nombre.trim().toLowerCase()] : null);
+          if (id) ids.push(String(id).trim());
+        }
+      });
+    } else if (typeof op === "string" && op.trim()) {
+      const s = op.trim();
+      const byName = operadoresNombreToId[s.toLowerCase()];
+      ids.push(byName || s);
+    }
+    return [...new Set(ids.filter(Boolean))];
+  };
+
+  const normalizarProductos = (prod) => {
+    const out = [];
+    if (Array.isArray(prod)) {
+      prod.forEach((p) => {
+        if (p && typeof p === "object" && p.producto) {
+          out.push(String(p.producto));
+        } else if (typeof p === "string") {
+          out.push(p.trim());
+        }
+      });
+    } else if (prod && typeof prod === "object" && prod.producto) {
+      out.push(String(prod.producto));
+    } else if (typeof prod === "string") {
+      out.push(prod.trim());
+    }
+    return [...new Set(out.filter(Boolean))];
   };
 
   const calcularPromedioTiempo = () => {
