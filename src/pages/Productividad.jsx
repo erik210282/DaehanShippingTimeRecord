@@ -361,61 +361,65 @@ export default function Productividad() {
 
     filtrarRegistros().forEach((r) => {
       let claves = [];
+      let rawOperador = null;
+      let rawProducto = null;
+      let rawActividad = null;
 
       if (agrupadoPor === "operador") {
-        const rawOperador =
+        rawOperador =
           r.operadores ?? r.operador ?? r.operator ??
           r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ??
           r.meta?.operador ?? r.meta?.operator ?? null;
+
         claves = normalizarOperadores(rawOperador);
+
       } else if (agrupadoPor === "actividad") {
-        const rawActividad =
+        rawActividad =
           r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ??
           r.meta?.actividad ?? r.meta?.activity ?? null;
+
         const acts = normalizarActividad(rawActividad);
         claves = acts.length ? acts : [];
+
       } else if (agrupadoPor === "producto") {
-        const rawProducto =
+        rawProducto =
           r.productos ?? r.producto ?? r.product ??
           r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ??
           r.meta?.producto ?? r.meta?.product ?? null;
+
         claves = normalizarProductos(rawProducto);
       }
 
       if (claves.length === 0) {
         console.debug("SIN CLAVES", {
           agrupadoPor,
-          operRaw: r.operadores ?? r.operador ?? r.operador_id ?? r.meta?.operador,
-          prodRaw: r.productos ?? r.producto ?? r.producto_id ?? r.meta?.producto,
-          actRaw:  r.actividad ?? r.actividad_id ?? r.meta?.actividad,
-          registro: r
+          rawOperador,
+          rawProducto,
+          rawActividad,
+          registro: r,
         });
       }
-
-      // ✅ aceptar "16", "16 min", o calcular desde timestamps
+      // Aceptar "16", "16 min", o timestamps
       const duracionMin = getDuracionMin(r);
-      if (claves.length === 0) {
-        console.log("DEBUG sin claves", { r });
+      if (!Number.isFinite(duracionMin)) {
+        console.debug("Duración inválida", { r, dur: r.duracion });
+        return;
       }
-      if (!Number.isFinite(getDuracionMin(r))) {
-        console.log("DEBUG duracion invalida", { r, dur: r.duracion });
-      }
+
+      // Más debug opcional: avisar si la clave no existe en el catálogo
       if (agrupadoPor === "producto") {
         claves.forEach((k) => {
-          if (!productos[k]) {
-            console.debug("Producto fuera de catálogo (usando clave libre):", k);
-          }
+          if (!productos[k]) console.debug("Producto fuera de catálogo (clave libre):", k);
         });
-      }
-      if (agrupadoPor === "operador") {
+      } else if (agrupadoPor === "operador") {
         claves.forEach((k) => {
-          if (!operadores[k]) {
-            console.debug("Operador fuera de catálogo (usando clave libre):", k);
-          }
+          if (!operadores[k]) console.debug("Operador fuera de catálogo (clave libre):", k);
         });
       }
-      if (!Number.isFinite(duracionMin)) return;
 
+      if (claves.length === 0) return;
+
+      // Acumular
       claves.forEach((clave) => {
         if (!datos[clave]) datos[clave] = { total: 0, count: 0 };
         datos[clave].total += duracionMin;
@@ -430,6 +434,7 @@ export default function Productividad() {
     }
     return resultado;
   };
+
 
   const calcularPromedioCruzado = () => {
     const datos = {};
