@@ -256,31 +256,52 @@ export default function Productividad() {
     const push = (raw) => {
       const k = norm(String(raw));
       if (!k) return;
-      // si viene nombre, mapea a id; si ya es id, se queda
       const idByName = productosNombreToId[k];
       out.push(idByName || String(raw).trim());
     };
 
+    const pushFromObj = (p) => {
+      // variantes directas
+      if (p.id) return push(p.id);
+      if (p.value) {
+        if (typeof p.value === "object") {
+          if (p.value.id) return push(p.value.id);
+          if (p.value.nombre) return push(p.value.nombre);
+        }
+        return push(p.value);
+      }
+      if (p.producto) {
+        if (typeof p.producto === "object") {
+          if (p.producto.id) return push(p.producto.id);
+          if (p.producto.nombre) return push(p.producto.nombre);
+        }
+        return push(p.producto);
+      }
+      if (p.nombre) return push(p.nombre);
+
+      // variantes anidadas comunes
+      if (p.product && typeof p.product === "object") {
+        if (p.product.id) return push(p.product.id);
+        if (p.product.nombre) return push(p.product.nombre);
+      }
+      if (p.meta?.product?.id) return push(p.meta.product.id);
+      if (p.meta?.product?.nombre) return push(p.meta.product.nombre);
+    };
+
     if (Array.isArray(prod)) {
       prod.forEach((p) => {
-        if (p && typeof p === "object") {
-          // ✅ ahora soporta id/value/producto/nombre
-          if (p.id) push(p.id);
-          else if (p.value) push(p.value);
-          else if (p.producto) push(p.producto);
-          else if (p.nombre) push(p.nombre);
-        } else if (typeof p === "string") {
-          p.split(/[;,|]/).forEach(push);
+        if (!p) return;
+        if (typeof p === "object") pushFromObj(p);
+        else if (typeof p === "string" || typeof p === "number") {
+          String(p).split(/[;,|]/).forEach(push);
         }
       });
     } else if (prod && typeof prod === "object") {
-      if (prod.id) push(prod.id);
-      else if (prod.value) push(prod.value);
-      else if (prod.producto) push(prod.producto);
-      else if (prod.nombre) push(prod.nombre);
-    } else if (typeof prod === "string") {
-      prod.split(/[;,|]/).forEach(push);
+      pushFromObj(prod);
+    } else if (typeof prod === "string" || typeof prod === "number") {
+      String(prod).split(/[;,|]/).forEach(push);
     }
+
     return [...new Set(out.filter(Boolean))];
   };
 
@@ -289,34 +310,49 @@ export default function Productividad() {
     const push = (raw) => {
       const s = String(raw).trim();
       if (!s) return;
-      // si es nombre, mapea a id; si ya es id, se queda
       const k = norm(s);
       out.push(actividadesNombreToId[k] || s);
     };
 
-    if (!act) return out;
+    const pushFromObj = (a) => {
+      if (a.id) return push(a.id);
+      if (a.value) {
+        if (typeof a.value === "object") {
+          if (a.value.id) return push(a.value.id);
+          if (a.value.nombre) return push(a.value.nombre);
+        }
+        return push(a.value);
+      }
+      if (a.actividad) {
+        if (typeof a.actividad === "object") {
+          if (a.actividad.id) return push(a.actividad.id);
+          if (a.actividad.nombre) return push(a.actividad.nombre);
+        }
+        return push(a.actividad);
+      }
+      if (a.nombre) return push(a.nombre);
 
+      // variantes anidadas
+      if (a.meta?.activity?.id) return push(a.meta.activity.id);
+      if (a.meta?.activity?.nombre) return push(a.meta.activity.nombre);
+    };
+
+    if (!act) return out;
     if (Array.isArray(act)) {
       act.forEach((a) => {
-        if (a && typeof a === "object") {
-          if (a.id) push(a.id);
-          else if (a.value) push(a.value);
-          else if (a.actividad) push(a.actividad);
-          else if (a.nombre) push(a.nombre);
-        } else if (typeof a === "string") {
-          a.split(/[;,|]/).forEach(push);
+        if (!a) return;
+        if (typeof a === "object") pushFromObj(a);
+        else if (typeof a === "string" || typeof a === "number") {
+          String(a).split(/[;,|]/).forEach(push);
         }
       });
     } else if (typeof act === "object") {
-      if (act.id) push(act.id);
-      else if (act.value) push(act.value);
-      else if (act.actividad) push(act.actividad);
-      else if (act.nombre) push(act.nombre);
-    } else if (typeof act === "string") {
-      act.split(/[;,|]/).forEach(push);
+      pushFromObj(act);
+    } else if (typeof act === "string" || typeof act === "number") {
+      String(act).split(/[;,|]/).forEach(push);
     }
 
-    // actividad es una sola clave; si por alguna razón hay varias, las unificamos
+    // actividad es una sola clave; por seguridad, conservar 1
     return [...new Set(out.filter(Boolean))].slice(0, 1);
   };
 
@@ -327,70 +363,34 @@ export default function Productividad() {
       let claves = [];
 
       if (agrupadoPor === "operador") {
-        // ✅ usar normalización robusta
         const rawOperador =
-          r.operadores ??
-          r.operador ??
-          r.operator ??
-          r.operador_id ??
-          r.operadores_id ??
-          r.operadores_ids ??
-          r.operator_id ??
-          null;
-
+          r.operadores ?? r.operador ?? r.operator ??
+          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ??
+          r.meta?.operador ?? r.meta?.operator ?? null;
         claves = normalizarOperadores(rawOperador);
       } else if (agrupadoPor === "actividad") {
         const rawActividad =
-          r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ?? null;
+          r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ??
+          r.meta?.actividad ?? r.meta?.activity ?? null;
         const acts = normalizarActividad(rawActividad);
         claves = acts.length ? acts : [];
       } else if (agrupadoPor === "producto") {
-        // ✅ usar normalización robusta
-        const rawProducto =
-          r.productos ??
-          r.producto ??
-          r.product ??
-          r.producto_id ??
-          r.productos_id ??
-          r.productos_ids ??
-          r.product_id ??
-          null;
-
-        claves = normalizarProductos(rawProducto);
-      }
-
-      if (agrupadoPor === "operador") {
-        const rawOperador =
-          r.operadores ?? r.operador ?? r.operator ??
-          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ?? null;
-
-        // 🔎 Pega aquí
-        if (!rawOperador || (Array.isArray(rawOperador) && rawOperador.length === 0)) {
-          console.debug("SIN OPERADOR RAW", { id: r.id, rawOperador: rawOperador, registro: r });
-        }
-
-        claves = normalizarOperadores(rawOperador);
-      } else if (agrupadoPor === "producto") {
         const rawProducto =
           r.productos ?? r.producto ?? r.product ??
-          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ?? null;
-
-        // 🔎 Pega aquí también
-        if (!rawProducto || (Array.isArray(rawProducto) && rawProducto.length === 0)) {
-          console.debug("SIN PRODUCTO RAW", { id: r.id, rawProducto: rawProducto, registro: r });
-        }
-
+          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ??
+          r.meta?.producto ?? r.meta?.product ?? null;
         claves = normalizarProductos(rawProducto);
       }
 
       if (claves.length === 0) {
         console.debug("SIN CLAVES", {
           agrupadoPor,
-          operRaw: r.operadores ?? r.operador ?? r.operador_id,
-          prodRaw: r.productos ?? r.producto ?? r.producto_id,
-          actRaw: r.actividad ?? r.actividad_id
+          operRaw: r.operadores ?? r.operador ?? r.operador_id ?? r.meta?.operador,
+          prodRaw: r.productos ?? r.producto ?? r.producto_id ?? r.meta?.producto,
+          actRaw:  r.actividad ?? r.actividad_id ?? r.meta?.actividad,
+          registro: r
         });
-      } 
+      }
 
       // ✅ aceptar "16", "16 min", o calcular desde timestamps
       const duracionMin = getDuracionMin(r);
@@ -442,38 +442,43 @@ export default function Productividad() {
       if (agrupadoPor === "operador") {
         const rawOperador =
           r.operadores ?? r.operador ?? r.operator ??
-          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ?? null;
+          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ??
+          r.meta?.operador ?? r.meta?.operator ?? null;
         claves = normalizarOperadores(rawOperador);
       } else if (agrupadoPor === "producto") {
         const rawProducto =
           r.productos ?? r.producto ?? r.product ??
-          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ?? null;
+          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ??
+          r.meta?.producto ?? r.meta?.product ?? null;
         claves = normalizarProductos(rawProducto);
       } else if (agrupadoPor === "actividad") {
         const rawActividad =
-          r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ?? null;
+          r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ??
+          r.meta?.actividad ?? r.meta?.activity ?? null;
         const acts = normalizarActividad(rawActividad);
         claves = acts.length ? acts : [];
       }
 
-
       // Grupo 2
-     if (agrupadoPor2 === "operador") {
+      if (agrupadoPor2 === "operador") {
         const rawOperador2 =
           r.operadores ?? r.operador ?? r.operator ??
-          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ?? null;
+          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ??
+          r.meta?.operador ?? r.meta?.operator ?? null;
         claves2 = normalizarOperadores(rawOperador2);
       } else if (agrupadoPor2 === "producto") {
         const rawProducto2 =
           r.productos ?? r.producto ?? r.product ??
-          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ?? null;
+          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ??
+          r.meta?.producto ?? r.meta?.product ?? null;
         claves2 = normalizarProductos(rawProducto2);
       } else if (agrupadoPor2 === "actividad") {
         const rawActividad2 =
-          r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ?? null;
+          r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ??
+          r.meta?.actividad ?? r.meta?.activity ?? null;
         const acts2 = normalizarActividad(rawActividad2);
         claves2 = acts2.length ? acts2 : [];
-      }
+      } 
 
 
       // Duración robusta
