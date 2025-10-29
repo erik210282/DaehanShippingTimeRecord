@@ -102,6 +102,7 @@ export default function Productividad() {
     return true;
   };
 
+  
   const filtrarRegistros = () => {
     if (!validarFechas()) return [];
     return registros.filter((r) => {
