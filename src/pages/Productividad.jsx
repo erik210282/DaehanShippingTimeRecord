@@ -180,6 +180,15 @@ export default function Productividad() {
     return out;
   }, [productos]);
 
+  const actividadesNombreToId = useMemo(() => {
+    const out = {};
+    Object.entries(actividades || {}).forEach(([id, nombre]) => {
+      const k = norm(nombre);
+      if (k) out[k] = id;
+    });
+    return out;
+  }, [actividades]);
+
   const getDuracionMin = (r) => {
     // 1) número directo
     if (typeof r.duracion === "number" && Number.isFinite(r.duracion)) return r.duracion;
@@ -245,29 +254,70 @@ export default function Productividad() {
   const normalizarProductos = (prod) => {
     const out = [];
     const push = (raw) => {
-      const k = norm(raw);
+      const k = norm(String(raw));
       if (!k) return;
-      const id = productosNombreToId[k] || raw.toString().trim();
-      out.push(id);
+      // si viene nombre, mapea a id; si ya es id, se queda
+      const idByName = productosNombreToId[k];
+      out.push(idByName || String(raw).trim());
     };
 
     if (Array.isArray(prod)) {
       prod.forEach((p) => {
         if (p && typeof p === "object") {
-          if (p.producto) push(p.producto);
+          // ✅ ahora soporta id/value/producto/nombre
+          if (p.id) push(p.id);
+          else if (p.value) push(p.value);
+          else if (p.producto) push(p.producto);
           else if (p.nombre) push(p.nombre);
         } else if (typeof p === "string") {
           p.split(/[;,|]/).forEach(push);
         }
       });
     } else if (prod && typeof prod === "object") {
-      if (prod.producto) push(prod.producto);
+      if (prod.id) push(prod.id);
+      else if (prod.value) push(prod.value);
+      else if (prod.producto) push(prod.producto);
       else if (prod.nombre) push(prod.nombre);
     } else if (typeof prod === "string") {
       prod.split(/[;,|]/).forEach(push);
     }
-
     return [...new Set(out.filter(Boolean))];
+  };
+
+  const normalizarActividad = (act) => {
+    const out = [];
+    const push = (raw) => {
+      const s = String(raw).trim();
+      if (!s) return;
+      // si es nombre, mapea a id; si ya es id, se queda
+      const k = norm(s);
+      out.push(actividadesNombreToId[k] || s);
+    };
+
+    if (!act) return out;
+
+    if (Array.isArray(act)) {
+      act.forEach((a) => {
+        if (a && typeof a === "object") {
+          if (a.id) push(a.id);
+          else if (a.value) push(a.value);
+          else if (a.actividad) push(a.actividad);
+          else if (a.nombre) push(a.nombre);
+        } else if (typeof a === "string") {
+          a.split(/[;,|]/).forEach(push);
+        }
+      });
+    } else if (typeof act === "object") {
+      if (act.id) push(act.id);
+      else if (act.value) push(act.value);
+      else if (act.actividad) push(act.actividad);
+      else if (act.nombre) push(act.nombre);
+    } else if (typeof act === "string") {
+      act.split(/[;,|]/).forEach(push);
+    }
+
+    // actividad es una sola clave; si por alguna razón hay varias, las unificamos
+    return [...new Set(out.filter(Boolean))].slice(0, 1);
   };
 
   const calcularPromedioTiempo = () => {
@@ -290,7 +340,10 @@ export default function Productividad() {
 
         claves = normalizarOperadores(rawOperador);
       } else if (agrupadoPor === "actividad") {
-        claves = [r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id];
+        const rawActividad =
+          r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ?? null;
+        const acts = normalizarActividad(rawActividad);
+        claves = acts.length ? acts : [];
       } else if (agrupadoPor === "producto") {
         // ✅ usar normalización robusta
         const rawProducto =
@@ -329,6 +382,16 @@ export default function Productividad() {
 
         claves = normalizarProductos(rawProducto);
       }
+
+      if (claves.length === 0) {
+        console.debug("SIN CLAVES", {
+          agrupadoPor,
+          operRaw: r.operadores ?? r.operador ?? r.operador_id,
+          prodRaw: r.productos ?? r.producto ?? r.producto_id,
+          actRaw: r.actividad ?? r.actividad_id
+        });
+      } 
+
       // ✅ aceptar "16", "16 min", o calcular desde timestamps
       const duracionMin = getDuracionMin(r);
       if (claves.length === 0) {
@@ -387,8 +450,12 @@ export default function Productividad() {
           r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ?? null;
         claves = normalizarProductos(rawProducto);
       } else if (agrupadoPor === "actividad") {
-        claves = [r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id];
+        const rawActividad =
+          r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ?? null;
+        const acts = normalizarActividad(rawActividad);
+        claves = acts.length ? acts : [];
       }
+
 
       // Grupo 2
      if (agrupadoPor2 === "operador") {
@@ -402,8 +469,12 @@ export default function Productividad() {
           r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ?? null;
         claves2 = normalizarProductos(rawProducto2);
       } else if (agrupadoPor2 === "actividad") {
-        claves2 = [r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id];
+        const rawActividad2 =
+          r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ?? null;
+        const acts2 = normalizarActividad(rawActividad2);
+        claves2 = acts2.length ? acts2 : [];
       }
+
 
       // Duración robusta
       const duracionMin = getDuracionMin(r);
