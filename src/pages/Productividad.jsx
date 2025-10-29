@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { supabase } from "../supabase/client";
+import supabase from "../supabase/client";
 import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -40,92 +40,57 @@ export default function Productividad() {
   const [errorFecha, setErrorFecha] = useState(""); 
 
   useEffect(() => {
-    const mapById = (arr) =>
-      arr?.data?.reduce((acc, cur) => {
-        acc[cur.id] = cur.nombre;
-        return acc;
-      }, {}) || {};
-
-    // 🧩 Función principal para cargar todos los datos
     const cargarDatos = async () => {
       const [regSnap, opSnap, prodSnap, actSnap] = await Promise.all([
-        supabase.from("actividades_realizadas").select("*"),
-        supabase.from("operadores").select("id, nombre"),
-        supabase.from("productos").select("id, nombre"),
-        supabase.from("actividades").select("id, nombre"),
-      ]);
+              supabase.from("actividades_realizadas").select("*"),
+              supabase.from("operadores").select("id, nombre"),
+              supabase.from("productos").select("id, nombre"),
+              supabase.from("actividades").select("id, nombre"),
+        ]);
+
+      const mapById = (arr) =>
+        arr?.data?.reduce((acc, cur) => {
+          acc[cur.id] = cur.nombre;
+          return acc;
+        }, {}) || {};
 
       setOperadores(mapById(opSnap));
       setProductos(mapById(prodSnap));
       setActividades(mapById(actSnap));
 
-      // Esperar un breve momento para asegurar que React actualice los estados
-      setTimeout(() => {
-        const registrosFiltrados = regSnap?.data?.filter((r) => r.estado === "finalizada") || [];
-        setRegistros(registrosFiltrados);
-      }, 150);
+      const registrosFiltrados = regSnap?.data?.filter((r) => r.estado === "finalizada") || [];
+      setRegistros(registrosFiltrados);
     };
 
-    // 🟢 Cargar los datos al iniciar
-    cargarDatos();
+   cargarDatos();
 
-    // 🛰️ Configurar canal Realtime para todas las tablas
-    const canal = supabase.channel("realtime-productividad-mejorado");
+    const canal = supabase
+      .channel("realtime-productividad")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "actividades_realizadas" },
+        () => cargarDatos()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "operadores" },
+        () => cargarDatos()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "productos" },
+        () => cargarDatos()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "actividades" },
+        () => cargarDatos()
+      )
+      .subscribe();
 
-    // ✅ Actividades realizadas → refresca todo
-    canal.on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "actividades_realizadas" },
-      () => cargarDatos()
-    );
-
-    // ✅ Operadores → actualiza solo el catálogo de operadores
-    canal.on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "operadores" },
-      async () => {
-        const { data: nuevos } = await supabase.from("operadores").select("id, nombre");
-        setOperadores(mapById({ data: nuevos }));
-      }
-    );
-
-    // ✅ Productos → actualiza solo el catálogo de productos
-    canal.on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "productos" },
-      async () => {
-        const { data: nuevos } = await supabase.from("productos").select("id, nombre");
-        setProductos(mapById({ data: nuevos }));
-      }
-    );
-
-    // ✅ Actividades → actualiza solo el catálogo de actividades
-    canal.on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "actividades" },
-      async () => {
-        const { data: nuevos } = await supabase.from("actividades").select("id, nombre");
-        setActividades(mapById({ data: nuevos }));
-      }
-    );
-
-    canal.subscribe();
-    const intervalo = setInterval(async () => {
-        const { data: nuevosOps } = await supabase.from("operadores").select("id, nombre");
-        setOperadores(mapById({ data: nuevosOps }));
-
-        const { data: nuevosProd } = await supabase.from("productos").select("id, nombre");
-        setProductos(mapById({ data: nuevosProd }));
-
-        const { data: nuevasActs } = await supabase.from("actividades").select("id, nombre");
-        setActividades(mapById({ data: nuevasActs }));
-      }, 10000);
-
-      // 🧹 Limpiar canal al desmontar
-      return () => {
-        clearInterval(intervalo);
-        supabase.removeChannel(canal);
-      };
+    return () => {
+      supabase.removeChannel(canal);
+    };
   }, []);
           
  const validarFechas = () => {
@@ -139,319 +104,66 @@ export default function Productividad() {
 
   const filtrarRegistros = () => {
     if (!validarFechas()) return [];
-    const start = desde ? new Date(`${desde}T00:00:00.000`) : null;
-    const end   = hasta ? new Date(`${hasta}T23:59:59.999`) : null;
-
     return registros.filter((r) => {
-      const stamp = r.hora_inicio || r.createdAt;
-      const inicio = stamp ? new Date(stamp) : null;
+      const inicio = new Date(r.hora_inicio);
       if (!inicio) return false;
-      if (start && inicio < start) return false;
-      if (end && inicio > end) return false;
+      if (desde && inicio < new Date(desde)) return false;
+      if (hasta && inicio > new Date(hasta)) return false;
       return true;
     });
   };
 
-  // --- Helpers para parseo robusto ---
-  const safeParseJSON = (s) => {
-    if (typeof s !== "string") return null;
-    const trimmed = s.trim();
-    if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return null;
-    try { return JSON.parse(trimmed); } catch { return null; }
-  };
-
-  const splitLoose = (s) => {
-    // quita corchetes/comillas sueltas y separa por coma ; | o tab
-    return String(s)
-      .replace(/[\[\]"']/g, " ")
-      .split(/[;,|\t]/)
-      .map(x => x.trim())
-      .filter(Boolean);
-  };
-
-  const norm = (s = "") =>
-  s
-    .toString()
-    .normalize("NFD")                     // separa acentos
-    .replace(/[\u0300-\u036f]/g, "")      // quita acentos
-    .replace(/\u00A0/g, " ")              // NBSP -> espacio normal
-    .replace(/\s+/g, " ")                 // colapsa múltiples espacios
-    .trim()
-    .toLowerCase();
-
-  const operadoresNombreToId = useMemo(() => {
-    const out = {};
-    Object.entries(operadores || {}).forEach(([id, nombre]) => {
-      const k = norm(nombre);
-      if (k) out[k] = id;
-    });
-    return out;
-  }, [operadores]);
-
-  const productosNombreToId = useMemo(() => {
-    const out = {};
-    Object.entries(productos || {}).forEach(([id, nombre]) => {
-      const k = norm(nombre);
-      if (k) out[k] = id;
-    });
-    return out;
-  }, [productos]);
-
-  const actividadesNombreToId = useMemo(() => {
-    const out = {};
-    Object.entries(actividades || {}).forEach(([id, nombre]) => {
-      const k = norm(nombre);
-      if (k) out[k] = id;
-    });
-    return out;
-  }, [actividades]);
-
-  const getDuracionMin = (r) => {
-    // 1) número directo
-    if (typeof r.duracion === "number" && Number.isFinite(r.duracion)) return r.duracion;
-
-    // 2) string tipo "16" o "16 min"
-    if (typeof r.duracion === "string") {
-      const match = r.duracion.match(/-?\d+(\.\d+)?/);
-      if (match) {
-        const n = Number(match[0]);
-        if (Number.isFinite(n)) return n;
-      }
-    }
-
-    // 3) fallback: calcula por timestamps (sin descontar pausas)
-    if (r.hora_inicio && r.hora_fin) {
-      const ini = new Date(r.hora_inicio).getTime();
-      const fin = new Date(r.hora_fin).getTime();
-      if (Number.isFinite(ini) && Number.isFinite(fin) && fin > ini) {
-        return Math.round((fin - ini) / 60000);
-      }
-    }
-
-    // 4) último intento: createdAt / updatedAt
-    if (r.createdAt && r.updatedAt) {
-      const ini = new Date(r.createdAt).getTime();
-      const fin = new Date(r.updatedAt).getTime();
-      if (Number.isFinite(ini) && Number.isFinite(fin) && fin > ini) {
-        return Math.round((fin - ini) / 60000);
-      }
-    }
-
-    return null;
-  };
-
-  // Normaliza r.operadores a un array de IDs válidos (acepta array, string, objeto)
-  const normalizarOperadores = (op) => {
-    const ids = [];
-    const push = (raw) => {
-      const k = norm(raw);
-      if (!k) return;
-      const id = operadoresNombreToId[k] || String(raw).trim();
-      ids.push(id);
-    };
-
-    if (Array.isArray(op)) {
-      op.forEach((item) => {
-        if (typeof item === "string") {
-          // si viene como '["Carlos","Jeannine"]' se maneja arriba en safeParseJSON
-          splitLoose(item).forEach(push);
-        } else if (item && typeof item === "object") {
-          const raw =
-            item.id || item.value || item.uid || item.operador ||
-            (item.nombre ? operadoresNombreToId[norm(item.nombre)] : null);
-          if (raw) push(raw);
-        }
-      });
-    } else if (typeof op === "string") {
-      const parsed = safeParseJSON(op);
-      if (parsed) return normalizarOperadores(parsed);
-      splitLoose(op).forEach(push);
-    } else if (op && typeof op === "object") {
-      const raw =
-        op.id || op.value || op.uid || op.operador ||
-        (op.nombre ? operadoresNombreToId[norm(op.nombre)] : null);
-      if (raw) push(raw);
-    }
-
-    return [...new Set(ids.filter(Boolean))];
-  };
-
-  // normaliza productos a un array de IDs válidos
-  const normalizarProductos = (prod) => {
-    const out = [];
-    const push = (raw) => {
-      const k = norm(String(raw));              // "ms headliner"
-      if (!k) return;
-      const id = productosNombreToId[k] || String(raw).trim();  // id por nombre o el raw
-      out.push(id);
-    };
-
-    if (Array.isArray(prod)) {
-      prod.forEach((p) => {
-        if (p && typeof p === "object") {
-          // casos { producto, id, nombre, value }
-          if (p.producto) push(p.producto);
-          else if (p.id) push(p.id);
-          else if (p.nombre) push(p.nombre);
-          else if (p.value) push(p.value);
-        } else if (typeof p === "string") {
-          p.split(/[;|]/).forEach(push); // soporta "A|B"
-        }
-      });
-    } else if (prod && typeof prod === "object") {
-      if (prod.producto) push(prod.producto);
-      else if (prod.id) push(prod.id);
-      else if (prod.nombre) push(prod.nombre);
-      else if (prod.value) push(prod.value);
-    } else if (typeof prod === "string" && prod.trim()) {
-      prod.split(/[;|]/).forEach(push);
-    }
-
-    return [...new Set(out.filter(Boolean))];
-  };
-
-  const normalizarActividad = (act) => {
-    const out = [];
-    const push = (raw) => {
-      const s = String(raw).trim();
-      if (!s) return;
-      const k = norm(s);
-      out.push(actividadesNombreToId[k] || s);
-    };
-
-    const pushFromObj = (a) => {
-      if (!a) return;
-      if (a.id) return push(a.id);
-      if (a.value) return push(a.value.id ?? a.value.nombre ?? a.value);
-      if (a.actividad) return push(a.actividad.id ?? a.actividad.nombre ?? a.actividad);
-      if (a.nombre) return push(a.nombre);
-      if (a.meta?.activity) return push(a.meta.activity.id ?? a.meta.activity.nombre);
-    };
-
-    if (!act) return out;
-    if (Array.isArray(act)) {
-      act.forEach((a) => {
-        if (typeof a === "object") pushFromObj(a);
-        else splitLoose(a).forEach(push);
-      });
-    } else if (typeof act === "string") {
-      const parsed = safeParseJSON(act);
-      if (parsed) return normalizarActividad(parsed);
-      splitLoose(act).forEach(push);
-    } else if (typeof act === "object") {
-      pushFromObj(act);
-    } else if (typeof act === "number") {
-      push(act);
-    }
-
-    // una sola actividad por registro
-    return [...new Set(out.filter(Boolean))].slice(0, 1);
-  };
-
   const calcularPromedioTiempo = () => {
     const datos = {};
-
     filtrarRegistros().forEach((r) => {
       let claves = [];
+      if (agrupadoPor === "operador") claves = Array.isArray(r.operadores) ? r.operadores : [];
+      else if (agrupadoPor === "actividad") claves = [r.actividad];
+      else if (agrupadoPor === "producto") claves = Array.isArray(r.productos)
+        ? r.productos.map((p) => p.producto)
+        : [r.productos?.producto];
 
-      if (agrupadoPor === "operador") {
-        claves = normalizarOperadores(
-          r.operadores ?? r.operador ?? r.operator ??
-          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ??
-          r.meta?.operador ?? r.meta?.operator ?? null
-        );
-      } else if (agrupadoPor === "actividad") {
-        const act = r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ?? r.meta?.actividad ?? r.meta?.activity ?? null;
-        claves = act ? [String(act)] : [];
-      } else if (agrupadoPor === "producto") {
-        claves = normalizarProductos(
-          r.productos ?? r.producto ?? r.product ??
-          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ??
-          r.meta?.producto ?? r.meta?.product ?? null
-        );
-      }
+      if (typeof r.duracion !== "number") return;
+      const duracionMin = r.duracion;
 
-      // 🔍 Log de depuración temporal para productos
-      if (agrupadoPor === "producto") {
-        if (!claves.length) {
-          console.debug("SIN PRODUCTO normalizado", {
-            raw: r.productos ?? r.producto ?? r.product ?? r.producto_id ?? r.meta?.producto,
-            registro: r
-          });
-        } else {
-          claves.forEach((k) => {
-            if (!productos[k]) console.debug("Producto fuera de catálogo (clave libre):", k, r);
-          });
-        }
-      }
-
-      // duración robusta
-      const duracionMin = getDuracionMin(r);
-      if (!Number.isFinite(duracionMin) || !claves.length) return;
-
-      claves.forEach((k) => {
-        if (!datos[k]) datos[k] = { total: 0, count: 0 };
-        datos[k].total += duracionMin;
-        datos[k].count += 1;
+      claves.forEach((clave) => {
+        if (!datos[clave]) datos[clave] = { total: 0, count: 0 };
+        datos[clave].total += duracionMin;
+        datos[clave].count += 1;
       });
     });
 
     const resultado = {};
-    for (const k in datos) {
-      const { total, count } = datos[k];
-      resultado[k] = Math.round(total / count);
+    for (const clave in datos) {
+      const { total, count } = datos[clave];
+      resultado[clave] = Math.round(total / count);
     }
     return resultado;
   };
 
   const calcularPromedioCruzado = () => {
     const datos = {};
-
     filtrarRegistros().forEach((r) => {
-      // Grupo 1
-      let g1 = [];
-      if (agrupadoPor === "operador") {
-        g1 = normalizarOperadores(
-          r.operadores ?? r.operador ?? r.operator ??
-          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ??
-          r.meta?.operador ?? r.meta?.operator ?? null
-        );
-      } else if (agrupadoPor === "actividad") {
-        const act = r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ?? r.meta?.actividad ?? r.meta?.activity ?? null;
-        g1 = act ? [String(act)] : [];
-      } else if (agrupadoPor === "producto") {
-        g1 = normalizarProductos(
-          r.productos ?? r.producto ?? r.product ??
-          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ??
-          r.meta?.producto ?? r.meta?.product ?? null
-        );
-      }
+      let claves = [];
+      let claves2 = [];
 
-      // Grupo 2
-      let g2 = [];
-      if (agrupadoPor2 === "operador") {
-        g2 = normalizarOperadores(
-          r.operadores ?? r.operador ?? r.operator ??
-          r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ??
-          r.meta?.operador ?? r.meta?.operator ?? null
-        );
-      } else if (agrupadoPor2 === "actividad") {
-        const act2 = r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ?? r.meta?.actividad ?? r.meta?.activity ?? null;
-        g2 = act2 ? [String(act2)] : [];
-      } else if (agrupadoPor2 === "producto") {
-        g2 = normalizarProductos(
-          r.productos ?? r.producto ?? r.product ??
-          r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ??
-          r.meta?.producto ?? r.meta?.product ?? null
-        );
-      }
+      if (agrupadoPor === "operador") claves = Array.isArray(r.operadores) ? r.operadores : [];
+      else if (agrupadoPor === "actividad") claves = [r.actividad];
+      else if (agrupadoPor === "producto") claves = Array.isArray(r.productos)
+        ? r.productos.map((p) => p.producto)
+        : [r.productos?.producto];
 
-      const duracionMin = getDuracionMin(r);
-      if (!Number.isFinite(duracionMin) || !g1.length || !g2.length) return;
+      if (agrupadoPor2 === "operador") claves2 = Array.isArray(r.operadores) ? r.operadores : [];
+      else if (agrupadoPor2 === "actividad") claves2 = [r.actividad];
+      else if (agrupadoPor2 === "producto") claves2 = Array.isArray(r.productos)
+        ? r.productos.map((p) => p.producto)
+        : [r.productos?.producto];
 
-      g1.forEach((k1) => {
-        g2.forEach((k2) => {
-          if (!k1 || !k2) return;
+      if (typeof r.duracion !== "number") return;
+      const duracionMin = r.duracion;
+
+      claves.forEach((k1) => {
+        claves2.forEach((k2) => {
           const key = `${k1} - ${k2}`;
           if (!datos[key]) datos[key] = { total: 0, count: 0 };
           datos[key].total += duracionMin;
@@ -468,27 +180,7 @@ export default function Productividad() {
     return resultado;
   };
 
-
- const datosPromedio = useMemo(() => {
-    const base = calcularPromedioTiempo();
-
-    if (agrupadoPor === "operador") {
-      Object.keys(operadores || {}).forEach((id) => {
-        if (base[id] == null) base[id] = 0;
-      });
-    } else if (agrupadoPor === "actividad") {
-      Object.keys(actividades || {}).forEach((id) => {
-        if (base[id] == null) base[id] = 0;
-      });
-    } else if (agrupadoPor === "producto") {
-      Object.keys(productos || {}).forEach((id) => {
-        if (base[id] == null) base[id] = 0;
-      });
-    }
-
-    return base;
-  }, [registros, agrupadoPor, desde, hasta, operadores, actividades, productos]);
-
+  const datosPromedio = useMemo(() => calcularPromedioTiempo(), [registros, agrupadoPor, desde, hasta]);
   const datosPromedioCruzado = useMemo(() => calcularPromedioCruzado(), [registros, agrupadoPor, agrupadoPor2, desde, hasta]);
 
   const etiquetasOrdenadas = Object.keys(datosPromedio)
