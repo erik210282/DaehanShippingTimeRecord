@@ -253,57 +253,95 @@ export default function Productividad() {
 
   const normalizarProductos = (prod) => {
     const out = [];
-    const push = (raw) => {
-      const k = norm(String(raw));
-      if (!k) return;
-      const idByName = productosNombreToId[k];
-      out.push(idByName || String(raw).trim());
+
+    // helpers
+    const keyOf = (raw) => norm(String(raw || ""));
+    const byId = (maybeId) => (productos?.[maybeId] ? maybeId : null);
+
+    // intento por nombre exacto -> id
+    const byName = (raw) => {
+      const k = keyOf(raw);
+      if (!k) return null;
+      return productosNombreToId[k] || null;
     };
 
-    const pushFromObj = (p) => {
-      // variantes directas
-      if (p.id) return push(p.id);
+    // intento por "parecido": si no hay match exacto, buscamos un único candidato por includes/startsWith
+    const byFuzzy = (raw) => {
+      const k = keyOf(raw);
+      if (!k) return null;
+      const nombres = Object.keys(productosNombreToId);
+      // primero startsWith, luego includes
+      let candidatos = nombres.filter(n => n.startsWith(k) || k.startsWith(n));
+      if (candidatos.length !== 1) {
+        candidatos = nombres.filter(n => n.includes(k) || k.includes(n));
+      }
+      if (candidatos.length === 1) return productosNombreToId[candidatos[0]];
+      return null;
+    };
+
+    const pushIdOrName = (raw) => {
+      if (raw == null) return;
+      // 1) si ya es un ID de catálogo, úsalo
+      const idById = byId(raw);
+      if (idById) return out.push(idById);
+
+      // 2) si es nombre exacto del catálogo
+      const idByName = byName(raw);
+      if (idByName) return out.push(idByName);
+
+      // 3) si es parecido (HL MCR CATL vs HL CATL, espacios extras, etc.)
+      const idFuzzy = byFuzzy(raw);
+      if (idFuzzy) return out.push(idFuzzy);
+
+      // 4) último recurso: conserva la cadena limpia (hará que aparezca como "ID: xxx")
+      out.push(String(raw).trim());
+    };
+
+    const digObj = (p) => {
+      if (!p) return;
+      // objetos comunes
+      if (p.id) return pushIdOrName(p.id);
       if (p.value) {
         if (typeof p.value === "object") {
-          if (p.value.id) return push(p.value.id);
-          if (p.value.nombre) return push(p.value.nombre);
+          if (p.value.id) return pushIdOrName(p.value.id);
+          if (p.value.nombre) return pushIdOrName(p.value.nombre);
         }
-        return push(p.value);
+        return pushIdOrName(p.value);
       }
       if (p.producto) {
         if (typeof p.producto === "object") {
-          if (p.producto.id) return push(p.producto.id);
-          if (p.producto.nombre) return push(p.producto.nombre);
+          if (p.producto.id) return pushIdOrName(p.producto.id);
+          if (p.producto.nombre) return pushIdOrName(p.producto.nombre);
         }
-        return push(p.producto);
+        return pushIdOrName(p.producto);
       }
-      if (p.nombre) return push(p.nombre);
+      if (p.nombre) return pushIdOrName(p.nombre);
 
-      // variantes anidadas comunes
+      // variantes anidadas
       if (p.product && typeof p.product === "object") {
-        if (p.product.id) return push(p.product.id);
-        if (p.product.nombre) return push(p.product.nombre);
+        if (p.product.id) return pushIdOrName(p.product.id);
+        if (p.product.nombre) return pushIdOrName(p.product.nombre);
       }
-      if (p.meta?.product?.id) return push(p.meta.product.id);
-      if (p.meta?.product?.nombre) return push(p.meta.product.nombre);
+      if (p.meta?.product?.id) return pushIdOrName(p.meta.product.id);
+      if (p.meta?.product?.nombre) return pushIdOrName(p.meta.product.nombre);
     };
 
     if (Array.isArray(prod)) {
       prod.forEach((p) => {
-        if (!p) return;
-        if (typeof p === "object") pushFromObj(p);
+        if (typeof p === "object") digObj(p);
         else if (typeof p === "string" || typeof p === "number") {
-          String(p).split(/[;,|]/).forEach(push);
+          String(p).split(/[;,|]/).forEach(pushIdOrName);
         }
       });
     } else if (prod && typeof prod === "object") {
-      pushFromObj(prod);
+      digObj(prod);
     } else if (typeof prod === "string" || typeof prod === "number") {
-      String(prod).split(/[;,|]/).forEach(push);
+      String(prod).split(/[;,|]/).forEach(pushIdOrName);
     }
 
     return [...new Set(out.filter(Boolean))];
   };
+
 
   const normalizarActividad = (act) => {
     const out = [];
@@ -396,7 +434,13 @@ export default function Productividad() {
           rawOperador,
           rawProducto,
           rawActividad,
-          registro: r,
+          registro: {
+            id: r.id,
+            actividad: r.actividad,
+            producto: r.producto ?? r.productos,
+            operador: r.operador ?? r.operadores,
+            duracion: r.duracion
+          }
         });
       }
       // Aceptar "16", "16 min", o timestamps
@@ -510,7 +554,18 @@ export default function Productividad() {
       const duracionMin = getDuracionMin(r);
       if (!Number.isFinite(duracionMin)) return;
 
-      // 5) Si falta algún lado, no hay par → saltamos este registro
+      // 5) Si un lado quedó vacío, intenta un último “rescate” básico:
+      //    - operador: intenta partir por coma/; si venía como string único
+      //    - actividad: vuelve a pasar por normalizador con meta.*
+      //    - producto: ya lo resolvimos robusto arriba; si aún queda vacío, no cruzamos
+      if (claves.length === 0 && agrupadoPor === "operador" && typeof (r.operador ?? r.operadores ?? "") === "string") {
+        claves = normalizarOperadores((r.operador ?? r.operadores ?? "").split(/[;,|]/));
+      }
+      if (claves2.length === 0 && agrupadoPor2 === "operador" && typeof (r.operador ?? r.operadores ?? "") === "string") {
+        claves2 = normalizarOperadores((r.operador ?? r.operadores ?? "").split(/[;,|]/));
+      }
+
+      // Si definitivamente no hay par, ahora sí, saltamos.
       if (claves.length === 0 || claves2.length === 0) return;
 
       // 6) Acumular para cada par (k1,k2)
