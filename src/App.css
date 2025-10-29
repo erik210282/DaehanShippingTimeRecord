@@ -368,6 +368,6 @@ button {
 @media (min-width: 1600px) {
   .login-card {
     width: 85vw;
-    max-width: 760px;
+    max-width: none;
   }
 }
