@@ -136,5 +136,21 @@
     "no_active": "No active activities",
     "activity_finished": "Activity finished",
     "activity_registered": "Activity registered!",
-    "configure_task_order": "Configure Task Order"
+    "configure_task_order": "Configure Task Order",
+
+    "login1": {
+        "title": "Sign In",
+        "email": "Email",
+        "email_placeholder": "Enter your email",
+        "password": "Password",
+        "password_placeholder": "Enter your password",
+        "signIn": "Sign In",
+        "missingFields": "Please fill in all fields",
+        "invalidCredentials": "Invalid email or password",
+        "notActive": "Your account is not active",
+        "wrongRole": "You do not have access permissions",
+        "welcome": "Welcome!",
+        "loading": "Loading..."
+    }
+
 }

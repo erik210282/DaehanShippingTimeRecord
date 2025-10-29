@@ -143,5 +143,20 @@
     "no_active": "No hay actividades activas",
     "activity_finished": "Actividad finalizada",
     "activity_registered": "¡Actividad registrada!",
-    "configure_task_order": "Configurar Orden de Tareas"
+    "configure_task_order": "Configurar Orden de Tareas",
+
+    "login1": {
+        "title": "Iniciar sesión",
+        "email": "Correo electrónico",
+        "email_placeholder": "Escribe tu correo",
+        "password": "Contraseña",
+        "password_placeholder": "Escribe tu contraseña",
+        "signIn": "Iniciar sesión",
+        "missingFields": "Por favor llena todos los campos",
+        "invalidCredentials": "Correo o contraseña incorrectos",
+        "notActive": "Tu usuario no está activo",
+        "wrongRole": "No tienes permisos para acceder",
+        "welcome": "¡Bienvenido!",
+        "loading": "Cargando..."
+    }
 }
