@@ -279,7 +279,6 @@ button {
   border-radius: var(--login-radius);
   box-shadow: var(--login-shadow);
   padding: 24px 42px;
-  min-height: 380px;
   color: var(--login-text);
 }
 
