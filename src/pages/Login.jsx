@@ -73,20 +73,44 @@ export default function Login() {
       <img className="login-logo" src={logo} alt="DAEHAN" />
 
       <div className="login-card">
-        <h2 className="login-title">{t("login.title") || "Iniciar sesión"}</h2>
+        <h2 className="login-title">{t("login.title") || "Sign In"}</h2>
 
         <form onSubmit={handleLogin} autoComplete="on">
-          <label className="login-label">{t("login.email") || "Correo electrónico"}</label>
-          <input className="login-input" type="email ..." />
+          <label className="login-label">
+            {t("login.email") || "Email"}
+          </label>
+          <input
+            className="login-input"
+            type="email"
+            name="email"
+            autoComplete="email"
+            placeholder={t("login.email_placeholder") || "Email"}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-          <label className="login-label">{t("login.password") || "Contraseña"}</label>
-          <input className="login-input" type="password ..." />
+          <label className="login-label">
+            {t("login.password") || "Password"}
+          </label>
+          <input
+            className="login-input"
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            placeholder={t("login.password_placeholder") || "Password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
           <button className="login-btn" type="submit" disabled={busy}>
-            {busy ? (t("loading") || "Cargando...") : (t("login.signIn") || "Iniciar sesión")}
+            {busy ? (t("loading") || "Cargando...") : (t("login.signIn") || "Sign In")}
           </button>
         </form>
       </div>
+
+      <ToastContainer position="top-center" autoClose={1200} />
     </div>
   );
 }
