@@ -318,6 +318,7 @@ button {
   margin-bottom: 14px;
   background-clip: padding-box;
   appearance: none;
+  max-width: none;
 }
 
 .login-input:-webkit-autofill,
@@ -366,6 +367,7 @@ button {
 /* no expandir demasiado en pantallas grandes */
 @media (min-width: 1600px) {
   .login-card {
-    width: 560px;
+    width: 85vw;
+    max-width: 760px;
   }
 }
