@@ -274,7 +274,7 @@ button {
 
 /* tarjeta negra ajustada */
 .login-card {
-  width: min(500px, 90vw);          /* más angosta */
+  width: min(400px, 90vw);
   background: var(--login-card);
   border-radius: var(--login-radius);
   box-shadow: var(--login-shadow);
@@ -318,6 +318,8 @@ button {
 }
 .login-input::placeholder {
   color: var(--login-muted);
+  font-size: 14px;
+  color: #d1d1d1; /* gris claro, como en móvil */
 }
 
 /* botón */
