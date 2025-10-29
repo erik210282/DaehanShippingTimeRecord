@@ -366,9 +366,4 @@ button {
   cursor: default;
 }
 
-/* no expandir demasiado en pantallas grandes */
-@media (min-width: 1600px) {
-  .login-card {
-    width: 500px;
-  }
-}
+
