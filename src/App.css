@@ -274,7 +274,7 @@ button {
 
 /* tarjeta negra ajustada */
 .login-card {
-  width: min(350px, 90vw);
+  width: min(600px, 95vw);
   background: var(--login-card);
   border-radius: var(--login-radius);
   box-shadow: var(--login-shadow);
@@ -315,6 +315,22 @@ button {
   font-size: 12px;
   box-sizing: border-box;
   margin-bottom: 14px;
+}
+
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover,
+.login-input:-webkit-autofill:focus,
+.login-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #000 inset !important;
+  box-shadow: 0 0 0 1000px #000 inset !important;
+  -webkit-text-fill-color: #d1d1d1 !important;
+  caret-color: #d1d1d1 !important;
+}
+
+.login-input {
+  background: #000 !important;
+  background-clip: padding-box;
+  appearance: none;
 }
 
 .login-input:focus,
