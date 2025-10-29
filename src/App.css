@@ -309,11 +309,11 @@ button {
   height: var(--login-input-h);
   border: 1px solid var(--login-border);
   border-radius: 12px;
-  background: #000 !important;         /* siempre negro */
-  color: #d1d1d1;                      /* gris claro */
+  background: #000 !important;         
+  color: #d1d1d1;                      
   outline: none;
   padding: 0 12px;
-  font-size: 14px;                     /* tamaño correcto */
+  font-size: 14px;                     
   box-sizing: border-box;
   margin-bottom: 14px;
   background-clip: padding-box;
