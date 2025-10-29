@@ -274,11 +274,12 @@ button {
 
 /* tarjeta negra ajustada */
 .login-card {
-  width: '85%';
-  background: var(--login-card);
-  border-radius: var(--login-radius);
+  width: 85vw;                        
+  max-width: 760px;                     
+  background: rgba(0, 0, 0, 0.7);      
+  border-radius: 16px;                  
   box-shadow: var(--login-shadow);
-  padding: 20px 85px;
+  padding: 24px;                        
   color: var(--login-text);
 }
 
