@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import supabase from "../supabase/client";
+import { supabase } from "../supabase/client";
 import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -102,7 +102,7 @@ export default function Productividad() {
     return true;
   };
 
-  
+
   const filtrarRegistros = () => {
     if (!validarFechas()) return [];
     return registros.filter((r) => {
