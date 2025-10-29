@@ -308,14 +308,21 @@ button {
   height: var(--login-input-h);
   border: 1px solid var(--login-border);
   border-radius: 12px;
-  background: #000;                 /* ahora negro puro */
+  background: #000 !important;
   color: var(--login-text);
   outline: none;
   padding: 0 12px;
-  font-size: 15px;
+  font-size: 20px;
   box-sizing: border-box;
   margin-bottom: 14px;
 }
+
+.login-input:focus,
+.login-input:active {
+  background: #000 !important;
+  color: #d1d1d1;
+}
+
 .login-input::placeholder {
   color: var(--login-muted);
   font-size: 14px;
