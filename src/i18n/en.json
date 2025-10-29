@@ -138,7 +138,7 @@
     "activity_registered": "Activity registered!",
     "configure_task_order": "Configure Task Order",
 
-    "login1": {
+    "login": {
         "title": "Sign In",
         "email": "Email",
         "email_placeholder": "Enter your email",

@@ -145,7 +145,7 @@
     "activity_registered": "¡Actividad registrada!",
     "configure_task_order": "Configurar Orden de Tareas",
 
-    "login1": {
+    "login": {
         "title": "Iniciar sesión",
         "email": "Correo electrónico",
         "email_placeholder": "Escribe tu correo",
