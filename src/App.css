@@ -196,7 +196,7 @@ button {
   padding: 1rem;
 }
 
-.login-card {
+.login-card-legacy {
   background-color: #fff;
   padding: 2rem;
   border-radius: 1rem;
@@ -274,7 +274,7 @@ button {
 
 /* tarjeta negra ajustada */
 .login-card {
-  width: min(600px, 95vw);
+  width: min(560px, 92vw);
   background: var(--login-card);
   border-radius: var(--login-radius);
   box-shadow: var(--login-shadow);
@@ -329,6 +329,8 @@ button {
 
 .login-input {
   background: #000 !important;
+  color: #d1d1d1;
+  font-size: 14px;
   background-clip: padding-box;
   appearance: none;
 }
@@ -336,7 +338,7 @@ button {
 .login-input:focus,
 .login-input:active {
   background: #000 !important;
-  color: #000;
+  color: #d1d1d1;
 }
 
 .login-input::placeholder {
@@ -366,4 +368,9 @@ button {
   cursor: default;
 }
 
-
+/* no expandir demasiado en pantallas grandes */
+@media (min-width: 1600px) {
+  .login-card {
+    width: 560px;
+  }
+}
