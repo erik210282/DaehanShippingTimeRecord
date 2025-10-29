@@ -440,58 +440,84 @@ export default function Productividad() {
     const datos = {};
 
     filtrarRegistros().forEach((r) => {
+      // 1) Construimos las claves del Grupo 1
+      let rawOperador  = null;
+      let rawProducto  = null;
+      let rawActividad = null;
       let claves = [];
-      let claves2 = [];
 
-      // Grupo 1
       if (agrupadoPor === "operador") {
-        const rawOperador =
+        rawOperador =
           r.operadores ?? r.operador ?? r.operator ??
           r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ??
           r.meta?.operador ?? r.meta?.operator ?? null;
         claves = normalizarOperadores(rawOperador);
+
       } else if (agrupadoPor === "producto") {
-        const rawProducto =
+        rawProducto =
           r.productos ?? r.producto ?? r.product ??
           r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ??
           r.meta?.producto ?? r.meta?.product ?? null;
         claves = normalizarProductos(rawProducto);
+
       } else if (agrupadoPor === "actividad") {
-        const rawActividad =
+        rawActividad =
           r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ??
           r.meta?.actividad ?? r.meta?.activity ?? null;
         const acts = normalizarActividad(rawActividad);
         claves = acts.length ? acts : [];
       }
 
-      // Grupo 2
+      // 2) Construimos las claves del Grupo 2
+      let rawOperador2  = null;
+      let rawProducto2  = null;
+      let rawActividad2 = null;
+      let claves2 = [];
+
       if (agrupadoPor2 === "operador") {
-        const rawOperador2 =
+        rawOperador2 =
           r.operadores ?? r.operador ?? r.operator ??
           r.operador_id ?? r.operadores_id ?? r.operadores_ids ?? r.operator_id ??
           r.meta?.operador ?? r.meta?.operator ?? null;
         claves2 = normalizarOperadores(rawOperador2);
+
       } else if (agrupadoPor2 === "producto") {
-        const rawProducto2 =
+        rawProducto2 =
           r.productos ?? r.producto ?? r.product ??
           r.producto_id ?? r.productos_id ?? r.productos_ids ?? r.product_id ??
           r.meta?.producto ?? r.meta?.product ?? null;
         claves2 = normalizarProductos(rawProducto2);
+
       } else if (agrupadoPor2 === "actividad") {
-        const rawActividad2 =
+        rawActividad2 =
           r.actividad ?? r.actividad_id ?? r.activity ?? r.activity_id ?? r.act ??
           r.meta?.actividad ?? r.meta?.activity ?? null;
         const acts2 = normalizarActividad(rawActividad2);
         claves2 = acts2.length ? acts2 : [];
-      } 
+      }
 
+      // 3) Depuración opcional (quítalo cuando todo esté OK)
+      if (claves.length === 0 || claves2.length === 0) {
+        console.debug("CRUZADO: faltan claves", {
+          agrupadoPor,  agrupadoPor2,
+          rawOperador,  rawProducto,  rawActividad,
+          rawOperador2, rawProducto2, rawActividad2,
+          registro: r,
+        });
+      }
 
-      // Duración robusta
+      // 4) Duración robusta (una sola vez)
       const duracionMin = getDuracionMin(r);
       if (!Number.isFinite(duracionMin)) return;
 
+      // 5) Si falta algún lado, no hay par → saltamos este registro
+      if (claves.length === 0 || claves2.length === 0) return;
+
+      // 6) Acumular para cada par (k1,k2)
       claves.forEach((k1) => {
         claves2.forEach((k2) => {
+          // Evita pares vacíos o “undefined - undefined”
+          if (!k1 || !k2) return;
           const key = `${k1} - ${k2}`;
           if (!datos[key]) datos[key] = { total: 0, count: 0 };
           datos[key].total += duracionMin;
@@ -500,6 +526,7 @@ export default function Productividad() {
       });
     });
 
+    // 7) Promedios
     const resultado = {};
     for (const key in datos) {
       const { total, count } = datos[key];
