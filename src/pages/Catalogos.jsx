@@ -159,7 +159,7 @@ export default function Catalogos() {
   }, [filtroTexto, itemsFiltrados]);
 
    return (
-    <div className="page-container">
+    <div className="page-container page-container--fluid">
       <div className="card">
         <h2>{t("catalogs")}</h2>
 

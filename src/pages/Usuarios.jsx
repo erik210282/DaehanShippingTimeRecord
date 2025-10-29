@@ -130,7 +130,7 @@ export default function Usuarios() {
   };
 
    return (
-    <div className="page-container">
+    <div className="page-container page-container--fluid">
       <div className="card">
         <h2>{t("user_management")}</h2>
 
