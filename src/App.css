@@ -298,7 +298,7 @@ button {
   display: block;
   text-align: left;
   color: var(--login-muted);
-  font-size: 13px;
+  font-size: 15px;
   margin: 0 0 6px 4px;
 }
 
@@ -312,7 +312,7 @@ button {
   color: var(--login-text);
   outline: none;
   padding: 0 12px;
-  font-size: 20px;
+  font-size: 12px;
   box-sizing: border-box;
   margin-bottom: 14px;
 }
