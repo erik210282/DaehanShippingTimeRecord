@@ -275,7 +275,7 @@ button {
 /* tarjeta negra ajustada */
 .login-card {
   width: 85vw;                        
-  max-width: 760px;                     
+  max-width: none;                     
   background: rgba(0, 0, 0, 0.7);      
   border-radius: 16px;                  
   box-shadow: var(--login-shadow);
