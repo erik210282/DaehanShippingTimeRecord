@@ -235,101 +235,115 @@ button {
   z-index: 9998;
 }
 
-/* ====== LOGIN — match Android (Expo) ====== */
-/* 1) Fuente Roboto como en Android */
+/* ====== LOGIN — estilo idéntico al móvil corregido ====== */
 @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
 
-:root{
-  --login-bg:#0B0F1A;
-  --login-card:rgba(0,0,0,0.74);
-  --login-border:rgba(255,255,255,0.10);
-  --login-text:#fff;
-  --login-muted:#9AA4B2; /* un poco más claro que antes */
-  --login-primary:#2563EB;
-  --login-shadow:0 14px 36px rgba(0,0,0,.45);
-  --login-radius:18px;           /* radio más grande */
-  --login-input-h:44px;          /* altura Android */
-  --login-btn-h:48px;            /* botón un poco más alto */
-  --login-font:"Roboto", ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial;
+:root {
+  --login-bg: #0B0F1A;
+  --login-card: #000000;             /* fondo negro sólido */
+  --login-border: rgba(255, 255, 255, 0.1);
+  --login-text: #ffffff;
+  --login-muted: #9AA4B2;
+  --login-primary: #2563EB;
+  --login-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  --login-radius: 20px;              /* radio ligeramente mayor */
+  --login-input-h: 44px;
+  --login-btn-h: 48px;
+  --login-font: "Roboto", system-ui, -apple-system, Segoe UI, Helvetica, Arial;
 }
 
-/* pantalla */
-.login-screen{
-  min-height:100vh; width:100vw;
-  display:grid; align-content:center; justify-items:center;
-  background:var(--login-bg);
-  padding:24px; box-sizing:border-box;
-  font-family:var(--login-font);
+/* fondo general */
+.login-screen {
+  min-height: 100vh;
+  width: 100vw;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  background: var(--login-bg);
+  padding: 24px;
+  font-family: var(--login-font);
 }
 
 /* logo */
-.login-logo{
-  width:min(420px,42vw);
-  min-width:240px;
-  margin-bottom:22px;
-  filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));
+.login-logo {
+  width: min(380px, 40vw);
+  min-width: 220px;
+  margin-bottom: 24px;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
 }
 
-/* tarjeta: más angosta como en móvil */
-.login-card{
-  width:min(560px, 92vw);         /* ← clave para que se vea como móvil */
-  background:var(--login-card);
-  border-radius:var(--login-radius);
-  box-shadow:var(--login-shadow);
-  padding:22px 20px;
+/* tarjeta negra ajustada */
+.login-card {
+  width: min(500px, 90vw);          /* más angosta */
+  background: var(--login-card);
+  border-radius: var(--login-radius);
+  box-shadow: var(--login-shadow);
+  padding: 24px 22px;
+  color: var(--login-text);
 }
 
 /* título */
-.login-title{
-  color:var(--login-text);
-  font-weight:700;
-  font-size:24px;                 /* 24px es lo común en RN para h2 */
-  line-height:1.25;
-  text-align:center;
-  letter-spacing:.2px;            /* leve como Android */
-  margin:0 0 18px 0;
+.login-title {
+  color: var(--login-text);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.25;
+  text-align: center;
+  letter-spacing: 0.2px;
+  margin: 0 0 20px 0;
 }
 
-/* etiqueta */
-.login-label{
-  display:block;
-  color:var(--login-muted);
-  font-size:13.5px;
-  margin:0 0 6px 2px;
+/* label: alineado izquierda */
+.login-label {
+  display: block;
+  text-align: left;
+  color: var(--login-muted);
+  font-size: 13px;
+  margin: 0 0 6px 4px;
 }
 
-/* inputs: altura 44, radio 12, borde y fondo suaves */
-.login-input{
-  width:100%;
-  height:var(--login-input-h);
-  border:1px solid var(--login-border);
-  border-radius:12px;
-  background:rgba(255,255,255,0.06);
-  color:var(--login-text);
-  outline:none;
-  padding:0 12px;
-  font-size:15px;                 /* tamaño Android por defecto */
-  box-sizing:border-box;
-  margin-bottom:14px;
+/* inputs: fondo negro, letras blancas */
+.login-input {
+  width: 100%;
+  height: var(--login-input-h);
+  border: 1px solid var(--login-border);
+  border-radius: 12px;
+  background: #000;                 /* ahora negro puro */
+  color: var(--login-text);
+  outline: none;
+  padding: 0 12px;
+  font-size: 15px;
+  box-sizing: border-box;
+  margin-bottom: 14px;
 }
-.login-input::placeholder{ color:var(--login-muted); }
-
-/* botón: alto 48, radio 12 y leve hover */
-.login-btn{
-  width:100%;
-  height:var(--login-btn-h);
-  border:none; border-radius:12px;
-  background:var(--login-primary);
-  color:#fff; font-weight:600; font-size:15.5px;
-  cursor:pointer;
-  transition:filter .15s ease, opacity .15s ease;
-}
-.login-btn:hover{ filter:brightness(1.04); }
-.login-btn:disabled{ opacity:.7; cursor:default; }
-
-/* tablets/monitores grandes: NO ensanchar (queremos look móvil) */
-@media (min-width:1600px){
-  .login-card{ width:560px; }
+.login-input::placeholder {
+  color: var(--login-muted);
 }
 
+/* botón */
+.login-btn {
+  width: 100%;
+  height: var(--login-btn-h);
+  border: none;
+  border-radius: 12px;
+  background: var(--login-primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15.5px;
+  cursor: pointer;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+.login-btn:hover {
+  filter: brightness(1.05);
+}
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
 
+/* no expandir demasiado en pantallas grandes */
+@media (min-width: 1600px) {
+  .login-card {
+    width: 500px;
+  }
+}
