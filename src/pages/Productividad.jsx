@@ -152,6 +152,23 @@ export default function Productividad() {
     });
   };
 
+  // --- Helpers para parseo robusto ---
+  const safeParseJSON = (s) => {
+    if (typeof s !== "string") return null;
+    const trimmed = s.trim();
+    if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return null;
+    try { return JSON.parse(trimmed); } catch { return null; }
+  };
+
+  const splitLoose = (s) => {
+    // quita corchetes/comillas sueltas y separa por coma ; | o tab
+    return String(s)
+      .replace(/[\[\]"']/g, " ")
+      .split(/[;,|\t]/)
+      .map(x => x.trim())
+      .filter(Boolean);
+  };
+
   const norm = (s = "") =>
   s
     .toString()
@@ -229,14 +246,15 @@ export default function Productividad() {
     const push = (raw) => {
       const k = norm(raw);
       if (!k) return;
-      const id = operadoresNombreToId[k] || raw.toString().trim();
+      const id = operadoresNombreToId[k] || String(raw).trim();
       ids.push(id);
     };
 
     if (Array.isArray(op)) {
       op.forEach((item) => {
         if (typeof item === "string") {
-          item.split(/[;,|]/).forEach(push);             // soporta "A, B" o "A;B"
+          // si viene como '["Carlos","Jeannine"]' se maneja arriba en safeParseJSON
+          splitLoose(item).forEach(push);
         } else if (item && typeof item === "object") {
           const raw =
             item.id || item.value || item.uid || item.operador ||
@@ -245,7 +263,14 @@ export default function Productividad() {
         }
       });
     } else if (typeof op === "string") {
-      op.split(/[;,|]/).forEach(push);
+      const parsed = safeParseJSON(op);
+      if (parsed) return normalizarOperadores(parsed);
+      splitLoose(op).forEach(push);
+    } else if (op && typeof op === "object") {
+      const raw =
+        op.id || op.value || op.uid || op.operador ||
+        (op.nombre ? operadoresNombreToId[norm(op.nombre)] : null);
+      if (raw) push(raw);
     }
 
     return [...new Set(ids.filter(Boolean))];
@@ -254,89 +279,69 @@ export default function Productividad() {
   const normalizarProductos = (prod) => {
     const out = [];
 
-    // helpers
     const keyOf = (raw) => norm(String(raw || ""));
     const byId = (maybeId) => (productos?.[maybeId] ? maybeId : null);
 
-    // intento por nombre exacto -> id
     const byName = (raw) => {
       const k = keyOf(raw);
       if (!k) return null;
       return productosNombreToId[k] || null;
     };
 
-    // intento por "parecido": si no hay match exacto, buscamos un único candidato por includes/startsWith
     const byFuzzy = (raw) => {
       const k = keyOf(raw);
       if (!k) return null;
       const nombres = Object.keys(productosNombreToId);
-      // primero startsWith, luego includes
       let candidatos = nombres.filter(n => n.startsWith(k) || k.startsWith(n));
       if (candidatos.length !== 1) {
         candidatos = nombres.filter(n => n.includes(k) || k.includes(n));
       }
-      if (candidatos.length === 1) return productosNombreToId[candidatos[0]];
-      return null;
+      return candidatos.length === 1 ? productosNombreToId[candidatos[0]] : null;
     };
 
     const pushIdOrName = (raw) => {
       if (raw == null) return;
-      // 1) si ya es un ID de catálogo, úsalo
       const idById = byId(raw);
       if (idById) return out.push(idById);
 
-      // 2) si es nombre exacto del catálogo
       const idByName = byName(raw);
       if (idByName) return out.push(idByName);
 
-      // 3) si es parecido (HL MCR CATL vs HL CATL, espacios extras, etc.)
       const idFuzzy = byFuzzy(raw);
       if (idFuzzy) return out.push(idFuzzy);
 
-      // 4) último recurso: conserva la cadena limpia (hará que aparezca como "ID: xxx")
       out.push(String(raw).trim());
     };
 
     const digObj = (p) => {
       if (!p) return;
-      // objetos comunes
       if (p.id) return pushIdOrName(p.id);
-      if (p.value) {
-        if (typeof p.value === "object") {
-          if (p.value.id) return pushIdOrName(p.value.id);
-          if (p.value.nombre) return pushIdOrName(p.value.nombre);
-        }
-        return pushIdOrName(p.value);
-      }
-      if (p.producto) {
-        if (typeof p.producto === "object") {
-          if (p.producto.id) return pushIdOrName(p.producto.id);
-          if (p.producto.nombre) return pushIdOrName(p.producto.nombre);
-        }
-        return pushIdOrName(p.producto);
-      }
+      if (p.value) return pushIdOrName(p.value.id ?? p.value.nombre ?? p.value);
+      if (p.producto) return pushIdOrName(p.producto.id ?? p.producto.nombre ?? p.producto);
       if (p.nombre) return pushIdOrName(p.nombre);
-
-      // variantes anidadas
       if (p.product && typeof p.product === "object") {
-        if (p.product.id) return pushIdOrName(p.product.id);
-        if (p.product.nombre) return pushIdOrName(p.product.nombre);
+        return pushIdOrName(p.product.id ?? p.product.nombre);
       }
-      if (p.meta?.product?.id) return pushIdOrName(p.meta.product.id);
-      if (p.meta?.product?.nombre) return pushIdOrName(p.meta.product.nombre);
+      if (p.meta?.product) return pushIdOrName(p.meta.product.id ?? p.meta.product.nombre);
     };
 
+    // --- ENTRADAS POSIBLES ---
     if (Array.isArray(prod)) {
       prod.forEach((p) => {
         if (typeof p === "object") digObj(p);
-        else if (typeof p === "string" || typeof p === "number") {
-          String(p).split(/[;,|]/).forEach(pushIdOrName);
-        }
+        else splitLoose(p).forEach(pushIdOrName);
       });
+    } else if (typeof prod === "string") {
+      const parsed = safeParseJSON(prod);
+      if (parsed) {
+        // si es ["MS Headliner"] o {"id": "..."} etc.
+        return normalizarProductos(parsed);
+      }
+      splitLoose(prod).forEach(pushIdOrName);
     } else if (prod && typeof prod === "object") {
       digObj(prod);
-    } else if (typeof prod === "string" || typeof prod === "number") {
-      String(prod).split(/[;,|]/).forEach(pushIdOrName);
+    } else if (typeof prod === "number") {
+      pushIdOrName(prod);
     }
 
     return [...new Set(out.filter(Boolean))];
@@ -353,44 +358,31 @@ export default function Productividad() {
     };
 
     const pushFromObj = (a) => {
+      if (!a) return;
       if (a.id) return push(a.id);
-      if (a.value) {
-        if (typeof a.value === "object") {
-          if (a.value.id) return push(a.value.id);
-          if (a.value.nombre) return push(a.value.nombre);
-        }
-        return push(a.value);
-      }
-      if (a.actividad) {
-        if (typeof a.actividad === "object") {
-          if (a.actividad.id) return push(a.actividad.id);
-          if (a.actividad.nombre) return push(a.actividad.nombre);
-        }
-        return push(a.actividad);
-      }
+      if (a.value) return push(a.value.id ?? a.value.nombre ?? a.value);
+      if (a.actividad) return push(a.actividad.id ?? a.actividad.nombre ?? a.actividad);
       if (a.nombre) return push(a.nombre);
-
-      // variantes anidadas
-      if (a.meta?.activity?.id) return push(a.meta.activity.id);
-      if (a.meta?.activity?.nombre) return push(a.meta.activity.nombre);
+      if (a.meta?.activity) return push(a.meta.activity.id ?? a.meta.activity.nombre);
     };
 
     if (!act) return out;
     if (Array.isArray(act)) {
       act.forEach((a) => {
-        if (!a) return;
         if (typeof a === "object") pushFromObj(a);
-        else if (typeof a === "string" || typeof a === "number") {
-          String(a).split(/[;,|]/).forEach(push);
-        }
+        else splitLoose(a).forEach(push);
       });
+    } else if (typeof act === "string") {
+      const parsed = safeParseJSON(act);
+      if (parsed) return normalizarActividad(parsed);
+      splitLoose(act).forEach(push);
     } else if (typeof act === "object") {
       pushFromObj(act);
-    } else if (typeof act === "string" || typeof act === "number") {
-      String(act).split(/[;,|]/).forEach(push);
+    } else if (typeof act === "number") {
+      push(act);
     }
 
-    // actividad es una sola clave; por seguridad, conservar 1
+    // una sola actividad por registro
     return [...new Set(out.filter(Boolean))].slice(0, 1);
   };
 
