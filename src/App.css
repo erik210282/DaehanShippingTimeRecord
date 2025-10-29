@@ -278,7 +278,7 @@ button {
   background: var(--login-card);
   border-radius: var(--login-radius);
   box-shadow: var(--login-shadow);
-  padding: 40px 24px;
+  padding: 24px 42px;
   min-height: 380px;
   color: var(--login-text);
 }
