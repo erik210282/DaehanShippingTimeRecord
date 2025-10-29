@@ -217,67 +217,70 @@ export default function Resumen() {
   }, [productosDict, operadoresDict, filtroIdx, fechaInicio, fechaFin]);
 
   return (
-    <div className="card">
-      <h2>{t("summary")}</h2>
+    <div className="page-container page-container--fluid">
+      <div className="card">
+        <h2>{t("summary")}</h2>
+        <div style={{ marginBottom: 12 }}>
+          <input
+            type="text"
+            placeholder={t("Buscar por IDX")}
+            value={filtroIdx}
+            onChange={(e) => setFiltroIdx(e.target.value)}
+            style={{ marginRight: 10, padding: 4 }}
+          />
+          <input
+            type="date"
+            value={fechaInicio}
+            onChange={(e) => setFechaInicio(e.target.value)}
+            style={{ marginRight: 10, padding: 4 }}
+          />
+          <input
+            type="date"
+            value={fechaFin}
+            onChange={(e) => setFechaFin(e.target.value)}
+            style={{ padding: 4 }}
+          />
+        </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <input
-          type="text"
-          placeholder={t("Buscar por IDX")}
-          value={filtroIdx}
-          onChange={(e) => setFiltroIdx(e.target.value)}
-          style={{ marginRight: 10, padding: 4 }}
-        />
-        <input
-          type="date"
-          value={fechaInicio}
-          onChange={(e) => setFechaInicio(e.target.value)}
-          style={{ marginRight: 10, padding: 4 }}
-        />
-        <input
-          type="date"
-          value={fechaFin}
-          onChange={(e) => setFechaFin(e.target.value)}
-          style={{ padding: 4 }}
-        />
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t("Código IDX")}</th>
+                <th>{t("product")}</th>
+                <th>{t("quantity")}</th>
+                <th>{t("Stage")}</th>
+                <th>{t("Label")}</th>
+                <th>{t("Scan")}</th>
+                <th>{t("Load")}</th>
+                <th>{t("notes")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resumenData.map((fila, i) => (
+                <tr key={i}>
+                  <td>{fila.idx}</td>
+                  <td>
+                    {fila.productos?.length
+                      ? fila.productos.map((p, i) => <div key={i}>{p}</div>)
+                      : "-"}
+                  </td>
+                  <td>
+                    {fila.cantidades?.length
+                      ? fila.cantidades.map((c, i) => <div key={i}>{c}</div>)
+                      : "-"}
+                  </td>
+                  <td style={{ backgroundColor: colorActividad("stage")}}>{fila.stage || "-"}</td>
+                  <td style={{ backgroundColor: colorActividad("label")}}>{fila.label || "-"}</td>
+                  <td style={{ backgroundColor: colorActividad("scan")}}>{fila.scan || "-"}</td>
+                  <td style={{ backgroundColor: colorActividad("load")}}>{fila.load || "-"}</td>
+                  <td>{fila.notas}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-
-      <table className="table">
-        <thead>
-          <tr>
-            <th>{t("Código IDX")}</th>
-            <th>{t("product")}</th>
-            <th>{t("quantity")}</th>
-            <th>{t("Stage")}</th>
-            <th>{t("Label")}</th>
-            <th>{t("Scan")}</th>
-            <th>{t("Load")}</th>
-            <th>{t("notes")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {resumenData.map((fila, i) => (
-            <tr key={i}>
-              <td>{fila.idx}</td>
-              <td>
-                {fila.productos?.length
-                  ? fila.productos.map((p, i) => <div key={i}>{p}</div>)
-                  : "-"}
-              </td>
-              <td>
-                {fila.cantidades?.length
-                  ? fila.cantidades.map((c, i) => <div key={i}>{c}</div>)
-                  : "-"}
-              </td>
-              <td style={{ backgroundColor: colorActividad("stage")}}>{fila.stage || "-"}</td>
-              <td style={{ backgroundColor: colorActividad("label")}}>{fila.label || "-"}</td>
-              <td style={{ backgroundColor: colorActividad("scan")}}>{fila.scan || "-"}</td>
-              <td style={{ backgroundColor: colorActividad("load")}}>{fila.load || "-"}</td>
-              <td>{fila.notas}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }

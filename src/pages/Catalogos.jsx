@@ -158,85 +158,90 @@ export default function Catalogos() {
     return () => clearTimeout(timer);
   }, [filtroTexto, itemsFiltrados]);
 
-  return (
-    <div className="card">
-      <h2>{t("catalogs")}</h2>
+   return (
+    <div className="page-container">
+      <div className="card">
+        <h2>{t("catalogs")}</h2>
 
-      <div className="card" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center" }}>
-        <button className="primary" onClick={() => setCatalogoActivo("actividades")}>{t("activities")}</button>
-        <button className="primary" onClick={() => setCatalogoActivo("productos")}>{t("products")}</button>
-        <button className="primary" onClick={() => setCatalogoActivo("operadores")}>{t("operators")}</button>
-      </div>
+        <div className="card" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center" }}>
+          <button className="primary" onClick={() => setCatalogoActivo("actividades")}>{t("activities")}</button>
+          <button className="primary" onClick={() => setCatalogoActivo("productos")}>{t("products")}</button>
+          <button className="primary" onClick={() => setCatalogoActivo("operadores")}>{t("operators")}</button>
+        </div>
 
-      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-        <input
-          type="text"
-          placeholder={t("search")}
-          value={filtroTexto}
-          onChange={(e) => setFiltroTexto(e.target.value)}
-        />
-        <button onClick={() => { setFiltroTexto(""); setMostrarMensajeError(false); }} style={{ marginBottom: 20 }}>
-          {t("clear_filters")}
-        </button>
-        <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
-          ➕ {t("add_catalog")}
-        </button>
-        <button onClick={() => exportarCSV()} style={{ marginBottom: 20 }}>
-          {t("export_csv")}
-        </button>
-      </div>
-
-      {mostrarMensajeError && <p style={{ color: "red" }}>{t("no_results_found")}</p>}
-
-      <div style={{ overflowX: "auto" }}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t("name")}</th>
-              <th>{t("status")}</th>
-              <th>{t("actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {itemsFiltrados.map((item) => (
-              <tr key={item.id}>
-                <td>{item.nombre}</td>
-                <td>{item.activo ? t("active") : t("inactive")}</td>
-                <td>
-                  <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                    <button className="edit-btn" onClick={() => abrirModal(item)}>{t("edit")}</button>
-                    <button className="delete-btn" onClick={() => eliminarItem(item.id)}>{t("delete")}</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
-        <div className="card">
-          <h3>{esNuevo ? t("add") : t("edit")}</h3>
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
           <input
             type="text"
-            value={itemActual?.nombre}
-            onChange={(e) => setItemActual({ ...itemActual, nombre: e.target.value })}
+            placeholder={t("search")}
+            value={filtroTexto}
+            onChange={(e) => setFiltroTexto(e.target.value)}
           />
-          <label style={{ margin: "1rem 0", display: "block" }}>
-            <input
-              type="checkbox"
-              checked={itemActual?.activo}
-              onChange={() => setItemActual({ ...itemActual, activo: !itemActual?.activo })}
-            /> {t("active")}
-          </label>
-          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <button className="primary" onClick={guardarItem}>{t("save")}</button>
-            <button className="secondary" onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+          <button onClick={() => { setFiltroTexto(""); setMostrarMensajeError(false); }} style={{ marginBottom: 20 }}>
+            {t("clear_filters")}
+          </button>
+          <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
+            ➕ {t("add_catalog")}
+          </button>
+          <button onClick={() => exportarCSV()} style={{ marginBottom: 20 }}>
+            {t("export_csv")}
+          </button>
+        </div>
+
+        {mostrarMensajeError && <p style={{ color: "red" }}>{t("no_results_found")}</p>}
+
+        <div style={{ overflowX: "auto" }}>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t("name")}</th>
+                  <th>{t("status")}</th>
+                  <th>{t("actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {itemsFiltrados.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.nombre}</td>
+                    <td>{item.activo ? t("active") : t("inactive")}</td>
+                    <td>
+                      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                        <button className="edit-btn" onClick={() => abrirModal(item)}>{t("edit")}</button>
+                        <button className="delete-btn" onClick={() => eliminarItem(item.id)}>{t("delete")}</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </Modal>
 
-      <ToastContainer position="top-center" autoClose={2000} />
+        <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
+          <div className="card">
+            <h3>{esNuevo ? t("add") : t("edit")}</h3>
+            <input
+              type="text"
+              value={itemActual?.nombre}
+              onChange={(e) => setItemActual({ ...itemActual, nombre: e.target.value })}
+            />
+            <label style={{ margin: "1rem 0", display: "block" }}>
+              <input
+                type="checkbox"
+                checked={itemActual?.activo}
+                onChange={() => setItemActual({ ...itemActual, activo: !itemActual?.activo })}
+              /> {t("active")}
+            </label>
+            <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+              <button className="primary" onClick={guardarItem}>{t("save")}</button>
+              <button className="secondary" onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+            </div>
+          </div>
+        </Modal>
+
+        <ToastContainer position="top-center" autoClose={2000} />
+      </div>
     </div>
+
   );
 }

@@ -14,6 +14,30 @@ body {
   min-height: 100vh;
 }
 
+.page-container {
+  width: 100%;
+  margin: 0 auto;
+  padding-inline: clamp(12px, 2vw, 24px);
+  max-width: clamp(960px, 92vw, 1600px);
+}
+
+.page-container--fluid {
+  max-width: none;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.table-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+.table-wrap::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 3px;
+}
+
 .navbar {
   position: sticky;
   top: 0;

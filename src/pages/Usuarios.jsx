@@ -129,144 +129,146 @@ export default function Usuarios() {
     setMostrarUsuarios(!mostrarUsuarios);
   };
 
-  return (
-    <div className="card">
-      <h2>{t("user_management")}</h2>
+   return (
+    <div className="page-container">
+      <div className="card">
+        <h2>{t("user_management")}</h2>
 
-      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-        <input
-          type="email"
-          name="email"
-          placeholder={t("email_placeholder") || "Escribe correo"}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="off"
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder={t("password_placeholder") || "Escribe contraseña"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="new-password"
-        />
-
-        <input
-          type="text"
-          placeholder="Nombre para mostrar (opcional)"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          autoComplete="off"
-        />
-
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-        >
-          <option value="operador">Operador</option>
-          <option value="supervisor">Supervisor</option>
-        </select>
-
-        <label style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
           <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
+            type="email"
+            name="email"
+            placeholder={t("email_placeholder") || "Escribe correo"}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="off"
           />
-          Activo
-        </label>
+          <input
+            type="password"
+            name="password"
+            placeholder={t("password_placeholder") || "Escribe contraseña"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+          />
 
-        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-          <button className="primary" onClick={crearUsuario}>
-            {t("create_user")}
-          </button>
-          <button className="secondary" onClick={alternarMostrarUsuarios}>
-            {mostrarUsuarios ? t("hide_users") : t("show_users")}
-          </button>
+          <input
+            type="text"
+            placeholder="Nombre para mostrar (opcional)"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            autoComplete="off"
+          />
+
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            <option value="operador">Operador</option>
+            <option value="supervisor">Supervisor</option>
+          </select>
+
+          <label style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+            />
+            Activo
+          </label>
+
+          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+            <button className="primary" onClick={crearUsuario}>
+              {t("create_user")}
+            </button>
+            <button className="secondary" onClick={alternarMostrarUsuarios}>
+              {mostrarUsuarios ? t("hide_users") : t("show_users")}
+            </button>
+          </div>
+        </div>
+
+        {mensaje && <p style={{ marginTop: "1rem", color: "#007bff" }}>{mensaje}</p>}
+        {cargando && <p>{t("loading")}...</p>}
+
+        {mostrarUsuarios && usuarios.length > 0 && (
+         <div className="table-wrap" style={{ marginTop: "1.5rem" }}>
+            <table className="table">
+                <thead>
+                  <tr>
+                    <th>{t("email")}</th>
+                    <th>{t("user_id")}</th>
+                    <th>{t("rol")}</th>
+                    <th>{t("activo")}</th>
+                    <th>{t("new_password")}</th>
+                    <th>{t("actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usuarios.map((u) => (
+                    <tr key={u.uid}>
+                      <td>{u.email}</td>
+                      <td>{u.uid}</td>
+                      <td>
+                        <select
+                          value={u.role || 'operador'}
+                          onChange={async (e) => {
+                            await fetch(`${API_URL}/update-user-role`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                              body: JSON.stringify({ uid: u.uid, role: e.target.value }),
+                            });
+                            cargarUsuarios();
+                          }}
+                        >
+                          <option value="operador">Operador</option>
+                          <option value="supervisor">Supervisor</option>
+                        </select>
+                      </td>
+
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={u.is_active ?? true}
+                          onChange={async (e) => {
+                            await fetch(`${API_URL}/update-user-role`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                              body: JSON.stringify({ uid: u.uid, is_active: e.target.checked }),
+                            });
+                            cargarUsuarios();
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="password"
+                          value={nuevosPasswords[u.uid] || ""}
+                          onChange={(e) =>
+                            setNuevosPasswords((prev) => ({
+                              ...prev,
+                              [u.uid]: e.target.value,
+                            }))
+                          }
+                          placeholder={t("new_password")}
+                        />
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                          <button className="edit-btn" onClick={() => actualizarPassword(u.uid)}>
+                            {t("update_password")}
+                          </button>
+                          <button className="delete-btn" onClick={() => eliminarUsuario(u.uid)}>
+                            {t("delete_user")}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+        )}
         </div>
       </div>
-
-      {mensaje && <p style={{ marginTop: "1rem", color: "#007bff" }}>{mensaje}</p>}
-      {cargando && <p>{t("loading")}...</p>}
-
-      {mostrarUsuarios && usuarios.length > 0 && (
-        <div style={{ marginTop: "1.5rem", overflowX: "auto" }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t("email")}</th>
-                <th>{t("user_id")}</th>
-                <th>{t("rol")}</th>
-                <th>{t("activo")}</th>
-                <th>{t("new_password")}</th>
-                <th>{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map((u) => (
-                <tr key={u.uid}>
-                  <td>{u.email}</td>
-                  <td>{u.uid}</td>
-                  <td>
-                    <select
-                      value={u.role || 'operador'}
-                      onChange={async (e) => {
-                        await fetch(`${API_URL}/update-user-role`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-                          body: JSON.stringify({ uid: u.uid, role: e.target.value }),
-                        });
-                        cargarUsuarios();
-                      }}
-                    >
-                      <option value="operador">Operador</option>
-                      <option value="supervisor">Supervisor</option>
-                    </select>
-                  </td>
-
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={u.is_active ?? true}
-                      onChange={async (e) => {
-                        await fetch(`${API_URL}/update-user-role`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-                          body: JSON.stringify({ uid: u.uid, is_active: e.target.checked }),
-                        });
-                        cargarUsuarios();
-                      }}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="password"
-                      value={nuevosPasswords[u.uid] || ""}
-                      onChange={(e) =>
-                        setNuevosPasswords((prev) => ({
-                          ...prev,
-                          [u.uid]: e.target.value,
-                        }))
-                      }
-                      placeholder={t("new_password")}
-                    />
-                  </td>
-                  <td>
-                    <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                      <button className="edit-btn" onClick={() => actualizarPassword(u.uid)}>
-                        {t("update_password")}
-                      </button>
-                      <button className="delete-btn" onClick={() => eliminarUsuario(u.uid)}>
-                        {t("delete_user")}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
   );
 }

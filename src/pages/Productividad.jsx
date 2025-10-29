@@ -351,112 +351,116 @@ export default function Productividad() {
   };
 
   return (
-    <div className="card">
-      <h2>{t("productivity")}</h2>
+    <div className="page-container page-container--fluid">
+      <div className="card">
+        <h2>{t("productivity")}</h2>
 
-      {/* Filtros de fecha */}
-      <div
-        style={{
-          display: "flex",
-          gap: "1rem",
-          flexWrap: "wrap",
-          marginBottom: "1rem",
-          justifyContent: "flex-start",
-        }}
-      >
-        <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={{ padding: "0.5rem" }} />
-        <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={{ padding: "0.5rem" }} />
-      </div>
-
-      {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
-
-      {/* Agrupaciones */}
-      <div
-        style={{
-          display: "flex",
-          gap: "1rem",
-          flexWrap: "wrap",
-          marginBottom: "1rem",
-          justifyContent: "flex-start",
-        }}
-      >
-        <select value={agrupadoPor} onChange={(e) => setAgrupadoPor(e.target.value)} style={{ padding: "0.5rem" }}>
-          <option value="actividad">{t("activity")}</option>
-          <option value="operador">{t("operator")}</option>
-          <option value="producto">{t("product")}</option>
-        </select>
-
-        <select value={agrupadoPor2} onChange={(e) => setAgrupadoPor2(e.target.value)} style={{ padding: "0.5rem" }}>
-          <option value="">{t("select_second_group")}</option>
-          <option value="actividad">{t("activity")}</option>
-          <option value="operador">{t("operator")}</option>
-          <option value="producto">{t("product")}</option>
-        </select>
-
-        <select value={tipoGrafica} onChange={(e) => setTipoGrafica(e.target.value)} style={{ padding: "0.5rem" }}>
-          <option value="bar">{t("bar_chart")}</option>
-          <option value="pie">{t("pie_chart")}</option>
-        </select>
-      </div>
-
-      {/* Botón limpiar */}
-      <button
-        onClick={limpiarFiltros}
-        style={{
-          padding: "0.5rem 1rem",
-          backgroundColor: "#000",
-          color: "white",
-          border: "none",
-          borderRadius: "0.5rem",
-          cursor: "pointer",
-          marginBottom: "1rem",
-        }}
-      >
-        {t("clear_filters")}
-      </button>
-
-      {/* Tabla */}
-      <div style={{ marginTop: "2rem", overflowX: "auto" }}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{agrupadoPor2 ? `${t(agrupadoPor)} - ${t(agrupadoPor2)}` : t(agrupadoPor)}</th>
-              <th>{t("average_time_minutes")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {agrupadoPor2 && etiquetasCruzadas.length
-              ? etiquetasCruzadas.map((etiqueta, index) => (
-                  <tr key={index}>
-                    <td>{etiqueta}</td>
-                    <td>{promediosCruzados[index]}</td>
-                  </tr>
-                ))
-              : etiquetas.map((etiqueta, index) => (
-                  <tr key={index}>
-                    <td>{etiqueta}</td>
-                    <td>{promedios[index]}</td>
-                  </tr>
-                ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Exportar */}
-      <button className="primary" onClick={exportarCSV} style={{ marginTop: "1rem", padding: "0.5rem 1rem" }}>
-        {t("export_csv")}
-      </button>
-
-      {/* Gráfico */}
-      {etiquetas.length > 0 ? (
-        <div style={{ maxWidth: "100%", height: "400px", marginTop: "2rem" }}>
-          {tipoGrafica === "bar" ? <Bar data={datosGrafica} options={{ responsive: true }} /> : <Pie data={datosGrafica} options={{ responsive: true }} />}
+        {/* Filtros de fecha */}
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            flexWrap: "wrap",
+            marginBottom: "1rem",
+            justifyContent: "flex-start",
+          }}
+        >
+          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={{ padding: "0.5rem" }} />
+          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={{ padding: "0.5rem" }} />
         </div>
-      ) : (
-        <p>{t("no_data")}</p>
-      )}
 
-      <ToastContainer position="top-center" autoClose={1000} />
+        {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
+
+        {/* Agrupaciones */}
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            flexWrap: "wrap",
+            marginBottom: "1rem",
+            justifyContent: "flex-start",
+          }}
+        >
+          <select value={agrupadoPor} onChange={(e) => setAgrupadoPor(e.target.value)} style={{ padding: "0.5rem" }}>
+            <option value="actividad">{t("activity")}</option>
+            <option value="operador">{t("operator")}</option>
+            <option value="producto">{t("product")}</option>
+          </select>
+
+          <select value={agrupadoPor2} onChange={(e) => setAgrupadoPor2(e.target.value)} style={{ padding: "0.5rem" }}>
+            <option value="">{t("select_second_group")}</option>
+            <option value="actividad">{t("activity")}</option>
+            <option value="operador">{t("operator")}</option>
+            <option value="producto">{t("product")}</option>
+          </select>
+
+          <select value={tipoGrafica} onChange={(e) => setTipoGrafica(e.target.value)} style={{ padding: "0.5rem" }}>
+            <option value="bar">{t("bar_chart")}</option>
+            <option value="pie">{t("pie_chart")}</option>
+          </select>
+        </div>
+
+        {/* Botón limpiar */}
+        <button
+          onClick={limpiarFiltros}
+          style={{
+            padding: "0.5rem 1rem",
+            backgroundColor: "#000",
+            color: "white",
+            border: "none",
+            borderRadius: "0.5rem",
+            cursor: "pointer",
+            marginBottom: "1rem",
+          }}
+        >
+          {t("clear_filters")}
+        </button>
+
+        {/* Tabla */}
+        <div style={{ marginTop: "2rem", overflowX: "auto" }}>
+          <div className="table-wrap">
+            <table className="table">
+                <thead>
+                  <tr>
+                    <th>{agrupadoPor2 ? `${t(agrupadoPor)} - ${t(agrupadoPor2)}` : t(agrupadoPor)}</th>
+                    <th>{t("average_time_minutes")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agrupadoPor2 && etiquetasCruzadas.length
+                    ? etiquetasCruzadas.map((etiqueta, index) => (
+                        <tr key={index}>
+                          <td>{etiqueta}</td>
+                          <td>{promediosCruzados[index]}</td>
+                        </tr>
+                      ))
+                    : etiquetas.map((etiqueta, index) => (
+                        <tr key={index}>
+                          <td>{etiqueta}</td>
+                          <td>{promedios[index]}</td>
+                        </tr>
+                      ))}
+                </tbody>
+              </table>
+          </div>
+        </div>
+
+        {/* Exportar */}
+        <button className="primary" onClick={exportarCSV} style={{ marginTop: "1rem", padding: "0.5rem 1rem" }}>
+          {t("export_csv")}
+        </button>
+
+        {/* Gráfico */}
+        {etiquetas.length > 0 ? (
+          <div style={{ maxWidth: "100%", height: "400px", marginTop: "2rem" }}>
+            {tipoGrafica === "bar" ? <Bar data={datosGrafica} options={{ responsive: true }} /> : <Pie data={datosGrafica} options={{ responsive: true }} />}
+          </div>
+        ) : (
+          <p>{t("no_data")}</p>
+        )}
+
+        <ToastContainer position="top-center" autoClose={1000} />
+      </div>
     </div>
   );
 }

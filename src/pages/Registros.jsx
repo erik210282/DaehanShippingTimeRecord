@@ -499,7 +499,8 @@ useEffect(() => {
   };
 
   return (
-    <div className="card">
+    <div className="page-container page-container--fluid">
+      <div className="card">
       <h2>{t("records")}</h2>
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
         <button onClick={() => setPestañaActiva("paginado")} disabled={pestañaActiva === "paginado"}>
@@ -536,64 +537,66 @@ useEffect(() => {
             </button>        
           </div>  
 
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t("idx")}</th>
-                <th>{t("activity")}</th>
-                <th>{t("product")}</th>
-                <th>{t("amount")}</th>
-                <th>{t("operator")}</th>
-                <th>{t("start_time")}</th>
-                <th>{t("end_time")}</th>
-                <th>{t("duration_min")}</th>
-                <th>{t("notes")}</th>
-                <th>{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtrados.map((r) => {
-                const inicio = new Date(r.horaInicio);
-                const fin = new Date(r.horaFin);
-                return (
-                  <tr key={r.id}>
-                    <td>{r.idx || "N/A"}</td>
-                    <td>{mapaActividades[r.actividad] || `ID: ${r.actividad}`}</td>
-                   <td>
-                    {Array.isArray(r.productos)
-                      ? r.productos.map((p, i) => (
-                          <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
-                        ))
-                      : mapaProductos[r.producto]}
-                  </td>
-                  <td>
-                    {Array.isArray(r.productos)
-                      ? r.productos.map((p, i) => (
-                          <div key={i}>{p.cantidad}</div>
-                        ))
-                      : r.cantidad}
-                  </td>
-                    <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
-                    <td>{inicio.toLocaleString()}</td>
-                    <td>{fin.toLocaleString()}</td>
-                    <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
-                    <td>{r.notas || "-"}</td>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t("idx")}</th>
+                  <th>{t("activity")}</th>
+                  <th>{t("product")}</th>
+                  <th>{t("amount")}</th>
+                  <th>{t("operator")}</th>
+                  <th>{t("start_time")}</th>
+                  <th>{t("end_time")}</th>
+                  <th>{t("duration_min")}</th>
+                  <th>{t("notes")}</th>
+                  <th>{t("actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtrados.map((r) => {
+                  const inicio = new Date(r.horaInicio);
+                  const fin = new Date(r.horaFin);
+                  return (
+                    <tr key={r.id}>
+                      <td>{r.idx || "N/A"}</td>
+                      <td>{mapaActividades[r.actividad] || `ID: ${r.actividad}`}</td>
                     <td>
-                      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                        <button onClick={() => abrirModal(r)}>{t("edit")}</button>
-                        <button
-                          onClick={() => setRegistroAEliminar(r)}
-                          className="btn btn-danger"
-                        >
-                          {t("delete")}
-                        </button>
-                      </div>
+                      {Array.isArray(r.productos)
+                        ? r.productos.map((p, i) => (
+                            <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
+                          ))
+                        : mapaProductos[r.producto]}
                     </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    <td>
+                      {Array.isArray(r.productos)
+                        ? r.productos.map((p, i) => (
+                            <div key={i}>{p.cantidad}</div>
+                          ))
+                        : r.cantidad}
+                    </td>
+                      <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
+                      <td>{inicio.toLocaleString()}</td>
+                      <td>{fin.toLocaleString()}</td>
+                      <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
+                      <td>{r.notas || "-"}</td>
+                      <td>
+                        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                          <button onClick={() => abrirModal(r)}>{t("edit")}</button>
+                          <button
+                            onClick={() => setRegistroAEliminar(r)}
+                            className="btn btn-danger"
+                          >
+                            {t("delete")}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div>
@@ -608,50 +611,52 @@ useEffect(() => {
           {Object.entries(registrosAgrupados()).map(([grupo, lista]) => (
             <div key={grupo} style={{ marginBottom: "20px" }}>
               <h4>{grupo}</h4>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>{t("idx")}</th>
-                    <th>{t("activity")}</th>
-                    <th>{t("operator")}</th>
-                    <th>{t("product")}</th>
-                    <th>{t("amount")}</th>
-                    <th>{t("start_time")}</th>
-                    <th>{t("end_time")}</th>
-                    <th>{t("duration_min")}</th>
-                    <th>{t("notes")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lista.map((r) => {
-                    return (
-                      <tr key={r.id}>
-                        <td>{r.idx || "N/A"}</td>
-                        <td>{mapaActividades[r.actividad] || `ID: ${r.actividad}`}</td>
-                        <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
-                        <td>
-                          {Array.isArray(r.productos)
-                            ? r.productos.map((p, i) => (
-                                <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
-                              ))
-                            : mapaProductos[r.producto]}
-                        </td>
-                        <td>
-                          {Array.isArray(r.productos)
-                            ? r.productos.map((p, i) => (
-                                <div key={i}>{p.cantidad}</div>
-                              ))
-                            : r.cantidad}
-                        </td>
-                        <td>{new Date(r.horaInicio).toLocaleString()}</td>
-                        <td>{new Date(r.horaFin).toLocaleString()}</td>
-                        <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
-                        <td>{r.notas || "N/A"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>{t("idx")}</th>
+                      <th>{t("activity")}</th>
+                      <th>{t("operator")}</th>
+                      <th>{t("product")}</th>
+                      <th>{t("amount")}</th>
+                      <th>{t("start_time")}</th>
+                      <th>{t("end_time")}</th>
+                      <th>{t("duration_min")}</th>
+                      <th>{t("notes")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lista.map((r) => {
+                      return (
+                        <tr key={r.id}>
+                          <td>{r.idx || "N/A"}</td>
+                          <td>{mapaActividades[r.actividad] || `ID: ${r.actividad}`}</td>
+                          <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
+                          <td>
+                            {Array.isArray(r.productos)
+                              ? r.productos.map((p, i) => (
+                                  <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
+                                ))
+                              : mapaProductos[r.producto]}
+                          </td>
+                          <td>
+                            {Array.isArray(r.productos)
+                              ? r.productos.map((p, i) => (
+                                  <div key={i}>{p.cantidad}</div>
+                                ))
+                              : r.cantidad}
+                          </td>
+                          <td>{new Date(r.horaInicio).toLocaleString()}</td>
+                          <td>{new Date(r.horaFin).toLocaleString()}</td>
+                          <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
+                          <td>{r.notas || "N/A"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))}
         </div>
@@ -784,6 +789,7 @@ useEffect(() => {
           autoClose={1500}
           style={{ zIndex: 9999, top: "80px" }}
         />
+      </div>
     </div>
   );
 }

@@ -312,80 +312,83 @@ export default function TareasPendientes() {
     .sort((a, b) => a.label.localeCompare(b.label));
 
   return (
+  <div className="page-container page-container--fluid">
     <div className="card">
       <h2>{t("pending_tasks")}</h2>
       <button onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
         ➕ {t("add_task")}
       </button>
 
-      <table className="table">
-        <thead>
-          <tr>
-            <th>{t("idx")}</th>
-            <th>{t("activity")}</th>
-            <th>{t("product")}</th>
-            <th>{t("amount")}</th>
-            <th>{t("operator")}</th>
-            <th>{t("notes")}</th>            
-            <th>{t("status")}</th>
-            <th>{t("actions")}</th>
-          </tr>
-        </thead>
-        <tbody key={i18n.language}>
-          {tareas.map((tarea) => (
-            <tr
-              key={tarea.id}
-              style={{
-                backgroundColor: colorActividad(actividades[tarea.actividad] || tarea.nombre_actividad || tarea.actividad)
-              }}
-            >
-              <td>{tarea.idx || "-"}</td>
-              <td>{mostrarNombre(tarea.actividad, actividades)}</td>
-              <td>
-                {Array.isArray(tarea.productos)
-                  ? tarea.productos.map((p, i) => (
-                      <div key={i}>{mostrarNombre(p.producto, productos)}</div>
-                    ))
-                  : mostrarNombre(tarea.producto, productos)}
-              </td>
-              <td>
-                {Array.isArray(tarea.productos)
-                  ? tarea.productos.map((p, i) => <div key={i}>{p.cantidad}</div>)
-                  : tarea.cantidad}
-              </td>
-              <td>
-                {Array.isArray(tarea.operadores) && tarea.operadores.length > 0
-                  ? tarea.operadores.map((opId, i) => (
-                      <div key={i}>{mostrarNombre(opId, operadores)}</div>
-                    ))
-                  : "-"}
-              </td>
-              <td>{tarea.notas || "-"}</td>              
-              <td style={{ fontWeight: "bold" }}>
-                {(() => {
-                  const estadoVisual = obtenerEstadoVisual(tarea.estado);
-                  return (
-                    <span style={{ 
-                        color: estadoVisual.color,
-                        fontSize: "16px",
-                        fontWeight: "bold",
-                        textShadow: "-1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white" 
-                        }}>
-                      {estadoVisual.icono} {estadoVisual.texto}
-                    </span>
-                  );
-                })()}
-              </td>
-              <td>
-                <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                  <button onClick={() => abrirModal(tarea)}>{t("edit")}</button>
-                  <button onClick={() => setTareaAEliminar(tarea)}>{t("delete")}</button>
-                </div>
-              </td>
+      <div className="table-wrap">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>{t("idx")}</th>
+              <th>{t("activity")}</th>
+              <th>{t("product")}</th>
+              <th>{t("amount")}</th>
+              <th>{t("operator")}</th>
+              <th>{t("notes")}</th>            
+              <th>{t("status")}</th>
+              <th>{t("actions")}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody key={i18n.language}>
+            {tareas.map((tarea) => (
+              <tr
+                key={tarea.id}
+                style={{
+                  backgroundColor: colorActividad(actividades[tarea.actividad] || tarea.nombre_actividad || tarea.actividad)
+                }}
+              >
+                <td>{tarea.idx || "-"}</td>
+                <td>{mostrarNombre(tarea.actividad, actividades)}</td>
+                <td>
+                  {Array.isArray(tarea.productos)
+                    ? tarea.productos.map((p, i) => (
+                        <div key={i}>{mostrarNombre(p.producto, productos)}</div>
+                      ))
+                    : mostrarNombre(tarea.producto, productos)}
+                </td>
+                <td>
+                  {Array.isArray(tarea.productos)
+                    ? tarea.productos.map((p, i) => <div key={i}>{p.cantidad}</div>)
+                    : tarea.cantidad}
+                </td>
+                <td>
+                  {Array.isArray(tarea.operadores) && tarea.operadores.length > 0
+                    ? tarea.operadores.map((opId, i) => (
+                        <div key={i}>{mostrarNombre(opId, operadores)}</div>
+                      ))
+                    : "-"}
+                </td>
+                <td>{tarea.notas || "-"}</td>              
+                <td style={{ fontWeight: "bold" }}>
+                  {(() => {
+                    const estadoVisual = obtenerEstadoVisual(tarea.estado);
+                    return (
+                      <span style={{ 
+                          color: estadoVisual.color,
+                          fontSize: "16px",
+                          fontWeight: "bold",
+                          textShadow: "-1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white" 
+                          }}>
+                        {estadoVisual.icono} {estadoVisual.texto}
+                      </span>
+                    );
+                  })()}
+                </td>
+                <td>
+                  <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                    <button onClick={() => abrirModal(tarea)}>{t("edit")}</button>
+                    <button onClick={() => setTareaAEliminar(tarea)}>{t("delete")}</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
         <h3>{tareaActual?.id ? t("edit_task") : t("new_task")}</h3>
@@ -531,6 +534,7 @@ export default function TareasPendientes() {
         </Modal>
       )}
       <ToastContainer position="top-center" autoClose={1000} />
+      </div>
     </div>
   );
 }
