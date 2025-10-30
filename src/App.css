@@ -18,7 +18,7 @@ body {
   width: 100%;
   margin: 0 auto;
   padding-inline: clamp(12px, 2vw, 24px);
-  max-width: clamp(960px, 92vw, 1600px);
+  max-width: clamp(320px, 92vw, 1600px);
 }
 
 .page-container--fluid {
@@ -53,7 +53,7 @@ body {
 
 .navbar-center {
   display: flex;
-  gap: 100px;
+  gap: clamp(16px, 6vw, 60px);
 }
 
 .navbar-center button {
@@ -95,7 +95,7 @@ select {
   font-size: 1rem;
   margin-bottom: 1rem;
   width: 100%;
-  max-width: 250px;
+  max-width: clamp(240px, 40vw, 360px);
 }
 
 button {
@@ -127,7 +127,7 @@ button {
 .card {
   background-color: white;
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: clamp(12px, 2.8vw, 24px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   margin-bottom: 2rem;
   width: 100%;
@@ -140,11 +140,40 @@ button {
   background-color: #f9f9f9;
   border-radius: 0.6rem;
   overflow: hidden;
+  min-width: 680px;                 
+  font-size: clamp(12px, 1.5vw, 14px);
+}
+
+/* Ajusta densidad en pantallas chicas */
+@media (max-width: 600px) {
+  .content { padding: 12px; }            /* menos margen general */
+  .card { padding: 12px; border-radius: 12px; }
+
+  .table th, .table td {
+    padding: 10px;                        /* filas más compactas */
+    font-size: 14px;
+  }
+
+  /* Barra de scroll cómoda */
+  .table-wrap::-webkit-scrollbar { height: 8px; }
+  .table-wrap::-webkit-scrollbar-thumb { background:#c7c7c7; border-radius: 4px; }
+}
+
+@media (max-width: 600px) {
+  button, .primary, .secondary {
+    min-height: 44px;                 /* target táctil */
+    font-size: 14px;
+  }
+  input, select {
+    max-width: none;                  /* que ocupen ancho completo */
+    width: 100%;
+    font-size: 14px;
+  }
 }
 
 .table th,
 .table td {
-  padding: 0.75rem;
+  padding: clamp(8px, 1.2vw, 12px);
   text-align: left;
   border-bottom: 1px solid #ddd;
 }
@@ -395,4 +424,31 @@ button {
 .login-btn:disabled {
   opacity: 0.7;
   cursor: default;
+}
+
+@media (max-width: 1024px) {
+  .navbar {
+    padding: 10px 16px;
+  }
+  .navbar-center {
+    gap: 24px;                 /* antes 100px */
+  }
+  .navbar-center button {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+}
+
+/* Celular */
+@media (max-width: 600px) {
+  .navbar-center {
+    gap: 14px;
+    overflow-x: auto;          /* si no cabe, deslizable */
+    -webkit-overflow-scrolling: touch;
+  }
+  .navbar-center button {
+    white-space: nowrap;       /* evita saltos raros */
+    font-size: 13px;
+    padding: 6px 8px;
+  }
 }
