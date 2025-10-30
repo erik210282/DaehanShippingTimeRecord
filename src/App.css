@@ -283,6 +283,39 @@ button {
   color: var(--login-text);
 }
 
+/* no expandir demasiado en pantallas grandes */
+@media (min-width: 1600px) {
+  .login-card {
+    width: 85vw;
+    max-width: 1200px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .login-card {
+    width: 90vw;          /* un poco más ancho en pantallas medianas */
+    max-width: 600px;
+    padding: 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  .login-card {
+    width: 95vw;          /* casi todo el ancho de la pantalla */
+    max-width: none;
+    padding: 18px;        /* menos padding para que todo quepa */
+    border-radius: 12px;  /* bordes más suaves */
+  }
+
+  .login-input {
+    font-size: 14px;      /* texto más grande para usabilidad */
+  }
+
+  .login-btn {
+    height: 44px;         /* botón más cómodo de tocar */
+  }
+}
+
 /* título */
 .login-title {
   color: var(--login-text);
@@ -362,12 +395,4 @@ button {
 .login-btn:disabled {
   opacity: 0.7;
   cursor: default;
-}
-
-/* no expandir demasiado en pantallas grandes */
-@media (min-width: 1600px) {
-  .login-card {
-    width: 85vw;
-    max-width: 1200;
-  }
 }
