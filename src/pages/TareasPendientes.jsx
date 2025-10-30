@@ -42,24 +42,19 @@ export default function TareasPendientes() {
   // Función para obtener tareas pendientes
   const fetchTareas = async () => {
     const { data, error } = await supabase
-    .from("tareas_pendientes")
-    .select("*")
-    .not("estado", "eq", "finalizada");
+      .from("tareas_pendientes")
+      .select("*")
+      .not("estado", "eq", "finalizada")
+      .order("prioridad", { ascending: true })
+      .order("createdAt", { ascending: true });
 
-    if (!error && data) {
-      const tareasList = data
-        .map((doc) => ({
-          id: doc.id,
-          ...doc,
-        }))
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-        .filter((t) => ["pendiente", "iniciada", "pausada"].includes(t.estado));
+    if (error) {
+      console.error("Error cargando tareas:", error);
+      return;
+    }
 
-      console.log("🧠 Tareas actualizadas desde Supabase:", tareasList);
-      setTareas([]); // Limpia antes
-      setTimeout(() => {
-        setTareas(tareasList);
-      }, 0);
+    if (data) {
+      setTareas(data);
     }
   };
 
@@ -203,6 +198,7 @@ export default function TareasPendientes() {
         operadores: [],
         notas: "",
         estado: "pendiente",
+        prioridad: getNextPriority(),
       });
       setModalAbierto(true);
       return;
@@ -231,6 +227,13 @@ export default function TareasPendientes() {
     setModalAbierto(true);
   };
 
+  const getNextPriority = () => {
+    if (!tareas?.length) return 1;
+    const vivas = tareas.filter(t => t.estado !== 'finalizada');
+    if (!vivas.length) return 1;
+    return Math.max(...vivas.map(t => t.prioridad ?? 0)) + 1;
+  };
+
   const guardarTarea = async () => {
     const { idx, actividad, productos: listaProductos, notas } = tareaActual;
 
@@ -257,6 +260,7 @@ export default function TareasPendientes() {
       notas: notas || "",
       estado: tareaActual.estado || "pendiente",
       operadores: tareaActual.operadores || [],
+      prioridad: tareaActual.prioridad ?? getNextPriority(),
     };
 
     try {
@@ -278,7 +282,6 @@ export default function TareasPendientes() {
           .from("tareas_pendientes")
           .insert([{
             ...datos,
-            createdAt: new Date().toISOString(),
           }]);
 
         if (error) throw error;
@@ -323,6 +326,7 @@ export default function TareasPendientes() {
         <table className="table">
           <thead>
             <tr>
+              <th>{t("prioridad")}</th>
               <th>{t("idx")}</th>
               <th>{t("activity")}</th>
               <th>{t("product")}</th>
@@ -341,6 +345,73 @@ export default function TareasPendientes() {
                   backgroundColor: colorActividad(actividades[tarea.actividad] || tarea.nombre_actividad || tarea.actividad)
                 }}
               >
+                <td style={{ whiteSpace: "nowrap", textAlign: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                    {/* Campo numérico editable */}
+                    <input
+                      type="number"
+                      min={1}
+                      value={tarea.prioridad ?? ""}
+                      onChange={async (e) => {
+                        const nueva = Math.max(1, parseInt(e.target.value || "1", 10));
+                        const { error } = await supabase
+                          .from("tareas_pendientes")
+                          .update({ prioridad: nueva })
+                          .eq("id", tarea.id);
+                        if (error) toast.error(t("error_updating_priority"));
+                        else toast.success(t("priority_updated"));
+                      }}
+                      style={{
+                        width: "60px",
+                        textAlign: "center",
+                        borderRadius: "6px",
+                        border: "1px solid #ccc",
+                      }}
+                      title={t("edit_priority")}
+                    />
+
+                    {/* ▲ Subir prioridad */}
+                    <button
+                      title={t("move_up")}
+                      onClick={async () => {
+                        const idx = tareas.findIndex(t => t.id === tarea.id);
+                        if (idx <= 0) return;
+                        const arriba = tareas[idx - 1];
+                        await supabase
+                          .from("tareas_pendientes")
+                          .update({ prioridad: arriba.prioridad })
+                          .eq("id", tarea.id);
+                        await supabase
+                          .from("tareas_pendientes")
+                          .update({ prioridad: tarea.prioridad })
+                          .eq("id", arriba.id);
+                      }}
+                    >
+                      ▲
+                    </button>
+
+                    {/* ▼ Bajar prioridad */}
+                    <button
+                      title={t("move_down")}
+                      onClick={async () => {
+                        const idx = tareas.findIndex(t => t.id === tarea.id);
+                        if (idx < 0 || idx >= tareas.length - 1) return;
+                        const abajo = tareas[idx + 1];
+                        await supabase
+                          .from("tareas_pendientes")
+                          .update({ prioridad: abajo.prioridad })
+                          .eq("id", tarea.id);
+                        await supabase
+                          .from("tareas_pendientes")
+                          .update({ prioridad: tarea.prioridad })
+                          .eq("id", abajo.id);
+                      }}
+                    >
+                      ▼
+                    </button>
+                  </div>
+                </td>
+
                 <td>{tarea.idx || "-"}</td>
                 <td>{mostrarNombre(tarea.actividad, actividades)}</td>
                 <td>

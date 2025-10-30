@@ -137,6 +137,12 @@
     "activity_finished": "Activity finished",
     "activity_registered": "Activity registered!",
     "configure_task_order": "Configure Task Order",
+    "prioridad": "Priority",
+    "edit_priority": "Edit priority",
+    "priority_updated": "Priority updated",
+    "error_updating_priority": "Error updating priority",
+    "move_up": "Move up",
+    "move_down": "Move down",
 
     "login": {
         "title": "Sign In",

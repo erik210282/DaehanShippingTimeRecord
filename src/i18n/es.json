@@ -144,6 +144,12 @@
     "activity_finished": "Actividad finalizada",
     "activity_registered": "¡Actividad registrada!",
     "configure_task_order": "Configurar Orden de Tareas",
+    "prioridad": "Prioridad",
+    "edit_priority": "Editar prioridad",
+    "priority_updated": "Prioridad actualizada",
+    "error_updating_priority": "Error al actualizar prioridad",
+    "move_up": "Subir prioridad",
+    "move_down": "Bajar prioridad",
 
     "login": {
         "title": "Iniciar sesión",
