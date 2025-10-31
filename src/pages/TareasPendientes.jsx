@@ -36,7 +36,7 @@ const primaryBtn = {
   background: "linear-gradient(180deg,#3b82f6,#1d4ed8)",
   color: "#fff",
   cursor: "pointer",
-  boxShadow: "0 4px 10px rgba(37,99,235,0.25)",
+  boxShadow: "0 4px 10px rgba(25, 53, 179, 0.25)",
 };
 
 const secondaryBtn = {
