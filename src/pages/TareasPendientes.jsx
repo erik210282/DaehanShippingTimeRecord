@@ -69,7 +69,7 @@ const dangerBtn = {
   borderRadius: "10px",
   border: "1px solid #111",
   background: "#111",
-  color: "#e03333ff",
+  color: "#ec2618ff",
   cursor: "pointer",
 };
 
