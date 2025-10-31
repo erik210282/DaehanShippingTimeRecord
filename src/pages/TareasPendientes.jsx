@@ -38,6 +38,7 @@ const primaryBtn = {
   cursor: "pointer",
   boxShadow: "0 4px 10px rgba(37,99,235,0.25)",
 };
+
 const secondaryBtn = {
   padding: "8px 14px",
   borderRadius: "10px",
@@ -46,6 +47,16 @@ const secondaryBtn = {
   color: "#111",
   cursor: "pointer",
 };
+
+const editBtnDark = {
+  padding: "8px 14px",
+  borderRadius: "10px",
+  border: "1px solid #111",
+  background: "#111",
+  color: "#fff",
+  cursor: "pointer",
+};
+
 const dangerBtn = {
   padding: "8px 14px",
   borderRadius: "10px",
@@ -54,17 +65,19 @@ const dangerBtn = {
   color: "#ef4444",
   cursor: "pointer",
 };
+
 const tinyRoundBtn = {
   width: 34,
   height: 34,
   borderRadius: "9999px",
-  border: "1px solid #cfd4dc",
-  background: "#fff",
+  border: "1px solid #111",
+  background: "#111",
   cursor: "pointer",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   userSelect: "none",
+  padding: 0,
 };
 
 export default function TareasPendientes() {
@@ -517,7 +530,10 @@ export default function TareasPendientes() {
                         style={tinyRoundBtn}
                         aria-label={t("move_up")}
                       >
-                        ▲
+                        {/* Ícono chevron up blanco */}
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path d="M7 14l5-5 5 5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                       </button>
 
                       <button
@@ -532,7 +548,10 @@ export default function TareasPendientes() {
                         style={tinyRoundBtn}
                         aria-label={t("move_down")}
                       >
-                        ▼
+                        {/* Ícono chevron down blanco */}
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path d="M7 10l5 5 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                       </button>
                     </div>
                   </td>
@@ -580,7 +599,7 @@ export default function TareasPendientes() {
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                      <button onClick={() => abrirModal(tarea)} style={secondaryBtn}>
+                      <button onClick={() => abrirModal(tarea)} style={editBtnDark}>
                         {t("edit")}
                       </button>
                       <button onClick={() => setTareaAEliminar(tarea)} style={dangerBtn}>
