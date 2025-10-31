@@ -21,9 +21,16 @@ const pillInput = {
   boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
 };
 const pillInputNumber = {
-  ...pillInput,
-  width: "80px",
+  width: "55px",
+  height: "34px",
   textAlign: "center",
+  fontSize: "15px",
+  borderRadius: "8px",
+  border: "1px solid #cfd4dc",
+  outline: "none",
+  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
+  padding: "2px 6px",
+  margin: 0,
 };
 const textAreaStyle = {
   ...pillInput,
@@ -62,7 +69,7 @@ const dangerBtn = {
   borderRadius: "10px",
   border: "1px solid #111",
   background: "#111",
-  color: "#ef4444",
+  color: "#e03333ff",
   cursor: "pointer",
 };
 
@@ -73,11 +80,13 @@ const tinyRoundBtn = {
   border: "1px solid #111",
   background: "#111",
   cursor: "pointer",
-  display: "inline-flex",
+  display: "flex",
   alignItems: "center",
   justifyContent: "center",
   userSelect: "none",
   padding: 0,
+  margin: 0,
+  transform: "translateY(1px)", // pequeño ajuste visual
 };
 
 export default function TareasPendientes() {
@@ -500,7 +509,7 @@ export default function TareasPendientes() {
                 >
                   {/* Prioridad editable + botones estéticos */}
                   <td style={{ whiteSpace: "nowrap", textAlign: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, height: "34px" }}>
                       <input
                         type="number"
                         min={1}
