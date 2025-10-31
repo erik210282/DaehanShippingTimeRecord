@@ -60,8 +60,8 @@ const editBtnDark = {
 const dangerBtn = {
   padding: "8px 14px",
   borderRadius: "10px",
-  border: "1px solid #ef4444",
-  background: "#fff",
+  border: "1px solid #111",
+  background: "#111",
   color: "#ef4444",
   cursor: "pointer",
 };
