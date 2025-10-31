@@ -36,15 +36,15 @@ const primaryBtn = {
   background: "linear-gradient(180deg,#3b82f6,#1d4ed8)",
   color: "#fff",
   cursor: "pointer",
-  boxShadow: "0 4px 10px rgba(25, 53, 179, 0.25)",
+  boxShadow: "0 4px 10px rgba(6, 26, 136, 0.25)",
 };
 
 const secondaryBtn = {
   padding: "8px 14px",
   borderRadius: "10px",
-  border: "1px solid #cfd4dc",
-  background: "#fff",
-  color: "#111",
+  border: "1px solid #111",
+  background: "#111",
+  color: "#fff",
   cursor: "pointer",
 };
 
