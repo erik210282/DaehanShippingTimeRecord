@@ -1,4 +1,3 @@
-// src/pages/GenerarBOL.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabase/client"; // ajusta si tu client vive en otra ruta
 import { useTranslation } from "react-i18next";
