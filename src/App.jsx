@@ -14,6 +14,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
+import GenerarBOL from "./pages/GenerarBOL";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -53,9 +54,11 @@ const Navbar = () => {
       <div className="navbar-center">
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
         <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
+        <button onClick={() => navigate("/generarbol")}>{t("generate_bol")}</button>
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
         <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
+        <button onClick={() => navigate("/catalogoenvios")}>{t("catalog_ship")}</button>
         <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
@@ -83,6 +86,9 @@ const PrivateArea = () => (
           <Route path="/resumen" element={
             <ProtectedRoute><Resumen /></ProtectedRoute>
           } />
+          <Route path="/generarbol" element={
+            <ProtectedRoute><GenerarBOL /></ProtectedRoute>
+          } />
           <Route path="/registros" element={
             <ProtectedRoute><Registros /></ProtectedRoute>
           } />
@@ -91,6 +97,9 @@ const PrivateArea = () => (
           } />
           <Route path="/catalogos" element={
             <ProtectedRoute><Catalogos /></ProtectedRoute>
+          } />
+          <Route path="/catalogoenvios" element={
+            <ProtectedRoute><CatalogoEnvios /></ProtectedRoute>
           } />
           <Route path="/usuarios" element={
             <ProtectedRoute><Usuarios /></ProtectedRoute>
