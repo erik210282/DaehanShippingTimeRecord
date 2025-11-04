@@ -6,6 +6,8 @@ import Catalogos from "./pages/Catalogos";
 import Usuarios from "./pages/Usuarios";
 import Login from "./pages/Login";
 import Resumen from "./pages/Resumen";
+import CatalogoEnvio from "./pages/CatalogoEnvio";
+import GenerarBOL from "./pages/GenerarBOL";
 import TareasPendientes from "./pages/TareasPendientes";
 import ConfiguracionTareas from "./pages/ConfiguracionTareas";
 import { useTranslation } from "react-i18next";
@@ -58,7 +60,7 @@ const Navbar = () => {
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
         <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
-        <button onClick={() => navigate("/catalogoenvios")}>{t("catalog_ship")}</button>
+        <button onClick={() => navigate("/catalogoenvio")}>{t("catalog_ship")}</button>
         <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
@@ -98,8 +100,8 @@ const PrivateArea = () => (
           <Route path="/catalogos" element={
             <ProtectedRoute><Catalogos /></ProtectedRoute>
           } />
-          <Route path="/catalogoenvios" element={
-            <ProtectedRoute><CatalogoEnvios /></ProtectedRoute>
+          <Route path="/catalogoenvio" element={
+            <ProtectedRoute><CatalogoEnvio /></ProtectedRoute>
           } />
           <Route path="/usuarios" element={
             <ProtectedRoute><Usuarios /></ProtectedRoute>
