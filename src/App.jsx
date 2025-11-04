@@ -16,7 +16,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
-import GenerarBOL from "./pages/GenerarBOL";
 
 const Navbar = () => {
   const navigate = useNavigate();
