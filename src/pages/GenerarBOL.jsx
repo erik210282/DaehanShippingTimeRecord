@@ -82,79 +82,57 @@ export default function GenerarBOL() {
   // IDXs (LOAD finalizado)
   const cargarIdxOptions = React.useCallback(async () => {
     try {
-      // 1) Lee AR (reciente). Usamos '*' para tolerar columnas opcionales (idx, tarea_id, tarco_id, etc.)
+      // --- PLAN A: leer de actividades_realizadas (donde debe estar la verdad final) ---
       const { data: ar, error: errAr } = await supabase
         .from("actividades_realizadas")
-        .select("*")
+        .select("idx, actividad, estado, estatus, status, finalizado, finished, completado, createdAt")
+        .not("idx", "is", null)
         .order("createdAt", { ascending: false })
         .limit(8000);
 
       if (errAr) throw errAr;
 
-      // 2) Filtra LOAD finalizado
-      const loadsFinal = (ar || []).filter((r) => isLoad(r) && isFinal(r));
+      const s = (v) => (v ?? "").toString().trim();
+      const lower = (v) => s(v).toLowerCase();
+      const isFinal = (r) => {
+        const txt = [r?.estado, r?.estatus, r?.status].map(lower).join(" ");
+        return /(finalizad|finished|done|completad|cerrad)/i.test(txt)
+          || [r?.finalizado, r?.finished, r?.completado, r?.cerrado].some(Boolean);
+      };
+      const isLoad = (r) => /load/i.test(s(r?.actividad));
 
-      // 3) Recolecta ids relacionados para buscar idx en tareas_pendientes si hiciera falta
-      const relIds = Array.from(
-        new Set(
-          loadsFinal
-            .map((r) => r?.tarea_id ?? r?.tarco_id ?? null)
-            .filter((v) => v !== null && v !== undefined)
-        )
+      // Filtra LOAD + finalizado + con idx
+      let idxSet = new Set(
+        (ar || [])
+          .filter((r) => isLoad(r) && isFinal(r) && s(r.idx))
+          .map((r) => s(r.idx))
       );
 
-      // 4) Mapa de idx desde tareas_pendientes (si la tabla tiene 'idx')
-      let idxPorTarea = {};
-      if (relIds.length) {
+      // --- PLAN B (fallback): si no salió nada, intenta en tareas_pendientes ---
+      if (idxSet.size === 0) {
         const { data: tp, error: errTp } = await supabase
           .from("tareas_pendientes")
-          .select("*")
-          .in("id", relIds);
+          .select("idx, actividad, estado, estatus, status, finalizado, finished, completado, createdAt")
+          .not("idx", "is", null)
+          .order("createdAt", { ascending: false })
+          .limit(8000);
 
         if (!errTp && Array.isArray(tp)) {
-          tp.forEach((r) => {
-            if (r && r.id != null) {
-              // intenta varias columnas comunes por si tu 'idx' tiene otro nombre
-              const idxVal =
-                r.idx ??
-                r.extid ??     // a veces lo guardan como ref externa
-                r.codigo ??    // alias posibles
-                r.codigo_idx ??
-                null;
-              if (idxVal) idxPorTarea[r.id] = idxVal;
-            }
+          (tp || []).forEach((r) => {
+            if (isLoad(r) && isFinal(r) && s(r.idx)) idxSet.add(s(r.idx));
           });
         }
       }
 
-      // 5) Arma set de IDX (directo o por relación)
-      const setIdx = new Set();
-      for (const r of loadsFinal) {
-        const directo =
-          r.idx ??
-          r.extid ??      // por si lo guardas así en AR
-          r.codigo_idx ??
-          null;
-
-        let idx = directo;
-        if (!idx) {
-          const rel = r?.tarea_id ?? r?.tarco_id ?? null;
-          if (rel && idxPorTarea[rel]) idx = idxPorTarea[rel];
-        }
-        if (idx) setIdx.add(s(idx));
-      }
-
-      // 6) Actualiza opciones (ordenamos desc para ver lo más reciente arriba)
-      const uniq = Array.from(setIdx).sort((a, b) => (a > b ? -1 : 1));
+      const uniq = Array.from(idxSet).sort((a, b) => (a > b ? -1 : 1));
       setIdxOptions(uniq);
-
-      // Si la selección ya no existe, límpiala
       setSelectedIdx((prev) => (prev && !uniq.includes(prev) ? "" : prev));
     } catch (e) {
       console.warn("cargarIdxOptions:", e?.message || e);
       setIdxOptions([]);
     }
   }, [setIdxOptions, setSelectedIdx]);
+
 
 
   // POs
@@ -174,21 +152,24 @@ export default function GenerarBOL() {
 
   React.useEffect(() => {
     cargarIdxOptions();
-    cargarPoOptions?.(); // tu función para POs
+    cargarPoOptions?.();
 
-    const ch = supabase
-      .channel("genbol_idx_loads")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "actividades_realizadas" },
-        () => cargarIdxOptions()
-      )
+    const ch1 = supabase
+      .channel("genbol_idx_ar")
+      .on({ event: "*", schema: "public", table: "actividades_realizadas" }, () => cargarIdxOptions())
+      .subscribe();
+
+    const ch2 = supabase
+      .channel("genbol_idx_tp")
+      .on({ event: "*", schema: "public", table: "tareas_pendientes" }, () => cargarIdxOptions())
       .subscribe();
 
     return () => {
-      try { supabase.removeChannel(ch); } catch {}
+      try { supabase.removeChannel(ch1); } catch {}
+      try { supabase.removeChannel(ch2); } catch {}
     };
-  }, [cargarIdxOptions]);
+  }, [cargarIdxOptions, cargarPoOptions]);
+
 
   // ---------------------- CARGA DETALLE DEL IDX ----------------------
 
