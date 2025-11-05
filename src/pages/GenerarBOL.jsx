@@ -213,10 +213,8 @@ export default function GenerarBOL() {
 
       let x = 12;
       cols.forEach((c) => {
-        const raw = row[c.key];
-        const val = raw === 0 ? "0" : s(raw) || "—"; // 0 no se pierde
-        doc.text(String(val), cx + (c.align === "right" ? c.w - 1 : 1), y, { align: c.align || "left" });
-        cx += c.w;
+        doc.text(c.label, x + (c.align === "right" ? c.w - 1 : 1), headerY, { align: c.align || "left" });
+        x += c.w;
       });
       doc.line(12, headerY + 2, 200, headerY + 2);
 
@@ -256,8 +254,9 @@ export default function GenerarBOL() {
       filas.forEach((row) => {
         let cx = 12;
         cols.forEach((c) => {
-          const val = s(row[c.key]);
-          doc.text(val || "—", cx + (c.align === "right" ? c.w - 1 : 1), y, { align: c.align || "left" });
+          const raw = row[c.key];
+          const val = raw === 0 ? "0" : s(raw) || "—";  // fuerza string y conserva 0
+          doc.text(String(val), cx + (c.align === "right" ? c.w - 1 : 1), y, { align: c.align || "left" });
           cx += c.w;
         });
         y += 6;
