@@ -161,7 +161,7 @@
     "shipment_number": "Shipment #",
     "trailer_number": "Trailer/Container #",
     "seal_number": "Seal #",
-    "packing_slip_number": "Packing Slip # (optional)",
+    "packing_slip_number": "Packing Slip #",
     "select_po": "Select PO",
     "packaging_type": "Packaging Type",
     "returnable": "Returnable",
@@ -189,5 +189,15 @@
     "storage_error": "Error saving PDF",
     "missing_parts_title": "Missing part numbers in catalog",
     "missing_parts_hint": "Some items in the LOAD are not in catalogo_productos. They will use fallback weights (0).",
-    "bucket_missing": "Storage bucket not found. Create a bucket named 'bol' in Supabase Storage."
+    "bucket_missing": "Storage bucket not found. Create a bucket named 'bol' in Supabase Storage.",
+    "generate_bol_coversheet": "Generate BOL & Cover Sheet",
+    "select_idx": "Select IDX",
+    "packing_slip": "Packing Slip #",
+    "preview_hint": "Preview",
+    "select_idx_po": "Select IDX & PO",
+    "ready_to_generate": "Ready to generate PDF…",
+    "generated_ok": "BOL generated successfully",
+    "error_generating": "Error generating BOL",
+    "select_idx_first": "Select an IDX",
+    "select_po_first": "Select a PO"
 }

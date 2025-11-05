@@ -169,7 +169,7 @@
     "shipment_number": "No. de envío (Shipment #)",
     "trailer_number": "No. de Trailer/Contenedor",
     "seal_number": "No. de Sello",
-    "packing_slip_number": "Packing Slip # (opcional)",
+    "packing_slip_number": "Packing Slip #",
     "select_po": "Selecciona PO",
     "packaging_type": "Tipo de empaque",
     "returnable": "Retornable",
@@ -197,5 +197,15 @@
     "storage_error": "Error al guardar PDF",
     "missing_parts_title": "Faltan part numbers en catálogo",
     "missing_parts_hint": "Algunos ítems del LOAD no están en catalogo_productos. Usarán pesos fallback (0).",
-    "bucket_missing": "Falta el bucket de Storage. Crea un bucket llamado 'bol' en Supabase Storage."
+    "bucket_missing": "Falta el bucket de Storage. Crea un bucket llamado 'bol' en Supabase Storage.",
+    "generate_bol_coversheet": "Generar BOL y Cover Sheet",
+    "select_idx": "Seleccionar IDX",
+    "packing_slip": "Packing Slip #",
+    "preview_hint": "Vista previa",
+    "select_idx_po": "Seleccionar IDX & PO",
+    "ready_to_generate": "Listo para generar PDF…",
+    "generated_ok": "BOL generado correctamente",
+    "error_generating": "Error al generar el BOL",
+    "select_idx_first": "Selecciona un IDX",
+    "select_po_first": "Selecciona un PO"
     }

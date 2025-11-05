@@ -56,7 +56,6 @@ export default function Catalogos() {
     freight_class: "",
     freight_charges: "",
     carrier_name: "",
-    booking_tracking: "",
     activo: true,
   };
 
@@ -189,7 +188,6 @@ export default function Catalogos() {
           Contact: [r.contact_name, r.contact_phone, r.contact_email].filter(Boolean).join(" / "),
           Carrier: r.carrier_name || "",
           Freight: [r.freight_class, r.freight_charges].filter(Boolean).join(" / "),
-          Booking: r.booking_tracking || "",
           [t("status")]: r.activo ? t("active") : t("inactive"),
         };
       }
@@ -380,7 +378,6 @@ export default function Catalogos() {
                 <input placeholder="Freight Class" value={edit?.freight_class || ""} onChange={e => setEdit({ ...edit, freight_class: e.target.value })} />
                 <input placeholder="Freight Charges" value={edit?.freight_charges || ""} onChange={e => setEdit({ ...edit, freight_charges: e.target.value })} />
                 <input placeholder="Carrier Name" value={edit?.carrier_name || ""} onChange={e => setEdit({ ...edit, carrier_name: e.target.value })} />
-                <input placeholder="Booking/Tracking" value={edit?.booking_tracking || ""} onChange={e => setEdit({ ...edit, booking_tracking: e.target.value })} />
                 <label style={{ gridColumn: "1 / -1" }}>
                   <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
                 </label>

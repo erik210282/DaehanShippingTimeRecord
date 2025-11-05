@@ -1,458 +1,422 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { supabase } from "../supabase/client"; // ajusta si tu client vive en otra ruta
+import React from "react";
+import { supabase } from "../supabase/client";
 import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { PDFDownloadLink, pdf } from "@react-pdf/renderer"; // <- pdf() para blob
-import BOLAndCoverPdf from "./BOLPdf";
+import { jsPDF } from "jspdf";
+import "../App.css";
+
+/**
+ * Ayudas de string
+ */
+const s = (v) => (v ?? "").toString().trim();
+const lower = (v) => s(v).toLowerCase();
+
+/**
+ * Detecta si un registro en actividades_realizadas es LOAD finalizado
+ * Tolera distintos nombres de columnas y estados.
+ */
+function esLoadFinalizado(r) {
+  const act = lower(r?.nombre_actividad || r?.actividad);
+  const est = lower(r?.estado || r?.estatus || r?.status);
+  const esLoad = act === "load";
+  const esFinal = est === "finalizada" || est === "finalizado" || est === "finished";
+  return esLoad && esFinal;
+}
+
+/**
+ * Mapea productos por id => objeto producto
+ */
+function mapById(arr) {
+  const out = {};
+  (arr || []).forEach((x) => {
+    if (x?.id != null) out[x.id] = x;
+  });
+  return out;
+}
 
 export default function GenerarBOL() {
   const { t } = useTranslation();
 
-  const [idxList, setIdxList] = useState([]);
-  const [pos, setPos] = useState([]);
-  const [shippers, setShippers] = useState([]);
+  // --- estado UI ---
+  const [idxOptions, setIdxOptions] = React.useState([]);
+  const [selectedIdx, setSelectedIdx] = React.useState("");
 
-  const [form, setForm] = useState({
-    idx: "",
-    shipment_number: "",
-    trailer_number: "",
-    seal_number: "",
-    po: "",
-    packaging_tipo: "expendable",
-    packing_slip_number: "",
-    shipper_id: null
-  });
+  const [poOptions, setPoOptions] = React.useState([]);
+  const [selectedPoId, setSelectedPoId] = React.useState("");
 
-  const [preview, setPreview] = useState(null);
-  const [loadingPrev, setLoadingPrev] = useState(false);
-  const [loadingPO, setLoadingPO] = useState(false);
-  const [missingPNs, setMissingPNs] = useState([]); // part numbers faltantes
+  const [shipper, setShipper] = React.useState("Daehan Nevada");
+  const [shipmentNo, setShipmentNo] = React.useState("");
+  const [trailerNo, setTrailerNo] = React.useState("");
+  const [sealNo, setSealNo] = React.useState("");
+  const [packingSlip, setPackingSlip] = React.useState("");
 
-  useEffect(() => {
-    (async () => {
-      const [{ data: idxs }, { data: posData }, { data: shipData }] = await Promise.all([
-        supabase.from("idx_listos_para_bol").select("*"),
-        supabase.from("catalogo_pos").select("*").eq("activo", true),
-        supabase.from("catalogo_origenes").select("*").eq("activo", true).order("is_default", { ascending: false })
-      ]);
-      setIdxList(idxs || []);
-      setPos(posData || []);
-      setShippers(shipData || []);
-      // Preselecciona shipper default
-      const def = (shipData || []).find(s => s.is_default);
-      if (def) setForm(f => ({ ...f, shipper_id: def.id }));
-    })();
+  // "returnable" | "expendable"
+  const [packType, setPackType] = React.useState("expendable");
+
+  // --- datos cargados para el BOL seleccionado ---
+  const [lineasIdx, setLineasIdx] = React.useState([]); // actividades del idx
+  const [productosById, setProductosById] = React.useState({}); // mapa id->producto
+  const [poData, setPoData] = React.useState(null);
+
+  // ---------------------- CARGA CATÁLOGOS ----------------------
+
+  // IDXs (LOAD finalizado)
+  const cargarIdxOptions = React.useCallback(async () => {
+    const { data, error } = await supabase
+      .from("actividades_realizadas")
+      .select("idx, actividad, nombre_actividad, estado, createdAt")
+      .order("createdAt", { ascending: false })
+      .limit(5000);
+
+    if (error) {
+      console.warn("Error cargando actividades_realizadas:", error.message);
+      setIdxOptions([]);
+      return;
+    }
+
+    const loads = (data || []).filter(esLoadFinalizado).filter((r) => !!r.idx);
+    const uniq = Array.from(new Set(loads.map((r) => r.idx)));
+    setIdxOptions(uniq);
   }, []);
 
-  const poRow = useMemo(() => pos.find((p) => p.po === form.po) || null, [pos, form.po]);
-  const shipperRow = useMemo(() => shippers.find(s => s.id === form.shipper_id) || null, [shippers, form.shipper_id]);
-
-  useEffect(() => {
-    (async () => {
-      if (!form.idx || !form.po) { setPreview(null); setMissingPNs([]); return; }
-      setLoadingPrev(true);
-      try {
-        const result = await buildPreview({ idx: form.idx, po: form.po, packaging_tipo: form.packaging_tipo, shipperRow });
-        setPreview(result.data);
-        setMissingPNs(result.missingPNs || []);
-        if (result.missingPNs?.length) {
-          toast.warn(`${t("missing_parts_title")}: ${result.missingPNs.join(", ")}`);
-        }
-      } catch (e) {
-        console.error(e);
-        toast.error(t("error_loading"));
-        setPreview(null);
-        setMissingPNs([]);
-      } finally {
-        setLoadingPrev(false);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.idx, form.po, form.packaging_tipo, form.shipper_id]);
-
-  const onSaveHeader = async () => {
-    if (!form.idx || !form.shipment_number || !form.trailer_number || !form.po || !form.shipper_id) {
-      toast.error(t("fill_all_fields"));
-      return null;
-    }
+  // POs
+  const cargarPoOptions = React.useCallback(async () => {
     const { data, error } = await supabase
-      .from("bol_headers")
-      .insert({
-        idx: form.idx,
-        shipment_number: form.shipment_number,
-        trailer_number: form.trailer_number,
-        seal_number: form.seal_number || null,
-        po: form.po,
-        packaging_tipo: form.packaging_tipo,
-        ship_date: new Date().toISOString().slice(0, 10),
-        packing_slip_number: form.packing_slip_number || null,
-        carrier_name: poRow?.carrier_name || null,
-        shipper_id: form.shipper_id
-      })
-      .select()
-      .single();
-    if (error) {
-      toast.error(error.message);
-      return null;
-    }
-    toast.success(t("save_success"));
-    return data; // header row
-  };
+      .from("catalogo_pos")
+      .select("*")
+      .order("id", { ascending: true });
 
-  // PO recomendado
-  const useRecommendedPO = async () => {
-    if (!form.idx) return;
-    setLoadingPO(true);
-    try {
-      const rec = await sugerirPO(form.idx);
-      if (!rec) toast.info(t("no_po_found_for_idx"));
-      else {
-        setForm((f) => ({ ...f, po: rec }));
-        toast.success(t("po_applied"));
+    if (error) {
+      console.warn("Error cargando catalogo_pos:", error.message);
+      setPoOptions([]);
+      return;
+    }
+    setPoOptions(data || []);
+  }, []);
+
+  React.useEffect(() => {
+    cargarIdxOptions();
+    cargarPoOptions();
+
+    // Suscripción tiempo real para IDX
+    const ch = supabase
+      .channel("genbol_idx_loads")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "actividades_realizadas" },
+        () => cargarIdxOptions()
+      )
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(ch);
+      } catch {}
+    };
+  }, [cargarIdxOptions, cargarPoOptions]);
+
+  // ---------------------- CARGA DETALLE DEL IDX ----------------------
+
+  // Cuando cambia el IDX o el PO seleccionado, cargamos detalle necesario
+  React.useEffect(() => {
+    async function cargarDetalleIdx() {
+      setLineasIdx([]);
+      setProductosById({});
+      if (!selectedIdx) return;
+
+      // 1) Trae todas las actividades del IDX (limitado)
+      const { data: acts, error: errActs } = await supabase
+        .from("actividades_realizadas")
+        .select("id, idx, producto, cantidad, nombre_actividad, actividad, createdAt")
+        .eq("idx", selectedIdx)
+        .order("createdAt", { ascending: true })
+        .limit(5000);
+
+      if (errActs) {
+        toast.error(errActs.message);
+        return;
       }
+
+      setLineasIdx(acts || []);
+
+      // 2) Junta los ids de producto (si existen) y carga productos
+      const ids = Array.from(
+        new Set((acts || []).map((a) => a?.producto).filter((v) => v != null))
+      );
+      if (ids.length) {
+        const { data: prods, error: errProds } = await supabase
+          .from("productos")
+          .select("*")
+          .in("id", ids);
+
+        if (errProds) {
+          console.warn("Error productos:", errProds.message);
+        } else {
+          setProductosById(mapById(prods || []));
+        }
+      }
+    }
+
+    async function cargarPo() {
+      setPoData(null);
+      if (!selectedPoId) return;
+      const { data, error } = await supabase
+        .from("catalogo_pos")
+        .select("*")
+        .eq("id", selectedPoId)
+        .maybeSingle();
+      if (error) {
+        console.warn("Error PO:", error.message);
+      } else {
+        setPoData(data || null);
+      }
+    }
+
+    cargarDetalleIdx();
+    cargarPo();
+  }, [selectedIdx, selectedPoId]);
+
+  // ---------------------- GENERADOR DE PDF ----------------------
+
+  function drawHeader(doc, title, y = 12) {
+    doc.setFontSize(16);
+    doc.text(title, 12, y);
+    doc.setLineWidth(0.5);
+    doc.line(12, y + 2, 200, y + 2);
+  }
+
+  function drawKVP(doc, label, value, x, y) {
+    doc.setFontSize(10);
+    doc.text(`${label}:`, x, y);
+    doc.setFontSize(11);
+    doc.text(s(value) || "—", x + 42, y);
+  }
+
+  function generarPDF() {
+    try {
+      if (!selectedIdx) return toast.error(t("select_idx_first") || "Selecciona un IDX");
+      if (!selectedPoId) return toast.error(t("select_po_first") || "Selecciona un PO");
+
+      const po = poData || {};
+      const doc = new jsPDF({ unit: "mm", format: "letter" }); // 216 x 279mm aprox
+
+      // ----------------- PÁGINA 1: BOL -----------------
+      drawHeader(doc, "Bill of Lading (BOL)");
+
+      // Bloque superior – Datos generales
+      drawKVP(doc, t("shipper") || "Shipper", shipper, 12, 26);
+      drawKVP(doc, "Consignee", po?.consignee_name, 12, 34);
+      drawKVP(doc, "Address", [po?.consignee_address1, po?.consignee_address2].filter(Boolean).join(" "), 12, 42);
+      drawKVP(doc, "City/State/ZIP", [po?.consignee_city, po?.consignee_state, po?.consignee_zip].filter(Boolean).join(", "), 12, 50);
+      drawKVP(doc, "Country", po?.consignee_country, 12, 58);
+
+      drawKVP(doc, "Shipment #", shipmentNo, 120, 26);
+      drawKVP(doc, "Trailer/Container", trailerNo, 120, 34);
+      drawKVP(doc, "Seal #", sealNo, 120, 42);
+      drawKVP(doc, "Packing Slip #", packingSlip, 120, 50);
+      drawKVP(doc, "PO", po?.po, 120, 58);
+      drawKVP(doc, "IDX", selectedIdx, 120, 66);
+
+      // Tabla de ítems (muy simple / tolerante)
+      doc.setFontSize(12);
+      doc.text("Items", 12, 78);
+      doc.setFontSize(10);
+
+      const headerY = 82;
+      const cols = [
+        { w: 24, label: "Part#", key: "part" },
+        { w: 82, label: "Description", key: "desc" },
+        { w: 22, label: "Qty", key: "qty", align: "right" },
+        { w: 30, label: "Pack Type", key: "pack" },
+        { w: 22, label: "Weight", key: "weight", align: "right" },
+      ];
+
+      // headers
+      let x = 12;
+      cols.forEach((c) => {
+        doc.text(c.label, x + (c.align === "right" ? c.w - 1 : 1), headerY, { align: c.align || "left" });
+        x += c.w;
+      });
+      doc.line(12, headerY + 2, 200, headerY + 2);
+
+      // Crea filas a partir de actividades + productos (si existen)
+      let y = headerY + 8;
+      const filas = [];
+
+      // Agrupa por producto (cantidad total si tu tabla trae "cantidad")
+      const porProducto = {};
+      (lineasIdx || []).forEach((a) => {
+        const pid = a?.producto;
+        if (pid == null) return;
+        const qty = Number(a?.cantidad ?? 0);
+        porProducto[pid] = (porProducto[pid] || 0) + (isNaN(qty) ? 0 : qty);
+      });
+
+      Object.keys(porProducto).forEach((pid) => {
+        const prod = productosById[pid] || {};
+        const part = s(prod.part_number);
+        const desc = s(prod.nombre || prod.descripcion);
+        const qty = porProducto[pid];
+
+        const weightPer = Number(prod?.peso_por_pieza ?? 0);
+        const weight = weightPer > 0 && qty > 0 ? (qty * weightPer).toFixed(2) : "—";
+
+        // packType determina qué texto mostrar (no recalcula qty)
+        const packTxt = packType === "returnable" ? "Returnable" : "Expendable";
+
+        filas.push({
+          part: part || "—",
+          desc: desc || "—",
+          qty: qty || "—",
+          pack: packTxt,
+          weight,
+        });
+      });
+
+      // Si no hay productos ligados, agrega una fila informativa
+      if (!filas.length) {
+        filas.push({
+          part: "—",
+          desc: "No product lines found for this IDX",
+          qty: "—",
+          pack: packType === "returnable" ? "Returnable" : "Expendable",
+          weight: "—",
+        });
+      }
+
+      // pinta filas
+      filas.forEach((row) => {
+        let cx = 12;
+        cols.forEach((c) => {
+          const val = s(row[c.key]);
+          doc.text(val || "—", cx + (c.align === "right" ? c.w - 1 : 1), y, { align: c.align || "left" });
+          cx += c.w;
+        });
+        y += 6;
+        if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+
+      // ----------------- PÁGINA 2: COVER SHEET -----------------
+      doc.addPage();
+      drawHeader(doc, "Cover Sheet");
+
+      drawKVP(doc, t("shipper") || "Shipper", shipper, 12, 26);
+      drawKVP(doc, "PO", po?.po, 12, 34);
+      drawKVP(doc, "Consignee", po?.consignee_name, 12, 42);
+      drawKVP(doc, "Address", [po?.consignee_address1, po?.consignee_address2].filter(Boolean).join(" "), 12, 50);
+      drawKVP(doc, "City/State/ZIP", [po?.consignee_city, po?.consignee_state, po?.consignee_zip].filter(Boolean).join(", "), 12, 58);
+      drawKVP(doc, "Country", po?.consignee_country, 12, 66);
+
+      drawKVP(doc, "IDX", selectedIdx, 120, 26);
+      drawKVP(doc, "Shipment #", shipmentNo, 120, 34);
+      drawKVP(doc, "Trailer/Container", trailerNo, 120, 42);
+      drawKVP(doc, "Seal #", sealNo, 120, 50);
+      drawKVP(doc, "Packing Slip #", packingSlip, 120, 58);
+      drawKVP(doc, "Packaging", packType === "returnable" ? "Returnable" : "Expendable", 120, 66);
+
+      doc.setFontSize(10);
+      doc.text("Notes:", 12, 84);
+      doc.rect(12, 86, 188, 100); // caja para notas
+
+      // Descarga
+      const fileName = `BOL_${selectedIdx}_${po?.po || "PO"}.pdf`;
+      doc.save(fileName);
+
+      toast.success(t("generated_ok") || "BOL generado correctamente");
     } catch (e) {
       console.error(e);
-      toast.error(t("error_loading"));
-    } finally {
-      setLoadingPO(false);
-    }
-  };
-
-  // Genera el PDF y lo sube a Storage; guarda pdf_url en bol_headers
-  const generateAndUpload = async () => {
-    // 1) Asegura header en DB
-    const header = await onSaveHeader();
-    if (!header) return;
-
-    // 2) Render a Blob
-    const docData = {
-      ...preview,
-      trailer_number: form.trailer_number,
-      seal_number: form.seal_number,
-      shipment_number: form.shipment_number,
-      packing_slip_number: form.packing_slip_number
-    };
-    const blob = await pdf(<BOLAndCoverPdf data={docData} />).toBlob();
-
-    // 3) Subir a Storage
-    const filename = `BOL_${form.idx}_${form.shipment_number}_${Date.now()}.pdf`;
-    const path = `${form.idx}/${filename}`;
-
-    const { data: up, error: upErr } = await supabase
-      .storage
-      .from("bol")
-      .upload(path, blob, { contentType: "application/pdf", upsert: false });
-
-    if (upErr) {
-      console.error(upErr);
-      toast.error(upErr.message?.includes("not found") ? t("bucket_missing") : t("storage_error"));
-      return;
-    }
-
-    // 4) Obtener public URL y actualizar header
-    const { data: pub } = supabase.storage.from("bol").getPublicUrl(up?.path);
-    const pdf_url = pub?.publicUrl || null;
-
-    const { error: updErr } = await supabase
-      .from("bol_headers")
-      .update({ pdf_url })
-      .eq("id", header.id);
-
-    if (updErr) {
-      console.error(updErr);
-      toast.error(t("storage_error"));
-      return;
-    }
-
-    toast.success(t("pdf_saved"));
-  };
-
-  return (
-    <div className="page-container page-container--fluid">
-      <div className="card">
-        <h2>{t("generate_bol")}</h2>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
-          {/* IDX */}
-          <select value={form.idx} onChange={(e) => setForm({ ...form, idx: e.target.value })} aria-label={t("idx")}>
-            <option value="">{t("select")} {t("idx")}</option>
-            {idxList?.map((r, i) => <option key={i} value={r.idx}>{r.idx}</option>)}
-          </select>
-
-          {/* Shipper */}
-          <select
-            value={form.shipper_id || ""}
-            onChange={(e)=>setForm({...form, shipper_id: Number(e.target.value || 0) || null})}
-            aria-label={t("select_shipper")}
-          >
-            <option value="">{t("select_shipper")}</option>
-            {shippers?.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-          </select>
-
-          {/* Shipment/Trailer/Seal/Packing Slip */}
-          <input type="text" placeholder={t("shipment_number")} value={form.shipment_number} onChange={(e)=>setForm({...form, shipment_number:e.target.value})}/>
-          <input type="text" placeholder={t("trailer_number")} value={form.trailer_number} onChange={(e)=>setForm({...form, trailer_number:e.target.value})}/>
-          <input type="text" placeholder={t("seal_number")} value={form.seal_number} onChange={(e)=>setForm({...form, seal_number:e.target.value})}/>
-          <input type="text" placeholder={t("packing_slip_number")} value={form.packing_slip_number} onChange={(e)=>setForm({...form, packing_slip_number:e.target.value})}/>
-
-          {/* PO + recomendado */}
-          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-            <select value={form.po} onChange={(e)=>setForm({...form, po:e.target.value})} aria-label={t("select_po")}>
-              <option value="">{t("select_po")}</option>
-              {pos?.map(p => <option key={p.id} value={p.po}>{p.po} — {p.consignee_name || "-"}</option>)}
-            </select>
-            <button className="secondary" onClick={useRecommendedPO} disabled={!form.idx || loadingPO} title={t("use_recommended_po")}>
-              {loadingPO ? (t("loading") + "...") : t("use_recommended_po")}
-            </button>
-          </div>
-
-          {/* Packaging tipo */}
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <span>{t("packaging_type")}:</span>
-            <label><input type="radio" name="pack" checked={form.packaging_tipo==="expendable"} onChange={()=>setForm({...form, packaging_tipo:"expendable"})}/> {t("expendable")}</label>
-            <label><input type="radio" name="pack" checked={form.packaging_tipo==="retornable"} onChange={()=>setForm({...form, packaging_tipo:"retornable"})}/> {t("returnable")}</label>
-          </div>
-        </div>
-
-        {/* Vista previa */}
-        <div className="card" style={{ marginTop: 12 }}>
-          <h3>{t("preview")}</h3>
-          {!form.idx || !form.po ? (
-            <p>{t("select")} {t("idx")} & PO</p>
-          ) : loadingPrev ? (
-            <p>{t("loading")}…</p>
-          ) : preview ? (
-            <>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:"1rem" }}>
-                <div>
-                  <h4>{t("shipper")}</h4>
-                  <div>{preview.shipper?.name}</div>
-                  <div>{preview.shipper?.address1}</div>
-                  <div>{preview.shipper?.city}, {preview.shipper?.state} {preview.shipper?.zip}, {preview.shipper?.country}</div>
-                </div>
-                <div>
-                  <h4>{t("consignee")}</h4>
-                  <div>{preview.consignee?.name || "-"}</div>
-                  <div>{preview.consignee?.address1}{preview.consignee?.address2 ? `, ${preview.consignee.address2}` : ""}</div>
-                  <div>{preview.consignee?.city}, {preview.consignee?.state} {preview.consignee?.zip}, {preview.consignee?.country}</div>
-                </div>
-                <div>
-                  <h4>{t("freight")}</h4>
-                  <div>{t("freight_class")}: {preview.freight_class || "-"}</div>
-                  <div>{t("freight_charges")}: {preview.freight_charges || "-"}</div>
-                  <div>{t("carrier")}: {preview.carrier_name || "-"}</div>
-                  <div>{t("booking_tracking")}: {preview.booking_tracking || "-"}</div>
-                </div>
-              </div>
-
-              {/* Warning por PNs faltantes */}
-              {!!missingPNs.length && (
-                <div className="card" style={{ marginTop: 10, background:"#fff6e6" }}>
-                  <strong>{t("missing_parts_title")}:</strong> {missingPNs.join(", ")}<br/>
-                  <small>{t("missing_parts_hint")}</small>
-                </div>
-              )}
-
-              <div className="table-wrap" style={{ marginTop: 12 }}>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>{t("qty")}</th>
-                      <th>{t("type")}</th>
-                      <th>{t("description")}</th>
-                      <th>{t("dimension")}</th>
-                      <th>{t("weight_per_package")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.paquetes?.map((p, i) => (
-                      <tr key={i}>
-                        <td>{p.package_quantity}</td>
-                        <td>{p.package_type}</td>
-                        <td>{p.description}</td>
-                        <td>{p.dimension || "-"}</td>
-                        <td>{p.weight_per_package?.toFixed?.(3)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div style={{ marginTop: 8 }}>
-                <strong>{t("total_shipment_weight")}:</strong> {preview.totalWeight} LB &nbsp;|&nbsp;
-                <strong>{t("total_shipping_units")}:</strong> {preview.totalUnits}
-              </div>
-
-              <div style={{ display:"flex", gap:8, marginTop:16, flexWrap:"wrap" }}>
-                {/* Descarga local (opcional) */}
-                <PDFDownloadLink
-                  document={<BOLAndCoverPdf data={{
-                    ...preview,
-                    trailer_number: form.trailer_number,
-                    seal_number: form.seal_number,
-                    shipment_number: form.shipment_number,
-                    packing_slip_number: form.packing_slip_number
-                  }}/>}
-                  fileName={`BOL_Cover_${form.idx}_${form.shipment_number || "pending"}.pdf`}
-                >
-                  {({ loading }) => (
-                    <button disabled={loading}>
-                      {loading ? t("loading") + "..." : t("download_bol")}
-                    </button>
-                  )}
-                </PDFDownloadLink>
-
-                {/* Generar + subir + guardar url */}
-                <button className="primary" onClick={generateAndUpload}>
-                  {t("generate_and_save_pdf")}
-                </button>
-              </div>
-            </>
-          ) : (
-            <p>{t("no_results_found")}</p>
-          )}
-        </div>
-
-        <ToastContainer position="top-center" autoClose={1500} />
-      </div>
-    </div>
-  );
-}
-
-/** Sugerir PO priorizando: último BOL del IDX > actividades_realizadas (po/meta.po) */
-async function sugerirPO(idx) {
-  const { data: bolPrev } = await supabase
-    .from("bol_headers")
-    .select("po, created_at")
-    .eq("idx", idx)
-    .order("created_at", { ascending: false })
-    .limit(1);
-  if (bolPrev?.length && bolPrev[0]?.po) return bolPrev[0].po;
-
-  const { data: acts } = await supabase
-    .from("actividades_realizadas")
-    .select("po, meta, createdAt")
-    .eq("idx", idx)
-    .order("createdAt", { ascending: false });
-  const poDeActs = (acts || [])
-    .map(a => a?.po || a?.meta?.po || a?.meta?.PO || a?.meta?.orden_compra || null)
-    .find(Boolean);
-  if (poDeActs) return poDeActs;
-
-  return null;
-}
-
-/** Construye preview desde LOAD finalizado; valida PNs contra catalogo_productos; inyecta shipper de catálogo */
-async function buildPreview({ idx, po, packaging_tipo, shipperRow }) {
-  // 1) Actividades del IDX
-  const { data: acts } = await supabase.from("actividades_realizadas").select("*").eq("idx", idx);
-  const loadLines = (acts || []).filter(a => String(a?.actividad).toLowerCase().includes("load") && String(a?.estado).toLowerCase() === "finalizada");
-
-  const qtyByProductId = {};
-  loadLines.forEach(a => {
-    const arr = Array.isArray(a.productos) ? a.productos : (a.producto ? [{ producto:a.producto, cantidad:a.cantidad }] : []);
-    arr.forEach(p => {
-      if (!p?.producto || !p?.cantidad) return;
-      qtyByProductId[p.producto] = (qtyByProductId[p.producto] || 0) + Number(p.cantidad || 0);
-    });
-  });
-  const productoIds = Object.keys(qtyByProductId);
-  if (!productoIds.length) return { data: null, missingPNs: [] };
-
-  // 2) Productos -> part_number
-  const { data: productos } = await supabase.from("productos").select("id, nombre, part_number");
-  const byId = {}; (productos || []).forEach(p => byId[p.id] = p);
-  const partNumbers = productoIds.map(id => byId[id]?.part_number).filter(Boolean);
-
-  // 3) Catálogo maestro por PN
-  const { data: cat } = await supabase.from("catalogo_productos").select("*").in("part_number", partNumbers);
-  const foundPNs = new Set((cat || []).map(c => c.part_number));
-  const missingPNs = partNumbers.filter(pn => !foundPNs.has(pn));
-
-  // 4) PO (consignee/freight/carrier)
-  const { data: poRow } = await supabase.from("catalogo_pos").select("*").eq("po", po).single();
-
-  // 5) Paquetes y pesos
-  const paquetes = [];
-  for (const prodId of productoIds) {
-    const qty = qtyByProductId[prodId];
-    const meta = byId[prodId] || {};
-    const pn = meta.part_number;
-
-    const catRow = (cat || []).find(c => c.part_number === pn);
-    const isRet = packaging_tipo === "retornable";
-    const piezasPorCaja = isRet ? (catRow?.cantidad_por_caja_retornable || 0) : (catRow?.cantidad_por_caja_expendable || 0);
-    const pesoCaja = isRet ? Number(catRow?.peso_caja_retornable || 0) : Number(catRow?.peso_caja_expendable || 0);
-    const tipoCaja = isRet ? (catRow?.tipo_empaque_retornable || "Returnable") : (catRow?.tipo_empaque_expendable || "Expendable");
-    const pesoPorPieza = Number(catRow?.peso_por_pieza || 0);
-
-    const cajas = Math.max(1, Math.ceil(qty / Math.max(1, piezasPorCaja || 1)));
-    const piezasUltima = qty - (cajas - 1) * (piezasPorCaja || qty);
-
-    for (let i = 0; i < cajas; i++) {
-      const piezasEnEsta = (i === cajas - 1) ? piezasUltima : (piezasPorCaja || piezasUltima);
-      const pesoContenido = piezasEnEsta * pesoPorPieza;
-      const pesoTotalCaja = pesoContenido + pesoCaja;
-
-      paquetes.push({
-        package_quantity: 1,
-        package_type: "Box",
-        description: catRow?.descripcion || meta.nombre || pn || "Item",
-        dimension: null,
-        weight_per_package: Number((Number.isFinite(pesoTotalCaja) ? pesoTotalCaja : 0).toFixed(3)),
-        part_number: pn || "-",
-        piezas: piezasEnEsta,
-        tipo_caja: tipoCaja
-      });
+      toast.error(t("error_generating") || "Error al generar el BOL");
     }
   }
 
-  const totalWeight = paquetes.reduce((acc, r) => acc + (Number(r.weight_per_package) || 0), 0);
-  const totalUnits  = paquetes.reduce((acc, r) => acc + (Number(r.package_quantity) || 0), 0);
+  // ---------------------- RENDER ----------------------
+  return (
+    <div className="page-container page-container--fluid">
+      <div className="card">
+        <h2>{t("generate_bol_coversheet") || "Generar BOL y Cover Sheet"}</h2>
 
-  // 6) Shipper desde catálogo (fallback al fijo si no hay)
-  const shipper = shipperRow ? {
-    name: shipperRow.nombre,
-    address1: shipperRow.address1,
-    city: shipperRow.city, state: shipperRow.state, zip: shipperRow.zip, country: shipperRow.country,
-    contact_name: shipperRow.contact_name,
-    emails: [shipperRow.contact_email].filter(Boolean),
-    phone: shipperRow.contact_phone
-  } : {
-    name: "Daehan Nevada",
-    address1: "1600 E Newlands Rd",
-    city: "Fernley", state: "Nevada", zip: "89408", country: "United States of America",
-    contact_name: "Kyun Young Park, BK",
-    emails: ["ihjeon@dhsc.co.kr"],
-    phone: "334-399-3491"
-  };
+        {/* Fila de filtros / entrada */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(200px, 1fr))", gap: 8, marginBottom: 10 }}>
+          {/* IDX */}
+          <select value={selectedIdx} onChange={(e) => setSelectedIdx(e.target.value)}>
+            <option value="">{t("select_idx") || "Seleccionar IDX"}</option>
+            {idxOptions.map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
 
-  const consignee = {
-    name: poRow?.consignee_name,
-    address1: poRow?.consignee_address1,
-    address2: poRow?.consignee_address2,
-    city: poRow?.consignee_city,
-    state: poRow?.consignee_state,
-    zip: poRow?.consignee_zip,
-    country: poRow?.consignee_country,
-    contact_name: poRow?.contact_name,
-    email: poRow?.contact_email,
-    phone: poRow?.contact_phone
-  };
+          {/* Shipper (origen) */}
+          <select value={shipper} onChange={(e) => setShipper(e.target.value)}>
+            <option value="Daehan Nevada">Daehan Nevada</option>
+            <option value="Daehan California">Daehan California</option>
+            <option value="Daehan Georgia">Daehan Georgia</option>
+          </select>
 
-  return {
-    data: {
-      idx, po: poRow?.po,
-      freight_class: poRow?.freight_class,
-      freight_charges: poRow?.freight_charges,
-      carrier_name: poRow?.carrier_name,
-      booking_tracking: poRow?.booking_tracking,
-      shipper, consignee,
-      paquetes,
-      totalWeight: Number(totalWeight.toFixed(2)),
-      totalUnits
-    },
-    missingPNs
-  };
+          {/* Shipment # */}
+          <input
+            placeholder={t("shipment_number") || "No. de envío (Shipment #)"}
+            value={shipmentNo}
+            onChange={(e) => setShipmentNo(e.target.value)}
+          />
+
+          {/* Trailer/Contenedor */}
+          <input
+            placeholder={t("trailer_number") || "No. de Trailer/Contenedor"}
+            value={trailerNo}
+            onChange={(e) => setTrailerNo(e.target.value)}
+          />
+
+          {/* PO */}
+          <select value={selectedPoId} onChange={(e) => setSelectedPoId(e.target.value)}>
+            <option value="">{t("select_po") || "Seleccionar PO"}</option>
+            {poOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.po ? `${p.po} — ${p.consignee_name || ""}` : `ID ${p.id}`}
+              </option>
+            ))}
+          </select>
+
+          {/* Seal */}
+          <input
+            placeholder={t("seal_number") || "No. de Sello"}
+            value={sealNo}
+            onChange={(e) => setSealNo(e.target.value)}
+          />
+
+          {/* Packing Slip */}
+          <input
+            placeholder={t("packing_slip") || "Packing Slip # (opcional)"}
+            value={packingSlip}
+            onChange={(e) => setPackingSlip(e.target.value)}
+          />
+
+          {/* Tipo de empaque (DROPDOWN) */}
+          <select value={packType} onChange={(e) => setPackType(e.target.value)}>
+            <option value="expendable">{t("expendable") || "Expendable"}</option>
+            <option value="returnable">{t("returnable") || "Retornable"}</option>
+          </select>
+
+          {/* Botón GENERAR BOL (después del tipo de empaque) */}
+          <button className="primary" onClick={generarPDF} style={{ alignSelf: "center" }}>
+            {t("generate_bol") || "Generar BOL"}
+          </button>
+        </div>
+
+        <div className="card" style={{ padding: 12 }}>
+          <strong>{t("preview_hint") || "Vista previa"}</strong>
+          <p style={{ marginTop: 6 }}>
+            {!selectedIdx || !selectedPoId
+              ? (t("select_idx_po") || "Seleccionar IDX & PO")
+              : `${t("ready_to_generate") || "Listo para generar PDF…"}`}
+          </p>
+        </div>
+
+        <ToastContainer position="top-center" autoClose={1400} />
+      </div>
+    </div>
+  );
 }
