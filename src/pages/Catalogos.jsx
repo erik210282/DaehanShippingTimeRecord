@@ -30,13 +30,13 @@ export default function Catalogos() {
     nombre: "",
     part_number: "",
     descripcion: "",
-    peso_por_pieza: 0,
+    peso_por_pieza: "",
     tipo_empaque_retornable: "",
     tipo_empaque_expendable: "",
-    peso_caja_retornable: 0,
-    peso_caja_expendable: 0,
-    cantidad_por_caja_retornable: 0,
-    cantidad_por_caja_expendable: 0,
+    peso_caja_retornable: "",
+    peso_caja_expendable: "",
+    cantidad_por_caja_retornable: "",
+    cantidad_por_caja_expendable: "",
     activo: true,
   };
 
