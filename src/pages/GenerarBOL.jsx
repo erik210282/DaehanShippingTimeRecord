@@ -397,7 +397,11 @@ export default function GenerarBOL() {
         {/* Fila de filtros / entrada */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(200px, 1fr))", gap: 8, marginBottom: 10 }}>
           {/* IDX */}
-          <select value={selectedIdx} onChange={(e) => setSelectedIdx(e.target.value)}>
+          <select
+            value={selectedIdx}
+            onChange={(e) => setSelectedIdx(e.target.value)}
+            disabled={idxOptions.length === 0}
+          >
             <option value="">{t("select_idx") || "Seleccionar IDX"}</option>
             {idxOptions.map((v) => (
               <option key={v} value={v}>{v}</option>
