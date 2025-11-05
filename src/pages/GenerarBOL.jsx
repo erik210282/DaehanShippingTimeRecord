@@ -6,21 +6,19 @@ import "react-toastify/dist/ReactToastify.css";
 import { jsPDF } from "jspdf";
 import "../App.css";
 
-// Helpers robustos
+// helpers seguros
 const s = (v) => (v ?? "").toString().trim();
 const lower = (v) => s(v).toLowerCase();
 
-// ¿Está finalizada?
+// finalizado usando SOLO 'estado' (tu columna real)
 function isFinal(r) {
-  const txt = [r?.estado, r?.estatus, r?.status].map(lower).join(" ");
-  const hasWord = /(finalizad|finished|done|completad|cerrad)/i.test(txt);
-  const bools = [r?.finalizado, r?.finished, r?.completado, r?.cerrado].some(Boolean);
-  return hasWord || bools;
+  const txt = lower(r?.estado);           // <-- solo 'estado'
+  return /(finalizad|finished|done|completad|cerrad)/i.test(txt);
 }
 
-// ¿Es actividad LOAD?
+// es LOAD usando 'actividad' (tu columna real)
 function isLoad(r) {
-  return /load/i.test(s(r?.actividad)); // ambas tablas usan 'actividad'
+  return /load/i.test(s(r?.actividad));
 }
 
 // Determina si es LOAD por nombre o por id
@@ -82,58 +80,34 @@ export default function GenerarBOL() {
   // IDXs (LOAD finalizado)
   const cargarIdxOptions = React.useCallback(async () => {
     try {
-      // --- PLAN A: leer de actividades_realizadas (donde debe estar la verdad final) ---
-      const { data: ar, error: errAr } = await supabase
+      // lee actividades_realizadas con SOLO columnas reales
+      const { data, error } = await supabase
         .from("actividades_realizadas")
-        .select("idx, actividad, estado, estatus, status, finalizado, finished, completado, createdAt")
+        .select("idx, actividad, estado, createdAt")
         .not("idx", "is", null)
         .order("createdAt", { ascending: false })
         .limit(8000);
 
-      if (errAr) throw errAr;
+      if (error) throw error;
 
-      const s = (v) => (v ?? "").toString().trim();
-      const lower = (v) => s(v).toLowerCase();
-      const isFinal = (r) => {
-        const txt = [r?.estado, r?.estatus, r?.status].map(lower).join(" ");
-        return /(finalizad|finished|done|completad|cerrad)/i.test(txt)
-          || [r?.finalizado, r?.finished, r?.completado, r?.cerrado].some(Boolean);
-      };
-      const isLoad = (r) => /load/i.test(s(r?.actividad));
-
-      // Filtra LOAD + finalizado + con idx
-      let idxSet = new Set(
-        (ar || [])
+      // filtra: actividad = LOAD + finalizado + idx no vacío
+      const setIdx = new Set(
+        (data || [])
           .filter((r) => isLoad(r) && isFinal(r) && s(r.idx))
           .map((r) => s(r.idx))
       );
 
-      // --- PLAN B (fallback): si no salió nada, intenta en tareas_pendientes ---
-      if (idxSet.size === 0) {
-        const { data: tp, error: errTp } = await supabase
-          .from("tareas_pendientes")
-          .select("idx, actividad, estado, estatus, status, finalizado, finished, completado, createdAt")
-          .not("idx", "is", null)
-          .order("createdAt", { ascending: false })
-          .limit(8000);
-
-        if (!errTp && Array.isArray(tp)) {
-          (tp || []).forEach((r) => {
-            if (isLoad(r) && isFinal(r) && s(r.idx)) idxSet.add(s(r.idx));
-          });
-        }
-      }
-
-      const uniq = Array.from(idxSet).sort((a, b) => (a > b ? -1 : 1));
+      const uniq = Array.from(setIdx).sort((a, b) => (a > b ? -1 : 1));
       setIdxOptions(uniq);
+
+      // limpia selección si ya no existe
       setSelectedIdx((prev) => (prev && !uniq.includes(prev) ? "" : prev));
     } catch (e) {
       console.warn("cargarIdxOptions:", e?.message || e);
       setIdxOptions([]);
+      setSelectedIdx("");
     }
-  }, [setIdxOptions, setSelectedIdx]);
-
-
+  }, []);
 
   // POs
   const cargarPoOptions = React.useCallback(async () => {
@@ -150,26 +124,16 @@ export default function GenerarBOL() {
     setPoOptions(data || []);
   }, []);
 
-  React.useEffect(() => {
+ React.useEffect(() => {
     cargarIdxOptions();
-    cargarPoOptions?.();
 
-    const ch1 = supabase
+    const ch = supabase
       .channel("genbol_idx_ar")
       .on({ event: "*", schema: "public", table: "actividades_realizadas" }, () => cargarIdxOptions())
       .subscribe();
 
-    const ch2 = supabase
-      .channel("genbol_idx_tp")
-      .on({ event: "*", schema: "public", table: "tareas_pendientes" }, () => cargarIdxOptions())
-      .subscribe();
-
-    return () => {
-      try { supabase.removeChannel(ch1); } catch {}
-      try { supabase.removeChannel(ch2); } catch {}
-    };
-  }, [cargarIdxOptions, cargarPoOptions]);
-
+    return () => { try { supabase.removeChannel(ch); } catch {} };
+  }, [cargarIdxOptions]);
 
   // ---------------------- CARGA DETALLE DEL IDX ----------------------
 
