@@ -10,12 +10,17 @@ import "../App.css";
 const s = (v) => (v ?? "").toString().trim();
 const lower = (v) => s(v).toLowerCase();
 
-// Finalizado robusto (string o boolean)
+// ¿Está finalizada?
 function isFinal(r) {
-  const txts = [r?.estado, r?.estatus, r?.status].map(lower).join(" ");
-  const bools = [r?.finalizado, r?.finished, r?.completado].some(Boolean);
-  const words = /(finalizad|finished|done|completad)/i.test(txts);
-  return bools || words;
+  const txt = [r?.estado, r?.estatus, r?.status].map(lower).join(" ");
+  const hasWord = /(finalizad|finished|done|completad|cerrad)/i.test(txt);
+  const bools = [r?.finalizado, r?.finished, r?.completado, r?.cerrado].some(Boolean);
+  return hasWord || bools;
+}
+
+// ¿Es actividad LOAD?
+function isLoad(r) {
+  return /load/i.test(s(r?.actividad)); // ambas tablas usan 'actividad'
 }
 
 // Determina si es LOAD por nombre o por id
@@ -77,41 +82,80 @@ export default function GenerarBOL() {
   // IDXs (LOAD finalizado)
   const cargarIdxOptions = React.useCallback(async () => {
     try {
-      // 1) Busca ids de la tabla 'actividades' cuyo nombre incluya "load"
-      let loadIds = [];
-      const { data: actsCat, error: errActsCat } = await supabase
-        .from("actividades")
-        .select("id,nombre,activo");
-      if (!errActsCat && Array.isArray(actsCat)) {
-        loadIds = actsCat
-          .filter(a => /load/i.test(s(a?.nombre)))
-          .map(a => a.id);
-      }
-
-      // 2) Trae actividades_realizadas (recientes, con idx no nulo)
-      const { data, error } = await supabase
+      // 1) Lee AR (reciente). Usamos '*' para tolerar columnas opcionales (idx, tarea_id, tarco_id, etc.)
+      const { data: ar, error: errAr } = await supabase
         .from("actividades_realizadas")
-        .select("idx, actividad, nombre_actividad, estado, estatus, status, finalizado, finished, completado, createdAt")
-        .not("idx", "is", null)
+        .select("*")
         .order("createdAt", { ascending: false })
         .limit(8000);
 
-      if (error) throw error;
+      if (errAr) throw errAr;
 
-      // 3) Filtra: LOAD + FINALIZADO
-      const valid = (data || []).filter(r => isLoadRecord(r, loadIds) && isFinal(r) && s(r.idx));
+      // 2) Filtra LOAD finalizado
+      const loadsFinal = (ar || []).filter((r) => isLoad(r) && isFinal(r));
 
-      // 4) Uniq por idx
-      const uniq = Array.from(new Set(valid.map(r => s(r.idx))));
+      // 3) Recolecta ids relacionados para buscar idx en tareas_pendientes si hiciera falta
+      const relIds = Array.from(
+        new Set(
+          loadsFinal
+            .map((r) => r?.tarea_id ?? r?.tarco_id ?? null)
+            .filter((v) => v !== null && v !== undefined)
+        )
+      );
+
+      // 4) Mapa de idx desde tareas_pendientes (si la tabla tiene 'idx')
+      let idxPorTarea = {};
+      if (relIds.length) {
+        const { data: tp, error: errTp } = await supabase
+          .from("tareas_pendientes")
+          .select("*")
+          .in("id", relIds);
+
+        if (!errTp && Array.isArray(tp)) {
+          tp.forEach((r) => {
+            if (r && r.id != null) {
+              // intenta varias columnas comunes por si tu 'idx' tiene otro nombre
+              const idxVal =
+                r.idx ??
+                r.extid ??     // a veces lo guardan como ref externa
+                r.codigo ??    // alias posibles
+                r.codigo_idx ??
+                null;
+              if (idxVal) idxPorTarea[r.id] = idxVal;
+            }
+          });
+        }
+      }
+
+      // 5) Arma set de IDX (directo o por relación)
+      const setIdx = new Set();
+      for (const r of loadsFinal) {
+        const directo =
+          r.idx ??
+          r.extid ??      // por si lo guardas así en AR
+          r.codigo_idx ??
+          null;
+
+        let idx = directo;
+        if (!idx) {
+          const rel = r?.tarea_id ?? r?.tarco_id ?? null;
+          if (rel && idxPorTarea[rel]) idx = idxPorTarea[rel];
+        }
+        if (idx) setIdx.add(s(idx));
+      }
+
+      // 6) Actualiza opciones (ordenamos desc para ver lo más reciente arriba)
+      const uniq = Array.from(setIdx).sort((a, b) => (a > b ? -1 : 1));
       setIdxOptions(uniq);
 
-      // Limpia selección si ya no existe
-      setSelectedIdx(prev => (prev && !uniq.includes(prev) ? "" : prev));
+      // Si la selección ya no existe, límpiala
+      setSelectedIdx((prev) => (prev && !uniq.includes(prev) ? "" : prev));
     } catch (e) {
       console.warn("cargarIdxOptions:", e?.message || e);
       setIdxOptions([]);
     }
   }, [setIdxOptions, setSelectedIdx]);
+
 
   // POs
   const cargarPoOptions = React.useCallback(async () => {
@@ -130,9 +174,8 @@ export default function GenerarBOL() {
 
   React.useEffect(() => {
     cargarIdxOptions();
-    cargarPoOptions();
+    cargarPoOptions?.(); // tu función para POs
 
-    // Suscripción tiempo real para IDX
     const ch = supabase
       .channel("genbol_idx_loads")
       .on(
@@ -143,11 +186,9 @@ export default function GenerarBOL() {
       .subscribe();
 
     return () => {
-      try {
-        supabase.removeChannel(ch);
-      } catch {}
+      try { supabase.removeChannel(ch); } catch {}
     };
-  }, [cargarIdxOptions, cargarPoOptions]);
+  }, [cargarIdxOptions]);
 
   // ---------------------- CARGA DETALLE DEL IDX ----------------------
 
