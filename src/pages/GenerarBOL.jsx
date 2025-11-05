@@ -92,6 +92,7 @@ export default function GenerarBOL() {
     const ch = supabase
       .channel("genbol_idx_ar")
       .on(
+        "postgres_changes",
         { event: "*", schema: "public", table: "actividades_realizadas" },
         () => cargarIdxOptions()
       )

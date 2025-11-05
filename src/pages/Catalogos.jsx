@@ -31,7 +31,6 @@ export default function Catalogos() {
     part_number: "",
     descripcion: "",
     peso_por_pieza: 0,
-    // piezas_por_caja: 0,  // <-- ELIMINADO
     tipo_empaque_retornable: "",
     tipo_empaque_expendable: "",
     peso_caja_retornable: 0,
