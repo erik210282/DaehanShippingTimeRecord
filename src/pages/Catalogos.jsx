@@ -165,7 +165,6 @@ export default function Catalogos() {
           PartNumber: r.part_number || "",
           [t("description")]: r.descripcion || "",
           "Weight/Piece": r.peso_por_pieza ?? "",
-          // "Units/Box": r.piezas_por_caja ?? "", // <-- ELIMINADO
           "Returnable Type": r.tipo_empaque_retornable || "",
           "Expendable Type": r.tipo_empaque_expendable || "",
           "Returnable Box W.": r.peso_caja_retornable ?? "",

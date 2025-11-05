@@ -43,24 +43,57 @@ export default function GenerarBOL() {
   /* ------------------ Cargar IDX (AR) ----------------- */
   const cargarIdxOptions = React.useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      // 1) Lee AR con idx + actividad (id) + estado
+      const { data: ar, error: errAr } = await supabase
         .from("actividades_realizadas")
         .select("idx, actividad, estado, createdAt")
         .not("idx", "is", null)
         .order("createdAt", { ascending: false })
         .limit(8000);
+      if (errAr) throw errAr;
 
-      if (error) throw error;
+      // 2) Trae catálogo de actividades para traducir id -> nombre
+      const actIds = Array.from(new Set((ar || []).map(r => r.actividad).filter(Boolean)));
+      let actNameById = {};
+      if (actIds.length) {
+        const { data: acts, error: errActs } = await supabase
+          .from("actividades")
+          .select("id, nombre")
+          .in("id", actIds);
+        if (errActs) throw errActs;
+        (acts || []).forEach(a => { actNameById[a.id] = (a.nombre ?? "").toString(); });
+      }
 
+      // 3) Filtra LOAD + finalizado
       const setIdx = new Set(
-        (data || [])
-          .filter((r) => isLoad(r) && isFinal(r) && s(r.idx))
-          .map((r) => s(r.idx))
+        (ar || [])
+          .filter(r => {
+            const nombre = actNameById[r.actividad] || "";
+            const isLoad = /load/i.test(nombre);
+            return isLoad && isFinal(r) && (r.idx ?? "").toString().trim();
+          })
+          .map(r => (r.idx ?? "").toString().trim())
       );
+
+      // 4) Fallback: si no hubo nada, intenta desde tareas_pendientes
+      if (setIdx.size === 0) {
+        const { data: tp, error: errTp } = await supabase
+          .from("tareas_pendientes")
+          .select("idx, actividad, estado, createdAt")
+          .not("idx", "is", null)
+          .order("createdAt", { ascending: false })
+          .limit(8000);
+        if (!errTp) {
+          (tp || []).forEach(r => {
+            const isLoadTP = /load/i.test((r.actividad ?? "").toString());
+            if (isLoadTP && isFinal(r)) setIdx.add((r.idx ?? "").toString().trim());
+          });
+        }
+      }
 
       const uniq = Array.from(setIdx).map(String).sort((a, b) => b.localeCompare(a));
       setIdxOptions(uniq);
-      setSelectedIdx((prev) => (prev && !uniq.includes(prev) ? "" : prev));
+      setSelectedIdx(prev => (prev && !uniq.includes(prev) ? "" : prev));
     } catch (e) {
       console.warn("cargarIdxOptions:", e?.message || e);
       setIdxOptions([]);
