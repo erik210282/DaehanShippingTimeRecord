@@ -17,7 +17,7 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!email || !password) {
-      toast.error(t("login.missingFields") || "Faltan campos");
+      toast.error(t("missingFields") || "Faltan campos");
       return;
     }
 
@@ -30,7 +30,7 @@ export default function Login() {
         password,
       });
       if (error || !data?.user) {
-        toast.error(t("login.invalidCredentials") || "Correo o contraseña inválidos");
+        toast.error(t("invalidCredentials") || "Correo o contraseña inválidos");
         return;
       }
 
@@ -46,13 +46,13 @@ export default function Login() {
         return;
       }
       if (profile && profile.is_active === false) {
-        toast.error(t("login.notActive") || "Tu usuario no está activo");
+        toast.error(t("notActive") || "Tu usuario no está activo");
         await supabase.auth.signOut();
         return;
       }
       const allowedRoles = ["operador", "supervisor"];
       if (profile && !allowedRoles.includes(profile.role)) {
-        toast.error(t("login.wrongRole") || "No tienes permisos para entrar");
+        toast.error(t("wrongRole") || "No tienes permisos para entrar");
         await supabase.auth.signOut();
         return;
       }
@@ -73,39 +73,39 @@ export default function Login() {
       <img className="login-logo" src={logo} alt="DAEHAN" />
 
       <div className="login-card">
-        <h2 className="login-title">{t("login.title") || "Sign In"}</h2>
+        <h2 className="login-title">{t("title") || "Sign In"}</h2>
 
         <form onSubmit={handleLogin} autoComplete="on">
           <label className="login-label">
-            {t("login.email") || "Email"}
+            {t("email") || "Email"}
           </label>
           <input
             className="login-input"
             type="email"
             name="email"
             autoComplete="email"
-            placeholder={t("login.email_placeholder") || "Email"}
+            placeholder={t("email_placeholder") || "Email"}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
 
           <label className="login-label">
-            {t("login.password") || "Password"}
+            {t("password") || "Password"}
           </label>
           <input
             className="login-input"
             type="password"
             name="password"
             autoComplete="current-password"
-            placeholder={t("login.password_placeholder") || "Password"}
+            placeholder={t("password_placeholder") || "Password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
 
           <button className="login-btn" type="submit" disabled={busy}>
-            {busy ? (t("loading") || "Cargando...") : (t("login.signIn") || "Sign In")}
+            {busy ? (t("loading") || "Cargando...") : (t("signIn") || "Sign In")}
           </button>
         </form>
       </div>

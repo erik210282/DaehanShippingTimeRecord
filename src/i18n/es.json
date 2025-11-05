@@ -182,5 +182,20 @@
   "users": "Usuarios",
   "weight_per_package": "Peso/Paquete",
   "welcome": "¡Bienvenido!",
-  "wrongRole": "No tienes permisos para acceder"
+  "wrongRole": "No tienes permisos para acceder",
+  "products": "Productos",
+  "activities": "Actividades",
+  "part_number": "Numbero de Parte",
+  "weight_piece": "Peso/Pieza",
+  "units_returnable": "Unidades/Caja Retornable",
+  "units_expendable": "Unidades/Caja Expendable",
+  "po": "PO",
+  "address": "Direcció",
+  "city": "Ciudad",
+  "state": "Estado",
+  "zip": "Código Postal",
+  "returnable_type": "Tipo de Retornable", 
+  "expendable_type": "Tipo de Expendable",
+  "returnablebw": "Peso de Caja Retornable",
+  "expendablebw": "Peso de Caja Expendable"
 }

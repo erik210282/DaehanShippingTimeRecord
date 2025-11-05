@@ -243,28 +243,27 @@ export default function Catalogos() {
                 {tab === "productos" && (
                   <>
                     <th>{t("name")}</th>
-                    <th>Part Number</th>
+                    <th>{t("part_number")}</th>
                     <th>{t("description")}</th>
-                    <th>Weight/Piece</th>
-                    {/* <th>Units/Box</th>  <-- ELIMINADO */}
-                    <th>Returnable</th>
-                    <th>Expendable</th>
-                    <th>Units/Returnable Box</th>
-                    <th>Units/Expendable Box</th>
+                    <th>{t("weight_piece")}</th>
+                    <th>{t("returnable")}</th>
+                    <th>{t("expendable")}</th>
+                    <th>{t("units_returnable")}</th>
+                    <th>{t("units_expendable")}</th>
                     <th>{t("status")}</th>
                     <th>{t("actions")}</th>
                   </>
                 )}
                 {tab === "pos" && (
                   <>
-                    <th>PO</th>
-                    <th>Consignee</th>
-                    <th>Address</th>
-                    <th>City</th>
-                    <th>State</th>
-                    <th>ZIP</th>
-                    <th>Carrier</th>
-                    <th>Freight</th>
+                    <th>{t("po")}</th>
+                    <th>{t("consignee")}</th>
+                    <th>{t("address")}</th>
+                    <th>{t("city")}</th>
+                    <th>{t("state")}</th>
+                    <th>{t("zip")}</th>
+                    <th>{t("carrier")}</th>
+                    <th>{t("freight")}</th>
                     <th>{t("status")}</th>
                     <th>{t("actions")}</th>
                   </>
@@ -292,7 +291,6 @@ export default function Catalogos() {
                         <td>{r.part_number}</td>
                         <td>{r.descripcion}</td>
                         <td>{r.peso_por_pieza}</td>
-                        {/* <td>{r.piezas_por_caja}</td>  <-- ELIMINADO */}
                         <td>{r.tipo_empaque_retornable}</td>
                         <td>{r.tipo_empaque_expendable}</td>
                         <td>{r.cantidad_por_caja_retornable}</td>
@@ -345,16 +343,15 @@ export default function Catalogos() {
             {tab === "productos" && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
                 <input placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
-                <input placeholder="Part Number" value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
+                <input placeholder={t("part_number")} value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
                 <input placeholder={t("description")} value={edit?.descripcion || ""} onChange={e => setEdit({ ...edit, descripcion: e.target.value })} />
-                <input type="number" placeholder="Weight/Piece" value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
-                {/* <input type="number" placeholder="Units/Box" value={edit?.piezas_por_caja ?? ""} onChange={e => setEdit({ ...edit, piezas_por_caja: e.target.value })} /> */}
-                <input placeholder="Returnable Type" value={edit?.tipo_empaque_retornable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_retornable: e.target.value })} />
-                <input placeholder="Expendable Type" value={edit?.tipo_empaque_expendable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_expendable: e.target.value })} />
-                <input type="number" placeholder="Returnable Box Weight" value={edit?.peso_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_retornable: e.target.value })} />
-                <input type="number" placeholder="Expendable Box Weight" value={edit?.peso_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_expendable: e.target.value })} />
-                <input type="number" placeholder="Units/Returnable Box" value={edit?.cantidad_por_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_retornable: e.target.value })} />
-                <input type="number" placeholder="Units/Expendable Box" value={edit?.cantidad_por_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_expendable: e.target.value })} />
+                <input type="number" placeholder={t("weight_piece")} value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
+                <input placeholder={t("returnable_type")} value={edit?.tipo_empaque_retornable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_retornable: e.target.value })} />
+                <input placeholder={t("expendable_type")} value={edit?.tipo_empaque_expendable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_expendable: e.target.value })} />
+                <input type="number" placeholder={t("returnablebw")} value={edit?.peso_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_retornable: e.target.value })} />
+                <input type="number" placeholder={t("expendablebw")} value={edit?.peso_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_expendable: e.target.value })} />
+                <input type="number" placeholder={t("units_returnable")} value={edit?.cantidad_por_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_retornable: e.target.value })} />
+                <input type="number" placeholder={t("units_expendable")} value={edit?.cantidad_por_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_expendable: e.target.value })} />
                 <label style={{ gridColumn: "1 / -1" }}>
                   <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
                 </label>
@@ -362,26 +359,100 @@ export default function Catalogos() {
             )}
 
             {tab === "pos" && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
-                <input placeholder="PO" value={edit?.po || ""} onChange={e => setEdit({ ...edit, po: e.target.value })} />
-                <input placeholder="Consignee Name" value={edit?.consignee_name || ""} onChange={e => setEdit({ ...edit, consignee_name: e.target.value })} />
-                <input placeholder="Address 1" value={edit?.consignee_address1 || ""} onChange={e => setEdit({ ...edit, consignee_address1: e.target.value })} />
-                <input placeholder="Address 2" value={edit?.consignee_address2 || ""} onChange={e => setEdit({ ...edit, consignee_address2: e.target.value })} />
-                <input placeholder="City" value={edit?.consignee_city || ""} onChange={e => setEdit({ ...edit, consignee_city: e.target.value })} />
-                <input placeholder="State" value={edit?.consignee_state || ""} onChange={e => setEdit({ ...edit, consignee_state: e.target.value })} />
-                <input placeholder="ZIP" value={edit?.consignee_zip || ""} onChange={e => setEdit({ ...edit, consignee_zip: e.target.value })} />
-                <input placeholder="Country" value={edit?.consignee_country || ""} onChange={e => setEdit({ ...edit, consignee_country: e.target.value })} />
-                <input placeholder="Contact Name" value={edit?.contact_name || ""} onChange={e => setEdit({ ...edit, contact_name: e.target.value })} />
-                <input placeholder="Contact Email" value={edit?.contact_email || ""} onChange={e => setEdit({ ...edit, contact_email: e.target.value })} />
-                <input placeholder="Contact Phone" value={edit?.contact_phone || ""} onChange={e => setEdit({ ...edit, contact_phone: e.target.value })} />
-                <input placeholder="Freight Class" value={edit?.freight_class || ""} onChange={e => setEdit({ ...edit, freight_class: e.target.value })} />
-                <input placeholder="Freight Charges" value={edit?.freight_charges || ""} onChange={e => setEdit({ ...edit, freight_charges: e.target.value })} />
-                <input placeholder="Carrier Name" value={edit?.carrier_name || ""} onChange={e => setEdit({ ...edit, carrier_name: e.target.value })} />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(240px, 1fr))",
+                  gap: 8,
+                }}
+              >
+                <input
+                  placeholder={t("po", "PO")}
+                  value={edit?.po || ""}
+                  onChange={(e) => setEdit({ ...edit, po: e.target.value })}
+                />
+                <input
+                  placeholder={t("consignee", "Consignee")}
+                  value={edit?.consignee_name || ""}
+                  onChange={(e) => setEdit({ ...edit, consignee_name: e.target.value })}
+                />
+                <input
+                  placeholder={`${t("address", "Address")} 1`}
+                  value={edit?.consignee_address1 || ""}
+                  onChange={(e) =>
+                    setEdit({ ...edit, consignee_address1: e.target.value })
+                  }
+                />
+                <input
+                  placeholder={`${t("address", "Address")} 2`}
+                  value={edit?.consignee_address2 || ""}
+                  onChange={(e) =>
+                    setEdit({ ...edit, consignee_address2: e.target.value })
+                  }
+                />
+                <input
+                  placeholder={t("city", "City")}
+                  value={edit?.consignee_city || ""}
+                  onChange={(e) => setEdit({ ...edit, consignee_city: e.target.value })}
+                />
+                <input
+                  placeholder={t("state", "State")}
+                  value={edit?.consignee_state || ""}
+                  onChange={(e) => setEdit({ ...edit, consignee_state: e.target.value })}
+                />
+                <input
+                  placeholder={t("zip", "ZIP")}
+                  value={edit?.consignee_zip || ""}
+                  onChange={(e) => setEdit({ ...edit, consignee_zip: e.target.value })}
+                />
+                <input
+                  placeholder={t("country", "Country")}
+                  value={edit?.consignee_country || ""}
+                  onChange={(e) =>
+                    setEdit({ ...edit, consignee_country: e.target.value })
+                  }
+                />
+                <input
+                  placeholder={t("contact_name", "Contact Name")}
+                  value={edit?.contact_name || ""}
+                  onChange={(e) => setEdit({ ...edit, contact_name: e.target.value })}
+                />
+                <input
+                  placeholder={t("contact_email", "Contact Email")}
+                  value={edit?.contact_email || ""}
+                  onChange={(e) => setEdit({ ...edit, contact_email: e.target.value })}
+                />
+                <input
+                  placeholder={t("contact_phone", "Contact Phone")}
+                  value={edit?.contact_phone || ""}
+                  onChange={(e) => setEdit({ ...edit, contact_phone: e.target.value })}
+                />
+                <input
+                  placeholder={t("freight_class", "Freight Class")}
+                  value={edit?.freight_class || ""}
+                  onChange={(e) => setEdit({ ...edit, freight_class: e.target.value })}
+                />
+                <input
+                  placeholder={t("freight_charges", "Freight Charges")}
+                  value={edit?.freight_charges || ""}
+                  onChange={(e) => setEdit({ ...edit, freight_charges: e.target.value })}
+                />
+                <input
+                  placeholder={t("carrier", "Carrier")}
+                  value={edit?.carrier_name || ""}
+                  onChange={(e) => setEdit({ ...edit, carrier_name: e.target.value })}
+                />
                 <label style={{ gridColumn: "1 / -1" }}>
-                  <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
+                  <input
+                    type="checkbox"
+                    checked={!!edit?.activo}
+                    onChange={() => setEdit({ ...edit, activo: !edit?.activo })}
+                  />{" "}
+                  {t("active", "Activo")}
                 </label>
               </div>
             )}
+
 
             {isSimple && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>

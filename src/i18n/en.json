@@ -182,5 +182,20 @@
   "users": "Users",
   "weight_per_package": "Weight/Package",
   "welcome": "Welcome!",
-  "wrongRole": "You do not have access permissions"
+  "wrongRole": "You do not have access permissions",
+  "products": "Products",
+  "activities": "Activities",
+  "part_number": "Part Number",
+  "weight_piece": "Weight/Piece",
+  "units_returnable": "Units/Returnable Box",
+  "units_expendable": "Units/Expendable Box",
+  "po": "PO",
+  "address": "Address",
+  "city": "City",
+  "state": "State",
+  "zip": "ZIP",
+  "returnable_type": "Returnable Type", 
+  "expendable_type": "Expendable Type",
+  "returnablebw": "Returnable Box Weight",
+  "expendablebw": "Expendable Box Weight"
 }
