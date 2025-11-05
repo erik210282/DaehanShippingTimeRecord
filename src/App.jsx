@@ -1,432 +1,131 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { supabase } from "../supabase/client";
-import Modal from "react-modal";
-import Papa from "papaparse";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import Registros from "./pages/Registros";
+import Productividad from "./pages/Productividad";
+import Catalogos from "./pages/Catalogos";
+import Usuarios from "./pages/Usuarios";
+import Login from "./pages/Login";
+import Resumen from "./pages/Resumen";
+import GenerarBOL from "./pages/GenerarBOL";
+import TareasPendientes from "./pages/TareasPendientes";
+import ConfiguracionTareas from "./pages/ConfiguracionTareas";
 import { useTranslation } from "react-i18next";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import "../App.css";
+import "./App.css";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { useEffect, useState } from "react";
+import { supabase } from "./supabase/client";
+import RequireSupervisor from "./components/RequireSupervisor";
 
-Modal.setAppElement("#root");
-
-const TABS = ["productos", "pos", "actividades", "operadores"];
-
-export default function Catalogos() {
-  const { t } = useTranslation();
-
-  const [tab, setTab] = useState("productos");
-  const [rows, setRows] = useState([]);
-  const [filter, setFilter] = useState("");
-  const [edit, setEdit] = useState(null);
-  const [isNew, setIsNew] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  // ---- Helpers de schema por pestaña ----
-  const isSimple = useMemo(() => tab === "actividades" || tab === "operadores", [tab]);
-  const tableName = useMemo(() => {
-    if (tab === "productos") return "productos";       // << unificado aquí
-    if (tab === "pos")       return "catalogo_pos";
-    return tab; // actividades / operadores
-  }, [tab]);
-
-  const productDefaults = {
-    nombre: "",
-    part_number: "",
-    idx: "",
-    descripcion: "",
-    peso_por_pieza: 0,
-    piezas_por_caja: 0,
-    tipo_empaque_retornable: "",
-    tipo_empaque_expendable: "",
-    peso_caja_retornable: 0,
-    peso_caja_expendable: 0,
-    cantidad_por_caja_retornable: 0,
-    cantidad_por_caja_expendable: 0,
-    activo: true,
-  };
-
-  const poDefaults = {
-    po: "",
-    consignee_name: "",
-    consignee_address1: "",
-    consignee_address2: "",
-    consignee_city: "",
-    consignee_state: "",
-    consignee_zip: "",
-    consignee_country: "",
-    contact_name: "",
-    contact_email: "",
-    contact_phone: "",
-    freight_class: "",
-    freight_charges: "",
-    carrier_name: "",
-    booking_tracking: "",
-    activo: true,
-  };
-
-  const simpleDefaults = { nombre: "", activo: true };
-
-  // ---- Cargar datos ----
-  async function load() {
-    setLoading(true);
-    try {
-      let query = supabase.from(tableName).select("*");
-      // Orden base
-      if (tab === "productos") query = query.order("nombre", { ascending: true });
-      else if (tab === "pos") query = query.order("id", { ascending: true });
-      else query = query.order("nombre", { ascending: true });
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setRows(data || []);
-    } catch (e) {
-      toast.error(e.message || t("error_loading") || "Error al cargar.");
-    } finally {
-      setLoading(false);
-    }
-  }
+const Navbar = () => {
+  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+    const obtenerSesion = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user);
+    };
 
-  // ---- Abrir edición ----
-  const openNew = () => {
-    setIsNew(true);
-    if (tab === "productos") setEdit({ ...productDefaults });
-    else if (tab === "pos") setEdit({ ...poDefaults });
-    else setEdit({ ...simpleDefaults });
-  };
+    obtenerSesion();
 
-  // ---- Guardar ----
-  async function save() {
-    try {
-      if (!edit) return;
-
-      // Validaciones mínimas por pestaña
-      if (isSimple) {
-        if (!edit.nombre) return toast.error(t("fill_all_fields"));
-      } else if (tab === "productos") {
-        // Para no romper otras páginas: nombre sigue siendo clave visible
-        if (!edit.nombre && !edit.descripcion && !edit.part_number) {
-          return toast.error(t("fill_all_fields"));
-        }
-        // Rellena nombre si viene vacío:
-        if (!edit.nombre) edit.nombre = edit.descripcion || edit.part_number || "";
-      } else if (tab === "pos") {
-        if (!edit.po) return toast.error(t("fill_all_fields"));
-      }
-
-      const payload = { ...edit };
-
-      const op = isNew
-        ? supabase.from(tableName).insert(payload).select()
-        : supabase.from(tableName).update(payload).eq("id", payload.id).select();
-
-      const { data, error } = await op;
-      if (error) throw error;
-
-      toast.success(t("save_success"));
-      setEdit(null);
-      setIsNew(false);
-      await load();
-    } catch (e) {
-      toast.error(e.message || t("error_saving") || "Error al guardar.");
-    }
-  }
-
-  // ---- Eliminar (soft/hard) ----
-  async function remove(row) {
-    try {
-      if (tab === "pos") {
-        // POs: borrado duro
-        const { error } = await supabase.from(tableName).delete().eq("id", row.id);
-        if (error) throw error;
-        toast.success(t("delete_success"));
-        return load();
-      }
-
-      // Productos / Actividades / Operadores: soft-delete si están en uso
-      // Verifica uso básico en actividades_realizadas (si existe relación por id)
-      const { data: ar, error: errAR } = await supabase
-        .from("actividades_realizadas")
-        .select("id, actividad, producto, operadores");
-      if (errAR) throw errAR;
-
-      const usados = (ar || []).some((d) =>
-        d.actividad === row.id || d.producto === row.id ||
-        (Array.isArray(d.operadores) && d.operadores.includes(row.id))
-      );
-
-      if (usados) {
-        const { error } = await supabase.from(tableName).update({ activo: false }).eq("id", row.id);
-        if (error) throw error;
-        toast.info(t("item_in_use"));
-      } else {
-        const { error } = await supabase.from(tableName).delete().eq("id", row.id);
-        if (error) throw error;
-        toast.success(t("delete_success"));
-      }
-      load();
-    } catch (e) {
-      toast.error(e.message || t("error_deleting") || "Error al eliminar.");
-    }
-  }
-
-  // ---- Export CSV (vista actual) ----
-  const exportCSV = () => {
-    const data = (rows || []).map((r) => {
-      if (tab === "productos") {
-        return {
-          [t("name")]: r.nombre || "",
-          PartNumber: r.part_number || "",
-          IDX: r.idx || "",
-          [t("description")]: r.descripcion || "",
-          "Weight/Piece": r.peso_por_pieza ?? "",
-          "Units/Box": r.piezas_por_caja ?? "",
-          "Returnable Type": r.tipo_empaque_retornable || "",
-          "Expendable Type": r.tipo_empaque_expendable || "",
-          "Returnable Box W.": r.peso_caja_retornable ?? "",
-          "Expendable Box W.": r.peso_caja_expendable ?? "",
-          "Units/Returnable Box": r.cantidad_por_caja_retornable ?? "",
-          "Units/Expendable Box": r.cantidad_por_caja_expendable ?? "",
-          [t("status")]: r.activo ? t("active") : t("inactive"),
-        };
-      }
-      if (tab === "pos") {
-        return {
-          PO: r.po || "",
-          Consignee: r.consignee_name || "",
-          Address: [r.consignee_address1, r.consignee_address2].filter(Boolean).join(" ") || "",
-          City: r.consignee_city || "",
-          State: r.consignee_state || "",
-          ZIP: r.consignee_zip || "",
-          Country: r.consignee_country || "",
-          Contact: [r.contact_name, r.contact_phone, r.contact_email].filter(Boolean).join(" / "),
-          Carrier: r.carrier_name || "",
-          Freight: [r.freight_class, r.freight_charges].filter(Boolean).join(" / "),
-          Booking: r.booking_tracking || "",
-          [t("status")]: r.activo ? t("active") : t("inactive"),
-        };
-      }
-      // simple
-      return {
-        [t("name")]: r.nombre || `ID: ${r.id}`,
-        [t("status")]: r.activo ? t("active") : t("inactive"),
-      };
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user);
     });
 
-    const csv = Papa.unparse(data);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${tableName}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    toast.success(t("export_success") || "CSV exportado correctamente");
+    return () => {
+      authListener?.subscription?.unsubscribe?.(); // ✅ limpiar correctamente
+    };
+  }, []);
+
+  if (!user) return null;
+
+  const handleLanguageChange = (e) => {
+    i18n.changeLanguage(e.target.value);
   };
 
-  // ---- Filtrado ----
-  const filtered = useMemo(() => {
-    const q = (filter || "").toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
-  }, [rows, filter]);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();  // Cerrar sesión con Supabase
+    navigate("/");
+  };
 
-  // ---- Render ----
   return (
-    <div className="page-container page-container--fluid">
-      <div className="card">
-        <h2>{t("catalogs")}</h2>
+    <div className="navbar">
+      <div className="navbar-center">
+        <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
+        <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
+        <button onClick={() => navigate("/generarbol")}>{t("generate_bol")}</button>
+        <button onClick={() => navigate("/registros")}>{t("records")}</button>
+        <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
+        <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
+        <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
+        <button onClick={handleLogout}>{t("logout")}</button>
+      </div>
 
-        {/* Tabs */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 8 }}>
-          <button className="primary" onClick={() => setTab("productos")}>{t("products")}</button>
-          <button className="primary" onClick={() => setTab("pos")}>POs</button>
-          <button className="primary" onClick={() => setTab("actividades")}>{t("activities")}</button>
-          <button className="primary" onClick={() => setTab("operadores")}>{t("operators")}</button>
-
-          <input
-            placeholder={t("search")}
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            style={{ minWidth: 220 }}
-          />
-          <button onClick={() => { setFilter(""); }}>{t("clear_filters")}</button>
-          <button onClick={openNew}>➕ {t("add")}</button>
-          <button onClick={exportCSV}>{t("export_csv")}</button>
-        </div>
-
-        {/* Tabla */}
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                {tab === "productos" && (
-                  <>
-                    <th>{t("name")}</th>
-                    <th>Part Number</th>
-                    <th>IDX</th>
-                    <th>{t("description")}</th>
-                    <th>Weight/Piece</th>
-                    <th>Units/Box</th>
-                    <th>Returnable</th>
-                    <th>Expendable</th>
-                    <th>{t("status")}</th>
-                    <th>{t("actions")}</th>
-                  </>
-                )}
-                {tab === "pos" && (
-                  <>
-                    <th>PO</th>
-                    <th>Consignee</th>
-                    <th>Address</th>
-                    <th>City</th>
-                    <th>State</th>
-                    <th>ZIP</th>
-                    <th>Carrier</th>
-                    <th>Freight</th>
-                    <th>{t("status")}</th>
-                    <th>{t("actions")}</th>
-                  </>
-                )}
-                {isSimple && (
-                  <>
-                    <th>{t("name")}</th>
-                    <th>{t("status")}</th>
-                    <th>{t("actions")}</th>
-                  </>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={10}>{t("loading") || "Cargando..."}</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={10}>{t("no_results_found")}</td></tr>
-              ) : (
-                filtered.map((r) => (
-                  <tr key={r.id}>
-                    {tab === "productos" && (
-                      <>
-                        <td>{r.nombre}</td>
-                        <td>{r.part_number}</td>
-                        <td>{r.idx}</td>
-                        <td>{r.descripcion}</td>
-                        <td>{r.peso_por_pieza}</td>
-                        <td>{r.piezas_por_caja}</td>
-                        <td>{r.tipo_empaque_retornable}</td>
-                        <td>{r.tipo_empaque_expendable}</td>
-                        <td>{r.activo ? t("active") : t("inactive")}</td>
-                        <td>
-                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
-                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
-                        </td>
-                      </>
-                    )}
-                    {tab === "pos" && (
-                      <>
-                        <td>{r.po}</td>
-                        <td>{r.consignee_name}</td>
-                        <td>{[r.consignee_address1, r.consignee_address2].filter(Boolean).join(" ")}</td>
-                        <td>{r.consignee_city}</td>
-                        <td>{r.consignee_state}</td>
-                        <td>{r.consignee_zip}</td>
-                        <td>{r.carrier_name}</td>
-                        <td>{[r.freight_class, r.freight_charges].filter(Boolean).join(" / ")}</td>
-                        <td>{r.activo ? t("active") : t("inactive")}</td>
-                        <td>
-                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
-                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
-                        </td>
-                      </>
-                    )}
-                    {isSimple && (
-                      <>
-                        <td>{r.nombre}</td>
-                        <td>{r.activo ? t("active") : t("inactive")}</td>
-                        <td>
-                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
-                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Modal/Formulario */}
-        <Modal isOpen={!!edit} onRequestClose={() => { setEdit(null); setIsNew(false); }}>
-          <div className="card">
-            <h3>{isNew ? t("add") : t("edit")}</h3>
-
-            {tab === "productos" && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
-                <input placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
-                <input placeholder="Part Number" value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
-                <input placeholder="IDX" value={edit?.idx || ""} onChange={e => setEdit({ ...edit, idx: e.target.value })} />
-                <input placeholder={t("description")} value={edit?.descripcion || ""} onChange={e => setEdit({ ...edit, descripcion: e.target.value })} />
-                <input type="number" placeholder="Weight/Piece" value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
-                <input type="number" placeholder="Units/Box" value={edit?.piezas_por_caja ?? ""} onChange={e => setEdit({ ...edit, piezas_por_caja: e.target.value })} />
-                <input placeholder="Returnable Type" value={edit?.tipo_empaque_retornable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_retornable: e.target.value })} />
-                <input placeholder="Expendable Type" value={edit?.tipo_empaque_expendable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_expendable: e.target.value })} />
-                <input type="number" placeholder="Returnable Box Weight" value={edit?.peso_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_retornable: e.target.value })} />
-                <input type="number" placeholder="Expendable Box Weight" value={edit?.peso_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_expendable: e.target.value })} />
-                <input type="number" placeholder="Units/Returnable Box" value={edit?.cantidad_por_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_retornable: e.target.value })} />
-                <input type="number" placeholder="Units/Expendable Box" value={edit?.cantidad_por_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_expendable: e.target.value })} />
-                <label style={{ gridColumn: "1 / -1" }}>
-                  <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
-                </label>
-              </div>
-            )}
-
-            {tab === "pos" && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
-                <input placeholder="PO" value={edit?.po || ""} onChange={e => setEdit({ ...edit, po: e.target.value })} />
-                <input placeholder="Consignee Name" value={edit?.consignee_name || ""} onChange={e => setEdit({ ...edit, consignee_name: e.target.value })} />
-                <input placeholder="Address 1" value={edit?.consignee_address1 || ""} onChange={e => setEdit({ ...edit, consignee_address1: e.target.value })} />
-                <input placeholder="Address 2" value={edit?.consignee_address2 || ""} onChange={e => setEdit({ ...edit, consignee_address2: e.target.value })} />
-                <input placeholder="City" value={edit?.consignee_city || ""} onChange={e => setEdit({ ...edit, consignee_city: e.target.value })} />
-                <input placeholder="State" value={edit?.consignee_state || ""} onChange={e => setEdit({ ...edit, consignee_state: e.target.value })} />
-                <input placeholder="ZIP" value={edit?.consignee_zip || ""} onChange={e => setEdit({ ...edit, consignee_zip: e.target.value })} />
-                <input placeholder="Country" value={edit?.consignee_country || ""} onChange={e => setEdit({ ...edit, consignee_country: e.target.value })} />
-                <input placeholder="Contact Name" value={edit?.contact_name || ""} onChange={e => setEdit({ ...edit, contact_name: e.target.value })} />
-                <input placeholder="Contact Email" value={edit?.contact_email || ""} onChange={e => setEdit({ ...edit, contact_email: e.target.value })} />
-                <input placeholder="Contact Phone" value={edit?.contact_phone || ""} onChange={e => setEdit({ ...edit, contact_phone: e.target.value })} />
-                <input placeholder="Freight Class" value={edit?.freight_class || ""} onChange={e => setEdit({ ...edit, freight_class: e.target.value })} />
-                <input placeholder="Freight Charges" value={edit?.freight_charges || ""} onChange={e => setEdit({ ...edit, freight_charges: e.target.value })} />
-                <input placeholder="Carrier Name" value={edit?.carrier_name || ""} onChange={e => setEdit({ ...edit, carrier_name: e.target.value })} />
-                <input placeholder="Booking/Tracking" value={edit?.booking_tracking || ""} onChange={e => setEdit({ ...edit, booking_tracking: e.target.value })} />
-                <label style={{ gridColumn: "1 / -1" }}>
-                  <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
-                </label>
-              </div>
-            )}
-
-            {isSimple && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
-                <input placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
-                <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
-                </label>
-              </div>
-            )}
-
-            <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-              <button className="primary" onClick={save}>{t("save")}</button>
-              <button className="secondary" onClick={() => { setEdit(null); setIsNew(false); }}>{t("cancel")}</button>
-            </div>
-          </div>
-        </Modal>
-
-        <ToastContainer position="top-center" autoClose={1800} />
+      <div className="navbar-right">
+        <select onChange={handleLanguageChange} value={i18n.language}>
+          <option value="es">🇲🇽 Español</option>
+          <option value="en">🇺🇸 English</option>
+        </select>
       </div>
     </div>
   );
-}
+};
+
+// 1) Área privada protegida por rol supervisor
+const PrivateArea = () => (
+  <RequireSupervisor>
+    <div className="app-container">
+      <Navbar />
+      <div className="content">
+        <Routes>
+          <Route path="/tareas-pendientes" element={
+            <ProtectedRoute><TareasPendientes /></ProtectedRoute>
+          } />
+          <Route path="/resumen" element={
+            <ProtectedRoute><Resumen /></ProtectedRoute>
+          } />
+          <Route path="/generarbol" element={
+            <ProtectedRoute><GenerarBOL /></ProtectedRoute>
+          } />
+          <Route path="/registros" element={
+            <ProtectedRoute><Registros /></ProtectedRoute>
+          } />
+          <Route path="/productividad" element={
+            <ProtectedRoute><Productividad /></ProtectedRoute>
+          } />
+          <Route path="/catalogos" element={
+            <ProtectedRoute><Catalogos /></ProtectedRoute>
+          } />
+          <Route path="/usuarios" element={
+            <ProtectedRoute><Usuarios /></ProtectedRoute>
+          } />
+          <Route path="/configuracion-tareas" element={
+            <ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>
+          } />
+        </Routes>
+      </div>
+    </div>
+  </RequireSupervisor>
+);
+
+// 2) Contenedor de rutas públicas/privadas
+const AppContent = () => (
+  <div className="app-root">
+    <Routes>
+      {/* Login público: NO va dentro de RequireSupervisor */}
+      <Route path="/" element={<Login />} />
+
+      {/* Todo lo demás cae en el área privada protegida */}
+      <Route path="/*" element={<PrivateArea />} />
+    </Routes>
+  </div>
+);
+
+const App = () => (
+  <Router>
+    <AppContent />
+  </Router>
+);
+
+export default App;

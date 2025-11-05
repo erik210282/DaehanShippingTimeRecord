@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabase/client";
 import Modal from "react-modal";
 import Papa from "papaparse";
@@ -9,239 +9,424 @@ import "../App.css";
 
 Modal.setAppElement("#root");
 
+const TABS = ["productos", "pos", "actividades", "operadores"];
+
 export default function Catalogos() {
   const { t } = useTranslation();
 
-  const [catalogoActivo, setCatalogoActivo] = useState("actividades");
-  const [items, setItems] = useState([]);
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [itemActual, setItemActual] = useState(null);
-  const [esNuevo, setEsNuevo] = useState(false);
-  const [filtroTexto, setFiltroTexto] = useState("");
-  const [mostrarMensajeError, setMostrarMensajeError] = useState(false);
+  const [tab, setTab] = useState("productos");
+  const [rows, setRows] = useState([]);
+  const [filter, setFilter] = useState("");
+  const [edit, setEdit] = useState(null);
+  const [isNew, setIsNew] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // ---- Helpers de schema por pestaña ----
+  const isSimple = useMemo(() => tab === "actividades" || tab === "operadores", [tab]);
+  const tableName = useMemo(() => {
+    if (tab === "productos") return "productos";       // << unificado aquí
+    if (tab === "pos")       return "catalogo_pos";
+    return tab; // actividades / operadores
+  }, [tab]);
+
+  const productDefaults = {
+    nombre: "",
+    part_number: "",
+    idx: "",
+    descripcion: "",
+    peso_por_pieza: 0,
+    piezas_por_caja: 0,
+    tipo_empaque_retornable: "",
+    tipo_empaque_expendable: "",
+    peso_caja_retornable: 0,
+    peso_caja_expendable: 0,
+    cantidad_por_caja_retornable: 0,
+    cantidad_por_caja_expendable: 0,
+    activo: true,
+  };
+
+  const poDefaults = {
+    po: "",
+    consignee_name: "",
+    consignee_address1: "",
+    consignee_address2: "",
+    consignee_city: "",
+    consignee_state: "",
+    consignee_zip: "",
+    consignee_country: "",
+    contact_name: "",
+    contact_email: "",
+    contact_phone: "",
+    freight_class: "",
+    freight_charges: "",
+    carrier_name: "",
+    booking_tracking: "",
+    activo: true,
+  };
+
+  const simpleDefaults = { nombre: "", activo: true };
+
+  // ---- Cargar datos ----
+  async function load() {
+    setLoading(true);
+    try {
+      let query = supabase.from(tableName).select("*");
+      // Orden base
+      if (tab === "productos") query = query.order("nombre", { ascending: true });
+      else if (tab === "pos") query = query.order("id", { ascending: true });
+      else query = query.order("nombre", { ascending: true });
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setRows(data || []);
+    } catch (e) {
+      toast.error(e.message || t("error_loading") || "Error al cargar.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    const cargarDatos = async () => {
-      const { data, error } = await supabase
-        .from(catalogoActivo)
-        .select("id, nombre, activo");
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
-      if (!error) {
-        setItems(data.map((i) => ({
-          id: i.id,
-          nombre: i.nombre,
-          activo: i.activo ?? true,
-        })));
-      }
-    };
-    cargarDatos();
-  }, [catalogoActivo]);
-
-  const abrirModal = (item = null) => {
-    if (item) {
-      setItemActual({ ...item });
-      setEsNuevo(false);
-    } else {
-      setItemActual({ nombre: "", activo: true });
-      setEsNuevo(true);
-    }
-    setModalAbierto(true);
+  // ---- Abrir edición ----
+  const openNew = () => {
+    setIsNew(true);
+    if (tab === "productos") setEdit({ ...productDefaults });
+    else if (tab === "pos") setEdit({ ...poDefaults });
+    else setEdit({ ...simpleDefaults });
   };
 
-  const guardarItem = async () => {
-    const { nombre, activo } = itemActual;
-    if (!nombre) {
-      toast.error(t("fill_all_fields"));
-      return;
-    }
-
+  // ---- Guardar ----
+  async function save() {
     try {
-      if (esNuevo) {
-        const { data, error } = await supabase
-          .from(catalogoActivo)
-          .insert([{ nombre, activo }])
-          .select();
+      if (!edit) return;
 
-        if (!error && data?.[0]) {
-          setItems([...items, { id: data[0].id, nombre, activo }]);
+      // Validaciones mínimas por pestaña
+      if (isSimple) {
+        if (!edit.nombre) return toast.error(t("fill_all_fields"));
+      } else if (tab === "productos") {
+        // Para no romper otras páginas: nombre sigue siendo clave visible
+        if (!edit.nombre && !edit.descripcion && !edit.part_number) {
+          return toast.error(t("fill_all_fields"));
         }
-      } else {
-        const { error } = await supabase
-          .from(catalogoActivo)
-          .update({ nombre, activo })
-          .eq("id", itemActual.id);
-
-        if (!error) {
-          setItems(items.map((i) =>
-            i.id === itemActual.id ? { id: itemActual.id, nombre, activo } : i
-          ));
-        }
+        // Rellena nombre si viene vacío:
+        if (!edit.nombre) edit.nombre = edit.descripcion || edit.part_number || "";
+      } else if (tab === "pos") {
+        if (!edit.po) return toast.error(t("fill_all_fields"));
       }
-      toast.success(t("save_success"));
-      setModalAbierto(false);
-    } catch {
-      toast.error(t("error_saving"));
-    }
-  };
 
-  const eliminarItem = async (id) => {
-    try {
-      const { data, error } = await supabase
-        .from("actividades_realizadas")
-        .select("*");
+      const payload = { ...edit };
 
+      const op = isNew
+        ? supabase.from(tableName).insert(payload).select()
+        : supabase.from(tableName).update(payload).eq("id", payload.id).select();
+
+      const { data, error } = await op;
       if (error) throw error;
 
-      const usados = data.some((d) =>
-        d.actividad === id ||
-        d.producto === id ||
-        (Array.isArray(d.operadores) && d.operadores.includes(id))
+      toast.success(t("save_success"));
+      setEdit(null);
+      setIsNew(false);
+      await load();
+    } catch (e) {
+      toast.error(e.message || t("error_saving") || "Error al guardar.");
+    }
+  }
+
+  // ---- Eliminar (soft/hard) ----
+  async function remove(row) {
+    try {
+      if (tab === "pos") {
+        // POs: borrado duro
+        const { error } = await supabase.from(tableName).delete().eq("id", row.id);
+        if (error) throw error;
+        toast.success(t("delete_success"));
+        return load();
+      }
+
+      // Productos / Actividades / Operadores: soft-delete si están en uso
+      // Verifica uso básico en actividades_realizadas (si existe relación por id)
+      const { data: ar, error: errAR } = await supabase
+        .from("actividades_realizadas")
+        .select("id, actividad, producto, operadores");
+      if (errAR) throw errAR;
+
+      const usados = (ar || []).some((d) =>
+        d.actividad === row.id || d.producto === row.id ||
+        (Array.isArray(d.operadores) && d.operadores.includes(row.id))
       );
 
       if (usados) {
-        await supabase
-          .from(catalogoActivo)
-          .update({ activo: false })
-          .eq("id", id);
-
-        setItems(items.map((i) =>
-          i.id === id ? { ...i, activo: false } : i
-        ));
+        const { error } = await supabase.from(tableName).update({ activo: false }).eq("id", row.id);
+        if (error) throw error;
         toast.info(t("item_in_use"));
       } else {
-        await supabase
-          .from(catalogoActivo)
-          .delete()
-          .eq("id", id);
-
-        setItems(items.filter((i) => i.id !== id));
+        const { error } = await supabase.from(tableName).delete().eq("id", row.id);
+        if (error) throw error;
         toast.success(t("delete_success"));
       }
-    } catch {
-      toast.error(t("error_deleting"));
+      load();
+    } catch (e) {
+      toast.error(e.message || t("error_deleting") || "Error al eliminar.");
     }
-  };
+  }
 
-  const exportarCSV = () => {
-    const datosCSV = [...items]
-      .sort((a, b) => a.nombre.localeCompare(b.nombre))
-      .map((d) => ({
-        [t("name")]: d.nombre || `ID: ${d.id}`,
-        [t("status")]: d.activo ? t("active") : t("inactive"),
-      }));
+  // ---- Export CSV (vista actual) ----
+  const exportCSV = () => {
+    const data = (rows || []).map((r) => {
+      if (tab === "productos") {
+        return {
+          [t("name")]: r.nombre || "",
+          PartNumber: r.part_number || "",
+          IDX: r.idx || "",
+          [t("description")]: r.descripcion || "",
+          "Weight/Piece": r.peso_por_pieza ?? "",
+          "Units/Box": r.piezas_por_caja ?? "",
+          "Returnable Type": r.tipo_empaque_retornable || "",
+          "Expendable Type": r.tipo_empaque_expendable || "",
+          "Returnable Box W.": r.peso_caja_retornable ?? "",
+          "Expendable Box W.": r.peso_caja_expendable ?? "",
+          "Units/Returnable Box": r.cantidad_por_caja_retornable ?? "",
+          "Units/Expendable Box": r.cantidad_por_caja_expendable ?? "",
+          [t("status")]: r.activo ? t("active") : t("inactive"),
+        };
+      }
+      if (tab === "pos") {
+        return {
+          PO: r.po || "",
+          Consignee: r.consignee_name || "",
+          Address: [r.consignee_address1, r.consignee_address2].filter(Boolean).join(" ") || "",
+          City: r.consignee_city || "",
+          State: r.consignee_state || "",
+          ZIP: r.consignee_zip || "",
+          Country: r.consignee_country || "",
+          Contact: [r.contact_name, r.contact_phone, r.contact_email].filter(Boolean).join(" / "),
+          Carrier: r.carrier_name || "",
+          Freight: [r.freight_class, r.freight_charges].filter(Boolean).join(" / "),
+          Booking: r.booking_tracking || "",
+          [t("status")]: r.activo ? t("active") : t("inactive"),
+        };
+      }
+      // simple
+      return {
+        [t("name")]: r.nombre || `ID: ${r.id}`,
+        [t("status")]: r.activo ? t("active") : t("inactive"),
+      };
+    });
 
-    const csv = Papa.unparse(datosCSV);
+    const csv = Papa.unparse(data);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `${catalogoActivo}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${tableName}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     toast.success(t("export_success") || "CSV exportado correctamente");
   };
 
-  const itemsFiltrados = items
-    .filter((item) =>
-      item.nombre && filtroTexto
-        ? item.nombre.toLowerCase().includes(filtroTexto.toLowerCase())
-        : true
-    )
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  // ---- Filtrado ----
+  const filtered = useMemo(() => {
+    const q = (filter || "").toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
+  }, [rows, filter]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setMostrarMensajeError(filtroTexto && itemsFiltrados.length === 0);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [filtroTexto, itemsFiltrados]);
-
-   return (
+  // ---- Render ----
+  return (
     <div className="page-container page-container--fluid">
       <div className="card">
         <h2>{t("catalogs")}</h2>
 
-        <div className="card" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center" }}>
-          <button className="primary" onClick={() => setCatalogoActivo("actividades")}>{t("activities")}</button>
-          <button className="primary" onClick={() => setCatalogoActivo("productos")}>{t("products")}</button>
-          <button className="primary" onClick={() => setCatalogoActivo("operadores")}>{t("operators")}</button>
-        </div>
+        {/* Tabs */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 8 }}>
+          <button className="primary" onClick={() => setTab("productos")}>{t("products")}</button>
+          <button className="primary" onClick={() => setTab("pos")}>POs</button>
+          <button className="primary" onClick={() => setTab("actividades")}>{t("activities")}</button>
+          <button className="primary" onClick={() => setTab("operadores")}>{t("operators")}</button>
 
-        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
           <input
-            type="text"
             placeholder={t("search")}
-            value={filtroTexto}
-            onChange={(e) => setFiltroTexto(e.target.value)}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            style={{ minWidth: 220 }}
           />
-          <button onClick={() => { setFiltroTexto(""); setMostrarMensajeError(false); }} style={{ marginBottom: 20 }}>
-            {t("clear_filters")}
-          </button>
-          <button onClick={() => abrirModal()} style={{ marginBottom: 20 }}>
-            ➕ {t("add_catalog")}
-          </button>
-          <button onClick={() => exportarCSV()} style={{ marginBottom: 20 }}>
-            {t("export_csv")}
-          </button>
+          <button onClick={() => { setFilter(""); }}>{t("clear_filters")}</button>
+          <button onClick={openNew}>➕ {t("add")}</button>
+          <button onClick={exportCSV}>{t("export_csv")}</button>
         </div>
 
-        {mostrarMensajeError && <p style={{ color: "red" }}>{t("no_results_found")}</p>}
-
-        <div style={{ overflowX: "auto" }}>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t("name")}</th>
-                  <th>{t("status")}</th>
-                  <th>{t("actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {itemsFiltrados.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.nombre}</td>
-                    <td>{item.activo ? t("active") : t("inactive")}</td>
-                    <td>
-                      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                        <button className="edit-btn" onClick={() => abrirModal(item)}>{t("edit")}</button>
-                        <button className="delete-btn" onClick={() => eliminarItem(item.id)}>{t("delete")}</button>
-                      </div>
-                    </td>
+        {/* Tabla */}
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                {tab === "productos" && (
+                  <>
+                    <th>{t("name")}</th>
+                    <th>Part Number</th>
+                    <th>IDX</th>
+                    <th>{t("description")}</th>
+                    <th>Weight/Piece</th>
+                    <th>Units/Box</th>
+                    <th>Returnable</th>
+                    <th>Expendable</th>
+                    <th>{t("status")}</th>
+                    <th>{t("actions")}</th>
+                  </>
+                )}
+                {tab === "pos" && (
+                  <>
+                    <th>PO</th>
+                    <th>Consignee</th>
+                    <th>Address</th>
+                    <th>City</th>
+                    <th>State</th>
+                    <th>ZIP</th>
+                    <th>Carrier</th>
+                    <th>Freight</th>
+                    <th>{t("status")}</th>
+                    <th>{t("actions")}</th>
+                  </>
+                )}
+                {isSimple && (
+                  <>
+                    <th>{t("name")}</th>
+                    <th>{t("status")}</th>
+                    <th>{t("actions")}</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={10}>{t("loading") || "Cargando..."}</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={10}>{t("no_results_found")}</td></tr>
+              ) : (
+                filtered.map((r) => (
+                  <tr key={r.id}>
+                    {tab === "productos" && (
+                      <>
+                        <td>{r.nombre}</td>
+                        <td>{r.part_number}</td>
+                        <td>{r.idx}</td>
+                        <td>{r.descripcion}</td>
+                        <td>{r.peso_por_pieza}</td>
+                        <td>{r.piezas_por_caja}</td>
+                        <td>{r.tipo_empaque_retornable}</td>
+                        <td>{r.tipo_empaque_expendable}</td>
+                        <td>{r.activo ? t("active") : t("inactive")}</td>
+                        <td>
+                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
+                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
+                        </td>
+                      </>
+                    )}
+                    {tab === "pos" && (
+                      <>
+                        <td>{r.po}</td>
+                        <td>{r.consignee_name}</td>
+                        <td>{[r.consignee_address1, r.consignee_address2].filter(Boolean).join(" ")}</td>
+                        <td>{r.consignee_city}</td>
+                        <td>{r.consignee_state}</td>
+                        <td>{r.consignee_zip}</td>
+                        <td>{r.carrier_name}</td>
+                        <td>{[r.freight_class, r.freight_charges].filter(Boolean).join(" / ")}</td>
+                        <td>{r.activo ? t("active") : t("inactive")}</td>
+                        <td>
+                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
+                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
+                        </td>
+                      </>
+                    )}
+                    {isSimple && (
+                      <>
+                        <td>{r.nombre}</td>
+                        <td>{r.activo ? t("active") : t("inactive")}</td>
+                        <td>
+                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
+                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
+                        </td>
+                      </>
+                    )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
-        <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
+        {/* Modal/Formulario */}
+        <Modal isOpen={!!edit} onRequestClose={() => { setEdit(null); setIsNew(false); }}>
           <div className="card">
-            <h3>{esNuevo ? t("add") : t("edit")}</h3>
-            <input
-              type="text"
-              value={itemActual?.nombre}
-              onChange={(e) => setItemActual({ ...itemActual, nombre: e.target.value })}
-            />
-            <label style={{ margin: "1rem 0", display: "block" }}>
-              <input
-                type="checkbox"
-                checked={itemActual?.activo}
-                onChange={() => setItemActual({ ...itemActual, activo: !itemActual?.activo })}
-              /> {t("active")}
-            </label>
-            <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-              <button className="primary" onClick={guardarItem}>{t("save")}</button>
-              <button className="secondary" onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+            <h3>{isNew ? t("add") : t("edit")}</h3>
+
+            {tab === "productos" && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
+                <input placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
+                <input placeholder="Part Number" value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
+                <input placeholder="IDX" value={edit?.idx || ""} onChange={e => setEdit({ ...edit, idx: e.target.value })} />
+                <input placeholder={t("description")} value={edit?.descripcion || ""} onChange={e => setEdit({ ...edit, descripcion: e.target.value })} />
+                <input type="number" placeholder="Weight/Piece" value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
+                <input type="number" placeholder="Units/Box" value={edit?.piezas_por_caja ?? ""} onChange={e => setEdit({ ...edit, piezas_por_caja: e.target.value })} />
+                <input placeholder="Returnable Type" value={edit?.tipo_empaque_retornable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_retornable: e.target.value })} />
+                <input placeholder="Expendable Type" value={edit?.tipo_empaque_expendable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_expendable: e.target.value })} />
+                <input type="number" placeholder="Returnable Box Weight" value={edit?.peso_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_retornable: e.target.value })} />
+                <input type="number" placeholder="Expendable Box Weight" value={edit?.peso_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_expendable: e.target.value })} />
+                <input type="number" placeholder="Units/Returnable Box" value={edit?.cantidad_por_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_retornable: e.target.value })} />
+                <input type="number" placeholder="Units/Expendable Box" value={edit?.cantidad_por_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_expendable: e.target.value })} />
+                <label style={{ gridColumn: "1 / -1" }}>
+                  <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
+                </label>
+              </div>
+            )}
+
+            {tab === "pos" && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
+                <input placeholder="PO" value={edit?.po || ""} onChange={e => setEdit({ ...edit, po: e.target.value })} />
+                <input placeholder="Consignee Name" value={edit?.consignee_name || ""} onChange={e => setEdit({ ...edit, consignee_name: e.target.value })} />
+                <input placeholder="Address 1" value={edit?.consignee_address1 || ""} onChange={e => setEdit({ ...edit, consignee_address1: e.target.value })} />
+                <input placeholder="Address 2" value={edit?.consignee_address2 || ""} onChange={e => setEdit({ ...edit, consignee_address2: e.target.value })} />
+                <input placeholder="City" value={edit?.consignee_city || ""} onChange={e => setEdit({ ...edit, consignee_city: e.target.value })} />
+                <input placeholder="State" value={edit?.consignee_state || ""} onChange={e => setEdit({ ...edit, consignee_state: e.target.value })} />
+                <input placeholder="ZIP" value={edit?.consignee_zip || ""} onChange={e => setEdit({ ...edit, consignee_zip: e.target.value })} />
+                <input placeholder="Country" value={edit?.consignee_country || ""} onChange={e => setEdit({ ...edit, consignee_country: e.target.value })} />
+                <input placeholder="Contact Name" value={edit?.contact_name || ""} onChange={e => setEdit({ ...edit, contact_name: e.target.value })} />
+                <input placeholder="Contact Email" value={edit?.contact_email || ""} onChange={e => setEdit({ ...edit, contact_email: e.target.value })} />
+                <input placeholder="Contact Phone" value={edit?.contact_phone || ""} onChange={e => setEdit({ ...edit, contact_phone: e.target.value })} />
+                <input placeholder="Freight Class" value={edit?.freight_class || ""} onChange={e => setEdit({ ...edit, freight_class: e.target.value })} />
+                <input placeholder="Freight Charges" value={edit?.freight_charges || ""} onChange={e => setEdit({ ...edit, freight_charges: e.target.value })} />
+                <input placeholder="Carrier Name" value={edit?.carrier_name || ""} onChange={e => setEdit({ ...edit, carrier_name: e.target.value })} />
+                <input placeholder="Booking/Tracking" value={edit?.booking_tracking || ""} onChange={e => setEdit({ ...edit, booking_tracking: e.target.value })} />
+                <label style={{ gridColumn: "1 / -1" }}>
+                  <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
+                </label>
+              </div>
+            )}
+
+            {isSimple && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
+                <input placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
+                <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
+                </label>
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+              <button className="primary" onClick={save}>{t("save")}</button>
+              <button className="secondary" onClick={() => { setEdit(null); setIsNew(false); }}>{t("cancel")}</button>
             </div>
           </div>
         </Modal>
 
-        <ToastContainer position="top-center" autoClose={2000} />
+        <ToastContainer position="top-center" autoClose={1800} />
       </div>
     </div>
-
   );
 }
