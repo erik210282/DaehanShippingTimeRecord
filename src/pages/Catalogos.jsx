@@ -23,6 +23,7 @@ export default function Catalogos() {
   const tableName = useMemo(() => {
     if (tab === "productos") return "productos";
     if (tab === "pos") return "catalogo_pos";
+    if (tab === "shipper") return "catalogo_shipper";
     return tab;
   }, [tab]);
 
@@ -58,6 +59,20 @@ export default function Catalogos() {
     activo: true,
   };
 
+  const shipperDefaults = {
+    shipper_name: "",
+    shipper_address1: "",
+    shipper_address2: "",
+    shipper_city: "",
+    shipper_state: "",
+    shipper_zip: "",
+    shipper_country: "",
+    contact_name: "",
+    contact_email: "",
+    contact_phone: "",
+    activo: true,
+  };
+
   const simpleDefaults = { nombre: "", activo: true };
 
   async function load() {
@@ -66,6 +81,7 @@ export default function Catalogos() {
       let query = supabase.from(tableName).select("*");
       if (tab === "productos") query = query.order("nombre", { ascending: true });
       else if (tab === "pos") query = query.order("id", { ascending: true });
+      else if (tab === "shipper") query = query.order("id", { ascending: true });
       else query = query.order("nombre", { ascending: true });
 
       const { data, error } = await query;
@@ -80,13 +96,13 @@ export default function Catalogos() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   const openNew = () => {
     setIsNew(true);
     if (tab === "productos") setEdit({ ...productDefaults });
     else if (tab === "pos") setEdit({ ...poDefaults });
+    else if (tab === "shipper") setEdit({ ...shipperDefaults });
     else setEdit({ ...simpleDefaults });
   };
 
@@ -102,6 +118,8 @@ export default function Catalogos() {
         }
         if (!edit.nombre) edit.nombre = edit.descripcion || edit.part_number || "";
       } else if (tab === "pos") {
+       if (!edit.nombre) edit.nombre = edit.descripcion || edit.part_number || "";
+      } else if (tab === "shipper") {
         if (!edit.po) return toast.error(t("fill_all_fields"));
       }
 
@@ -126,6 +144,13 @@ export default function Catalogos() {
   async function remove(row) {
     try {
       if (tab === "pos") {
+        const { error } = await supabase.from(tableName).delete().eq("id", row.id);
+        if (error) throw error;
+        toast.success(t("delete_success"));
+        return load();
+      }
+
+      if (tab === "shipper") {
         const { error } = await supabase.from(tableName).delete().eq("id", row.id);
         if (error) throw error;
         toast.success(t("delete_success"));
@@ -189,6 +214,18 @@ export default function Catalogos() {
           [t("status")]: r.activo ? t("active") : t("inactive"),
         };
       }
+      if (tab === "shipper") {
+        return {
+          shipper: r.shipper_name || "",
+          Address: [r.shipper_address1, r.shipper_address2].filter(Boolean).join(" ") || "",
+          City: r.shipper_city || "",
+          State: r.shipper_state || "",
+          ZIP: r.shipper_zip || "",
+          Country: r.shipper_country || "",
+          Contact: [r.contact_name, r.contact_phone, r.contact_email].filter(Boolean).join(" / "),
+          [t("status")]: r.activo ? t("active") : t("inactive"),
+        };
+      }
       return {
         [t("name")]: r.nombre || `ID: ${r.id}`,
         [t("status")]: r.activo ? t("active") : t("inactive"),
@@ -220,7 +257,8 @@ export default function Catalogos() {
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 8 }}>
           <button className="primary" onClick={() => setTab("productos")}>{t("products")}</button>
-          <button className="primary" onClick={() => setTab("pos")}>POs</button>
+          <button className="primary" onClick={() => setTab("pos")}>{t("po")}</button>
+          <button className="primary" onClick={() => setTab("shipper")}>{t("shipper")}</button>
           <button className="primary" onClick={() => setTab("actividades")}>{t("activities")}</button>
           <button className="primary" onClick={() => setTab("operadores")}>{t("operators")}</button>
 
@@ -263,6 +301,17 @@ export default function Catalogos() {
                     <th>{t("zip")}</th>
                     <th>{t("carrier")}</th>
                     <th>{t("freight")}</th>
+                    <th>{t("status")}</th>
+                    <th>{t("actions")}</th>
+                  </>
+                )}
+                {tab === "shipper" && (
+                  <>
+                    <th>{t("shipper")}</th>
+                    <th>{t("address")}</th>
+                    <th>{t("city")}</th>
+                    <th>{t("state")}</th>
+                    <th>{t("zip")}</th>
                     <th>{t("status")}</th>
                     <th>{t("actions")}</th>
                   </>
@@ -311,6 +360,20 @@ export default function Catalogos() {
                         <td>{r.consignee_zip}</td>
                         <td>{r.carrier_name}</td>
                         <td>{[r.freight_class, r.freight_charges].filter(Boolean).join(" / ")}</td>
+                        <td>{r.activo ? t("active") : t("inactive")}</td>
+                        <td>
+                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
+                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
+                        </td>
+                      </>
+                    )}
+                    {tab === "shipper" && (
+                      <>
+                        <td>{r.shipper_name}</td>
+                        <td>{[r.shipper_address1, r.shipper_address2].filter(Boolean).join(" ")}</td>
+                        <td>{r.shipper_city}</td>
+                        <td>{r.shipper_state}</td>
+                        <td>{r.shipper_zip}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
                           <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
@@ -452,6 +515,80 @@ export default function Catalogos() {
               </div>
             )}
 
+             {tab === "shipper" && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(240px, 1fr))",
+                  gap: 8,
+                }}
+              >
+                <input
+                  placeholder={t("shipper", "Shipper")}
+                  value={edit?.shipper_name || ""}
+                  onChange={(e) => setEdit({ ...edit, shipper_name: e.target.value })}
+                />
+                <input
+                  placeholder={`${t("address", "Address")} 1`}
+                  value={edit?.shipper_address1 || ""}
+                  onChange={(e) =>
+                    setEdit({ ...edit, shipper_address1: e.target.value })
+                  }
+                />
+                <input
+                  placeholder={`${t("address", "Address")} 2`}
+                  value={edit?.shipper_address2 || ""}
+                  onChange={(e) =>
+                    setEdit({ ...edit, shipper_address2: e.target.value })
+                  }
+                />
+                <input
+                  placeholder={t("city", "City")}
+                  value={edit?.shipper_city || ""}
+                  onChange={(e) => setEdit({ ...edit, shipper_city: e.target.value })}
+                />
+                <input
+                  placeholder={t("state", "State")}
+                  value={edit?.shipper_state || ""}
+                  onChange={(e) => setEdit({ ...edit, shipper_state: e.target.value })}
+                />
+                <input
+                  placeholder={t("zip", "ZIP")}
+                  value={edit?.shipper_zip || ""}
+                  onChange={(e) => setEdit({ ...edit, shipper_zip: e.target.value })}
+                />
+                <input
+                  placeholder={t("country", "Country")}
+                  value={edit?.shipper_country || ""}
+                  onChange={(e) =>
+                    setEdit({ ...edit, shipper_country: e.target.value })
+                  }
+                />
+                <input
+                  placeholder={t("contact_name", "Contact Name")}
+                  value={edit?.contact_name || ""}
+                  onChange={(e) => setEdit({ ...edit, contact_name: e.target.value })}
+                />
+                <input
+                  placeholder={t("contact_email", "Contact Email")}
+                  value={edit?.contact_email || ""}
+                  onChange={(e) => setEdit({ ...edit, contact_email: e.target.value })}
+                />
+                <input
+                  placeholder={t("contact_phone", "Contact Phone")}
+                  value={edit?.contact_phone || ""}
+                  onChange={(e) => setEdit({ ...edit, contact_phone: e.target.value })}
+                />
+                <label style={{ gridColumn: "1 / -1" }}>
+                  <input
+                    type="checkbox"
+                    checked={!!edit?.activo}
+                    onChange={() => setEdit({ ...edit, activo: !edit?.activo })}
+                  />{" "}
+                  {t("active", "Activo")}
+                </label>
+              </div>
+            )}
 
             {isSimple && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
