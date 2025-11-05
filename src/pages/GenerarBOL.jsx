@@ -9,7 +9,7 @@ import "../App.css";
 /* ----------------------- Helpers ----------------------- */
 const s = (v) => (v ?? "").toString().trim();
 const lower = (v) => s(v).toLowerCase();
-const isFinal = (r) => /(finalizada)/i.test(lower(r?.estado));
+const isFinal = (r) => /(finalizada)/i.test((r?.estado ?? "").toString());
 const isLoad = (r) => /load/i.test(s(r?.actividad));
 
 /* ======================================================= */
@@ -198,6 +198,7 @@ export default function GenerarBOL() {
       drawKVP(doc, "PO", po?.po, 120, 58);
       drawKVP(doc, "IDX", selectedIdx, 120, 66);
 
+      // -------- TABLA DE ÍTEMS --------
       doc.setFontSize(12);
       doc.text("Items", 12, 78);
       doc.setFontSize(10);
@@ -211,13 +212,15 @@ export default function GenerarBOL() {
         { w: 22, label: "Weight", key: "weight", align: "right" },
       ];
 
-      let x = 12;
+      // ENCABEZADOS
+      let hx = 12;
       cols.forEach((c) => {
-        doc.text(c.label, x + (c.align === "right" ? c.w - 1 : 1), headerY, { align: c.align || "left" });
-        x += c.w;
+        doc.text(String(c.label), hx + (c.align === "right" ? c.w - 1 : 1), headerY, { align: c.align || "left" });
+        hx += c.w;
       });
       doc.line(12, headerY + 2, 200, headerY + 2);
 
+      // CONSTRUIR FILAS AGREGADAS POR PRODUCTO
       let y = headerY + 8;
       const filas = [];
 
@@ -235,12 +238,13 @@ export default function GenerarBOL() {
         const desc = s(prod.nombre || prod.descripcion);
         const qty = porProducto[pid];
         const weightPer = Number(prod?.peso_por_pieza ?? 0);
-        const weight = weightPer > 0 && qty > 0 ? (qty * weightPer).toFixed(2) : "—";
+        const weight = weightPer > 0 && qty > 0 ? String((qty * weightPer).toFixed(2)) : "—";
         const packTxt = packType === "returnable" ? "Returnable" : "Expendable";
 
-        filas.push({ part: part || "—", desc: desc || "—", qty: qty || "—", pack: packTxt, weight });
+        filas.push({ part: part || "—", desc: desc || "—", qty: String(qty || "—"), pack: packTxt, weight });
       });
 
+      // SI NO HAY FILAS, UNA FILA VACÍA
       if (!filas.length) {
         filas.push({
           part: "—",
@@ -251,11 +255,12 @@ export default function GenerarBOL() {
         });
       }
 
+      // DIBUJAR FILAS (TODO EN STRING)
       filas.forEach((row) => {
         let cx = 12;
         cols.forEach((c) => {
           const raw = row[c.key];
-          const val = raw === 0 ? "0" : s(raw) || "—";  // fuerza string y conserva 0
+          const val = raw === 0 ? "0" : s(raw) || "—";
           doc.text(String(val), cx + (c.align === "right" ? c.w - 1 : 1), y, { align: c.align || "left" });
           cx += c.w;
         });
@@ -265,6 +270,7 @@ export default function GenerarBOL() {
           y = 20;
         }
       });
+
 
       // -------- PÁGINA 2: COVER SHEET --------
       doc.addPage();
