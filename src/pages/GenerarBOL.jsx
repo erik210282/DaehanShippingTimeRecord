@@ -6,11 +6,24 @@ import "react-toastify/dist/ReactToastify.css";
 import { jsPDF } from "jspdf";
 import "../App.css";
 
-/**
- * Ayudas de string
- */
+// Helpers robustos
 const s = (v) => (v ?? "").toString().trim();
 const lower = (v) => s(v).toLowerCase();
+
+// Finalizado robusto (string o boolean)
+function isFinal(r) {
+  const txts = [r?.estado, r?.estatus, r?.status].map(lower).join(" ");
+  const bools = [r?.finalizado, r?.finished, r?.completado].some(Boolean);
+  const words = /(finalizad|finished|done|completad)/i.test(txts);
+  return bools || words;
+}
+
+// Determina si es LOAD por nombre o por id
+function isLoadRecord(rec, loadIds) {
+  const byName = /load/i.test(s(rec?.nombre_actividad || rec?.actividad_nombre));
+  const byId = loadIds?.length ? loadIds.includes(rec?.actividad) : false;
+  return byName || byId;
+}
 
 /**
  * Detecta si un registro en actividades_realizadas es LOAD finalizado
@@ -63,22 +76,42 @@ export default function GenerarBOL() {
 
   // IDXs (LOAD finalizado)
   const cargarIdxOptions = React.useCallback(async () => {
-    const { data, error } = await supabase
-      .from("actividades_realizadas")
-      .select("idx, actividad, nombre_actividad, estado, createdAt")
-      .order("createdAt", { ascending: false })
-      .limit(5000);
+    try {
+      // 1) Busca ids de la tabla 'actividades' cuyo nombre incluya "load"
+      let loadIds = [];
+      const { data: actsCat, error: errActsCat } = await supabase
+        .from("actividades")
+        .select("id,nombre,activo");
+      if (!errActsCat && Array.isArray(actsCat)) {
+        loadIds = actsCat
+          .filter(a => /load/i.test(s(a?.nombre)))
+          .map(a => a.id);
+      }
 
-    if (error) {
-      console.warn("Error cargando actividades_realizadas:", error.message);
+      // 2) Trae actividades_realizadas (recientes, con idx no nulo)
+      const { data, error } = await supabase
+        .from("actividades_realizadas")
+        .select("idx, actividad, nombre_actividad, estado, estatus, status, finalizado, finished, completado, createdAt")
+        .not("idx", "is", null)
+        .order("createdAt", { ascending: false })
+        .limit(8000);
+
+      if (error) throw error;
+
+      // 3) Filtra: LOAD + FINALIZADO
+      const valid = (data || []).filter(r => isLoadRecord(r, loadIds) && isFinal(r) && s(r.idx));
+
+      // 4) Uniq por idx
+      const uniq = Array.from(new Set(valid.map(r => s(r.idx))));
+      setIdxOptions(uniq);
+
+      // Limpia selección si ya no existe
+      setSelectedIdx(prev => (prev && !uniq.includes(prev) ? "" : prev));
+    } catch (e) {
+      console.warn("cargarIdxOptions:", e?.message || e);
       setIdxOptions([]);
-      return;
     }
-
-    const loads = (data || []).filter(esLoadFinalizado).filter((r) => !!r.idx);
-    const uniq = Array.from(new Set(loads.map((r) => r.idx)));
-    setIdxOptions(uniq);
-  }, []);
+  }, [setIdxOptions, setSelectedIdx]);
 
   // POs
   const cargarPoOptions = React.useCallback(async () => {
@@ -352,8 +385,6 @@ export default function GenerarBOL() {
           {/* Shipper (origen) */}
           <select value={shipper} onChange={(e) => setShipper(e.target.value)}>
             <option value="Daehan Nevada">Daehan Nevada</option>
-            <option value="Daehan California">Daehan California</option>
-            <option value="Daehan Georgia">Daehan Georgia</option>
           </select>
 
           {/* Shipment # */}
