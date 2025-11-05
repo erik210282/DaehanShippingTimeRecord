@@ -9,8 +9,6 @@ import "../App.css";
 
 Modal.setAppElement("#root");
 
-const TABS = ["productos", "pos", "actividades", "operadores"];
-
 export default function Catalogos() {
   const { t } = useTranslation();
 
@@ -23,9 +21,9 @@ export default function Catalogos() {
 
   const isSimple = useMemo(() => tab === "actividades" || tab === "operadores", [tab]);
   const tableName = useMemo(() => {
-    if (tab === "productos") return "productos";       // unificado aquí (sin IDX)
-    if (tab === "pos")       return "catalogo_pos";
-    return tab; // actividades / operadores
+    if (tab === "productos") return "productos";
+    if (tab === "pos") return "catalogo_pos";
+    return tab;
   }, [tab]);
 
   const productDefaults = {
@@ -33,7 +31,7 @@ export default function Catalogos() {
     part_number: "",
     descripcion: "",
     peso_por_pieza: 0,
-    piezas_por_caja: 0,
+    // piezas_por_caja: 0,  // <-- ELIMINADO
     tipo_empaque_retornable: "",
     tipo_empaque_expendable: "",
     peso_caja_retornable: 0,
@@ -101,7 +99,6 @@ export default function Catalogos() {
       if (isSimple) {
         if (!edit.nombre) return toast.error(t("fill_all_fields"));
       } else if (tab === "productos") {
-        // Mínimo necesario para producto (sin usar idx)
         if (!edit.nombre && !edit.descripcion && !edit.part_number) {
           return toast.error(t("fill_all_fields"));
         }
@@ -170,7 +167,7 @@ export default function Catalogos() {
           PartNumber: r.part_number || "",
           [t("description")]: r.descripcion || "",
           "Weight/Piece": r.peso_por_pieza ?? "",
-          "Units/Box": r.piezas_por_caja ?? "",
+          // "Units/Box": r.piezas_por_caja ?? "", // <-- ELIMINADO
           "Returnable Type": r.tipo_empaque_retornable || "",
           "Expendable Type": r.tipo_empaque_expendable || "",
           "Returnable Box W.": r.peso_caja_retornable ?? "",
@@ -252,9 +249,11 @@ export default function Catalogos() {
                     <th>Part Number</th>
                     <th>{t("description")}</th>
                     <th>Weight/Piece</th>
-                    <th>Units/Box</th>
+                    {/* <th>Units/Box</th>  <-- ELIMINADO */}
                     <th>Returnable</th>
                     <th>Expendable</th>
+                    <th>Units/Returnable Box</th>
+                    <th>Units/Expendable Box</th>
                     <th>{t("status")}</th>
                     <th>{t("actions")}</th>
                   </>
@@ -284,9 +283,9 @@ export default function Catalogos() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10}>{t("loading") || "Cargando..."}</td></tr>
+                <tr><td colSpan={12}>{t("loading") || "Cargando..."}</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={10}>{t("no_results_found")}</td></tr>
+                <tr><td colSpan={12}>{t("no_results_found")}</td></tr>
               ) : (
                 filtered.map((r) => (
                   <tr key={r.id}>
@@ -296,9 +295,11 @@ export default function Catalogos() {
                         <td>{r.part_number}</td>
                         <td>{r.descripcion}</td>
                         <td>{r.peso_por_pieza}</td>
-                        <td>{r.piezas_por_caja}</td>
+                        {/* <td>{r.piezas_por_caja}</td>  <-- ELIMINADO */}
                         <td>{r.tipo_empaque_retornable}</td>
                         <td>{r.tipo_empaque_expendable}</td>
+                        <td>{r.cantidad_por_caja_retornable}</td>
+                        <td>{r.cantidad_por_caja_expendable}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
                           <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
@@ -350,7 +351,7 @@ export default function Catalogos() {
                 <input placeholder="Part Number" value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
                 <input placeholder={t("description")} value={edit?.descripcion || ""} onChange={e => setEdit({ ...edit, descripcion: e.target.value })} />
                 <input type="number" placeholder="Weight/Piece" value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
-                <input type="number" placeholder="Units/Box" value={edit?.piezas_por_caja ?? ""} onChange={e => setEdit({ ...edit, piezas_por_caja: e.target.value })} />
+                {/* <input type="number" placeholder="Units/Box" value={edit?.piezas_por_caja ?? ""} onChange={e => setEdit({ ...edit, piezas_por_caja: e.target.value })} /> */}
                 <input placeholder="Returnable Type" value={edit?.tipo_empaque_retornable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_retornable: e.target.value })} />
                 <input placeholder="Expendable Type" value={edit?.tipo_empaque_expendable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_expendable: e.target.value })} />
                 <input type="number" placeholder="Returnable Box Weight" value={edit?.peso_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_retornable: e.target.value })} />
