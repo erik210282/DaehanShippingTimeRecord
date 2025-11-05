@@ -21,10 +21,9 @@ export default function Catalogos() {
   const [isNew, setIsNew] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // ---- Helpers de schema por pestaña ----
   const isSimple = useMemo(() => tab === "actividades" || tab === "operadores", [tab]);
   const tableName = useMemo(() => {
-    if (tab === "productos") return "productos";       // << unificado aquí
+    if (tab === "productos") return "productos";       // unificado aquí (sin IDX)
     if (tab === "pos")       return "catalogo_pos";
     return tab; // actividades / operadores
   }, [tab]);
@@ -32,7 +31,6 @@ export default function Catalogos() {
   const productDefaults = {
     nombre: "",
     part_number: "",
-    idx: "",
     descripcion: "",
     peso_por_pieza: 0,
     piezas_por_caja: 0,
@@ -66,12 +64,10 @@ export default function Catalogos() {
 
   const simpleDefaults = { nombre: "", activo: true };
 
-  // ---- Cargar datos ----
   async function load() {
     setLoading(true);
     try {
       let query = supabase.from(tableName).select("*");
-      // Orden base
       if (tab === "productos") query = query.order("nombre", { ascending: true });
       else if (tab === "pos") query = query.order("id", { ascending: true });
       else query = query.order("nombre", { ascending: true });
@@ -91,7 +87,6 @@ export default function Catalogos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  // ---- Abrir edición ----
   const openNew = () => {
     setIsNew(true);
     if (tab === "productos") setEdit({ ...productDefaults });
@@ -99,20 +94,17 @@ export default function Catalogos() {
     else setEdit({ ...simpleDefaults });
   };
 
-  // ---- Guardar ----
   async function save() {
     try {
       if (!edit) return;
 
-      // Validaciones mínimas por pestaña
       if (isSimple) {
         if (!edit.nombre) return toast.error(t("fill_all_fields"));
       } else if (tab === "productos") {
-        // Para no romper otras páginas: nombre sigue siendo clave visible
+        // Mínimo necesario para producto (sin usar idx)
         if (!edit.nombre && !edit.descripcion && !edit.part_number) {
           return toast.error(t("fill_all_fields"));
         }
-        // Rellena nombre si viene vacío:
         if (!edit.nombre) edit.nombre = edit.descripcion || edit.part_number || "";
       } else if (tab === "pos") {
         if (!edit.po) return toast.error(t("fill_all_fields"));
@@ -124,7 +116,7 @@ export default function Catalogos() {
         ? supabase.from(tableName).insert(payload).select()
         : supabase.from(tableName).update(payload).eq("id", payload.id).select();
 
-      const { data, error } = await op;
+      const { error } = await op;
       if (error) throw error;
 
       toast.success(t("save_success"));
@@ -136,19 +128,15 @@ export default function Catalogos() {
     }
   }
 
-  // ---- Eliminar (soft/hard) ----
   async function remove(row) {
     try {
       if (tab === "pos") {
-        // POs: borrado duro
         const { error } = await supabase.from(tableName).delete().eq("id", row.id);
         if (error) throw error;
         toast.success(t("delete_success"));
         return load();
       }
 
-      // Productos / Actividades / Operadores: soft-delete si están en uso
-      // Verifica uso básico en actividades_realizadas (si existe relación por id)
       const { data: ar, error: errAR } = await supabase
         .from("actividades_realizadas")
         .select("id, actividad, producto, operadores");
@@ -174,14 +162,12 @@ export default function Catalogos() {
     }
   }
 
-  // ---- Export CSV (vista actual) ----
   const exportCSV = () => {
     const data = (rows || []).map((r) => {
       if (tab === "productos") {
         return {
           [t("name")]: r.nombre || "",
           PartNumber: r.part_number || "",
-          IDX: r.idx || "",
           [t("description")]: r.descripcion || "",
           "Weight/Piece": r.peso_por_pieza ?? "",
           "Units/Box": r.piezas_por_caja ?? "",
@@ -210,7 +196,6 @@ export default function Catalogos() {
           [t("status")]: r.activo ? t("active") : t("inactive"),
         };
       }
-      // simple
       return {
         [t("name")]: r.nombre || `ID: ${r.id}`,
         [t("status")]: r.activo ? t("active") : t("inactive"),
@@ -229,20 +214,17 @@ export default function Catalogos() {
     toast.success(t("export_success") || "CSV exportado correctamente");
   };
 
-  // ---- Filtrado ----
   const filtered = useMemo(() => {
     const q = (filter || "").toLowerCase();
     if (!q) return rows;
     return rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
   }, [rows, filter]);
 
-  // ---- Render ----
   return (
     <div className="page-container page-container--fluid">
       <div className="card">
         <h2>{t("catalogs")}</h2>
 
-        {/* Tabs */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 8 }}>
           <button className="primary" onClick={() => setTab("productos")}>{t("products")}</button>
           <button className="primary" onClick={() => setTab("pos")}>POs</button>
@@ -255,12 +237,11 @@ export default function Catalogos() {
             onChange={(e) => setFilter(e.target.value)}
             style={{ minWidth: 220 }}
           />
-          <button onClick={() => { setFilter(""); }}>{t("clear_filters")}</button>
+          <button onClick={() => setFilter("")}>{t("clear_filters")}</button>
           <button onClick={openNew}>➕ {t("add")}</button>
           <button onClick={exportCSV}>{t("export_csv")}</button>
         </div>
 
-        {/* Tabla */}
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -269,7 +250,6 @@ export default function Catalogos() {
                   <>
                     <th>{t("name")}</th>
                     <th>Part Number</th>
-                    <th>IDX</th>
                     <th>{t("description")}</th>
                     <th>Weight/Piece</th>
                     <th>Units/Box</th>
@@ -314,7 +294,6 @@ export default function Catalogos() {
                       <>
                         <td>{r.nombre}</td>
                         <td>{r.part_number}</td>
-                        <td>{r.idx}</td>
                         <td>{r.descripcion}</td>
                         <td>{r.peso_por_pieza}</td>
                         <td>{r.piezas_por_caja}</td>
@@ -361,7 +340,6 @@ export default function Catalogos() {
           </table>
         </div>
 
-        {/* Modal/Formulario */}
         <Modal isOpen={!!edit} onRequestClose={() => { setEdit(null); setIsNew(false); }}>
           <div className="card">
             <h3>{isNew ? t("add") : t("edit")}</h3>
@@ -370,7 +348,6 @@ export default function Catalogos() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
                 <input placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
                 <input placeholder="Part Number" value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
-                <input placeholder="IDX" value={edit?.idx || ""} onChange={e => setEdit({ ...edit, idx: e.target.value })} />
                 <input placeholder={t("description")} value={edit?.descripcion || ""} onChange={e => setEdit({ ...edit, descripcion: e.target.value })} />
                 <input type="number" placeholder="Weight/Piece" value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
                 <input type="number" placeholder="Units/Box" value={edit?.piezas_por_caja ?? ""} onChange={e => setEdit({ ...edit, piezas_por_caja: e.target.value })} />
