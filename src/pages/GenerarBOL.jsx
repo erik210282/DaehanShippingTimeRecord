@@ -58,7 +58,7 @@ export default function GenerarBOL() {
           .map((r) => s(r.idx))
       );
 
-      const uniq = Array.from(setIdx).sort((a, b) => (a > b ? -1 : 1));
+      const uniq = Array.from(setIdx).map(String).sort((a, b) => b.localeCompare(a));
       setIdxOptions(uniq);
       setSelectedIdx((prev) => (prev && !uniq.includes(prev) ? "" : prev));
     } catch (e) {
@@ -213,8 +213,10 @@ export default function GenerarBOL() {
 
       let x = 12;
       cols.forEach((c) => {
-        doc.text(c.label, x + (c.align === "right" ? c.w - 1 : 1), headerY, { align: c.align || "left" });
-        x += c.w;
+        const raw = row[c.key];
+        const val = raw === 0 ? "0" : s(raw) || "—"; // 0 no se pierde
+        doc.text(String(val), cx + (c.align === "right" ? c.w - 1 : 1), y, { align: c.align || "left" });
+        cx += c.w;
       });
       doc.line(12, headerY + 2, 200, headerY + 2);
 
@@ -287,7 +289,7 @@ export default function GenerarBOL() {
       doc.text("Notes:", 12, 84);
       doc.rect(12, 86, 188, 100);
 
-      const fileName = `BOL_${selectedIdx}_${po?.po || "PO"}.pdf`;
+      const fileName = `BOL_${String(selectedIdx)}_${String(po?.po || "PO")}.pdf`;
       doc.save(fileName);
       toast.success(t("generated_ok", "BOL generado correctamente"));
     } catch (e) {
@@ -306,9 +308,10 @@ export default function GenerarBOL() {
           {/* IDX */}
           <select value={selectedIdx} onChange={(e) => setSelectedIdx(e.target.value)} disabled={idxOptions.length === 0}>
             <option value="">{t("select_idx", "Seleccionar IDX")}</option>
-            {idxOptions.map((v) => (
-              <option key={v} value={v}>{v}</option>
-            ))}
+            {idxOptions.map((v) => {
+              const sv = String(v);
+              return <option key={sv} value={sv}>{sv}</option>;
+            })}
           </select>
 
           {/* Shipper */}
@@ -326,7 +329,7 @@ export default function GenerarBOL() {
           <select value={selectedPoId} onChange={(e) => setSelectedPoId(e.target.value)} disabled={poOptions.length === 0}>
             <option value="">{t("select_po", "Seleccionar PO")}</option>
             {poOptions.map((p) => (
-              <option key={p.id} value={p.id}>
+              <option key={p.id} value={String(p.id)}>
                 {p.po ? `${p.po} — ${p.consignee_name || ""}` : `ID ${p.id}`}
               </option>
             ))}
@@ -336,7 +339,7 @@ export default function GenerarBOL() {
           <input placeholder={t("seal_number", "No. de Sello")} value={sealNo} onChange={(e) => setSealNo(e.target.value)} />
 
           {/* Packing Slip */}
-          <input placeholder={t("packing_slip", "Packing Slip # (opcional)")} value={packingSlip} onChange={(e) => setPackingSlip(e.target.value)} />
+          <input placeholder={t("packing_slip", "Packing Slip #")} value={packingSlip} onChange={(e) => setPackingSlip(e.target.value)} />
 
           {/* Packaging type */}
           <select value={packType} onChange={(e) => setPackType(e.target.value)}>
