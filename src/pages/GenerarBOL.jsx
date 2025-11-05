@@ -9,7 +9,7 @@ import "../App.css";
 /* ----------------------- Helpers ----------------------- */
 const s = (v) => (v ?? "").toString().trim();
 const lower = (v) => s(v).toLowerCase();
-const isFinal = (r) => /(finalizad|finished|done|completad|cerrad)/i.test(lower(r?.estado));
+const isFinal = (r) => /(finalizada)/i.test(lower(r?.estado));
 const isLoad = (r) => /load/i.test(s(r?.actividad));
 
 /* ======================================================= */
