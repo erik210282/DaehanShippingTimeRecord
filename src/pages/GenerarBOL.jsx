@@ -26,7 +26,9 @@ export default function GenerarBOL() {
   const [poOptions, setPoOptions] = React.useState([]);
   const [selectedPoId, setSelectedPoId] = React.useState("");
 
-  const [shipper, setShipper] = React.useState("Daehan Nevada");
+  const [shipperOptions, setShipperOptions] = React.useState([]);
+  const [selectedShipperId, setSelectedShipperId] = React.useState("");
+
   const [shipmentNo, setShipmentNo] = React.useState("");
   const [trailerNo, setTrailerNo] = React.useState("");
   const [sealNo, setSealNo] = React.useState("");
@@ -117,9 +119,26 @@ export default function GenerarBOL() {
     }
   }, []);
 
+  /* ------------------ Cargar Shippers ------------------ */
+  const cargarShipperOptions = React.useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("catalogo_shipper")
+        .select("*")
+        .order("id", { ascending: true });
+
+      if (error) throw error;
+      setShipperOptions(data || []);
+    } catch (e) {
+      console.warn("cargarShipperOptions:", e?.message || e);
+      setShipperOptions([]);
+    }
+  }, []);
+
   React.useEffect(() => {
     cargarIdxOptions();
     cargarPoOptions();
+    cargarShipperOptions();
 
     // realtime (AR) para refrescar el combo de IDX
     const ch = supabase
@@ -136,7 +155,7 @@ export default function GenerarBOL() {
         supabase.removeChannel(ch);
       } catch {}
     };
-  }, [cargarIdxOptions, cargarPoOptions]);
+  }, [cargarIdxOptions, cargarPoOptions, cargarShipperOptions]);
 
   /* ------ Cargar detalle del IDX y datos del PO ------- */
   React.useEffect(() => {
@@ -219,9 +238,22 @@ export default function GenerarBOL() {
       if (!error) setPoData(data || null);
     }
 
+    async function cargarShipper() {
+      setPoData(null);
+      if (!selectedShipperId) return;
+      const { data, error } = await supabase
+        .from("catalogo_shipper")
+        .select("*")
+        .eq("id", selectedShipperId)
+        .maybeSingle();
+
+      if (!error) setPoData(data || null);
+    }
+
     cargarDetalleIdx();
     cargarPo();
-  }, [selectedIdx, selectedPoId]);
+    cargarShipper();
+  }, [selectedIdx, selectedPoId, selectedShipperId]);
 
   /* ---------------- Generar PDF ---------------- */
   function drawHeader(doc, title, y = 12) {
