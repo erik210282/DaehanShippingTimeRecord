@@ -471,17 +471,22 @@ export default function GenerarBOL() {
           <input placeholder={t("trailer_number", "No. de Trailer/Contenedor")} value={trailerNo} onChange={(e) => setTrailerNo(e.target.value)} />
 
           {/* PO */}
-
           <select
-                  isMulti
-                  options={poOptions}
-                  value={selectedPoIds}
-                  onChange={(e) => {
-                    const values = Array.from(e.target.selectedOptions).map(o => o.value);
-                    setSelectedPoIds(values);
-                  }}
-                  placeholder={t("select_po")}
-            />
+            multiple
+            size={Math.min(6, Math.max(3, poOptions.length))}
+            value={selectedPoIds}
+            onChange={(e) => {
+              const values = Array.from(e.target.selectedOptions).map(o => o.value);
+              setSelectedPoIds(values);
+            }}
+            disabled={poOptions.length === 0}
+          >
+            {poOptions.map((p) => (
+              <option key={p.id} value={String(p.id)}>
+                {p.po ? `${p.po} — ${p.consignee_name || ""}` : `ID ${p.id}`}
+              </option>
+            ))}
+          </select>
 
           {/* Seal */}
           <input placeholder={t("seal_number", "No. de Sello")} value={sealNo} onChange={(e) => setSealNo(e.target.value)} />
