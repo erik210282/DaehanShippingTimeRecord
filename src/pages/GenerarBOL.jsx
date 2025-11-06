@@ -10,6 +10,13 @@ import DA_LOGO from "../assets/Daehan.png";
 
 const DAEHAN_LOGO_SRC = "/assets/Daehan.png";
 
+// Envuelve texto a un ancho, devolviendo array de líneas
+function wrap(doc, txt, maxWidth, fontSize = 9) {
+  if (!txt) return [];
+  doc.setFontSize(fontSize);
+  return doc.splitTextToSize(String(txt), maxWidth);
+}
+
 async function loadImg(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -404,14 +411,20 @@ export default function GenerarBOL() {
 
       box(62, 46, 98, 28);
       text("Bill Charges To", "", 62, 51, { size: 9, bold: true });
-      const billToName = primaryPO?.bill_to_name ?? "";
-      const billToAddr = join(primaryPO?.bill_to_address1, primaryPO?.bill_to_address2);
-      const billToCity = join(primaryPO?.bill_to_city, primaryPO?.bill_to_state, primaryPO?.bill_to_zip);
-      const billToCountry = primaryPO?.bill_to_country ?? "";
-      text("", billToName, 62, 56, { size: 10 });
-      text("", billToAddr, 62, 61, { size: 10 });
-      text("", billToCity, 62, 66, { size: 10 });
-      text("", billToCountry, 62, 71, { size: 10 });
+
+      const billToName   = primaryPO?.bill_to_name ?? "";
+      const billToAddr   = join(primaryPO?.bill_to_address1, primaryPO?.bill_to_address2);
+      const billToCity   = join(primaryPO?.bill_to_city, primaryPO?.bill_to_state, primaryPO?.bill_to_zip);
+      const billToCountry= primaryPO?.bill_to_country ?? "";
+
+      let btY = 56;
+      const btX = 62 + 2;
+      const btW = 98 - 4;
+
+      wrap(doc, billToName, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
+      wrap(doc, billToAddr, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
+      wrap(doc, billToCity, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
+      wrap(doc, billToCountry, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
 
       box(162, 46, 26, 14);
       text("Secondary Carrier", "", 162, 51, { size: 9, bold: true });
@@ -461,7 +474,7 @@ export default function GenerarBOL() {
       text("", primaryPO?.consignee_country ?? "", 12, cy);
 
       // ===== Packaging & Dimension table =====
-      // agrega pesos por paquete y totales como el sample
+      // Unifica cajas por producto (solo LOAD finalizada)
       const porProducto = {};
       (lineasIdx || []).forEach((it) => {
         const pid = it?.producto_id;
@@ -470,35 +483,47 @@ export default function GenerarBOL() {
         porProducto[pid] = (porProducto[pid] || 0) + (isNaN(cajas) ? 0 : cajas);
       });
 
-      const tabY = consTop + 36;
-      const tabH = 110;
-      box(12, tabY, 176, tabH);
+      // Marco de la tabla (coordenadas y anchos clavados al sample)
+      const TAB_X = 12;
+      const TAB_Y = (rowY + rH + 4 + rH + 12) + 36; // debajo del Consignee
+      const TAB_W = 176;
+      const TAB_H = 110;
+      box(TAB_X, TAB_Y, TAB_W, TAB_H);
 
-      const cols = [
-        { k: "pkgQty",  t: "Package Quantity", w: 20 },
-        { k: "pkgType", t: "Package Type",     w: 24 },
-        { k: "desc",    t: "Description",      w: 55 },
-        { k: "dim",     t: "Dimension Per Package", w: 35 },
-        { k: "wPer",    t: "Weight Per Package",    w: 24, right: true },
-        { k: "wTot",    t: "Total Weight",          w: 14, right: true },
-        { k: "uom",     t: "Weight UoM",            w: 4  },
+      // Definición de columnas (igual que Tesla)
+      const COLS = [
+        { k: "pkgQty",  t: "Package Quantity",     w: 24, align: "left"  },
+        { k: "pkgType", t: "Package Type",         w: 24, align: "left"  },
+        { k: "desc",    t: "Description",          w: 68, align: "left"  }, // ancho grande
+        { k: "dim",     t: "Dimension Per Package",w: 40, align: "left"  },
+        { k: "wPer",    t: "Weight Per Package",   w: 24, align: "right" },
+        { k: "wTot",    t: "Total Weight",         w: 22, align: "right" },
+        { k: "uom",     t: "Weight UoM",           w: 6,  align: "left"  },
       ];
 
-      // header
-      let cx = 12;
+      // Header
+      let cx = TAB_X;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      cols.forEach(c => {
-        doc.text(c.t, cx + 2, tabY + 5);
+      COLS.forEach((c) => {
+        doc.text(c.t, cx + 2, TAB_Y + 5);
         cx += c.w;
-        line(cx, tabY, cx, tabY + tabH);
+        line(cx, TAB_Y, cx, TAB_Y + TAB_H, 0.25);
       });
-      line(12, tabY + 7, 188, tabY + 7);
+      line(TAB_X, TAB_Y + 7, TAB_X + TAB_W, TAB_Y + 7, 0.25);
 
-      // filas
-      let y = tabY + 13;
+      // Filas
+      let y = TAB_Y + 12;
       let totalUnits = 0;
       let totalWeight = 0;
+
+      const ROW_MIN_H = 6;
+      const TEXT_SIZE = 9;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(TEXT_SIZE);
+
+      // Calcula filas listas para pintar
+      const rowsData = [];
 
       Object.keys(porProducto).forEach(pid => {
         const p = productosById[pid] || {};
@@ -516,8 +541,7 @@ export default function GenerarBOL() {
 
         const L = p?.dim_l ?? p?.length_in ?? p?.largo ?? "";
         const W = p?.dim_w ?? p?.width_in  ?? p?.ancho ?? "";
-        const H = p?.dim_h ?? p?.height_in ?? p?.alto ?? "";
-        const dimText = (L && W && H) ? `${L} X ${W} X ${H} IN` : "";
+        const H = p?.dim_h ?? p?.height_in ?? p?.alto  ?? "";
 
         const piecesPerBox  = isNaN(unitsPerBox) ? 1 : unitsPerBox;
         const weightPerPack = (piecesPerBox * (isNaN(wUnit) ? 0 : wUnit)) + (isNaN(wBox) ? 0 : wBox);
@@ -526,35 +550,96 @@ export default function GenerarBOL() {
         totalUnits  += boxes;
         totalWeight += lineTotal;
 
-        const row = {
+        const descText = (p?.nombre ?? p?.descripcion ?? "").toString();
+        const dimText  = (L && W && H) ? `${L} X ${W} X ${H} IN` : "";
+
+        rowsData.push({
           pkgQty: String(boxes),
           pkgType: "Box",
-          desc: (p?.nombre ?? p?.descripcion ?? "").toString(),
+          desc: descText,
           dim: dimText,
           wPer: weightPerPack.toFixed(2),
           wTot: lineTotal.toFixed(2),
           uom: "LB",
-        };
-
-        let x = 12;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        cols.forEach(c => {
-          const val = row[c.k] ?? "";
-          if (c.right) doc.text(String(val), x + c.w - 1, y, { align: "right" });
-          else doc.text(String(val), x + 2, y);
-          x += c.w;
         });
-
-        y += 6;
-        if (y > tabY + tabH - 8) { doc.addPage(); y = 20; }
       });
 
-      // Totales (mismo estilo que el sample)
+      // Pinta filas con **wrapping** y altura dinámica por celda
+      rowsData.forEach((row) => {
+        // Calcula líneas envueltas por cada columna que lo necesita
+        const wrapped = {
+          pkgQty: [row.pkgQty],
+          pkgType: [row.pkgType],
+          desc: wrap(doc, row.desc,  COLS[2].w - 4, TEXT_SIZE),
+          dim:  wrap(doc, row.dim,   COLS[3].w - 4, TEXT_SIZE),
+          wPer: [row.wPer],
+          wTot: [row.wTot],
+          uom:  [row.uom],
+        };
+        const linesCount = Math.max(
+          wrapped.pkgQty.length,
+          wrapped.pkgType.length,
+          wrapped.desc.length || 1,
+          wrapped.dim.length  || 1,
+          wrapped.wPer.length,
+          wrapped.wTot.length,
+          wrapped.uom.length
+        );
+        const rowH = Math.max(ROW_MIN_H, linesCount * 5);
+
+        // Salto de página si no cabe
+        if (y + rowH > TAB_Y + TAB_H - 2) {
+          // dibuja línea de cierre antes de saltar
+          line(TAB_X, y, TAB_X + TAB_W, y, 0.25);
+          doc.addPage();
+          // redibuja marco y header en nueva página
+          box(TAB_X, 20, TAB_W, TAB_H);
+          cx = TAB_X;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          COLS.forEach((c) => {
+            doc.text(c.t, cx + 2, 25);
+            cx += c.w;
+            line(cx, 20, cx, 20 + TAB_H, 0.25);
+          });
+          line(TAB_X, 27, TAB_X + TAB_W, 27, 0.25);
+
+          // reinicia y para filas
+          y = 32;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(TEXT_SIZE);
+        }
+
+        // Celdas
+        let x = TAB_X;
+        COLS.forEach((c) => {
+          const cellLines = (wrapped[c.k] && wrapped[c.k].length ? wrapped[c.k] : [""]);
+          // dibuja texto línea a línea
+          cellLines.forEach((ln, i) => {
+            const yy = y + 4 + i * 5;
+            if (c.align === "right") {
+              doc.text(String(ln), x + c.w - 2, yy, { align: "right" });
+            } else {
+              doc.text(String(ln), x + 2, yy);
+            }
+          });
+          // vertical
+          x += c.w;
+          line(x, y - (rowH - ROW_MIN_H), x, y + rowH, 0.25);
+        });
+
+        // línea inferior de la fila
+        line(TAB_X, y + rowH, TAB_X + TAB_W, y + rowH, 0.25);
+        y += rowH;
+      });
+
+      // Totales pegados al borde inferior del marco
+      const TOT_Y = TAB_Y + TAB_H + 6;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
-      text("Total Shipment Weight", `${totalWeight.toFixed(2)} LB`, 12, tabY + tabH + 6, { bold: true });
-      text("Total Shipping Units", String(totalUnits), 120, tabY + tabH + 6, { bold: true });
+      text("Total Shipment Weight", `${totalWeight.toFixed(2)} LB`, 12, TOT_Y, { bold: true });
+      text("Total Shipping Units", String(totalUnits), 120, TOT_Y, { bold: true });
+
 
       // Firmas (pickup/drop off)
       const signY = tabY + tabH + 12;
