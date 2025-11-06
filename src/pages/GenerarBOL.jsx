@@ -35,7 +35,7 @@ export default function GenerarBOL() {
   const [packingSlip, setPackingSlip] = React.useState("");
 
   // "returnable" | "expendable"
-  const [packType, setPackType] = React.useState("expendable");
+  const [packType, setPackType] = React.useState("returnable");
 
   // datos para construir el PDF
   const [lineasIdx, setLineasIdx] = React.useState([]);
