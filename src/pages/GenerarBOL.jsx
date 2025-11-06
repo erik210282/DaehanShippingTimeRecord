@@ -41,6 +41,7 @@ export default function GenerarBOL() {
   const [lineasIdx, setLineasIdx] = React.useState([]);
   const [productosById, setProductosById] = React.useState({});
   const [poData, setPoData] = React.useState(null);
+  const [shipperData, setShipperData] = React.useState(null);
 
   /* ------------------ Cargar IDX (AR) ----------------- */
   const cargarIdxOptions = React.useCallback(async () => {
@@ -239,7 +240,7 @@ export default function GenerarBOL() {
     }
 
     async function cargarShipper() {
-      setPoData(null);
+      setShipperData(null);
       if (!selectedShipperId) return;
       const { data, error } = await supabase
         .from("catalogo_shipper")
@@ -247,7 +248,7 @@ export default function GenerarBOL() {
         .eq("id", selectedShipperId)
         .maybeSingle();
 
-      if (!error) setPoData(data || null);
+      if (!error) setShipperData(data || null);
     }
 
     cargarDetalleIdx();
@@ -274,8 +275,10 @@ export default function GenerarBOL() {
     try {
       if (!selectedIdx) return toast.error(t("select_idx_first", "Selecciona un IDX"));
       if (!selectedPoId) return toast.error(t("select_po_first", "Selecciona un PO"));
+      if (!selectedShipperId) return toast.error(t("select_shipper_first", "Selecciona un PO"));
 
       const po = poData || {};
+      const shipper = shipperData || {};
       const doc = new jsPDF({ unit: "mm", format: "letter" });
 
       // -------- PÁGINA 1: BOL --------
