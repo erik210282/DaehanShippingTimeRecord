@@ -106,38 +106,101 @@ export default function Catalogos() {
     else setEdit({ ...simpleDefaults });
   };
 
-  async function save() {
-    try {
-      if (!edit) return;
+  // 🔧 Helper para filtrar solo las columnas válidas de cada tabla
+const pick = (obj, keys) =>
+  keys.reduce((acc, k) => (k in obj ? { ...acc, [k]: obj[k] } : acc), {});
 
-      if (isSimple) {
-        if (!edit.nombre) return toast.error(t("fill_all_fields"));
-      } else if (tab === "productos") {
-        if (!edit.nombre && !edit.descripcion && !edit.part_number) {
-          return toast.error(t("fill_all_fields"));
-        }
-        if (!edit.nombre) edit.nombre = edit.descripcion || edit.part_number || "";
-      } else if (tab === "pos") {
-        if (!edit.po) return toast.error(t("fill_all_fields"));
+async function save() {
+  try {
+    if (!edit) return;
+
+    // Validaciones básicas por tipo de tabla
+    if (isSimple) {
+      if (!edit.nombre) return toast.error(t("fill_all_fields"));
+    } else if (tab === "productos") {
+      if (!edit.nombre && !edit.descripcion && !edit.part_number) {
+        return toast.error(t("fill_all_fields"));
       }
-
-      const payload = { ...edit };
-
-      const op = isNew
-        ? supabase.from(tableName).insert(payload).select()
-        : supabase.from(tableName).update(payload).eq("id", payload.id).select();
-
-      const { error } = await op;
-      if (error) throw error;
-
-      toast.success(t("save_success"));
-      setEdit(null);
-      setIsNew(false);
-      await load();
-    } catch (e) {
-      toast.error(e.message || t("error_saving") || "Error al guardar.");
+      if (!edit.nombre)
+        edit.nombre = edit.descripcion || edit.part_number || "";
+    } else if (tab === "pos") {
+      if (!edit.po) return toast.error(t("fill_all_fields"));
+    } else if (tab === "shipper") {
+      if (!edit.shipper_name) return toast.error(t("fill_all_fields"));
     }
+
+    // ✅ Filtramos solo las columnas existentes por tabla
+    let payload = { ...edit };
+    if (tab === "productos") {
+      payload = pick(edit, [
+        "nombre",
+        "part_number",
+        "descripcion",
+        "peso_por_pieza",
+        "tipo_empaque_retornable",
+        "tipo_empaque_expendable",
+        "peso_caja_retornable",
+        "peso_caja_expendable",
+        "cantidad_por_caja_retornable",
+        "cantidad_por_caja_expendable",
+        "activo",
+        "id",
+      ]);
+    } else if (tab === "pos") {
+      payload = pick(edit, [
+        "po",
+        "consignee_name",
+        "consignee_address1",
+        "consignee_address2",
+        "consignee_city",
+        "consignee_state",
+        "consignee_zip",
+        "consignee_country",
+        "consignee_contact_name",
+        "consignee_contact_email",
+        "consignee_contact_phone",
+        "freight_class",
+        "freight_charges",
+        "carrier_name",
+        "activo",
+        "id",
+      ]);
+    } else if (tab === "shipper") {
+      payload = pick(edit, [
+        "shipper_name",
+        "shipper_address1",
+        "shipper_address2",
+        "shipper_city",
+        "shipper_state",
+        "shipper_zip",
+        "shipper_country",
+        "shipper_contact_name",
+        "shipper_contact_email",
+        "shipper_contact_phone",
+        "activo",
+        "id",
+      ]);
+    } else if (isSimple) {
+      payload = pick(edit, ["nombre", "activo", "id"]);
+    }
+
+    // ✅ Insertar o actualizar según sea nuevo o existente
+    const op = isNew
+      ? supabase.from(tableName).insert(payload).select()
+      : supabase.from(tableName).update(payload).eq("id", payload.id).select();
+
+    const { error } = await op;
+    if (error) throw error;
+
+    toast.success(t("save_success"));
+    setEdit(null);
+    setIsNew(false);
+    await load();
+  } catch (e) {
+    toast.error(e.message || t("error_saving") || "Error al guardar.");
   }
+}
+
 
   async function remove(row) {
     try {
