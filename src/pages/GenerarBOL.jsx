@@ -7,8 +7,7 @@ import { jsPDF } from "jspdf";
 import "../App.css";
 import Select from "react-select";
 import DA_LOGO from "../assets/Daehan.png"; 
-import BOL_BG from "../assets/bol_bg.png";          
-import COVER_BG from "../assets/coversheet_bg.png";  
+
 const DAEHAN_LOGO_SRC = "/assets/Daehan.png";
 
 async function loadImg(src) {
@@ -351,14 +350,6 @@ export default function GenerarBOL() {
       const doc = new jsPDF({ unit: "mm", format: "letter" }); // 215.9 x 279.4 mm aprox
 
       // ======= Página 1: BOL =======
-      // (1) Fondo opcional (si pones una imagen de plantilla sin QR/SHP, quedará idéntico)
-      try {
-        if (BOL_BG) {
-          const bg = await loadImg(BOL_BG);
-          doc.addImage(bg, "PNG", 0, 0, 215.9, 279.4);
-        }
-      } catch {}
-
       // (2) Logo Daehan (arriba-izquierda). Usa coordenadas del ejemplo.
       try {
         const logo = await loadImg(DA_LOGO);
@@ -591,14 +582,6 @@ export default function GenerarBOL() {
 
       // ======= Página 2: Cover Sheet =======
       doc.addPage();
-
-      // Fondo opcional
-      try {
-        if (COVER_BG) {
-          const bg2 = await loadImg(COVER_BG);
-          doc.addImage(bg2, "PNG", 0, 0, 215.9, 279.4);
-        }
-      } catch {}
 
       // Logo
       try {
