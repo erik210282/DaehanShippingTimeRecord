@@ -10,6 +10,13 @@ import DA_LOGO from "../assets/Daehan.png";
 
 const DAEHAN_LOGO_SRC = "/assets/Daehan.png";
 
+// Envuelve texto al ancho indicado usando jsPDF
+function wrapText(doc, txt, maxWidth, fontSize = 9) {
+  if (!txt) return [];
+  doc.setFontSize(fontSize);
+  return doc.splitTextToSize(String(txt), maxWidth);
+}
+
 // Envuelve texto a un ancho, devolviendo array de líneas
 function wrap(doc, txt, maxWidth, fontSize = 9) {
   if (!txt) return [];
@@ -421,10 +428,10 @@ export default function GenerarBOL() {
       const btX = 62 + 2;
       const btW = 98 - 4;
 
-      wrap(doc, billToName, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
-      wrap(doc, billToAddr, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
-      wrap(doc, billToCity, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
-      wrap(doc, billToCountry, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
+      wrapText(doc, billToName, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
+      wrapText(doc, billToAddr, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
+      wrapText(doc, billToCity, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
+      wrapText(doc, billToCountry, btW, 10).forEach(line => { doc.text(line, btX, btY); btY += 5; });
 
       box(162, 46, 26, 14);
       text("Secondary Carrier", "", 162, 51, { size: 9, bold: true });
@@ -570,8 +577,8 @@ export default function GenerarBOL() {
         const wrapped = {
           pkgQty: [row.pkgQty],
           pkgType: [row.pkgType],
-          desc: wrap(doc, row.desc,  COLS[2].w - 4, TEXT_SIZE),
-          dim:  wrap(doc, row.dim,   COLS[3].w - 4, TEXT_SIZE),
+          desc: wrapText(doc, row.desc,  COLS[2].w - 4, TEXT_SIZE),
+          dim:  wrapText(doc, row.dim,   COLS[3].w - 4, TEXT_SIZE),
           wPer: [row.wPer],
           wTot: [row.wTot],
           uom:  [row.uom],
