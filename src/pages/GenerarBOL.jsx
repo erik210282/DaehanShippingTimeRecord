@@ -489,25 +489,88 @@ export default function GenerarBOL() {
                 ? `${p.po} — ${p.consignee_name || ""}`
                 : `ID ${p.id}`,
             }))}
-            value={
-              selectedPoIds.map((id) => {
-                const po = poOptions.find((p) => String(p.id) === String(id));
-                return po
-                  ? {
-                      value: po.id,
-                      label: po.po
-                        ? `${po.po} — ${po.consignee_name || ""}`
-                        : `ID ${po.id}`,
-                    }
-                  : { value: id, label: id };
-              }) || []
-            }
-            onChange={(e) =>
-              setSelectedPoIds(e.map((i) => i.value))
-            }
-            placeholder={t("select_po", "Selecciona un PO")}
+            value={selectedPoIds.map((id) => {
+              const po = poOptions.find((p) => String(p.id) === String(id));
+              return po
+                ? {
+                    value: po.id,
+                    label: po.po
+                      ? `${po.po} — ${po.consignee_name || ""}`
+                      : `ID ${po.id}`,
+                  }
+                : { value: id, label: id };
+            })}
+            onChange={(e) => setSelectedPoIds(e.map((i) => i.value))}
+            placeholder={t("select_po", "Selecciona PO")}
             styles={{
-              menu: (base) => ({ ...base, zIndex: 9999 }),
+              control: (base, state) => ({
+                ...base,
+                backgroundColor: "#333", // fondo igual al input
+                borderColor: state.isFocused ? "#007BFF" : "#333",
+                boxShadow: "none",
+                color: "#fff",
+                fontFamily: "inherit",
+                fontSize: "14px",
+                minHeight: "38px",
+                "&:hover": { borderColor: "#007BFF" },
+              }),
+              valueContainer: (base) => ({
+                ...base,
+                color: "#fff",
+              }),
+              singleValue: (base) => ({
+                ...base,
+                color: "#fff",
+              }),
+              input: (base) => ({
+                ...base,
+                color: "#fff",
+              }),
+              placeholder: (base) => ({
+                ...base,
+                color: "#bbb", // texto placeholder gris claro
+              }),
+              option: (base, state) => ({
+                ...base,
+                backgroundColor: state.isSelected
+                  ? "#007BFF"
+                  : state.isFocused
+                  ? "#555"
+                  : "#333",
+                color: "#fff",
+                cursor: "pointer",
+              }),
+              multiValue: (base) => ({
+                ...base,
+                backgroundColor: "#007BFF", // fondo de etiqueta seleccionada
+                color: "#fff",
+                borderRadius: 4,
+              }),
+              multiValueLabel: (base) => ({
+                ...base,
+                color: "#fff",
+                fontWeight: "bold",
+              }),
+              multiValueRemove: (base) => ({
+                ...base,
+                color: "#fff",
+                ":hover": { backgroundColor: "#0056b3", color: "#fff" },
+              }),
+              menu: (base) => ({
+                ...base,
+                backgroundColor: "#333",
+                zIndex: 9999,
+              }),
+              dropdownIndicator: (base) => ({
+                ...base,
+                color: "#fff",
+                ":hover": { color: "#007BFF" },
+              }),
+              clearIndicator: (base) => ({
+                ...base,
+                color: "#fff",
+                ":hover": { color: "#ff5555" },
+              }),
             }}
           />
 
