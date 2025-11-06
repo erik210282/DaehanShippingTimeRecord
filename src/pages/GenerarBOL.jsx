@@ -315,17 +315,18 @@ export default function GenerarBOL() {
 
   function generarPDF() {
     try {
+      setIsGenerating(true);
+
       if (!selectedIdx) return toast.error(t("select_idx_first", "Selecciona un IDX"));
       if (!selectedPoIds || selectedPoIds.length === 0) {
         return toast.error(t("select_po_first", "Selecciona al menos un PO"));
       }
-      if (!selectedShipperId) return toast.error(t("select_shipper_first", "Selecciona un PO"));
+      if (!selectedShipperId) return toast.error(t("select_shipper_first", "Selecciona un Remitente"));
 
       const selPOs = Array.isArray(poData) ? poData : [];
-      const primaryPO = selPOs[0] || {};              // para Consignee/Carrier
-      const poNumbers = selPOs.map(p => p.po).filter(Boolean);
+      const primaryPO = selPOs[0] || {};
+      const poNumbers = selPOs.map((p) => p.po).filter(Boolean);
 
-      // helper para mostrar los PO (en 1 o 2 líneas si son muchos)
       const formatPO = (arr) => {
         if (arr.length <= 2) return arr.join(", ");
         const mid = Math.ceil(arr.length / 2);
@@ -365,7 +366,6 @@ export default function GenerarBOL() {
         { w: 22, label: "Weight", key: "weight", align: "right" },
       ];
 
-      // ENCABEZADOS
       let hx = 12;
       cols.forEach((c) => {
         doc.text(String(c.label), hx + (c.align === "right" ? c.w - 1 : 1), headerY, { align: c.align || "left" });
@@ -373,7 +373,6 @@ export default function GenerarBOL() {
       });
       doc.line(12, headerY + 2, 200, headerY + 2);
 
-      // CONSTRUIR FILAS AGREGADAS POR PRODUCTO
       let y = headerY + 8;
       const filas = [];
 
@@ -389,12 +388,12 @@ export default function GenerarBOL() {
         const prod = productosById[pid] || {};
         const part = s(prod.part_number);
         const desc = s(prod.nombre || prod.descripcion);
-        const boxes = porProducto[pid];                         // cajas registradas
+        const boxes = porProducto[pid];
         const unitsPerBox =
           packType === "returnable"
             ? Number(prod?.cantidad_por_caja_retornable ?? 1)
             : Number(prod?.cantidad_por_caja_expendable ?? 1);
-        const qty = boxes * (isNaN(unitsPerBox) ? 1 : unitsPerBox); // piezas
+        const qty = boxes * (isNaN(unitsPerBox) ? 1 : unitsPerBox);
         const weightPer = Number(prod?.peso_por_pieza ?? 0);
         const weight = weightPer > 0 && qty > 0 ? String((qty * weightPer).toFixed(2)) : "—";
         const packTxt = packType === "returnable" ? "Returnable" : "Expendable";
@@ -408,7 +407,6 @@ export default function GenerarBOL() {
         });
       });
 
-      // SI NO HAY FILAS, UNA FILA VACÍA
       if (!filas.length) {
         filas.push({
           part: "—",
@@ -419,7 +417,6 @@ export default function GenerarBOL() {
         });
       }
 
-      // DIBUJAR FILAS (TODO EN STRING)
       filas.forEach((row) => {
         let cx = 12;
         cols.forEach((c) => {
@@ -435,11 +432,9 @@ export default function GenerarBOL() {
         }
       });
 
-
       // -------- PÁGINA 2: COVER SHEET --------
       doc.addPage();
       drawHeader(doc, "Cover Sheet", `Shipment # ${shipmentNo || "—"}`);
-
 
       drawKVP(doc, "Shipper", shipper?.shipper_name, 12, 26);
       drawKVP(doc, "PO", formatPO(poNumbers), 12, 34);
@@ -455,44 +450,20 @@ export default function GenerarBOL() {
       drawKVP(doc, "Packing Slip #", packingSlip, 120, 58);
       drawKVP(doc, "Packaging", packType === "returnable" ? "Returnable" : "Expendable", 120, 66);
 
-      doc.setFontSize(10);
-      doc.text("Notes:", 12, 84);
-      doc.rect(12, 86, 188, 100);
-
-      // Nombre del archivo usando el número de shipment
+      // Nombre del archivo usando Shipment #
       const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
       doc.save(fileName);
+
       toast.success(t("generated_ok", "BOL generado correctamente"));
-      function generarPDF() {
-        try {
-          setIsGenerating(true);
 
-          if (!selectedIdx) return toast.error(t("select_idx_first", "Selecciona un IDX"));
-          if (!selectedPoIds || selectedPoIds.length === 0) {
-            return toast.error(t("select_po_first", "Selecciona al menos un PO"));
-          }
-          if (!selectedShipperId) return toast.error(t("select_shipper_first", "Selecciona un Remitente"));
-
-          // ... (tu lógica para construir el PDF)
-
-          doc.save(fileName);
-          toast.success(t("generated_ok", "BOL generado correctamente"));
-
-          // ✅ resetear formulario
-          resetForm();
-        } catch (e) {
-          console.error(e);
-          toast.error(t("error_generating", "Error al generar el BOL"));
-        } finally {
-          setIsGenerating(false);
-          resetForm();
-        }
-      }
+      // ✅ Reset al terminar
+      resetForm();
     } catch (e) {
       console.error(e);
       toast.error(t("error_generating", "Error al generar el BOL"));
+    } finally {
+      setIsGenerating(false);
     }
-    
   }
 
   /* ----------------------- UI ----------------------- */
@@ -550,7 +521,7 @@ export default function GenerarBOL() {
                 : { value: id, label: id };
             })}
             onChange={(e) => setSelectedPoIds(e.map((i) => i.value))}
-            placeholder={t("select_po", "Selecciona PO")}
+            placeholder={t("select_po", "Selecciona un PO")}
             styles={{
               control: (base, state) => ({
                 ...base,
