@@ -118,8 +118,6 @@ export default function Catalogos() {
         }
         if (!edit.nombre) edit.nombre = edit.descripcion || edit.part_number || "";
       } else if (tab === "pos") {
-       if (!edit.nombre) edit.nombre = edit.descripcion || edit.part_number || "";
-      } else if (tab === "shipper") {
         if (!edit.po) return toast.error(t("fill_all_fields"));
       }
 
