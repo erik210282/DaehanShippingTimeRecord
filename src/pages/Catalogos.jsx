@@ -50,9 +50,9 @@ export default function Catalogos() {
     consignee_state: "",
     consignee_zip: "",
     consignee_country: "",
-    contact_name: "",
-    contact_email: "",
-    contact_phone: "",
+    consignee_contact_name: "",
+    consignee_contact_email: "",
+    consignee_contact_phone: "",
     freight_class: "",
     freight_charges: "",
     carrier_name: "",
@@ -67,9 +67,9 @@ export default function Catalogos() {
     shipper_state: "",
     shipper_zip: "",
     shipper_country: "",
-    contact_name: "",
-    contact_email: "",
-    contact_phone: "",
+    shipper_contact_name: "",
+    shipper_contact_email: "",
+    shipper_contact_phone: "",
     activo: true,
   };
 
@@ -206,7 +206,7 @@ export default function Catalogos() {
           State: r.consignee_state || "",
           ZIP: r.consignee_zip || "",
           Country: r.consignee_country || "",
-          Contact: [r.contact_name, r.contact_phone, r.contact_email].filter(Boolean).join(" / "),
+          Contact: [r.consignee_contact_name, r.consignee_contact_phone, r.consignee_contact_email].filter(Boolean).join(" / "),
           Carrier: r.carrier_name || "",
           Freight: [r.freight_class, r.freight_charges].filter(Boolean).join(" / "),
           [t("status")]: r.activo ? t("active") : t("inactive"),
@@ -220,7 +220,7 @@ export default function Catalogos() {
           State: r.shipper_state || "",
           ZIP: r.shipper_zip || "",
           Country: r.shipper_country || "",
-          Contact: [r.contact_name, r.contact_phone, r.contact_email].filter(Boolean).join(" / "),
+          Contact: [r.shipper_contact_name, r.shipper_contact_phone, r.shipper_contact_email].filter(Boolean).join(" / "),
           [t("status")]: r.activo ? t("active") : t("inactive"),
         };
       }
@@ -474,18 +474,18 @@ export default function Catalogos() {
                 />
                 <input
                   placeholder={t("contact_name", "Contact Name")}
-                  value={edit?.contact_name || ""}
-                  onChange={(e) => setEdit({ ...edit, contact_name: e.target.value })}
+                  value={edit?.consignee_contact_name || ""}
+                  onChange={(e) => setEdit({ ...edit, consignee_contact_name: e.target.value })}
                 />
                 <input
                   placeholder={t("contact_email", "Contact Email")}
-                  value={edit?.contact_email || ""}
-                  onChange={(e) => setEdit({ ...edit, contact_email: e.target.value })}
+                  value={edit?.consignee_contact_email || ""}
+                  onChange={(e) => setEdit({ ...edit, consignee_contact_email: e.target.value })}
                 />
                 <input
                   placeholder={t("contact_phone", "Contact Phone")}
-                  value={edit?.contact_phone || ""}
-                  onChange={(e) => setEdit({ ...edit, contact_phone: e.target.value })}
+                  value={edit?.consignee_contact_phone || ""}
+                  onChange={(e) => setEdit({ ...edit, consignee_contact_phone: e.target.value })}
                 />
                 <input
                   placeholder={t("freight_class", "Freight Class")}
@@ -564,18 +564,18 @@ export default function Catalogos() {
                 />
                 <input
                   placeholder={t("contact_name", "Contact Name")}
-                  value={edit?.contact_name || ""}
-                  onChange={(e) => setEdit({ ...edit, contact_name: e.target.value })}
+                  value={edit?.shipper_contact_name || ""}
+                  onChange={(e) => setEdit({ ...edit, shipper_contact_name: e.target.value })}
                 />
                 <input
                   placeholder={t("contact_email", "Contact Email")}
-                  value={edit?.contact_email || ""}
-                  onChange={(e) => setEdit({ ...edit, contact_email: e.target.value })}
+                  value={edit?.shipper_ontact_email || ""}
+                  onChange={(e) => setEdit({ ...edit, shipper_contact_email: e.target.value })}
                 />
                 <input
                   placeholder={t("contact_phone", "Contact Phone")}
-                  value={edit?.contact_phone || ""}
-                  onChange={(e) => setEdit({ ...edit, contact_phone: e.target.value })}
+                  value={edit?.shipper_contact_phone || ""}
+                  onChange={(e) => setEdit({ ...edit, shipper_contact_phone: e.target.value })}
                 />
                 <label style={{ gridColumn: "1 / -1" }}>
                   <input
