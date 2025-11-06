@@ -363,7 +363,7 @@ export default function GenerarBOL() {
         { w: 82, label: "Description", key: "desc" },
         { w: 22, label: "Qty", key: "qty", align: "right" },
         { w: 30, label: "Pack Type", key: "pack" },
-        { w: 22, label: "Weight", key: "weight", align: "right" },
+        { w: 22, label: "Weight (LB))", key: "weight", align: "right" },
       ];
 
       let hx = 12;
@@ -380,32 +380,79 @@ export default function GenerarBOL() {
       (lineasIdx || []).forEach((it) => {
         const pid = it?.producto_id;
         if (pid == null) return;
-        const qty = Number(it?.cantidad ?? 0);
+        const qty = Number(it?.cantidad ?? 0); // aquí qty representa "cajas" por producto
         porProducto[pid] = (porProducto[pid] || 0) + (isNaN(qty) ? 0 : qty);
       });
 
+      // acumulador del peso total del shipment
+      let totalWeight = 0;
+
       Object.keys(porProducto).forEach((pid) => {
         const prod = productosById[pid] || {};
-        const part = s(prod.part_number);
-        const desc = s(prod.nombre || prod.descripcion);
-        const boxes = porProducto[pid];
+        const part = (prod.part_number ?? "").toString().trim();
+        const desc = ((prod.nombre ?? prod.descripcion) ?? "").toString().trim();
+
+        // cajas por producto (sumadas desde las líneas de LOAD)
+        const boxes = Number(porProducto[pid] ?? 0) || 0;
+
+        // piezas por caja según tipo de empaque
         const unitsPerBox =
           packType === "returnable"
-            ? Number(prod?.cantidad_por_caja_retornable ?? 1)
-            : Number(prod?.cantidad_por_caja_expendable ?? 1);
-        const qty = boxes * (isNaN(unitsPerBox) ? 1 : unitsPerBox);
-        const weightPer = Number(prod?.peso_por_pieza ?? 0);
-        const weight = weightPer > 0 && qty > 0 ? String((qty * weightPer).toFixed(2)) : "—";
+            ? Number(
+                prod?.cantidad_por_caja_retornable ??
+                prod?.cant_por_caja_retornable ??
+                1
+              )
+            : Number(
+                prod?.cantidad_por_caja_expendable ??
+                prod?.cant_por_caja_expendable ??
+                1
+              );
+
+        // peso por pieza
+        const weightPerUnit = Number(
+          prod?.peso_por_pieza ??
+          prod?.peso_unitario ??
+          0
+        );
+
+        // peso de la caja según tipo de empaque
+        const boxWeight =
+          packType === "returnable"
+            ? Number(
+                prod?.peso_caja_retornable ??
+                prod?.peso_por_caja_retornable ??
+                0
+              )
+            : Number(
+                prod?.peso_caja_expendable ??
+                prod?.peso_por_caja_expendable ??
+                0
+              );
+
+        // piezas totales = cajas * piezas_por_caja
+        const qtyUnits = boxes * (isNaN(unitsPerBox) ? 1 : unitsPerBox);
+
+        // peso por producto = (piezas * peso_por_pieza) + (cajas * peso_caja)
+        const weightPieces = (isNaN(weightPerUnit) ? 0 : weightPerUnit) * qtyUnits;
+        const weightBoxes  = (isNaN(boxWeight) ? 0 : boxWeight) * boxes;
+        const lineWeight   = weightPieces + weightBoxes;
+
+        // acumula al total del shipment
+        totalWeight += lineWeight;
+
         const packTxt = packType === "returnable" ? "Returnable" : "Expendable";
 
         filas.push({
           part: part || "—",
           desc: desc || "—",
-          qty: String(qty || "—"),
+          // Qty muestra las piezas totales (no las cajas), como ya lo tenías
+          qty: String(qtyUnits || "—"),
           pack: packTxt,
-          weight,
+          weight: lineWeight > 0 ? lineWeight.toFixed(2) : "—", // en kg
         });
       });
+
 
       if (!filas.length) {
         filas.push({
@@ -431,6 +478,24 @@ export default function GenerarBOL() {
           y = 20;
         }
       });
+
+      // --- Dibujar total del shipment ---
+      if (y > 250) {
+        // si ya estamos muy abajo, usa nueva página para el total
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setFontSize(12);
+      doc.setLineWidth(0.3);
+      // línea decorativa antes del total
+      doc.line(130, y + 2, 200, y + 2);
+
+      // imprime el total alineado a la derecha
+      doc.text(`Total Shipment Weight: ${ (typeof totalWeight === "number" ? totalWeight : 0).toFixed(2) } kg`, 200, y + 8, { align: "right" });
+
+      // avanza y un pequeño espaciado
+      y += 14;
 
       // -------- PÁGINA 2: COVER SHEET --------
       doc.addPage();
