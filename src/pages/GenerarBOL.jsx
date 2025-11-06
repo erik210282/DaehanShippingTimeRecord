@@ -390,8 +390,13 @@ export default function GenerarBOL() {
           </select>
 
           {/* Shipper */}
-          <select value={shipper} onChange={(e) => setShipper(e.target.value)}>
-            <option value="Daehan Nevada">Daehan Nevada</option>
+          <select value={selectedShipperId} onChange={(e) => setSelectedShipperId(e.target.value)} disabled={shipperOptions.length === 0}>
+            <option value="">{t("select_shipper", "Seleccionar Remitente")}</option>
+            {shipperOptions.map((p) => (
+              <option key={p.id} value={String(p.id)}>
+                {p.shipper ? `${p.shipper} — ${p.shipper_name || ""}` : `ID ${p.id}`}
+              </option>
+            ))}
           </select>
 
           {/* Shipment # */}
