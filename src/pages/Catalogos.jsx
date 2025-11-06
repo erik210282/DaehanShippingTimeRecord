@@ -184,6 +184,19 @@ async function save() {
       payload = pick(edit, ["nombre", "activo", "id"]);
     }
 
+    // --- Normalización anti-errores ---
+    // 1) Evitar "" -> Postgres: usa NULL
+    Object.keys(payload).forEach((k) => {
+      if (payload[k] === "") payload[k] = null;
+    });
+    // 2) Campos de teléfono como ARRAY (si tu columna es text[])
+    if (tab === "shipper" && payload.shipper_contact_phone != null) {
+      payload.shipper_contact_phone = [String(payload.shipper_contact_phone).trim()];
+    }
+    if (tab === "pos" && payload.consignee_contact_phone != null) {
+      payload.consignee_contact_phone = [String(payload.consignee_contact_phone).trim()];
+    }
+
     // ✅ Insertar o actualizar según sea nuevo o existente
     const op = isNew
       ? supabase.from(tableName).insert(payload).select()
