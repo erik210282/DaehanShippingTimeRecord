@@ -24,7 +24,7 @@ export default function GenerarBOL() {
   const [selectedIdx, setSelectedIdx] = React.useState("");
 
   const [poOptions, setPoOptions] = React.useState([]);
-  const [selectedPoId, setSelectedPoId] = React.useState("");
+  const [selectedPoIds, setSelectedPoIds] = React.useState([]);
 
   const [shipperOptions, setShipperOptions] = React.useState([]);
   const [selectedShipperId, setSelectedShipperId] = React.useState("");
@@ -40,7 +40,7 @@ export default function GenerarBOL() {
   // datos para construir el PDF
   const [lineasIdx, setLineasIdx] = React.useState([]);
   const [productosById, setProductosById] = React.useState({});
-  const [poData, setPoData] = React.useState(null);
+  const [poData, setPoData] = React.useState([]);
   const [shipperData, setShipperData] = React.useState(null);
 
   /* ------------------ Cargar IDX (AR) ----------------- */
@@ -241,15 +241,14 @@ export default function GenerarBOL() {
 
 
     async function cargarPo() {
-      setPoData(null);
-      if (!selectedPoId) return;
+      setPoData([]);
+      if (!selectedPoIds || selectedPoIds.length === 0) return;
+      const ids = selectedPoIds.map(String);
       const { data, error } = await supabase
         .from("catalogo_pos")
         .select("*")
-        .eq("id", selectedPoId)
-        .maybeSingle();
-
-      if (!error) setPoData(data || null);
+        .in("id", ids);
+      if (!error) setPoData(data || []);
     }
 
     async function cargarShipper() {
@@ -260,14 +259,13 @@ export default function GenerarBOL() {
         .select("*")
         .eq("id", selectedShipperId)
         .maybeSingle();
-
       if (!error) setShipperData(data || null);
     }
 
     cargarDetalleIdx();
     cargarPo();
     cargarShipper();
-  }, [selectedIdx, selectedPoId, selectedShipperId]);
+  }, [selectedIdx, selectedPoIds, selectedShipperId]);
 
   /* ---------------- Generar PDF ---------------- */
   function drawHeader(doc, title, y = 12) {
@@ -287,10 +285,22 @@ export default function GenerarBOL() {
   function generarPDF() {
     try {
       if (!selectedIdx) return toast.error(t("select_idx_first", "Selecciona un IDX"));
-      if (!selectedPoId) return toast.error(t("select_po_first", "Selecciona un PO"));
+      if (!selectedPoIds || selectedPoIds.length === 0) {
+        return toast.error(t("select_po_first", "Selecciona al menos un PO"));
+      }
       if (!selectedShipperId) return toast.error(t("select_shipper_first", "Selecciona un PO"));
 
-      const po = poData || {};
+      const selPOs = Array.isArray(poData) ? poData : [];
+      const primaryPO = selPOs[0] || {};              // para Consignee/Carrier
+      const poNumbers = selPOs.map(p => p.po).filter(Boolean);
+
+      // helper para mostrar los PO (en 1 o 2 líneas si son muchos)
+      const formatPO = (arr) => {
+        if (arr.length <= 2) return arr.join(", ");
+        const mid = Math.ceil(arr.length / 2);
+        return arr.slice(0, mid).join(", ") + "\n" + arr.slice(mid).join(", ");
+      };
+
       const shipper = shipperData || {};
       const doc = new jsPDF({ unit: "mm", format: "letter" });
 
@@ -298,16 +308,16 @@ export default function GenerarBOL() {
       drawHeader(doc, "Bill of Lading (BOL)");
 
       drawKVP(doc, "Shipper", shipper?.shipper_name, 12, 26);
-      drawKVP(doc, "Consignee", po?.consignee_name, 12, 34);
-      drawKVP(doc, "Address", [po?.consignee_address1, po?.consignee_address2].filter(Boolean).join(" "), 12, 42);
-      drawKVP(doc, "City/State/ZIP", [po?.consignee_city, po?.consignee_state, po?.consignee_zip].filter(Boolean).join(", "), 12, 50);
-      drawKVP(doc, "Country", po?.consignee_country, 12, 58);
+      drawKVP(doc, "Consignee", primaryPO?.consignee_name, 12, 34);
+      drawKVP(doc, "Address", [primaryPO?.consignee_address1, primaryPO?.consignee_address2].filter(Boolean).join(" "), 12, 42);
+      drawKVP(doc, "City/State/ZIP", [primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip].filter(Boolean).join(", "), 12, 50);
+      drawKVP(doc, "Country", primaryPO?.consignee_country, 12, 58);
 
       drawKVP(doc, "Shipment #", shipmentNo, 120, 26);
       drawKVP(doc, "Trailer/Container", trailerNo, 120, 34);
       drawKVP(doc, "Seal #", sealNo, 120, 42);
       drawKVP(doc, "Packing Slip #", packingSlip, 120, 50);
-      drawKVP(doc, "PO", po?.po, 120, 58);
+      drawKVP(doc, "PO", formatPO(poNumbers), 120, 58);
       drawKVP(doc, "IDX", selectedIdx, 120, 66);
 
       // -------- TABLA DE ÍTEMS --------
@@ -400,11 +410,11 @@ export default function GenerarBOL() {
       drawHeader(doc, "Cover Sheet");
 
       drawKVP(doc, "Shipper", shipper?.shipper_name, 12, 26);
-      drawKVP(doc, "PO", po?.po, 12, 34);
-      drawKVP(doc, "Consignee", po?.consignee_name, 12, 42);
-      drawKVP(doc, "Address", [po?.consignee_address1, po?.consignee_address2].filter(Boolean).join(" "), 12, 50);
-      drawKVP(doc, "City/State/ZIP", [po?.consignee_city, po?.consignee_state, po?.consignee_zip].filter(Boolean).join(", "), 12, 58);
-      drawKVP(doc, "Country", po?.consignee_country, 12, 66);
+      drawKVP(doc, "PO", formatPO(poNumbers), 12, 34);
+      drawKVP(doc, "Consignee", primaryPO?.consignee_name, 12, 42);
+      drawKVP(doc, "Address", [primaryPO?.consignee_address1, primaryPO?.consignee_address2].filter(Boolean).join(" "), 12, 50);
+      drawKVP(doc, "City/State/ZIP", [primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip].filter(Boolean).join(", "), 12, 58);
+      drawKVP(doc, "Country", primaryPO?.consignee_country, 12, 66);
 
       drawKVP(doc, "IDX", selectedIdx, 120, 26);
       drawKVP(doc, "Shipment #", shipmentNo, 120, 34);
@@ -461,8 +471,16 @@ export default function GenerarBOL() {
           <input placeholder={t("trailer_number", "No. de Trailer/Contenedor")} value={trailerNo} onChange={(e) => setTrailerNo(e.target.value)} />
 
           {/* PO */}
-          <select value={selectedPoId} onChange={(e) => setSelectedPoId(e.target.value)} disabled={poOptions.length === 0}>
-            <option value="">{t("select_po", "Seleccionar PO")}</option>
+          <select
+            multiple
+            size={Math.min(6, Math.max(3, poOptions.length))}
+            value={selectedPoIds}
+            onChange={(e) => {
+              const values = Array.from(e.target.selectedOptions).map(o => o.value);
+              setSelectedPoIds(values);
+            }}
+            disabled={poOptions.length === 0}
+          >
             {poOptions.map((p) => (
               <option key={p.id} value={String(p.id)}>
                 {p.po ? `${p.po} — ${p.consignee_name || ""}` : `ID ${p.id}`}
@@ -491,7 +509,7 @@ export default function GenerarBOL() {
         <div className="card" style={{ padding: 12 }}>
           <strong>{t("preview_hint", "Vista previa")}</strong>
           <p style={{ marginTop: 6 }}>
-            {!selectedIdx || !selectedPoId ? t("select_idx_po", "Seleccionar IDX & PO") : t("ready_to_generate", "Listo para generar PDF…")}
+            {!selectedIdx || selectedPoIds.length === 0 ? t("select_idx_po", "Seleccionar IDX & PO") : t("ready_to_generate", "Listo para generar PDF…")}
           </p>
         </div>
 
