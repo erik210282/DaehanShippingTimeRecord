@@ -180,8 +180,21 @@ export default function GenerarBOL() {
       setLineasIdx(acts || []);
 
       // 2) Extrae items normalizados { producto_id, cantidad }
-      const items = [];
-      (acts || []).forEach((a) => {
+      // 2.1) Obtiene los IDs de actividad presentes y trae sus nombres
+        const actIds = Array.from(new Set((acts || []).map(a => a?.actividad).filter(Boolean)));
+        let loadIds = new Set();
+        if (actIds.length) {
+          const { data: actsCat } = await supabase
+          .from("actividades")
+            .select("id, nombre")
+            .in("id", actIds);
+          (actsCat || []).forEach(x => { if (/(^|\s)load(\s|$)/i.test(String(x?.nombre||""))) loadIds.add(x.id); });
+        }
+        const items = [];
+        (acts || [])
+          // Solo actividad Load y estado finalizada
+          .filter(a => loadIds.has(a?.actividad) && String(a?.estado||"").trim().toLowerCase()==="finalizada")
+          .forEach((a) => {
         // caso 1: columnas simples
         const candKeys = ["producto", "producto_id", "product_id", "product", "prod_id"];
         let pid = null;
@@ -284,7 +297,7 @@ export default function GenerarBOL() {
       // -------- PÁGINA 1: BOL --------
       drawHeader(doc, "Bill of Lading (BOL)");
 
-      drawKVP(doc, t("shipper", "Remitente"), shipper, 12, 26);
+      drawKVP(doc, "Shipper", shipper?.shipper_name, 12, 26);
       drawKVP(doc, "Consignee", po?.consignee_name, 12, 34);
       drawKVP(doc, "Address", [po?.consignee_address1, po?.consignee_address2].filter(Boolean).join(" "), 12, 42);
       drawKVP(doc, "City/State/ZIP", [po?.consignee_city, po?.consignee_state, po?.consignee_zip].filter(Boolean).join(", "), 12, 50);
@@ -335,7 +348,12 @@ export default function GenerarBOL() {
         const prod = productosById[pid] || {};
         const part = s(prod.part_number);
         const desc = s(prod.nombre || prod.descripcion);
-        const qty = porProducto[pid];
+        const boxes = porProducto[pid];                         // cajas registradas
+        const unitsPerBox =
+          packType === "returnable"
+            ? Number(prod?.cantidad_por_caja_retornable ?? 1)
+            : Number(prod?.cantidad_por_caja_expendable ?? 1);
+        const qty = boxes * (isNaN(unitsPerBox) ? 1 : unitsPerBox); // piezas
         const weightPer = Number(prod?.peso_por_pieza ?? 0);
         const weight = weightPer > 0 && qty > 0 ? String((qty * weightPer).toFixed(2)) : "—";
         const packTxt = packType === "returnable" ? "Returnable" : "Expendable";
@@ -381,7 +399,7 @@ export default function GenerarBOL() {
       doc.addPage();
       drawHeader(doc, "Cover Sheet");
 
-      drawKVP(doc, t("shipper", "Remitente"), shipper, 12, 26);
+      drawKVP(doc, "Shipper", shipper?.shipper, 12, 26);
       drawKVP(doc, "PO", po?.po, 12, 34);
       drawKVP(doc, "Consignee", po?.consignee_name, 12, 42);
       drawKVP(doc, "Address", [po?.consignee_address1, po?.consignee_address2].filter(Boolean).join(" "), 12, 50);
