@@ -399,7 +399,7 @@ export default function GenerarBOL() {
       doc.addPage();
       drawHeader(doc, "Cover Sheet");
 
-      drawKVP(doc, "Shipper", shipper?.shipper, 12, 26);
+      drawKVP(doc, "Shipper", shipper?.shipper_name, 12, 26);
       drawKVP(doc, "PO", po?.po, 12, 34);
       drawKVP(doc, "Consignee", po?.consignee_name, 12, 42);
       drawKVP(doc, "Address", [po?.consignee_address1, po?.consignee_address2].filter(Boolean).join(" "), 12, 50);
@@ -447,7 +447,9 @@ export default function GenerarBOL() {
             <option value="">{t("select_shipper", "Seleccionar Remitente")}</option>
             {shipperOptions.map((p) => (
               <option key={p.id} value={String(p.id)}>
-                {p.shipper ? `${p.shipper} — ${p.shipper_name || ""}` : `ID ${p.id}`}
+                {p.shipper_name
+                  ? p.shipper_name
+                  : p.shipper || `ID ${p.id}`}
               </option>
             ))}
           </select>
