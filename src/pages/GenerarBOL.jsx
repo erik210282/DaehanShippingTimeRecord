@@ -6,7 +6,9 @@ import "react-toastify/dist/ReactToastify.css";
 import { jsPDF } from "jspdf";
 import "../App.css";
 import Select from "react-select";
-
+import DA_LOGO from "../assets/Daehan.png"; 
+import BOL_BG from "../assets/bol_bg.png";          
+import COVER_BG from "../assets/coversheet_bg.png";  
 const DAEHAN_LOGO_SRC = "/assets/Daehan.png";
 
 async function loadImg(src) {
@@ -346,329 +348,279 @@ export default function GenerarBOL() {
       };
 
       const shipper = shipperData || {};
-      const doc = new jsPDF({ unit: "mm", format: "letter" });
+      const doc = new jsPDF({ unit: "mm", format: "letter" }); // 215.9 x 279.4 mm aprox
 
-      // ---- Agrega logo Daehan (sin QR y sin el título grande del sample) ----
+      // ======= Página 1: BOL =======
+      // (1) Fondo opcional (si pones una imagen de plantilla sin QR/SHP, quedará idéntico)
       try {
-        const logo = await loadImg(DAEHAN_LOGO_SRC);
-        // x, y, w, h (ajusta si quieres más grande/chico)
-        doc.addImage(logo, "PNG", 12, 10, 26, 10);
-      } catch (_) {
-        // si no carga, seguimos sin logo
-      }
+        if (BOL_BG) {
+          const bg = await loadImg(BOL_BG);
+          doc.addImage(bg, "PNG", 0, 0, 215.9, 279.4);
+        }
+      } catch {}
 
-      const text = (label, value, x, y, alignLeft = true, size = 10, bold = false) => {
-        doc.setFontSize(size);
+      // (2) Logo Daehan (arriba-izquierda). Usa coordenadas del ejemplo.
+      try {
+        const logo = await loadImg(DA_LOGO);
+        // x=12,y=10, ancho=30mm aprox, alto se mantiene por aspecto
+        doc.addImage(logo, "PNG", 12, 10, 30, 12);
+      } catch {}
+
+      // helpers de texto/recta
+      const text = (label, value, x, y, opts = {}) => {
+        const { size = 10, bold = false, align = "left", gap = 2 } = opts;
         doc.setFont("helvetica", bold ? "bold" : "normal");
-        doc.text(`${label}${label ? ": " : ""}${(value ?? "").toString()}`, x, y, { align: alignLeft ? "left" : "right" });
+        doc.setFontSize(size);
+        const lbl = label ? `${label}: ` : "";
+        doc.text(`${lbl}${value ?? ""}`, x + gap, y, { align });
       };
-
-      const box = (x, y, w, h, lw = 0.2) => {
+      const box = (x, y, w, h, lw = 0.25) => {
         doc.setLineWidth(lw);
         doc.rect(x, y, w, h);
       };
+      const line = (x1, y1, x2, y2, lw = 0.25) => {
+        doc.setLineWidth(lw);
+        doc.line(x1, y1, x2, y2);
+      };
+      const join = (...a) => a.filter(Boolean).join(" ");
 
-      const joinSp = (...arr) => arr.filter(Boolean).join(" ");
-
-      /* -----------------------------------------------------
-      * 1) PORTADA BOL (igual a tu ejemplo, sin QR y sin título SHP...)
-      * ----------------------------------------------------- */
-
-      // Encabezado principal “Bill of Lading”
-      doc.setFontSize(14);
+      // Título centrado (sin “SHP…”, sin QR)
       doc.setFont("helvetica", "bold");
-      doc.text("Bill of Lading", 105, 22, { align: "center" });
+      doc.setFontSize(14);
+      doc.text("Bill of Lading", 108, 22, { align: "center" });
 
-      // Cajitas superiores (Freight Class, Freight Charges, Carrier Name, Commercial Invoice)
-      // (si no tienes estos campos en tu PO, queda en blanco)
-      const freightClass   = primaryPO?.freight_class ?? "";
-      const freightCharge  = primaryPO?.freight_charges ?? primaryPO?.freight_charge ?? "";
-      const carrierName    = primaryPO?.carrier_name ?? "";
-      const commercialInv  = primaryPO?.commercial_invoice ?? "";
-
-      // 4 celdas en línea
-      const topY = 28;
-      const cw   = 48; // ancho de cada caja
-      ["Freight Class", "Freight Charges", "Carrier Name", "Commercial Invoice"].forEach((lbl, i) => {
-        const x = 12 + i * cw;
-        box(x, topY, cw, 14);
-        text(lbl, "", x + 2, topY + 5, true, 9, true);
-        const val =
-          i === 0 ? freightClass :
-          i === 1 ? freightCharge :
-          i === 2 ? carrierName : commercialInv;
-        text("", val, x + 2, topY + 11, true, 10, false);
+      // ===== Encabezados (cuatro cajas) =====
+      // medidas clavadas al sample: 4 cajas de 48mm de ancho, 14mm alto
+      const topY = 28, cW = 48, cH = 14, mX = 12;
+      const hdrs = [
+        ["Freight Class", primaryPO?.freight_class ?? ""],
+        ["Freight Charges", primaryPO?.freight_charges ?? primaryPO?.freight_charge ?? ""],
+        ["Carrier Name", primaryPO?.carrier_name ?? ""],
+        ["Commercial Invoice", primaryPO?.commercial_invoice ?? ""],
+      ];
+      hdrs.forEach((h, i) => {
+        const x = mX + i * cW;
+        box(x, topY, cW, cH);
+        text(h[0], "", x, topY + 5, { size: 9, bold: true });
+        text("", h[1], x, topY + 11, { size: 10 });
       });
 
-      // Segunda fila de datos clave (BOL Date, Bill Charges To, Secondary Carrier Name)
+      // ===== Fila BOL Date / Bill Charges To (ancha) / Secondary Carrier =====
       const bolDate = new Date().toLocaleDateString();
-      // “Bill Charges To” lo mapeamos desde el primaryPO si existe; si no, vacío
-      const billToName = primaryPO?.bill_to_name ?? "";
-      const billToAddr = joinSp(primaryPO?.bill_to_address1, primaryPO?.bill_to_address2);
-      const billToCity = joinSp(primaryPO?.bill_to_city, primaryPO?.bill_to_state, primaryPO?.bill_to_zip);
-      const billToCountry = primaryPO?.bill_to_country ?? "";
-
-      // BOL Date
       box(12, 46, 48, 14);
-      text("BOL Date", "", 14, 51, true, 9, true);
-      text("", bolDate, 14, 58, true, 10);
+      text("BOL Date", "", 12, 51, { size: 9, bold: true });
+      text("", bolDate, 12, 58, { size: 10 });
 
-      // Bill Charges To (caja más grande a la derecha)
       box(62, 46, 98, 28);
-      text("Bill Charges To", "", 64, 51, true, 9, true);
-      const bcY = 56;
-      text("", billToName, 64, bcY, true, 10);
-      text("", billToAddr, 64, bcY + 5, true, 10);
-      text("", billToCity, 64, bcY + 10, true, 10);
-      text("", billToCountry, 64, bcY + 15, true, 10);
+      text("Bill Charges To", "", 62, 51, { size: 9, bold: true });
+      const billToName = primaryPO?.bill_to_name ?? "";
+      const billToAddr = join(primaryPO?.bill_to_address1, primaryPO?.bill_to_address2);
+      const billToCity = join(primaryPO?.bill_to_city, primaryPO?.bill_to_state, primaryPO?.bill_to_zip);
+      const billToCountry = primaryPO?.bill_to_country ?? "";
+      text("", billToName, 62, 56, { size: 10 });
+      text("", billToAddr, 62, 61, { size: 10 });
+      text("", billToCity, 62, 66, { size: 10 });
+      text("", billToCountry, 62, 71, { size: 10 });
 
-      // Secondary Carrier Name
       box(162, 46, 26, 14);
-      text("Secondary Carrier", "", 164, 51, true, 9, true);
-      text("", primaryPO?.secondary_carrier_name ?? "", 164, 58, true, 10);
+      text("Secondary Carrier", "", 162, 51, { size: 9, bold: true });
+      text("", primaryPO?.secondary_carrier_name ?? "", 162, 58, { size: 10 });
 
-      // Línea: Container, Seal, Shipment Number, Booking/Tracking
-      const contY = 76;
-      const fieldH = 14;
-      const colW = 48;
+      // ===== Fila Container / Seal / Shipment / Booking =====
+      const rowY = 76, rH = 14, rW = 48;
+      box(12, rowY, rW, rH);
+      text("Container Number", "", 12, rowY + 5, { size: 9, bold: true });
+      text("", trailerNo || primaryPO?.trailer_number || "", 12, rowY + 11);
 
-      // Container Number
-      box(12, contY, colW, fieldH);
-      text("Container Number", "", 14, contY + 5, true, 9, true);
-      text("", trailerNo || primaryPO?.trailer_number || "", 14, contY + 11, true, 10);
+      box(12 + rW, rowY, rW, rH);
+      text("Seal Number", "", 12 + rW, rowY + 5, { size: 9, bold: true });
+      text("", sealNo || primaryPO?.seal_number || "", 12 + rW, rowY + 11);
 
-      // Seal Number
-      box(12 + colW, contY, colW, fieldH);
-      text("Seal Number", "", 14 + colW, contY + 5, true, 9, true);
-      text("", sealNo || primaryPO?.seal_number || "", 14 + colW, contY + 11, true, 10);
+      box(12 + rW * 2, rowY, rW, rH);
+      text("Shipment Number", "", 12 + rW * 2, rowY + 5, { size: 9, bold: true });
+      text("", shipmentNo || primaryPO?.shipment_number || "", 12 + rW * 2, rowY + 11);
 
-      // Shipment Number
-      box(12 + colW * 2, contY, colW, fieldH);
-      text("Shipment Number", "", 14 + colW * 2, contY + 5, true, 9, true);
-      text("", shipmentNo || primaryPO?.shipment_number || "", 14 + colW * 2, contY + 11, true, 10);
+      box(12 + rW * 3, rowY, rW + 14, rH);
+      text("Booking/Tracking Number", "", 12 + rW * 3, rowY + 5, { size: 9, bold: true });
+      text("", primaryPO?.booking_number ?? primaryPO?.tracking_number ?? "", 12 + rW * 3, rowY + 11);
 
-      // Booking/Tracking Number
-      box(12 + colW * 3, contY, colW + 14, fieldH);
-      text("Booking/Tracking Number", "", 14 + colW * 3, contY + 5, true, 9, true);
-      text("", primaryPO?.booking_number ?? primaryPO?.tracking_number ?? "", 14 + colW * 3, contY + 11, true, 10);
+      // ===== PO# + Shipper Address =====
+      box(12, rowY + rH + 4, 60, rH);
+      text("Po#", "", 12, rowY + rH + 9, { size: 9, bold: true });
+      const poText = formatPO(poNumbers).split("\n");
+      text("", poText[0] ?? "", 12, rowY + rH + 15);
+      if (poText[1]) text("", poText[1], 12, rowY + rH + 20);
 
-      // PO#
-      box(12, contY + fieldH + 4, 60, fieldH);
-      text("Po#", "", 14, contY + fieldH + 9, true, 9, true);
-      // Multi-PO soportado
-      const poText = formatPO(poNumbers);
-      const poLines = poText.split("\n");
-      text("", poLines[0] ?? "", 14, contY + fieldH + 15, true, 10);
-      if (poLines[1]) text("", poLines[1], 14, contY + fieldH + 20, true, 10);
+      box(74, rowY + rH + 4, 114, rH + 10);
+      text("Shipper Address", "", 74, rowY + rH + 9, { size: 9, bold: true });
+      let sy = rowY + rH + 14;
+      text("", shipper?.shipper_name ?? shipper?.shipper ?? "", 74, sy); sy += 5;
+      text("", join(shipper?.address1, shipper?.address2), 74, sy); sy += 5;
+      text("", join(shipper?.city, shipper?.state, shipper?.zip), 74, sy); sy += 5;
+      text("", shipper?.country ?? "", 74, sy);
 
-      // Shipper Address (de tu catálogo)
-      box(74, contY + fieldH + 4, 114, fieldH + 10);
-      text("Shipper Address", "", 76, contY + fieldH + 9, true, 9, true);
-      let saY = contY + fieldH + 14;
-      const shipperName = shipper?.shipper_name ?? shipper?.shipper ?? "";
-      const saddr1 = shipper?.address1 ?? "";
-      const saddr2 = shipper?.address2 ?? "";
-      const scity  = joinSp(shipper?.city, shipper?.state, shipper?.zip);
-      const scountry = shipper?.country ?? "";
-      text("", shipperName, 76, saY, true, 10); saY += 5;
-      text("", joinSp(saddr1, saddr2), 76, saY, true, 10); saY += 5;
-      text("", scity, 76, saY, true, 10); saY += 5;
-      text("", scountry, 76, saY, true, 10);
-
-      // Consignee Address (del PO)
-      const consTop = contY + fieldH + 4 + fieldH + 12;
+      // ===== Consignee Address =====
+      const consTop = rowY + rH + 4 + rH + 12;
       box(12, consTop, 176, 28);
-      text("Consignee Address", "", 14, consTop + 5, true, 9, true);
-      let caY = consTop + 10;
-      const consigneeLine1 = primaryPO?.consignee_name ?? "";
-      const consigneeAddr  = joinSp(primaryPO?.consignee_address1, primaryPO?.consignee_address2);
-      const consigneeCSZ   = joinSp(primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip);
-      const consigneeCountry = primaryPO?.consignee_country ?? "";
-      text("", consigneeLine1, 14, caY, true, 10); caY += 5;
-      text("", consigneeAddr, 14, caY, true, 10); caY += 5;
-      text("", consigneeCSZ, 14, caY, true, 10); caY += 5;
-      text("", consigneeCountry, 14, caY, true, 10);
+      text("Consignee Address", "", 12, consTop + 5, { size: 9, bold: true });
+      let cy = consTop + 10;
+      text("", primaryPO?.consignee_name ?? "", 12, cy); cy += 5;
+      text("", join(primaryPO?.consignee_address1, primaryPO?.consignee_address2), 12, cy); cy += 5;
+      text("", join(primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip), 12, cy); cy += 5;
+      text("", primaryPO?.consignee_country ?? "", 12, cy);
 
-      /* -----------------------------------------------------
-      * 2) Packaging & Dimension TABLE (layout como el sample)
-      * ----------------------------------------------------- */
-
-      // Unifica cajas por producto desde lineasIdx
+      // ===== Packaging & Dimension table =====
+      // agrega pesos por paquete y totales como el sample
       const porProducto = {};
       (lineasIdx || []).forEach((it) => {
         const pid = it?.producto_id;
         if (pid == null) return;
-        const qty = Number(it?.cantidad ?? 0); // "cajas" por producto
-        porProducto[pid] = (porProducto[pid] || 0) + (isNaN(qty) ? 0 : qty);
+        const cajas = Number(it?.cantidad ?? 0);
+        porProducto[pid] = (porProducto[pid] || 0) + (isNaN(cajas) ? 0 : cajas);
       });
 
-      // Columnas
-      const tabY0 = consTop + 30 + 6;
-      const tabH  = 110;
-      box(12, tabY0, 176, tabH);
+      const tabY = consTop + 36;
+      const tabH = 110;
+      box(12, tabY, 176, tabH);
 
-      const headers = [
-        { label: "Package Quantity", w: 20, key: "pkgQty" },
-        { label: "Package Type",    w: 24, key: "pkgType" },
-        { label: "Description",     w: 55, key: "desc" },
-        { label: "Dimension Per Package", w: 35, key: "dim" },
-        { label: "Weight Per Package",    w: 24, key: "wPer", align: "right" },
-        { label: "Total Weight",          w: 14, key: "wTot", align: "right" },
-        { label: "Weight UoM",            w: 4,  key: "uom" },
+      const cols = [
+        { k: "pkgQty",  t: "Package Quantity", w: 20 },
+        { k: "pkgType", t: "Package Type",     w: 24 },
+        { k: "desc",    t: "Description",      w: 55 },
+        { k: "dim",     t: "Dimension Per Package", w: 35 },
+        { k: "wPer",    t: "Weight Per Package",    w: 24, right: true },
+        { k: "wTot",    t: "Total Weight",          w: 14, right: true },
+        { k: "uom",     t: "Weight UoM",            w: 4  },
       ];
 
-      // Encabezados
-      let colX = 12;
+      // header
+      let cx = 12;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      headers.forEach((c) => {
-        doc.text(c.label, colX + 2, tabY0 + 5);
-        colX += c.w;
-        // separadores verticales
-        doc.line(colX, tabY0, colX, tabY0 + tabH);
+      cols.forEach(c => {
+        doc.text(c.t, cx + 2, tabY + 5);
+        cx += c.w;
+        line(cx, tabY, cx, tabY + tabH);
       });
-      // separador horizontal bajo headers
-      doc.line(12, tabY0 + 7, 188, tabY0 + 7);
+      line(12, tabY + 7, 188, tabY + 7);
 
-      // Construye filas y totales
-      let y = tabY0 + 13;
-      let totalUnits = 0;     // total shipping units (cajas)
-      let totalWeight = 0;    // total peso (LB)
+      // filas
+      let y = tabY + 13;
+      let totalUnits = 0;
+      let totalWeight = 0;
 
-      Object.keys(porProducto).forEach((pid) => {
-        const prod = productosById[pid] || {};
+      Object.keys(porProducto).forEach(pid => {
+        const p = productosById[pid] || {};
         const boxes = Number(porProducto[pid] ?? 0) || 0;
         if (boxes <= 0) return;
 
-        // piezas/caja según packType
-        const unitsPerBox =
-          packType === "returnable"
-            ? Number(prod?.cantidad_por_caja_retornable ?? prod?.cant_por_caja_retornable ?? 1)
-            : Number(prod?.cantidad_por_caja_expendable ?? prod?.cant_por_caja_expendable ?? 1);
+        const unitsPerBox = (packType === "returnable")
+          ? Number(p?.cantidad_por_caja_retornable ?? p?.cant_por_caja_retornable ?? 1)
+          : Number(p?.cantidad_por_caja_expendable ?? p?.cant_por_caja_expendable ?? 1);
 
-        // peso por pieza (LB)
-        const weightPerUnit = Number(prod?.peso_por_pieza ?? prod?.peso_unitario ?? 0);
+        const wUnit = Number(p?.peso_por_pieza ?? p?.peso_unitario ?? 0); // LB
+        const wBox  = (packType === "returnable")
+          ? Number(p?.peso_caja_retornable ?? p?.peso_por_caja_retornable ?? 0)
+          : Number(p?.peso_caja_expendable ?? p?.peso_por_caja_expendable ?? 0);
 
-        // peso caja (LB)
-        const boxWeight =
-          packType === "returnable"
-            ? Number(prod?.peso_caja_retornable ?? prod?.peso_por_caja_retornable ?? 0)
-            : Number(prod?.peso_caja_expendable ?? prod?.peso_por_caja_expendable ?? 0);
-
-        // dimensiones por paquete (IN); toma campos típicos
-        const L = prod?.dim_l ?? prod?.largo ?? prod?.length_in ?? prod?.length ?? "";
-        const W = prod?.dim_w ?? prod?.ancho ?? prod?.width_in ?? prod?.width ?? "";
-        const H = prod?.dim_h ?? prod?.alto  ?? prod?.height_in ?? prod?.height ?? "";
+        const L = p?.dim_l ?? p?.length_in ?? p?.largo ?? "";
+        const W = p?.dim_w ?? p?.width_in  ?? p?.ancho ?? "";
+        const H = p?.dim_h ?? p?.height_in ?? p?.alto ?? "";
         const dimText = (L && W && H) ? `${L} X ${W} X ${H} IN` : "";
 
-        // descripción
-        const desc = (prod?.nombre ?? prod?.descripcion ?? prod?.desc ?? "").toString();
-
-        // tipo empaque
-        const packTxt = packType === "returnable" ? "Box" : "Box"; // el sample muestra “Box”; si quieres mostrar Returnable/Expendable, cambia aquí
-
-        // PESOS (LB): por paquete y total
         const piecesPerBox  = isNaN(unitsPerBox) ? 1 : unitsPerBox;
-        const weightPerPack = (piecesPerBox * (isNaN(weightPerUnit) ? 0 : weightPerUnit)) + (isNaN(boxWeight) ? 0 : boxWeight);
+        const weightPerPack = (piecesPerBox * (isNaN(wUnit) ? 0 : wUnit)) + (isNaN(wBox) ? 0 : wBox);
         const lineTotal     = weightPerPack * boxes;
 
         totalUnits  += boxes;
         totalWeight += lineTotal;
 
-        // Render fila
-        let cx = 12;
         const row = {
           pkgQty: String(boxes),
-          pkgType: packTxt,
-          desc: desc,
+          pkgType: "Box",
+          desc: (p?.nombre ?? p?.descripcion ?? "").toString(),
           dim: dimText,
           wPer: weightPerPack.toFixed(2),
           wTot: lineTotal.toFixed(2),
           uom: "LB",
         };
 
+        let x = 12;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
-        headers.forEach((c) => {
-          const val = (row[c.key] ?? "").toString();
-          if (c.align === "right") {
-            doc.text(val, cx + c.w - 1, y, { align: "right" });
-          } else {
-            doc.text(val, cx + 2, y);
-          }
-          cx += c.w;
+        cols.forEach(c => {
+          const val = row[c.k] ?? "";
+          if (c.right) doc.text(String(val), x + c.w - 1, y, { align: "right" });
+          else doc.text(String(val), x + 2, y);
+          x += c.w;
         });
 
         y += 6;
-        if (y > tabY0 + tabH - 8) {
-          // página nueva si se llena
-          doc.addPage();
-          y = 20;
-        }
+        if (y > tabY + tabH - 8) { doc.addPage(); y = 20; }
       });
 
-      // Totales bajo la tabla (como en el sample)
-      const totY = tabY0 + tabH + 6;
-      text("Total Shipment Weight", `${totalWeight.toFixed(2)} LB`, 12, totY, true, 10, true);
-      text("Total Shipping Units", `${totalUnits}`, 120, totY, true, 10, true);
+      // Totales (mismo estilo que el sample)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      text("Total Shipment Weight", `${totalWeight.toFixed(2)} LB`, 12, tabY + tabH + 6, { bold: true });
+      text("Total Shipping Units", String(totalUnits), 120, tabY + tabH + 6, { bold: true });
 
-      // Bloques de firma Pickup/Dropoff (simples, sin QR)
-      const signY = totY + 10;
+      // Firmas (pickup/drop off)
+      const signY = tabY + tabH + 12;
       box(12, signY, 84, 38);
-      text("Pickup", "", 14, signY + 6, true, 10, true);
-      text("Shipper Printed Name", "", 14, signY + 14, true, 9);
-      text("Sign", "", 14, signY + 20, true, 9);
-      text("In Time", "", 14, signY + 26, true, 9);
-      text("Date (MM/DD/YYYY)", "", 14, signY + 32, true, 9);
+      text("Pickup", "", 12, signY + 6, { bold: true });
+      text("Shipper Printed Name", "", 12, signY + 14, { size: 9 });
+      text("Sign", "", 12, signY + 20, { size: 9 });
+      text("In Time", "", 12, signY + 26, { size: 9 });
+      text("Date (MM/DD/YYYY)", "", 12, signY + 32, { size: 9 });
 
       box(104, signY, 84, 38);
-      text("Drop off", "", 106, signY + 6, true, 10, true);
-      text("Receiver Printed Name", "", 106, signY + 14, true, 9);
-      text("Sign", "", 106, signY + 20, true, 9);
-      text("In Time", "", 106, signY + 26, true, 9);
-      text("Date (MM/DD/YYYY)", "", 106, signY + 32, true, 9);
+      text("Drop off", "", 104, signY + 6, { bold: true });
+      text("Receiver Printed Name", "", 104, signY + 14, { size: 9 });
+      text("Sign", "", 104, signY + 20, { size: 9 });
+      text("In Time", "", 104, signY + 26, { size: 9 });
+      text("Date (MM/DD/YYYY)", "", 104, signY + 32, { size: 9 });
 
-      // Pie de página legal (resumen)
-      const footY = signY + 44;
-      doc.setFontSize(7.5);
+      // Pie (resumen legal)
       doc.setFont("helvetica", "normal");
-      const legal =
-        "Received and mutually agreed... (Uniform Bill of Lading terms and conditions). Carrier not liable for incidental or consequential damages.";
-      doc.text(legal, 12, footY, { maxWidth: 176 });
+      doc.setFontSize(7.5);
+      doc.text(
+        "Received and mutually agreed... (Uniform Bill of Lading terms and conditions). Carrier not liable for incidental or consequential damages.",
+        12, signY + 44, { maxWidth: 176 }
+      );
 
-      /* -----------------------------------------------------
-      * 3) COVER SHEET (misma estética del sample, sin QR ni título SHP…)
-      * ----------------------------------------------------- */
+      // ======= Página 2: Cover Sheet =======
       doc.addPage();
 
+      // Fondo opcional
       try {
-        const logo = await loadImg(DAEHAN_LOGO_SRC);
-        doc.addImage(logo, "PNG", 12, 10, 26, 10);
-      } catch (_) {}
+        if (COVER_BG) {
+          const bg2 = await loadImg(COVER_BG);
+          doc.addImage(bg2, "PNG", 0, 0, 215.9, 279.4);
+        }
+      } catch {}
 
-      doc.setFontSize(14);
+      // Logo
+      try {
+        const logo2 = await loadImg(DA_LOGO);
+        doc.addImage(logo2, "PNG", 12, 10, 30, 12);
+      } catch {}
+
       doc.setFont("helvetica", "bold");
-      doc.text("Cover Sheet", 105, 22, { align: "center" });
+      doc.setFontSize(14);
+      doc.text("Cover Sheet", 108, 22, { align: "center" });
 
-      // Address grande a la izquierda (del Consignee)
-      const addressTitleY = 32;
-      text("NA-US-CA-Lathrop-701 D'Arcy Pkwy", "", 12, addressTitleY, true, 11, true);
-      text("", primaryPO?.consignee_name ?? "", 12, addressTitleY + 6, true, 10);
-      text("", joinSp(primaryPO?.consignee_address1, primaryPO?.consignee_address2), 12, addressTitleY + 12, true, 10);
-      text("", joinSp(primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip), 12, addressTitleY + 18, true, 10);
-      text("", primaryPO?.consignee_country ?? "", 12, addressTitleY + 24, true, 10);
+      // Address (consignee)
+      const addrY = 32;
+      text("NA-US-CA-Lathrop-701 D'Arcy Pkwy", "", 12, addrY, { size: 11, bold: true });
+      text("", primaryPO?.consignee_name ?? "", 12, addrY + 6);
+      text("", join(primaryPO?.consignee_address1, primaryPO?.consignee_address2), 12, addrY + 12);
+      text("", join(primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip), 12, addrY + 18);
+      text("", primaryPO?.consignee_country ?? "", 12, addrY + 24);
 
-      // Grid de campos a la derecha/abajo (Ship Date, Shipment Number, Packing Slip Number, Trailer Number)
-      const gridY = 32;
-      const gridX = 110;
-      const rowH = 12;
-      const colWLeft = 40;
-      const colWRight = 48;
-
-      const shipDate = primaryPO?.ship_date
-        ? new Date(primaryPO.ship_date).toLocaleString()
-        : new Date().toLocaleString();
-
+      // Grid derecho
+      const gY = 32, gX = 110, rowH = 12, Lw = 40, Rw = 48;
+      const shipDate = primaryPO?.ship_date ? new Date(primaryPO.ship_date).toLocaleString() : new Date().toLocaleString();
       const rows = [
         ["Ship Date", shipDate],
         ["Shipment Number", shipmentNo || primaryPO?.shipment_number || ""],
@@ -676,32 +628,29 @@ export default function GenerarBOL() {
         ["Trailer Number", trailerNo || primaryPO?.trailer_number || ""],
         ["Carrier", primaryPO?.carrier_name ?? ""],
       ];
-
-      rows.forEach((r, idx) => {
-        const y0 = gridY + idx * rowH;
-        box(gridX, y0, colWLeft, rowH);
-        box(gridX + colWLeft, y0, colWRight, rowH);
-        text(r[0], "", gridX + 2, y0 + 8, true, 10, true);
-        text("", r[1], gridX + colWLeft + 2, y0 + 8, true, 10, false);
+      rows.forEach((r, i) => {
+        const y0 = gY + i * rowH;
+        box(gX, y0, Lw, rowH);       box(gX + Lw, y0, Rw, rowH);
+        text(r[0], "", gX, y0 + 8, { bold: true });
+        text("", r[1], gX + Lw, y0 + 8);
       });
 
-      // Mini tabla Part/Supplier (si quieres mostrar PN/proveedor)
-      const miniY = gridY + rows.length * rowH + 10;
-      const miniCols = [
+      // Mini tabla
+      const miniY = gY + rows.length * rowH + 10;
+      const mini = [
         ["Part Number", primaryPO?.part_number ?? ""],
         ["Supplier", shipper?.shipper_name ?? shipper?.shipper ?? ""],
         ["SHP Number", shipmentNo || primaryPO?.shipment_number || ""],
         ["Trailer Number", trailerNo || primaryPO?.trailer_number || ""],
       ];
-      miniCols.forEach((r, idx) => {
-        const y0 = miniY + idx * rowH;
-        box(12, y0, 40, rowH);
-        box(52, y0, 136, rowH);
-        text(r[0], "", 14, y0 + 8, true, 10, true);
-        text("", r[1], 54, y0 + 8, true, 10, false);
+      mini.forEach((r, i) => {
+        const y0 = miniY + i * rowH;
+        box(12, y0, 40, rowH); box(52, y0, 136, rowH);
+        text(r[0], "", 12, y0 + 8, { bold: true });
+        text("", r[1], 52, y0 + 8);
       });
 
-      // Nombre archivo y guardar
+      // Guardar
       const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
       doc.save(fileName);
 
@@ -714,8 +663,6 @@ export default function GenerarBOL() {
       setIsGenerating(false);
     }
   }
-
-
   /* ----------------------- UI ----------------------- */
   return (
     <div className="page-container page-container--fluid">
