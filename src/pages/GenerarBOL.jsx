@@ -145,9 +145,10 @@ export default function GenerarBOL() {
       setProductosById({});
       if (!selectedIdx) return;
 
+      // 1) Lee TODO para no fallar por columnas inexistentes
       const { data: acts, error: errActs } = await supabase
         .from("actividades_realizadas")
-        .select("id, idx, producto, cantidad, actividad, createdAt")
+        .select("*")
         .eq("idx", selectedIdx)
         .order("createdAt", { ascending: true })
         .limit(5000);
@@ -158,9 +159,35 @@ export default function GenerarBOL() {
       }
       setLineasIdx(acts || []);
 
-      const ids = Array.from(
-        new Set((acts || []).map((a) => a?.producto).filter((v) => v != null))
-      );
+      // 2) Extrae items normalizados { producto_id, cantidad }
+      const items = [];
+      (acts || []).forEach((a) => {
+        // caso 1: columnas simples
+        const candKeys = ["producto", "producto_id", "product_id", "product", "prod_id"];
+        let pid = null;
+        for (const k of candKeys) {
+          if (a && a[k] != null) { pid = a[k]; break; }
+        }
+        const qty = Number(a?.cantidad ?? 0);
+
+        if (pid != null) {
+          items.push({ producto_id: pid, cantidad: isNaN(qty) ? 0 : qty });
+        }
+
+        // caso 2: array JSON en `productos`
+        if (Array.isArray(a?.productos)) {
+          a.productos.forEach((it) => {
+            const pid2 = it?.producto ?? it?.producto_id ?? it?.id ?? it?.product_id ?? null;
+            const qty2 = Number(it?.cantidad ?? it?.qty ?? 0);
+            if (pid2 != null) {
+              items.push({ producto_id: pid2, cantidad: isNaN(qty2) ? 0 : qty2 });
+            }
+          });
+        }
+      });
+
+      // 3) fetch de productos necesarios
+      const ids = Array.from(new Set(items.map((x) => x.producto_id))).filter((v) => v != null);
       if (ids.length) {
         const { data: prods, error: errProds } = await supabase
           .from("productos")
@@ -169,13 +196,16 @@ export default function GenerarBOL() {
 
         if (!errProds) {
           const map = {};
-          (prods || []).forEach((p) => {
-            if (p?.id != null) map[p.id] = p;
-          });
+          (prods || []).forEach((p) => { if (p?.id != null) map[p.id] = p; });
           setProductosById(map);
         }
       }
+
+      // 4) guarda los items normalizados en el estado para dibujar tabla
+      //    (si ya usas lineasIdx para otras cosas, puedes omitir)
+      setLineasIdx(items);
     }
+
 
     async function cargarPo() {
       setPoData(null);
@@ -259,10 +289,10 @@ export default function GenerarBOL() {
       const filas = [];
 
       const porProducto = {};
-      (lineasIdx || []).forEach((a) => {
-        const pid = a?.producto;
+      (lineasIdx || []).forEach((it) => {
+        const pid = it?.producto_id;
         if (pid == null) return;
-        const qty = Number(a?.cantidad ?? 0);
+        const qty = Number(it?.cantidad ?? 0);
         porProducto[pid] = (porProducto[pid] || 0) + (isNaN(qty) ? 0 : qty);
       });
 
@@ -275,7 +305,13 @@ export default function GenerarBOL() {
         const weight = weightPer > 0 && qty > 0 ? String((qty * weightPer).toFixed(2)) : "—";
         const packTxt = packType === "returnable" ? "Returnable" : "Expendable";
 
-        filas.push({ part: part || "—", desc: desc || "—", qty: String(qty || "—"), pack: packTxt, weight });
+        filas.push({
+          part: part || "—",
+          desc: desc || "—",
+          qty: String(qty || "—"),
+          pack: packTxt,
+          weight,
+        });
       });
 
       // SI NO HAY FILAS, UNA FILA VACÍA

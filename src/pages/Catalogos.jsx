@@ -569,7 +569,7 @@ export default function Catalogos() {
                 />
                 <input
                   placeholder={t("contact_email", "Contact Email")}
-                  value={edit?.shipper_ontact_email || ""}
+                  value={edit?.shipper_contact_email || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_contact_email: e.target.value })}
                 />
                 <input
