@@ -408,18 +408,17 @@ export default function GenerarBOL() {
         });
       });
 
-      // --------- 3) Medimos el alto que necesitamos ---------
-      const W = 215.9;     // carta mm
-      const M = 12;        // margen lateral
+      // --------- 3) Medimos el alto que necesitamos (versión compacta) ---------
+      const W = 215.9;   // carta mm
+      const M = 10;      // margen lateral (antes 12 -> +espacio útil)
 
-      // (ALTURAS COMPACTADAS)
-      const headerH = 12;  // título + línea
-      const grid1H  = 12;  // fila de 3 cajas (Freight / Charges / Carrier)
-      const grid2H  = 20;  // BOL Date + Bill Charges To
-      const grid3H  = 12;  // Container / Seal / Shipment / Booking
-      const poShipH = 20;  // Po# + Shipper
-      const consigH = 22;  // Consignee
-      const gap     = 3;   // menos espacio vertical entre bloques
+      const headerH = 10;  // "Bill of Lading" + línea
+      const grid1H  = 10;  // fila Freight/Charges/Carrier (3 cajas)
+      const grid2H  = 16;  // BOL Date + Bill Charges To (sin Secondary)
+      const grid3H  = 10;  // Container/Seal/Shipment/Booking
+      const poShipH = 16;  // Po# + Shipper
+      const consigH = 18;  // Consignee
+      const gap     = 2;   // separación mínima entre bloques
 
       // Tabla
       const TAB_X = M;
@@ -434,7 +433,6 @@ export default function GenerarBOL() {
         { k: "uom",     t: "UoM",                      w: 2,  align: "left"  },
       ];
       const CELL_PAD_X = 2, ROW_PAD_Y = 4, LINE_H = 5, MIN_ROW_H = 8;
-
 
       // Función de medición local
       const measureRowH = (doc, row) => {
@@ -496,61 +494,59 @@ export default function GenerarBOL() {
       const line = (x1, y1, x2, y2, lw = 0.25) => { doc.setLineWidth(lw); doc.line(x1, y1, x2, y2); };
 
       // Título
-      doc.setFont("helvetica", "bold"); doc.setFontSize(14);
-      doc.text("Bill of Lading", W/2, 22, { align: "center" });
+      doc.setFont("helvetica", "bold"); doc.setFontSize(20);
+      doc.text("BILL OF LANDING", W/2, 22, { align: "center" });
       line(M, 24, W-M, 24);
       let y = 24 + gap;
 
-      // 4 cajas
-      // ===== Fila 1: 3 cajas (sin Commercial Invoice) =====
+      // ===== Fila 1: 3 cajas (Freight/Charges/Carrier) =====
       {
         const cW = (TAB_W / 3);
-        const cH = 12; // compacto
+        const cH = 10; // súper compacto
         const items = [
-          ["Freight Class", primaryPO?.freight_class ?? ""],
+          ["Freight Class",   primaryPO?.freight_class ?? ""],
           ["Freight Charges", primaryPO?.freight_charges ?? primaryPO?.freight_charge ?? ""],
-          ["Carrier Name", primaryPO?.carrier_name ?? ""],
+          ["Carrier Name",    primaryPO?.carrier_name ?? ""],
         ];
         items.forEach((h, i) => {
           const x = M + i * cW;
           box(x, y, cW, cH);
-          text(h[0], "", x, y + 4, { size: 8.5, bold: true });
-          text("", h[1], x, y + 9.5, { size: 9.5 });
+          text(h[0], "", x, y + 3.5, { size: 8, bold: true });
+          text("", h[1], x, y + 8.5, { size: 9 });
         });
         y += cH + gap;
       }
 
-      // ===== Fila 2: BOL Date + Bill Charges To (sin Secondary Carrier) =====
+      // ===== Fila 2: BOL Date + Bill Charges To =====
       {
-        // BOL Date (angosta)
-        box(M, y, 48, 12);
-        text("BOL Date", "", M, y + 4, { size: 8.5, bold: true });
-        text("", bolDate, M, y + 9.5, { size: 9.5 });
+        // BOL Date angosto
+        box(M, y, 44, 10);
+        text("BOL Date", "", M, y + 3.5, { size: 8, bold: true });
+        text("", bolDate, M, y + 8.5, { size: 9 });
 
-        // Bill Charges To (el resto del ancho)
-        const billX = M + 50;            // deja 2mm de respiración
-        const billW = TAB_W - 50;
-        const billH = 20;
+        // Bill Charges To ocupa el resto (compactado)
+        const billX = M + 46;          // 2mm de respiración
+        const billW = TAB_W - 46;
+        const billH = 16;              // si se queda corto, súbelo a 18–20
         box(billX, y, billW, billH);
-        text("Bill Charges To", "", billX, y + 4, { size: 8.5, bold: true });
-
-        const btX = billX + 2, btW = billW - 4; let by = y + 9;
+        text("Bill Charges To", "", billX, y + 3.5, { size: 8, bold: true });
+        const btX = billX + 2, btW = billW - 4; let by = y + 8.5;
         const billToName    = primaryPO?.bill_to_name ?? "";
-        const billToAddr    = join(primaryPO?.bill_to_address1, primaryPO?.bill_to_address2);
-        const billToCity    = join(primaryPO?.bill_to_city, primaryPO?.bill_to_state, primaryPO?.bill_to_zip);
+        const billToAddr    = [primaryPO?.bill_to_address1, primaryPO?.bill_to_address2].filter(Boolean).join(" ");
+        const billToCity    = [primaryPO?.bill_to_city, primaryPO?.bill_to_state, primaryPO?.bill_to_zip].filter(Boolean).join(" ");
         const billToCountry = primaryPO?.bill_to_country ?? "";
         [billToName, billToAddr, billToCity, billToCountry].forEach((s) => {
-          doc.setFontSize(9.5);
-          doc.splitTextToSize(String(s || ""), btW).forEach((ln) => { doc.text(ln, btX, by); by += 4.5; });
+          doc.setFontSize(9);
+          doc.splitTextToSize(String(s || ""), btW).forEach((ln) => { doc.text(ln, btX, by); by += 4.2; });
         });
 
         y += billH + gap;
       }
 
-      // ===== Fila 3: Container / Seal / Shipment / Booking (alto compacto) =====
+      // ===== Fila 3: Container / Seal / Shipment / Booking =====
       {
         const cW = (TAB_W / 4);
-        const rH = 12;
+        const rH = 10;
         const items = [
           ["Container Number", trailerNo || primaryPO?.trailer_number || ""],
           ["Seal Number",      sealNo || primaryPO?.seal_number || ""],
@@ -559,55 +555,54 @@ export default function GenerarBOL() {
         ];
         items.forEach((pair, i) => {
           const x = M + i * cW;
-          const w = (i === 3) ? cW : cW; // todos iguales aquí
-          box(x, y, w, rH);
-          text(pair[0], "", x, y + 4, { size: 8.5, bold: true });
-          text("", pair[1], x, y + 9.5, { size: 9.5 });
+          box(x, y, cW, rH);
+          text(pair[0], "", x, y + 3.5, { size: 8, bold: true });
+          text("", pair[1], x, y + 8.5, { size: 9 });
         });
         y += rH + gap;
       }
 
-      // ===== Fila 4: Po# + Shipper (más compacto) =====
+      // ===== Fila 4: Po# + Shipper (compacto) =====
       {
         // Po#
-        box(M, y, 60, 12);
-        text("Po#", "", M, y + 4, { size: 8.5, bold: true });
+        box(M, y, 56, 10);
+        text("Po#", "", M, y + 3.5, { size: 8, bold: true });
         const poTxt = (() => {
           if (poNumbers.length <= 2) return poNumbers.join(", ");
           const mid = Math.ceil(poNumbers.length / 2);
           return poNumbers.slice(0, mid).join(", ") + "\n" + poNumbers.slice(mid).join(", ");
         })();
-        doc.setFontSize(9.5);
-        doc.text(doc.splitTextToSize(poTxt, 56), M + 2, y + 9.5);
+        doc.setFontSize(9);
+        doc.text(doc.splitTextToSize(poTxt, 52), M + 2, y + 8.5);
 
         // Shipper Address
-        const shX = M + 62, shW = TAB_W - 62, shH = 20;
+        const shX = M + 58, shW = TAB_W - 58, shH = 16;
         box(shX, y, shW, shH);
-        text("Shipper Address", "", shX, y + 4, { size: 8.5, bold: true });
-        let sy = y + 9.5;
-        doc.setFontSize(9.5);
+        text("Shipper Address", "", shX, y + 3.5, { size: 8, bold: true });
+        let sy = y + 8.5;
+        doc.setFontSize(9);
         [
           (shipper?.shipper_name ?? shipper?.shipper ?? ""),
-          join(shipper?.address1, shipper?.address2),
-          join(shipper?.city, shipper?.state, shipper?.zip),
+          [shipper?.address1, shipper?.address2].filter(Boolean).join(" "),
+          [shipper?.city, shipper?.state, shipper?.zip].filter(Boolean).join(" "),
           (shipper?.country ?? "")
-        ].forEach((str) => { doc.text(String(str || ""), shX + 2, sy); sy += 4.5; });
+        ].forEach((str) => { doc.text(String(str || ""), shX + 2, sy); sy += 4.2; });
 
         y += shH + gap;
       }
 
-      // ===== Fila 5: Consignee (más compacto) =====
+      // ===== Fila 5: Consignee (compacto) =====
       {
-        const h = 22;
+        const h = 18;
         box(M, y, TAB_W, h);
-        text("Consignee Address", "", M, y + 4, { size: 8.5, bold: true });
-        let cy = y + 9.5; doc.setFontSize(9.5);
+        text("Consignee Address", "", M, y + 3.5, { size: 8, bold: true });
+        let cy = y + 8.5; doc.setFontSize(9);
         [
           primaryPO?.consignee_name ?? "",
-          join(primaryPO?.consignee_address1, primaryPO?.consignee_address2),
-          join(primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip),
+          [primaryPO?.consignee_address1, primaryPO?.consignee_address2].filter(Boolean).join(" "),
+          [primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip].filter(Boolean).join(" "),
           primaryPO?.consignee_country ?? ""
-        ].forEach((str) => { doc.text(String(str || ""), M + 2, cy); cy += 4.5; });
+        ].forEach((str) => { doc.text(String(str || ""), M + 2, cy); cy += 4.2; });
         y += h + gap;
       }
 
