@@ -409,20 +409,21 @@ export default function GenerarBOL() {
       });
 
       // --------- 3) Medimos el alto que necesitamos ---------
-      // Métricas de layout
-      const W = 215.9;                   // carta mm
-      const M = 12;                      // margen lateral
-      const headerH   = 16;              // "Bill of Lading" + línea
-      const grid1H    = 18;              // 4 cajas (Freight/Charges/Carrier/Com.Inv) alto visible
-      const grid2H    = 28;              // BOL Date / Bill To / Secondary Carrier
-      const grid3H    = 16;              // Container/Seal/Shipment/Booking
-      const poShipH   = 24;              // Po# + Shipper
-      const consigH   = 28;              // Consignee
-      const gap       = 4;
+      const W = 215.9;     // carta mm
+      const M = 12;        // margen lateral
+
+      // (ALTURAS COMPACTADAS)
+      const headerH = 12;  // título + línea
+      const grid1H  = 12;  // fila de 3 cajas (Freight / Charges / Carrier)
+      const grid2H  = 20;  // BOL Date + Bill Charges To
+      const grid3H  = 12;  // Container / Seal / Shipment / Booking
+      const poShipH = 20;  // Po# + Shipper
+      const consigH = 22;  // Consignee
+      const gap     = 3;   // menos espacio vertical entre bloques
 
       // Tabla
       const TAB_X = M;
-      const TAB_W = W - 2*M;
+      const TAB_W = W - 2 * M;
       const COLS = [
         { k: "pkgQty",  t: "Package\nQuantity",        w: 22, align: "left"  },
         { k: "pkgType", t: "Package\nType",            w: 22, align: "left"  },
@@ -433,6 +434,7 @@ export default function GenerarBOL() {
         { k: "uom",     t: "UoM",                      w: 2,  align: "left"  },
       ];
       const CELL_PAD_X = 2, ROW_PAD_Y = 4, LINE_H = 5, MIN_ROW_H = 8;
+
 
       // Función de medición local
       const measureRowH = (doc, row) => {
@@ -500,82 +502,114 @@ export default function GenerarBOL() {
       let y = 24 + gap;
 
       // 4 cajas
-      const cW = (TAB_W / 4), cH = 14;
-      const hdrs = [
-        ["Freight Class", primaryPO?.freight_class ?? ""],
-        ["Freight Charges", primaryPO?.freight_charges ?? primaryPO?.freight_charge ?? ""],
-        ["Carrier Name", primaryPO?.carrier_name ?? ""],
-        ["Commercial Invoice", primaryPO?.commercial_invoice ?? ""],
-      ];
-      hdrs.forEach((h, i) => {
-        const x = M + i * cW;
-        box(x, y, cW, cH);
-        text(h[0], "", x, y + 5, { size: 9, bold: true });
-        text("", h[1], x, y + 11, { size: 10 });
-      });
-      y += cH + gap;
-
-      // BOL Date / Bill To / Secondary
-      box(M, y, 48, 14); text("BOL Date","", M, y+5, {size:9,bold:true}); text("", bolDate, M, y+11, {size:10});
-      box(M+50, y, 98, 28); text("Bill Charges To","", M+50, y+5, {size:9,bold:true});
+      // ===== Fila 1: 3 cajas (sin Commercial Invoice) =====
       {
-        const btX = M+52, btW = 98-4; let by = y+10;
-        const billToName   = primaryPO?.bill_to_name ?? "";
-        const billToAddr   = join(primaryPO?.bill_to_address1, primaryPO?.bill_to_address2);
-        const billToCity   = join(primaryPO?.bill_to_city, primaryPO?.bill_to_state, primaryPO?.bill_to_zip);
-        const billToCountry= primaryPO?.bill_to_country ?? "";
-        [billToName,billToAddr,billToCity,billToCountry]
-          .forEach((s)=>{ doc.setFontSize(10); doc.splitTextToSize(String(s||""), btW).forEach(l=>{doc.text(l,btX,by); by+=5;});});
+        const cW = (TAB_W / 3);
+        const cH = 12; // compacto
+        const items = [
+          ["Freight Class", primaryPO?.freight_class ?? ""],
+          ["Freight Charges", primaryPO?.freight_charges ?? primaryPO?.freight_charge ?? ""],
+          ["Carrier Name", primaryPO?.carrier_name ?? ""],
+        ];
+        items.forEach((h, i) => {
+          const x = M + i * cW;
+          box(x, y, cW, cH);
+          text(h[0], "", x, y + 4, { size: 8.5, bold: true });
+          text("", h[1], x, y + 9.5, { size: 9.5 });
+        });
+        y += cH + gap;
       }
-      box(W-M-26, y, 26, 14); text("Secondary Carrier","", W-M-26, y+5,{size:9,bold:true});
-      text("", primaryPO?.secondary_carrier_name ?? "", W-M-26, y+11,{size:10});
-      y += 28 + gap;
 
-      // Container / Seal / Shipment / Booking
-      [["Container Number", trailerNo || primaryPO?.trailer_number || ""],
-      ["Seal Number", sealNo || primaryPO?.seal_number || ""],
-      ["Shipment Number", (shipmentNo || primaryPO?.shipment_number || "")],
-      ["Booking/Tracking Number", primaryPO?.booking_number ?? primaryPO?.tracking_number ?? ""]]
-      .forEach((pair, i)=>{
-        const x = M + i*cW;
-        const w = (i===3)? cW+14: cW; // último más ancho
-        box(x, y, w, 14);
-        text(pair[0], "", x, y+5, {size:9, bold:true});
-        text("", pair[1], x, y+11, {size:10});
-      });
-      y += 14 + gap;
-
-      // Po# + Shipper
-      box(M, y, 60, 14); text("Po#","", M, y+5,{size:9,bold:true});
-      const poTxt = (()=>{
-        if (poNumbers.length<=2) return poNumbers.join(", ");
-        const mid = Math.ceil(poNumbers.length/2);
-        return poNumbers.slice(0,mid).join(", ")+"\n"+poNumbers.slice(mid).join(", ");
-      })();
-      doc.setFontSize(10); doc.text(doc.splitTextToSize(poTxt, 56), M+2, y+10);
-      box(M+62, y, TAB_W-62, 24); text("Shipper Address","", M+62, y+5,{size:9,bold:true});
+      // ===== Fila 2: BOL Date + Bill Charges To (sin Secondary Carrier) =====
       {
-        let sy = y+10;
-        doc.setFontSize(10);
-        [ (shipper?.shipper_name ?? shipper?.shipper ?? ""),
+        // BOL Date (angosta)
+        box(M, y, 48, 12);
+        text("BOL Date", "", M, y + 4, { size: 8.5, bold: true });
+        text("", bolDate, M, y + 9.5, { size: 9.5 });
+
+        // Bill Charges To (el resto del ancho)
+        const billX = M + 50;            // deja 2mm de respiración
+        const billW = TAB_W - 50;
+        const billH = 20;
+        box(billX, y, billW, billH);
+        text("Bill Charges To", "", billX, y + 4, { size: 8.5, bold: true });
+
+        const btX = billX + 2, btW = billW - 4; let by = y + 9;
+        const billToName    = primaryPO?.bill_to_name ?? "";
+        const billToAddr    = join(primaryPO?.bill_to_address1, primaryPO?.bill_to_address2);
+        const billToCity    = join(primaryPO?.bill_to_city, primaryPO?.bill_to_state, primaryPO?.bill_to_zip);
+        const billToCountry = primaryPO?.bill_to_country ?? "";
+        [billToName, billToAddr, billToCity, billToCountry].forEach((s) => {
+          doc.setFontSize(9.5);
+          doc.splitTextToSize(String(s || ""), btW).forEach((ln) => { doc.text(ln, btX, by); by += 4.5; });
+        });
+
+        y += billH + gap;
+      }
+
+      // ===== Fila 3: Container / Seal / Shipment / Booking (alto compacto) =====
+      {
+        const cW = (TAB_W / 4);
+        const rH = 12;
+        const items = [
+          ["Container Number", trailerNo || primaryPO?.trailer_number || ""],
+          ["Seal Number",      sealNo || primaryPO?.seal_number || ""],
+          ["Shipment Number",  shipmentNo || primaryPO?.shipment_number || ""],
+          ["Booking/Tracking Number", primaryPO?.booking_number ?? primaryPO?.tracking_number ?? ""],
+        ];
+        items.forEach((pair, i) => {
+          const x = M + i * cW;
+          const w = (i === 3) ? cW : cW; // todos iguales aquí
+          box(x, y, w, rH);
+          text(pair[0], "", x, y + 4, { size: 8.5, bold: true });
+          text("", pair[1], x, y + 9.5, { size: 9.5 });
+        });
+        y += rH + gap;
+      }
+
+      // ===== Fila 4: Po# + Shipper (más compacto) =====
+      {
+        // Po#
+        box(M, y, 60, 12);
+        text("Po#", "", M, y + 4, { size: 8.5, bold: true });
+        const poTxt = (() => {
+          if (poNumbers.length <= 2) return poNumbers.join(", ");
+          const mid = Math.ceil(poNumbers.length / 2);
+          return poNumbers.slice(0, mid).join(", ") + "\n" + poNumbers.slice(mid).join(", ");
+        })();
+        doc.setFontSize(9.5);
+        doc.text(doc.splitTextToSize(poTxt, 56), M + 2, y + 9.5);
+
+        // Shipper Address
+        const shX = M + 62, shW = TAB_W - 62, shH = 20;
+        box(shX, y, shW, shH);
+        text("Shipper Address", "", shX, y + 4, { size: 8.5, bold: true });
+        let sy = y + 9.5;
+        doc.setFontSize(9.5);
+        [
+          (shipper?.shipper_name ?? shipper?.shipper ?? ""),
           join(shipper?.address1, shipper?.address2),
           join(shipper?.city, shipper?.state, shipper?.zip),
           (shipper?.country ?? "")
-        ].forEach(str=>{ doc.text(String(str||""), M+64, sy); sy+=5;});
-      }
-      y += 24 + gap;
+        ].forEach((str) => { doc.text(String(str || ""), shX + 2, sy); sy += 4.5; });
 
-      // Consignee
-      box(M, y, TAB_W, 28); text("Consignee Address","", M, y+5,{size:9,bold:true});
+        y += shH + gap;
+      }
+
+      // ===== Fila 5: Consignee (más compacto) =====
       {
-        let cy = y+10; doc.setFontSize(10);
-        [ primaryPO?.consignee_name ?? "",
+        const h = 22;
+        box(M, y, TAB_W, h);
+        text("Consignee Address", "", M, y + 4, { size: 8.5, bold: true });
+        let cy = y + 9.5; doc.setFontSize(9.5);
+        [
+          primaryPO?.consignee_name ?? "",
           join(primaryPO?.consignee_address1, primaryPO?.consignee_address2),
           join(primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip),
           primaryPO?.consignee_country ?? ""
-        ].forEach(str=>{ doc.text(String(str||""), M+2, cy); cy+=5;});
+        ].forEach((str) => { doc.text(String(str || ""), M + 2, cy); cy += 4.5; });
+        y += h + gap;
       }
-      y += 28 + gap;
 
       // --------- Tabla (encabezado + filas) ---------
       const COLX = [M];
@@ -658,59 +692,6 @@ export default function GenerarBOL() {
         "Received and mutually agreed by the shipper and his assigns and any additional party with an interest to any said property hereto and each carrier of all or any of said property over all or any portion of said route to destination, that every service to be performed hereunder shall be subject to the National Motor Freight classifications (NMF 100 Series) Including the Rules, packaging and the Uniform Bill of Lading Terms and Conditions, the applicable regulations of the US Department of Transportation (DOT), the ATA Hazardous Materials Rules Guide Book and the Household Goods Mileage Guides and to the Carriers tariffs, the Carriers pricing schedules, terms, conditions and rules maintained at Carriers general offices all of which are in effect as of the date of issue of this Bill of Lading. Shipper certifies that the consigned merchandise is properly weighed, classified, described, packaged, marked, labeled, destined as indicated, in apparent good order expect as noted (contents and conditions of contents of packages unknown), and in proper condition for transportation according to the DOT and the NMF 100 Series. Carrier (Carrier being understood throughout this contract as meaning in any person or corporation in possession of the property under this contact) agrees to carry to said destination if on its route, otherwise to deliver to another carrier on the route to said destination. Carrier shall in no event be liable for loss of profit, Income, Interest, attorney fees, or any special, incidental or consequential damages. Subject to section 7 of the conditions, if this shipment is to be delivered to the consignee without recourse on the consignor shall sign the following statement: The carrier shall not make the delivery of this shipment without payment of freight and all other lawful charges.",
         M, y, { maxWidth: TAB_W }
       );
-
-            // ======= Página 2: Cover Sheet =======
-      doc.addPage();
-
-      // Logo
-      try {
-        const logo2 = await loadImg(DA_LOGO);
-        doc.addImage(logo2, "PNG", 12, 10, 30, 12);
-      } catch {}
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.text("Cover Sheet", 108, 22, { align: "center" });
-
-      // Address (consignee)
-      const addrY = 32;
-      text("NA-US-CA-Lathrop-701 D'Arcy Pkwy", "", 12, addrY, { size: 11, bold: true });
-      text("", primaryPO?.consignee_name ?? "", 12, addrY + 6);
-      text("", join(primaryPO?.consignee_address1, primaryPO?.consignee_address2), 12, addrY + 12);
-      text("", join(primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip), 12, addrY + 18);
-      text("", primaryPO?.consignee_country ?? "", 12, addrY + 24);
-
-      // Grid derecho
-      const gY = 32, gX = 110, rowH = 12, Lw = 40, Rw = 48;
-      const shipDate = primaryPO?.ship_date ? new Date(primaryPO.ship_date).toLocaleString() : new Date().toLocaleString();
-      const rows = [
-        ["Ship Date", shipDate],
-        ["Shipment Number", shipmentNo || primaryPO?.shipment_number || ""],
-        ["Packing Slip Number", packingSlip || primaryPO?.packing_slip_number || ""],
-        ["Trailer Number", trailerNo || primaryPO?.trailer_number || ""],
-        ["Carrier", primaryPO?.carrier_name ?? ""],
-      ];
-      rows.forEach((r, i) => {
-        const y0 = gY + i * rowH;
-        box(gX, y0, Lw, rowH);       box(gX + Lw, y0, Rw, rowH);
-        text(r[0], "", gX, y0 + 8, { bold: true });
-        text("", r[1], gX + Lw, y0 + 8);
-      });
-
-      // Mini tabla
-      const miniY = gY + rows.length * rowH + 10;
-      const mini = [
-        ["Part Number", primaryPO?.part_number ?? ""],
-        ["Supplier", shipper?.shipper_name ?? shipper?.shipper ?? ""],
-        ["SHP Number", shipmentNo || primaryPO?.shipment_number || ""],
-        ["Trailer Number", trailerNo || primaryPO?.trailer_number || ""],
-      ];
-      mini.forEach((r, i) => {
-        const y0 = miniY + i * rowH;
-        box(12, y0, 40, rowH); box(52, y0, 136, rowH);
-        text(r[0], "", 12, y0 + 8, { bold: true });
-        text("", r[1], 52, y0 + 8);
-      });
 
       // Guardar
       const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
