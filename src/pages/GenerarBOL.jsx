@@ -474,7 +474,6 @@ export default function GenerarBOL() {
       text("", primaryPO?.consignee_country ?? "", 12, cy);
 
       // ===== Packaging & Dimension table =====
-      // Unifica cajas por producto (solo LOAD finalizada)
       const porProducto = {};
       (lineasIdx || []).forEach((it) => {
         const pid = it?.producto_id;
@@ -483,48 +482,62 @@ export default function GenerarBOL() {
         porProducto[pid] = (porProducto[pid] || 0) + (isNaN(cajas) ? 0 : cajas);
       });
 
-      // Marco de la tabla (coordenadas y anchos clavados al sample)
+      // Marco de la tabla (coordenadas y anchos para que TODO quepa sin cortes)
       const TAB_X = 12;
       const TAB_Y = (rowY + rH + 4 + rH + 12) + 36; // debajo del Consignee
       const TAB_W = 176;
-      const TAB_H = 110;
+      const TAB_H = 100; // <- un poquito más bajo para que quepan totales y firma sin recortar
       box(TAB_X, TAB_Y, TAB_W, TAB_H);
 
-      // Definición de columnas (igual que Tesla)
+      // Columnas (suman 176 exacto; deja "LB" con espacio suficiente)
       const COLS = [
-        { k: "pkgQty",  t: "Package Quantity",     w: 24, align: "left"  },
-        { k: "pkgType", t: "Package Type",         w: 24, align: "left"  },
-        { k: "desc",    t: "Description",          w: 68, align: "left"  }, // ancho grande
-        { k: "dim",     t: "Dimension Per Package",w: 40, align: "left"  },
-        { k: "wPer",    t: "Weight Per Package",   w: 24, align: "right" },
-        { k: "wTot",    t: "Total Weight",         w: 22, align: "right" },
-        { k: "uom",     t: "Weight UoM",           w: 6,  align: "left"  },
+        { k: "pkgQty",  t: "Package\nQuantity",        w: 22, align: "left"  }, // 22
+        { k: "pkgType", t: "Package\nType",            w: 22, align: "left"  }, // 44
+        { k: "desc",    t: "Description",              w: 66, align: "left"  }, // 110
+        { k: "dim",     t: "Dimension Per\nPackage",   w: 36, align: "left"  }, // 146
+        { k: "wPer",    t: "Weight Per\nPackage",      w: 14, align: "right" }, // 160
+        { k: "wTot",    t: "Total\nWeight",            w: 14, align: "right" }, // 174
+        { k: "uom",     t: "UoM",                      w: 2,  align: "left"  }, // 176
       ];
 
-      // Header
-      let cx = TAB_X;
+      // Precalcula posiciones X de cada columna
+      const XPOS = [TAB_X];
+      for (let i = 0; i < COLS.length; i++) {
+        XPOS.push(XPOS[i] + COLS[i].w);
+      }
+
+      // Header (multilínea y tamaño pequeño para que no se amontone)
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      COLS.forEach((c) => {
-        doc.text(c.t, cx + 2, TAB_Y + 5);
-        cx += c.w;
-        line(cx, TAB_Y, cx, TAB_Y + TAB_H, 0.25);
-      });
-      line(TAB_X, TAB_Y + 7, TAB_X + TAB_W, TAB_Y + 7, 0.25);
+      doc.setFontSize(8);
+      for (let i = 0; i < COLS.length; i++) {
+        const c = COLS[i];
+        const hx = XPOS[i];
+        const lines = doc.splitTextToSize(c.t, c.w - 4);
+        let hy = TAB_Y + 4;
+        lines.forEach((ln) => {
+          doc.text(ln, hx + 2, hy);
+          hy += 4;
+        });
+        // separador vertical de cada columna
+        line(XPOS[i + 1], TAB_Y, XPOS[i + 1], TAB_Y + TAB_H, 0.25);
+      }
+      // separador horizontal bajo header
+      line(TAB_X, TAB_Y + 10, TAB_X + TAB_W, TAB_Y + 10, 0.25);
 
       // Filas
-      let y = TAB_Y + 12;
+      let y = TAB_Y + 15; // arranque de filas
       let totalUnits = 0;
       let totalWeight = 0;
 
-      const ROW_MIN_H = 6;
       const TEXT_SIZE = 9;
+      const ROW_PAD_Y = 4;      // padding superior para texto en celdas
+      const LINE_HEIGHT = 5;    // alto de línea de texto
+      const MIN_ROW_H = 8;      // alto mínimo por fila
       doc.setFont("helvetica", "normal");
       doc.setFontSize(TEXT_SIZE);
 
-      // Calcula filas listas para pintar
+      // Construye filas a pintar
       const rowsData = [];
-
       Object.keys(porProducto).forEach(pid => {
         const p = productosById[pid] || {};
         const boxes = Number(porProducto[pid] ?? 0) || 0;
@@ -542,6 +555,9 @@ export default function GenerarBOL() {
         const L = p?.dim_l ?? p?.length_in ?? p?.largo ?? "";
         const W = p?.dim_w ?? p?.width_in  ?? p?.ancho ?? "";
         const H = p?.dim_h ?? p?.height_in ?? p?.alto  ?? "";
+        const dimText = (L && W && H) ? `${L} X ${W} X ${H} IN` : "";
+
+        const descText = (p?.nombre ?? p?.descripcion ?? "").toString();
 
         const piecesPerBox  = isNaN(unitsPerBox) ? 1 : unitsPerBox;
         const weightPerPack = (piecesPerBox * (isNaN(wUnit) ? 0 : wUnit)) + (isNaN(wBox) ? 0 : wBox);
@@ -549,9 +565,6 @@ export default function GenerarBOL() {
 
         totalUnits  += boxes;
         totalWeight += lineTotal;
-
-        const descText = (p?.nombre ?? p?.descripcion ?? "").toString();
-        const dimText  = (L && W && H) ? `${L} X ${W} X ${H} IN` : "";
 
         rowsData.push({
           pkgQty: String(boxes),
@@ -564,69 +577,65 @@ export default function GenerarBOL() {
         });
       });
 
-      // Pinta filas con **wrapping** y altura dinámica por celda
+      // Pintado de filas con altura dinámica y verticales alineadas
       rowsData.forEach((row) => {
-        // Calcula líneas envueltas por cada columna que lo necesita
-        const wrapped = {
-          pkgQty: [row.pkgQty],
-          pkgType: [row.pkgType],
-          desc: wrapText(doc, row.desc,  COLS[2].w - 4, TEXT_SIZE),
-          dim:  wrapText(doc, row.dim,   COLS[3].w - 4, TEXT_SIZE),
-          wPer: [row.wPer],
-          wTot: [row.wTot],
-          uom:  [row.uom],
+        // prepara líneas envueltas para columnas con texto largo
+        const wrapIn = (txt, colIdx) => doc.splitTextToSize(String(txt || ""), COLS[colIdx].w - 4);
+
+        const LINES = {
+          0: [row.pkgQty],
+          1: [row.pkgType],
+          2: wrapIn(row.desc, 2),
+          3: wrapIn(row.dim, 3),
+          4: [row.wPer],
+          5: [row.wTot],
+          6: [row.uom],
         };
+
         const linesCount = Math.max(
-          wrapped.pkgQty.length,
-          wrapped.pkgType.length,
-          wrapped.desc.length || 1,
-          wrapped.dim.length  || 1,
-          wrapped.wPer.length,
-          wrapped.wTot.length,
-          wrapped.uom.length
+          LINES[0].length, LINES[1].length, LINES[2].length, LINES[3].length,
+          LINES[4].length, LINES[5].length, LINES[6].length
         );
-        const rowH = Math.max(ROW_MIN_H, linesCount * 5);
+        const rowH = Math.max(MIN_ROW_H, ROW_PAD_Y + linesCount * LINE_HEIGHT);
 
-        // Salto de página si no cabe
+        // Salto si no cabe la fila dentro del marco
         if (y + rowH > TAB_Y + TAB_H - 2) {
-          // dibuja línea de cierre antes de saltar
-          line(TAB_X, y, TAB_X + TAB_W, y, 0.25);
+          // cierra marco con línea inferior y pasa de página
+          line(TAB_X, TAB_Y + TAB_H, TAB_X + TAB_W, TAB_Y + TAB_H, 0.25);
           doc.addPage();
-          // redibuja marco y header en nueva página
+          // re-dibuja un marco nuevo para continuar filas
           box(TAB_X, 20, TAB_W, TAB_H);
-          cx = TAB_X;
+          // re-dibuja encabezado en nueva página
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(9);
-          COLS.forEach((c) => {
-            doc.text(c.t, cx + 2, 25);
-            cx += c.w;
-            line(cx, 20, cx, 20 + TAB_H, 0.25);
-          });
-          line(TAB_X, 27, TAB_X + TAB_W, 27, 0.25);
+          doc.setFontSize(8);
+          for (let i = 0; i < COLS.length; i++) {
+            const c = COLS[i];
+            const hx = XPOS[i];
+            const lines = doc.splitTextToSize(c.t, c.w - 4);
+            let hy = 24;
+            lines.forEach((ln) => { doc.text(ln, hx + 2, hy); hy += 4; });
+            line(TAB_X + COLS.slice(0, i + 1).reduce((acc, cc) => acc + cc.w, 0), 20,
+                TAB_X + COLS.slice(0, i + 1).reduce((acc, cc) => acc + cc.w, 0), 20 + TAB_H, 0.25);
+          }
+          line(TAB_X, 30, TAB_X + TAB_W, 30, 0.25);
 
-          // reinicia y para filas
-          y = 32;
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(TEXT_SIZE);
+          // reajusta Y y XPOS para la nueva página
+          y = 35;
         }
 
-        // Celdas
-        let x = TAB_X;
-        COLS.forEach((c) => {
-          const cellLines = (wrapped[c.k] && wrapped[c.k].length ? wrapped[c.k] : [""]);
-          // dibuja texto línea a línea
-          cellLines.forEach((ln, i) => {
-            const yy = y + 4 + i * 5;
-            if (c.align === "right") {
-              doc.text(String(ln), x + c.w - 2, yy, { align: "right" });
-            } else {
-              doc.text(String(ln), x + 2, yy);
-            }
-          });
-          // vertical
-          x += c.w;
-          line(x, y - (rowH - ROW_MIN_H), x, y + rowH, 0.25);
-        });
+        // pinta contenido de cada celda
+        for (let i = 0; i < COLS.length; i++) {
+          const c = COLS[i];
+          const x = XPOS[i];
+          const arr = LINES[i];
+          for (let k = 0; k < arr.length; k++) {
+            const yy = y + ROW_PAD_Y + k * LINE_HEIGHT;
+            if (c.align === "right") doc.text(String(arr[k]), x + c.w - 2, yy, { align: "right" });
+            else doc.text(String(arr[k]), x + 2, yy);
+          }
+          // vertical derecha de la celda/columna
+          line(x + c.w, y, x + c.w, y + rowH, 0.25);
+        }
 
         // línea inferior de la fila
         line(TAB_X, y + rowH, TAB_X + TAB_W, y + rowH, 0.25);
@@ -637,8 +646,8 @@ export default function GenerarBOL() {
       const TOT_Y = TAB_Y + TAB_H + 6;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
-      text("Total Shipment Weight", `${totalWeight.toFixed(2)} LB`, 12, TOT_Y, { bold: true });
-      text("Total Shipping Units", String(totalUnits), 120, TOT_Y, { bold: true });
+      doc.text(`Total Shipment Weight: ${totalWeight.toFixed(2)} LB`, 12, TOT_Y);
+      doc.text(`Total Shipping Units: ${String(totalUnits)}`, 120, TOT_Y);
 
 
       // Firmas (pickup/drop off)
