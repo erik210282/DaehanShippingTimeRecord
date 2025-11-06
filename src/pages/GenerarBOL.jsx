@@ -472,7 +472,7 @@ export default function GenerarBOL() {
 
           {/* PO */}
 
-          <Select
+          <select
                   isMulti
                   options={poOptions}
                   value={selectedPoIds}
