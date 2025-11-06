@@ -269,12 +269,19 @@ export default function GenerarBOL() {
   }, [selectedIdx, selectedPoIds, selectedShipperId]);
 
   /* ---------------- Generar PDF ---------------- */
-  function drawHeader(doc, title, y = 12) {
+  function drawHeader(doc, title, rightText = null, y = 12) {
     doc.setFontSize(16);
     doc.text(title, 12, y);
+
+    if (rightText) {
+      doc.setFontSize(11);
+      doc.text(String(rightText), 200, y, { align: "right" });
+    }
+
     doc.setLineWidth(0.5);
     doc.line(12, y + 2, 200, y + 2);
   }
+
 
   function drawKVP(doc, label, value, x, y) {
     doc.setFontSize(10);
@@ -306,7 +313,7 @@ export default function GenerarBOL() {
       const doc = new jsPDF({ unit: "mm", format: "letter" });
 
       // -------- PÁGINA 1: BOL --------
-      drawHeader(doc, "Bill of Lading (BOL)");
+      drawHeader(doc, "Bill of Lading (BOL)", `Shipment # ${shipmentNo || "—"}`);
 
       drawKVP(doc, "Shipper", shipper?.shipper_name, 12, 26);
       drawKVP(doc, "Consignee", primaryPO?.consignee_name, 12, 34);
@@ -408,7 +415,8 @@ export default function GenerarBOL() {
 
       // -------- PÁGINA 2: COVER SHEET --------
       doc.addPage();
-      drawHeader(doc, "Cover Sheet");
+      drawHeader(doc, "Cover Sheet", `Shipment # ${shipmentNo || "—"}`);
+
 
       drawKVP(doc, "Shipper", shipper?.shipper_name, 12, 26);
       drawKVP(doc, "PO", formatPO(poNumbers), 12, 34);
@@ -428,7 +436,8 @@ export default function GenerarBOL() {
       doc.text("Notes:", 12, 84);
       doc.rect(12, 86, 188, 100);
 
-      const fileName = `BOL_${String(selectedIdx)}_${String(po?.po || "PO")}.pdf`;
+      // Nombre del archivo usando el número de shipment
+      const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
       doc.save(fileName);
       toast.success(t("generated_ok", "BOL generado correctamente"));
     } catch (e) {
