@@ -485,6 +485,7 @@ export default function GenerarBOL() {
           toast.error(t("error_generating", "Error al generar el BOL"));
         } finally {
           setIsGenerating(false);
+          resetForm();
         }
       }
     } catch (e) {
