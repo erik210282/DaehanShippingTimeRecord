@@ -21,6 +21,29 @@ export default function GenerarBOL() {
     typeof maybeT === "function" ? maybeT(key) : (fallback || key);
 
   /* -------------------- Estados UI -------------------- */
+  // nuevo estado para evitar doble click opcional
+  const [isGenerating, setIsGenerating] = React.useState(false);
+
+  // resetea todos los campos del formulario
+  const resetForm = React.useCallback(() => {
+    setSelectedIdx("");
+    setSelectedPoIds([]);
+    setSelectedShipperId("");
+
+    setShipmentNo("");
+    setTrailerNo("");
+    setSealNo("");
+    setPackingSlip("");
+
+    setPackType("returnable");
+
+    // limpiar previews/datos auxiliares
+    setLineasIdx([]);
+    setProductosById({});
+    setPoData([]);
+    setShipperData(null);
+  }, []);
+
   const [idxOptions, setIdxOptions] = React.useState([]);
   const [selectedIdx, setSelectedIdx] = React.useState("");
 
@@ -440,10 +463,35 @@ export default function GenerarBOL() {
       const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
       doc.save(fileName);
       toast.success(t("generated_ok", "BOL generado correctamente"));
+      function generarPDF() {
+        try {
+          setIsGenerating(true);
+
+          if (!selectedIdx) return toast.error(t("select_idx_first", "Selecciona un IDX"));
+          if (!selectedPoIds || selectedPoIds.length === 0) {
+            return toast.error(t("select_po_first", "Selecciona al menos un PO"));
+          }
+          if (!selectedShipperId) return toast.error(t("select_shipper_first", "Selecciona un Remitente"));
+
+          // ... (tu lógica para construir el PDF)
+
+          doc.save(fileName);
+          toast.success(t("generated_ok", "BOL generado correctamente"));
+
+          // ✅ resetear formulario
+          resetForm();
+        } catch (e) {
+          console.error(e);
+          toast.error(t("error_generating", "Error al generar el BOL"));
+        } finally {
+          setIsGenerating(false);
+        }
+      }
     } catch (e) {
       console.error(e);
       toast.error(t("error_generating", "Error al generar el BOL"));
     }
+    
   }
 
   /* ----------------------- UI ----------------------- */
@@ -587,8 +635,15 @@ export default function GenerarBOL() {
           </select>
 
           {/* Botón GENERAR BOL */}
-          <button className="primary" onClick={generarPDF} style={{ alignSelf: "center" }}>
-            {t("generate_bol", "Generar BOL")}
+          <button
+            className="primary"
+            onClick={generarPDF}
+            style={{ alignSelf: "center" }}
+            disabled={isGenerating}
+          >
+            {isGenerating
+              ? t("loading", "Generando...")
+              : t("generate_bol", "Generar BOL y Cover Sheet")}
           </button>
         </div>
 
