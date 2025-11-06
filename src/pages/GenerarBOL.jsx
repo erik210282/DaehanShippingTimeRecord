@@ -17,13 +17,6 @@ function wrapText(doc, txt, maxWidth, fontSize = 9) {
   return doc.splitTextToSize(String(txt), maxWidth);
 }
 
-// Envuelve texto a un ancho, devolviendo array de líneas
-function wrap(doc, txt, maxWidth, fontSize = 9) {
-  if (!txt) return [];
-  doc.setFontSize(fontSize);
-  return doc.splitTextToSize(String(txt), maxWidth);
-}
-
 async function loadImg(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -649,7 +642,7 @@ export default function GenerarBOL() {
 
 
       // Firmas (pickup/drop off)
-      const signY = tabY + tabH + 12;
+      const signY = TAB_Y + TAB_H + 12;
       box(12, signY, 84, 38);
       text("Pickup", "", 12, signY + 6, { bold: true });
       text("Shipper Printed Name", "", 12, signY + 14, { size: 9 });
