@@ -655,16 +655,69 @@ export default function GenerarBOL() {
       // Legal
       doc.setFontSize(7.5);
       doc.text(
-        "Received and mutually agreed... (Uniform Bill of Lading terms and conditions). Carrier not liable for incidental or consequential damages.",
+        "Received and mutually agreed by the shipper and his assigns and any additional party with an interest to any said property hereto and each carrier of all or any of said property over all or any portion of said route to destination, that every service to be performed hereunder shall be subject to the National Motor Freight classifications (NMF 100 Series) Including the Rules, packaging and the Uniform Bill of Lading Terms and Conditions, the applicable regulations of the US Department of Transportation (DOT), the ATA Hazardous Materials Rules Guide Book and the Household Goods Mileage Guides and to the Carriers tariffs, the Carriers pricing schedules, terms, conditions and rules maintained at Carriers general offices all of which are in effect as of the date of issue of this Bill of Lading. Shipper certifies that the consigned merchandise is properly weighed, classified, described, packaged, marked, labeled, destined as indicated, in apparent good order expect as noted (contents and conditions of contents of packages unknown), and in proper condition for transportation according to the DOT and the NMF 100 Series. Carrier (Carrier being understood throughout this contract as meaning in any person or corporation in possession of the property under this contact) agrees to carry to said destination if on its route, otherwise to deliver to another carrier on the route to said destination. Carrier shall in no event be liable for loss of profit, Income, Interest, attorney fees, or any special, incidental or consequential damages. Subject to section 7 of the conditions, if this shipment is to be delivered to the consignee without recourse on the consignor shall sign the following statement: The carrier shall not make the delivery of this shipment without payment of freight and all other lawful charges.",
         M, y, { maxWidth: TAB_W }
       );
+
+            // ======= Página 2: Cover Sheet =======
+      doc.addPage();
+
+      // Logo
+      try {
+        const logo2 = await loadImg(DA_LOGO);
+        doc.addImage(logo2, "PNG", 12, 10, 30, 12);
+      } catch {}
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("Cover Sheet", 108, 22, { align: "center" });
+
+      // Address (consignee)
+      const addrY = 32;
+      text("NA-US-CA-Lathrop-701 D'Arcy Pkwy", "", 12, addrY, { size: 11, bold: true });
+      text("", primaryPO?.consignee_name ?? "", 12, addrY + 6);
+      text("", join(primaryPO?.consignee_address1, primaryPO?.consignee_address2), 12, addrY + 12);
+      text("", join(primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip), 12, addrY + 18);
+      text("", primaryPO?.consignee_country ?? "", 12, addrY + 24);
+
+      // Grid derecho
+      const gY = 32, gX = 110, rowH = 12, Lw = 40, Rw = 48;
+      const shipDate = primaryPO?.ship_date ? new Date(primaryPO.ship_date).toLocaleString() : new Date().toLocaleString();
+      const rows = [
+        ["Ship Date", shipDate],
+        ["Shipment Number", shipmentNo || primaryPO?.shipment_number || ""],
+        ["Packing Slip Number", packingSlip || primaryPO?.packing_slip_number || ""],
+        ["Trailer Number", trailerNo || primaryPO?.trailer_number || ""],
+        ["Carrier", primaryPO?.carrier_name ?? ""],
+      ];
+      rows.forEach((r, i) => {
+        const y0 = gY + i * rowH;
+        box(gX, y0, Lw, rowH);       box(gX + Lw, y0, Rw, rowH);
+        text(r[0], "", gX, y0 + 8, { bold: true });
+        text("", r[1], gX + Lw, y0 + 8);
+      });
+
+      // Mini tabla
+      const miniY = gY + rows.length * rowH + 10;
+      const mini = [
+        ["Part Number", primaryPO?.part_number ?? ""],
+        ["Supplier", shipper?.shipper_name ?? shipper?.shipper ?? ""],
+        ["SHP Number", shipmentNo || primaryPO?.shipment_number || ""],
+        ["Trailer Number", trailerNo || primaryPO?.trailer_number || ""],
+      ];
+      mini.forEach((r, i) => {
+        const y0 = miniY + i * rowH;
+        box(12, y0, 40, rowH); box(52, y0, 136, rowH);
+        text(r[0], "", 12, y0 + 8, { bold: true });
+        text("", r[1], 52, y0 + 8);
+      });
 
       // Guardar
       const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
       doc.save(fileName);
 
       toast.success(t("generated_ok", "BOL generado correctamente"));
-      // resetForm(); // si quieres limpiar, descomenta
+      resetForm();
     } catch (e) {
       console.error(e);
       toast.error(t("error_generating", "Error al generar el BOL"));
