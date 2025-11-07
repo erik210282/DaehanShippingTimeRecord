@@ -513,7 +513,7 @@ export default function GenerarBOL() {
       const headerH = 10;  // "Bill of Lading" + línea
       const grid1H  = 10;  // fila Freight/Charges/Carrier (3 cajas)
       const grid2H  = 22;  // BOL Date + Bill Charges To (sin Secondary)
-      const grid3H  = 10;  // Container/Seal/Shipment/Booking
+      const grid3H  = 10;  // Container/Seal/Shipment/Packing Slip
       const poShipH = 25;  // Po# + Shipper
       const consigH = 25;  // Consignee
       const gap     = 2;   // separación mínima entre bloques
@@ -618,7 +618,7 @@ export default function GenerarBOL() {
         y += cH + gap;
       }
 
-      // ===== Fila 2: Bill Charges / Shipment / Container / Seal / Booking / PO =====
+      // ===== Fila 2: Bill Charges / Shipment / Container / Seal / Packing Slip / PO =====
       {
         const rH = 33; // altura de las cajas
 
@@ -628,7 +628,7 @@ export default function GenerarBOL() {
           TAB_W * 0.17, // 1 Shipment Number
           TAB_W * 0.15, // 2 Container Number
           TAB_W * 0.12, // 3 Seal Number
-          TAB_W * 0.15, // 4 Booking/Tracking Number
+          TAB_W * 0.15, // 4 Packing Slip Number
           TAB_W * 0.18, // 5 PO #'s (más pequeño)
         ];
 
@@ -654,7 +654,7 @@ export default function GenerarBOL() {
           ["Shipment Number",  shipmentNo || primaryPO?.shipment_number || ""],      // 1
           ["Container Number", trailerNo  || primaryPO?.trailer_number  || ""],      // 2
           ["Seal Number",      sealNo     || primaryPO?.seal_number     || ""],      // 3
-          ["Booking Number",   primaryPO?.booking_number ?? primaryPO?.tracking_number ?? ""], // 4
+          ["Packing Slip",   primaryPO?.packing_slip || ""], // 4
           ["PO #’s",           poDisplay],                                            // 5
         ];
 
@@ -806,7 +806,7 @@ export default function GenerarBOL() {
       y = TAB_Y + TAB_H + gap;
 
       // Totales
-      doc.setFont("helvetica","bold").setFontSize(10);
+      doc.setFont("helvetica","bold").setFontSize(9);
       doc.text(`Total Shipment Weight: ${totalWeight.toFixed(2)} LB`, M, y);
       doc.text(`Total Shipping Units: ${String(totalUnits)}`, M+108, y);
       y += 8;
