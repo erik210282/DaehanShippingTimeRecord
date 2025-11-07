@@ -221,16 +221,29 @@ async function save() {
     }
 
     // --- Normalización anti-errores ---
-    // 1) Evitar "" -> Postgres: usa NULL
     Object.keys(payload).forEach((k) => {
-      if (payload[k] === "") payload[k] = null;
+      if (payload[k] === "") payload[k] = null;      // 1) "" -> null
     });
-    // 2) Campos de teléfono como ARRAY (si tu columna es text[])
-    if (tab === "shipper" && payload.shipper_contact_phone != null) {
-      payload.shipper_contact_phone = [String(payload.shipper_contact_phone).trim()];
+
+    // 2) Normaliza contacto (solo strings)
+    if (tab === "shipper") {
+      if (payload.shipper_contact_phone != null) {
+        payload.shipper_contact_phone = String(payload.shipper_contact_phone).trim();
+      }
+      if (payload.shipper_contact_email != null) {
+        payload.shipper_contact_email = String(payload.shipper_contact_email).trim();
+      }
     }
-    if (tab === "pos" && payload.consignee_contact_phone != null) {
-      payload.consignee_contact_phone = [String(payload.consignee_contact_phone).trim()];
+
+    if (tab === "pos") {
+      // Si tu columna de PO es string, déjala como string.
+      // Si en tu DB SÍ es text[] puedes volver a la versión con array solo aquí.
+      if (payload.consignee_contact_phone != null) {
+        payload.consignee_contact_phone = String(payload.consignee_contact_phone).trim();
+      }
+      if (payload.consignee_contact_email != null) {
+        payload.consignee_contact_email = String(payload.consignee_contact_email).trim();
+      }
     }
 
     // ✅ Insertar o actualizar según sea nuevo o existente

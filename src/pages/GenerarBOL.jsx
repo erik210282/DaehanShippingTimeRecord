@@ -399,7 +399,7 @@ export default function GenerarBOL() {
     return Math.max(7, 2 * CELL_PAD_Y + maxLines * (LINE_H - 0.4)); // un poquito más compacto
   }
 
-  // Normaliza el shipper desde catalogo_shipper (soporta varios nombres de columna)
+  // Normaliza el shipper desde catalogo_shipper (soporta alias de columnas)
   function normalizeShipper(s = {}) {
     const pick = (...vals) => vals.find(v => (v ?? "").toString().trim() !== "") || "";
 
@@ -410,8 +410,11 @@ export default function GenerarBOL() {
     const state    = pick(s.state, s.shipper_state, s.estado);
     const zip      = pick(s.zip, s.zip_code, s.cp, s.postal, s.codigo_postal, s.postcode);
     const country  = pick(s.country, s.shipper_country, s.pais);
+    const contact_name  = pick(s.shipper_contact_name, s.contact_name, s.nombre_contacto);
+    const contact_email = pick(s.shipper_contact_email, s.contact_email, s.email);
+    const contact_phone = pick(s.shipper_contact_phone, s.contact_phone, s.telefono);
 
-    return { name, address1, address2, city, state, zip, country };
+    return { name, address1, address2, city, state, zip, country, contact_name, contact_email, contact_phone };
   }
 
   function resolveBillTo(primaryPO, billToData) {
@@ -618,7 +621,7 @@ export default function GenerarBOL() {
       // ===== Fila 2: Container / Seal / Shipment / Booking / Bill Charges To / PO# =====
       {
         const cW = TAB_W / 6; // 6 columnas
-        const rH = 25;
+        const rH = 30;
 
         // PO's seleccionados (envuelve si son muchos)
         const poList = (Array.isArray(poData) && poData.length > 0)
@@ -658,7 +661,7 @@ export default function GenerarBOL() {
           } else if (Array.isArray(pair[1])) {
             pair[1].forEach(line => {
               const wrapped = doc.splitTextToSize(String(line || ""), cW - 4);
-              wrapped.forEach(ln => { doc.text(ln, x + 2, yy); yy += 3.5; });
+              wrapped.forEach(ln => { doc.text(ln, x + 2, yy); yy += 3.8; });
             });
           }
         });
@@ -668,7 +671,7 @@ export default function GenerarBOL() {
 
       // ===== Fila 3: Shipper (izquierda) + Consignee (derecha) =====
       {
-        const rowH = 30;
+        const rowH = 33;
         const shW = TAB_W / 2 - 1;
         const coX = M + shW + 2;
         const coW = TAB_W / 2 - 1;
@@ -682,28 +685,27 @@ export default function GenerarBOL() {
           SH.name,
           [SH.address1, SH.address2].filter(Boolean).join(" "),
           [SH.city, SH.state, SH.zip].filter(Boolean).join(" "),
-          SH.country
-        ].filter(Boolean).forEach((str) => {
-          doc.text(String(str), M + 2, sy);
-          sy += 3.5;
-        });
+          SH.country,
+          SH.contact_name,
+          SH.contact_phone,
+          SH.contact_email,
+        ].filter(Boolean).forEach((str) => { doc.text(String(str), M + 2, sy); sy += 3.8; });
 
-        // --- Consignee (sin cambios) ---
+        // --- Consignee ---
+        const C = primaryPO || {};
         box(coX, y, coW, rowH);
         text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: true });
         let cy = y + 8.5;
         doc.setFontSize(9);
         [
-          primaryPO?.consignee_name ?? "",
-          [primaryPO?.consignee_address1, primaryPO?.consignee_address2].filter(Boolean).join(" "),
-          [primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip].filter(Boolean).join(" "),
-          primaryPO?.consignee_country ?? ""
-        ].forEach((str) => {
-          if (String(str || "").trim() !== "") {
-            doc.text(String(str), coX + 2, cy);
-            cy += 3;
-          }
-        });
+          C.consignee_name,
+          [C.consignee_address1, C.consignee_address2].filter(Boolean).join(" "),
+          [C.consignee_city, C.consignee_state, C.consignee_zip].filter(Boolean).join(" "),
+          C.consignee_country,
+          C.consignee_contact_name,
+          C.consignee_contact_phone,
+          C.consignee_contact_email,
+        ].filter(Boolean).forEach((str) => { doc.text(String(str), coX + 2, cy); cy += 3.8; });
 
         y += rowH + gap;
       }
