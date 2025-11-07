@@ -816,6 +816,57 @@ export default function GenerarBOL() {
         M, y, { maxWidth: TAB_W }
       );
 
+      // === LEGAL FOOTER ===
+      {
+        // Texto legal
+        const legalText = `
+        The carrier shall not make delivery of this shipment without payment of freight and all other lawful charges.
+        The shipper hereby certifies that he is familiar with all the bill of lading terms and conditions,
+        and that the shipment described herein is properly classified, packaged, marked, and labeled and is
+        in proper condition for transportation according to applicable regulations of the Department of Transportation.`;
+
+        // Configura fuente y color
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(5);
+        doc.setTextColor(150); // gris medio (puedes probar 180, 200, etc.)
+
+        // Posición Y = parte baja del documento
+        const footerY = doc.internal.pageSize.height - 18; // 18 mm desde el borde inferior
+
+        // Ancho útil para texto (márgenes)
+        const footerX = M;           // margen izquierdo ya definido arriba
+        const footerW = TAB_W;       // ancho total de tabla principal
+
+        // Justificar texto
+        const lines = doc.splitTextToSize(legalText.trim(), footerW);
+        const totalWidth = footerW;
+        let currY = footerY;
+
+        // Función para justificar manualmente
+        lines.forEach((line) => {
+          const words = line.trim().split(/\s+/);
+          if (words.length === 1) {
+            // línea corta o última: alineación normal
+            doc.text(line, footerX, currY);
+          } else {
+            // justificado: calcular espaciado extra
+            const textWidth = doc.getTextWidth(line.replace(/\s+/g, " "));
+            const spaceCount = words.length - 1;
+            const extraSpace = (totalWidth - textWidth) / spaceCount;
+
+            let cursorX = footerX;
+            words.forEach((word, i) => {
+              doc.text(word, cursorX, currY);
+              cursorX += doc.getTextWidth(word) + extraSpace;
+            });
+          }
+          currY += 3.8; // separación entre líneas
+        });
+
+        // Regresa color de texto al normal (negro)
+        doc.setTextColor(0);
+      }      
+
       // Guardar
       const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
       doc.save(fileName);
