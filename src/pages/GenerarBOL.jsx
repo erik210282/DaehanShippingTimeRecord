@@ -618,7 +618,7 @@ export default function GenerarBOL() {
       // ===== Fila 2: Container / Seal / Shipment / Booking / Bill Charges To / PO# =====
       {
         const cW = TAB_W / 6; // 6 columnas
-        const rH = 20;
+        const rH = 30;
 
         // PO's seleccionados (envuelve si son muchos)
         const poList = (Array.isArray(poData) && poData.length > 0)
@@ -658,7 +658,7 @@ export default function GenerarBOL() {
           } else if (Array.isArray(pair[1])) {
             pair[1].forEach(line => {
               const wrapped = doc.splitTextToSize(String(line || ""), cW - 4);
-              wrapped.forEach(ln => { doc.text(ln, x + 2, yy); yy += 4; });
+              wrapped.forEach(ln => { doc.text(ln, x + 2, yy); yy += 3; });
             });
           }
         });
@@ -668,7 +668,7 @@ export default function GenerarBOL() {
 
       // ===== Fila 3: Shipper (izquierda) + Consignee (derecha) =====
       {
-        const rowH = 30;
+        const rowH = 40;
         const shW = TAB_W / 2 - 1;
         const coX = M + shW + 2;
         const coW = TAB_W / 2 - 1;
@@ -685,7 +685,7 @@ export default function GenerarBOL() {
           SH.country
         ].filter(Boolean).forEach((str) => {
           doc.text(String(str), M + 2, sy);
-          sy += 4.2;
+          sy += 3;
         });
 
         // --- Consignee (sin cambios) ---
@@ -701,7 +701,7 @@ export default function GenerarBOL() {
         ].forEach((str) => {
           if (String(str || "").trim() !== "") {
             doc.text(String(str), coX + 2, cy);
-            cy += 4.2;
+            cy += 3;
           }
         });
 
