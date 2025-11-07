@@ -649,7 +649,7 @@ export default function GenerarBOL() {
         items.forEach((pair, i) => {
           const x = M + i * cW;
           box(x, y, cW, rH);
-          text(pair[0], "", x, y + 3.5, { size: 7, bold: true });
+          text(pair[0], "", x, y + 3.5, { size: 9, bold: true });
 
           // valor: string, array simple o array de líneas envueltas
           let yy = y + 8.5;
@@ -677,7 +677,7 @@ export default function GenerarBOL() {
         box(M, y, shW, rowH);
         text("Shipper Address", "", M, y + 3.5, { size: 8, bold: true });
         let sy = y + 8.5;
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         [
           SH.name,
           [SH.address1, SH.address2].filter(Boolean).join(" "),
@@ -692,7 +692,7 @@ export default function GenerarBOL() {
         box(coX, y, coW, rowH);
         text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: true });
         let cy = y + 8.5;
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         [
           primaryPO?.consignee_name ?? "",
           [primaryPO?.consignee_address1, primaryPO?.consignee_address2].filter(Boolean).join(" "),
@@ -826,32 +826,43 @@ export default function GenerarBOL() {
 
         // Justificar texto
         const lines = doc.splitTextToSize(legalText.trim(), footerW);
-        const totalWidth = footerW;
         let currY = footerY;
 
         // Función para justificar manualmente
         lines.forEach((line, idx) => {
           const words = line.trim().split(/\s+/);
-          if (idx === lines.length - 1 || words.length === 1) {
-            // última línea: normal
-            doc.text(line, footerX, currY);
+          const isLast = idx === lines.length - 1;
+
+          if (isLast || words.length === 1) {
+            // última línea (o una sola palabra): alineación normal
+            doc.text(line, footerX, yLine);
           } else {
-            // justificado
-            const textWidth = doc.getTextWidth(line.replace(/\s+/g, " "));
-            const spaceCount = words.length - 1;
-            const extraSpace = (totalWidth - textWidth) / spaceCount;
-            let cursorX = footerX;
-            words.forEach((word, i) => {
-              doc.text(word, cursorX, currY);
-              cursorX += doc.getTextWidth(word) + extraSpace;
-            });
+            // justificar: distribuimos espacios hasta cubrir el ancho
+            const plain = line.replace(/\s+/g, " ");                 // texto con un solo espacio
+            const currentWidth = doc.getTextWidth(plain);            // ancho actual
+            const targetWidth  = footerW;
+
+            // si la línea es muy corta, no conviene justificar (evita “huecos” enormes)
+            if (currentWidth < targetWidth * 0.6) {
+              doc.text(line, footerX, yLine);
+            } else {
+              const gaps = words.length - 1;
+              const extra = (targetWidth - currentWidth) / gaps;     // espacio extra por gap
+              let x = footerX;
+
+              words.forEach((w, i) => {
+                doc.text(w, x, yLine);
+                if (i < words.length - 1) {
+                  x += doc.getTextWidth(w + " ") + extra;            // palabra + un espacio + extra
+                }
+              });
+            }
           }
-          currY += 3; // separación entre líneas
+          yLine += 3.6; // interlineado
         });
 
-        doc.setTextColor(0); // regresa a negro
-      }     
-
+        doc.setTextColor(0); // vuelve a negro
+      }  
       // Guardar
       const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
       doc.save(fileName);
