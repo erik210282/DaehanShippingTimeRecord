@@ -817,7 +817,7 @@ export default function GenerarBOL() {
         // Configura fuente y color
         doc.setFont("helvetica", "normal");
         doc.setFontSize(6);
-        doc.setTextColor(250); // gris medio (puedes probar 180, 200, etc.)
+        doc.setTextColor(150); // gris medio (puedes probar 180, 200, etc.)
 
         // Posición Y = parte baja del documento
         const footerY = doc.internal.pageSize.height - 20; // 18 mm desde el borde inferior
