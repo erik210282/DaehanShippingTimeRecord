@@ -62,6 +62,7 @@ export default function GenerarBOL() {
     setProductosById({});
     setPoData([]);
     setShipperData(null);
+
   }, []);
 
   const [idxOptions, setIdxOptions] = React.useState([]);
@@ -85,6 +86,7 @@ export default function GenerarBOL() {
   const [lineasIdx, setLineasIdx] = React.useState([]);
   const [productosById, setProductosById] = React.useState({});
   const [poData, setPoData] = React.useState([]);
+  const [billToData, setBillToData] = React.useState(null);
   const [shipperData, setShipperData] = React.useState(null);
 
   /* ------------------ Cargar IDX (AR) ----------------- */
@@ -311,6 +313,23 @@ export default function GenerarBOL() {
     cargarShipper();
   }, [selectedIdx, selectedPoIds, selectedShipperId]);
 
+  // Cargar Bill Charges To del primer PO seleccionado
+  React.useEffect(() => {
+    const firstPO = Array.isArray(poData) && poData[0]?.po ? poData[0].po : null;
+    if (!firstPO) {
+      setBillToData(null);
+      return;
+    }
+    (async () => {
+      const { data, error } = await supabase
+        .from("bill_charges_to")
+        .select("*")
+        .eq("po", firstPO)
+        .maybeSingle();
+      if (!error) setBillToData(data || null);
+    })();
+  }, [poData]);
+
   /* ---------------- Generar PDF ---------------- */
   function drawHeader(doc, title, rightText = null, y = 12) {
     doc.setFontSize(16);
@@ -380,6 +399,19 @@ export default function GenerarBOL() {
     return Math.max(7, 2 * CELL_PAD_Y + maxLines * (LINE_H - 0.4)); // un poquito más compacto
   }
 
+  function resolveBillTo(primaryPO, billToData, shipper) {
+    const pick = (...vals) => vals.find(v => (v ?? "").toString().trim() !== "") || "";
+    return {
+      name:     pick(billToData?.bill_to_name,     primaryPO?.bill_to_name),
+      address1: pick(billToData?.bill_to_address1, primaryPO?.bill_to_address1),
+      address2: pick(billToData?.bill_to_address2, primaryPO?.bill_to_address2),
+      city:     pick(billToData?.bill_to_city,     primaryPO?.bill_to_city),
+      state:    pick(billToData?.bill_to_state,    primaryPO?.bill_to_state),
+      zip:      pick(billToData?.bill_to_zip,      primaryPO?.bill_to_zip),
+      country:  pick(billToData?.bill_to_country,  primaryPO?.bill_to_country),
+    };
+  }
+
   async function generarPDF() {
     try {
       setIsGenerating(true);
@@ -395,6 +427,7 @@ export default function GenerarBOL() {
       const primaryPO = selPOs[0] || {};
       const poNumbers = selPOs.map((p) => p.po).filter(Boolean);
       const shipper = shipperData || {};
+      const BT = resolveBillTo(primaryPO, billToData);
 
       // --- BILL CHARGES TO: toma primero del PO; si falta, usa shipper (o N/A) ---
       const billTo = {
@@ -583,62 +616,48 @@ export default function GenerarBOL() {
 
       // ===== Fila 2: Container / Seal / Shipment / Booking / Bill Charges To / PO# =====
       {
-        const cW = TAB_W / 6; // 6 columnas iguales
-        const rH = 10;
-        
-        // 🔹 Formatea lista de POs seleccionados
+        const cW = TAB_W / 6; // 6 columnas
+        const rH = 12;
+
+        // PO's seleccionados (envuelve si son muchos)
         const poList = (Array.isArray(poData) && poData.length > 0)
-          ? poData.map((p) => p.po || "").filter(Boolean).join(", ")
+          ? poData.map(p => p.po || "").filter(Boolean).join(", ")
           : (primaryPO?.po ?? "");
-        const poDisplay = doc.splitTextToSize(poList, cW - 4); // envuelve si hay muchos
+        const poDisplay = doc.splitTextToSize(poList, cW - 4);
 
-        // 🔹 Formatea "Bill Charges To" — usa name/address básicos si existen
-        const billToName =
-          primaryPO?.bill_to_name ??
-          primaryPO?.bill_to ??
-          primaryPO?.consignee_name ??
-          "";
-        const billToAddr = [
-          primaryPO?.bill_to_address1,
-          primaryPO?.bill_to_city,
-          primaryPO?.bill_to_state,
-          primaryPO?.bill_to_zip,
-        ]
-          .filter(Boolean)
-          .join(" ");
-        const billToDisplay = doc.splitTextToSize(
-          [billToName, billToAddr].filter(Boolean).join(" "),
-          cW - 4
-        );
+        // Bill-To en líneas (nombre, dir1+dir2, ciudad/estado/zip, país, cuenta/teléfono/email)
+        const btLines = [
+          BT.name,
+          [BT.address1, BT.address2].filter(Boolean).join(" "),
+          [BT.city, BT.state, BT.zip].filter(Boolean).join(", "),
+          BT.country,
+          BT.account ? `Acct: ${BT.account}` : "",
+          BT.phone   ? `Tel: ${BT.phone}`   : "",
+          BT.email   ? `Email: ${BT.email}` : "",
+        ].filter(Boolean);
 
-        // 🔹 Arreglo de etiquetas y valores (mismos anchos)
         const items = [
-          ["Bill Charges To:", billToDisplay],
-          ["Shipment Number", shipmentNo || primaryPO?.shipment_number || ""],
-          ["Container Number", trailerNo || primaryPO?.trailer_number || ""],
-          ["Seal Number", sealNo || primaryPO?.seal_number || ""],
-          [
-            "Booking/Tracking Number",
-            primaryPO?.booking_number ?? primaryPO?.tracking_number ?? "",
-          ],
+          ["Bill Charges To:", btLines], // ← array de líneas
+          ["Shipment Number",  shipmentNo || primaryPO?.shipment_number || ""],
+          ["Container Number", trailerNo  || primaryPO?.trailer_number  || ""],
+          ["Seal Number",      sealNo     || primaryPO?.seal_number     || ""],
+          ["Booking/Tracking Number", primaryPO?.booking_number ?? primaryPO?.tracking_number ?? ""],
           ["PO #’s", poDisplay],
         ];
 
-        // 🔹 Dibuja las 6 cajas
         items.forEach((pair, i) => {
           const x = M + i * cW;
           box(x, y, cW, rH);
           text(pair[0], "", x, y + 3.5, { size: 8, bold: true });
 
-          // Si el valor es texto simple
+          // valor: string, array simple o array de líneas envueltas
+          let yy = y + 8.5;
           if (typeof pair[1] === "string") {
-            text("", pair[1], x, y + 8.5, { size: 9 });
-          } else {
-            // Si el valor es array (texto envuelto)
-            let yy = y + 8.5;
-            pair[1].forEach((ln) => {
-              doc.text(ln, x + 2, yy, { maxWidth: cW - 4 });
-              yy += 4;
+            doc.text(String(pair[1] || ""), x + 2, yy, { maxWidth: cW - 4 });
+          } else if (Array.isArray(pair[1])) {
+            pair[1].forEach(line => {
+              const wrapped = doc.splitTextToSize(String(line || ""), cW - 4);
+              wrapped.forEach(ln => { doc.text(ln, x + 2, yy); yy += 4; });
             });
           }
         });
