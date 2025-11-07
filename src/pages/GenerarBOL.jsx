@@ -350,7 +350,7 @@ export default function GenerarBOL() {
   // === Helpers de tabla auto-ajustable ===
   const CELL_PAD_X = 2;      // padding horizontal
   const CELL_PAD_Y = 3;      // padding vertical
-  const LINE_H = 4.6;        // alto de línea de texto
+  const LINE_H = 4.3;        // alto de línea de texto
   const MIN_ROW_H = 8;       // alto mínimo por fila
 
   function splitFit(doc, txt, width, fontSize = 9) {
@@ -487,11 +487,11 @@ export default function GenerarBOL() {
       const COLS = [
         { k: "pkgQty",  t: "Package\nQuantity",        w: 22, align: "left"  },
         { k: "pkgType", t: "Package\nType",            w: 22, align: "left"  },
-        { k: "desc",    t: "Description",              w: 66, align: "left"  },
+        { k: "desc",    t: "Description",              w: 60, align: "left"  }, 
         { k: "dim",     t: "Dimension Per\nPackage",   w: 36, align: "left"  },
-        { k: "wPer",    t: "Weight Per\nPackage",      w: 14, align: "right" },
-        { k: "wTot",    t: "Total\nWeight",            w: 14, align: "right" },
-        { k: "uom",     t: "UoM",                      w: 2,  align: "left"  },
+        { k: "wPer",    t: "Weight Per\nPackage",      w: 18, align: "right" }, 
+        { k: "wTot",    t: "Total\nWeight",            w: 18, align: "right" }, 
+        { k: "uom",     t: "UOM",                      w: 8,  align: "left"  }, 
       ];
 
       // Función de medición local
@@ -708,15 +708,22 @@ export default function GenerarBOL() {
         const c = COLS[i];
         const hx = COLX[i];
         const lines = splitFit(doc, c.t, c.w, 8);
-        // centrado vertical del título en el header
-        const headerBlockH = lines.length * (LINE_H - 0.4);
-        let hy = TAB_Y + CELL_PAD_Y + (headerTableH - 2 * CELL_PAD_Y - headerBlockH) / 2 + 3.5;
-        lines.forEach(ln => { doc.text(ln, hx + CELL_PAD_X, hy); hy += (LINE_H - 0.4); });
+
+        // alto del bloque de texto y centrado vertical sin extra
+        const blockH = lines.length * (LINE_H - 0.2);
+        let hy = TAB_Y + CELL_PAD_Y + (headerTableH - 2 * CELL_PAD_Y - blockH) / 2;
+
+        lines.forEach(ln => {
+          doc.text(ln, hx + CELL_PAD_X, hy);
+          hy += (LINE_H - 0.2);
+        });
+
         // separador vertical
         doc.line(COLX[i + 1], TAB_Y, COLX[i + 1], TAB_Y + TAB_H);
       }
-      // separador bajo el header
+      // línea bajo el header
       doc.line(TAB_X, TAB_Y + headerTableH, TAB_X + TAB_W, TAB_Y + headerTableH);
+
 
       // body
       let ry = TAB_Y + headerTableH;
