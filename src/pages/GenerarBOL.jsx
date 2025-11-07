@@ -826,7 +826,7 @@ export default function GenerarBOL() {
 
         // Justificar texto
         const lines = doc.splitTextToSize(legalText.trim(), footerW);
-        let currY = footerY;
+        let yLine = footerY;
 
         // Función para justificar manualmente
         lines.forEach((line, idx) => {
