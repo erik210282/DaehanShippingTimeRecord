@@ -522,14 +522,15 @@ export default function GenerarBOL() {
       const TAB_X = M;
       const TAB_W = W - 2 * M;
       const COLS = [
-        { k: "pkgQty",  t: "Package\nQuantity",        w: 22, align: "left"  },
-        { k: "pkgType", t: "Package\nType",            w: 22, align: "left"  },
-        { k: "desc",    t: "Description",              w: 60, align: "left"  }, 
-        { k: "dim",     t: "Dimension Per\nPackage",   w: 36, align: "left"  },
-        { k: "wPer",    t: "Weight Per\nPackage",      w: 18, align: "right" }, 
-        { k: "wTot",    t: "Total\nWeight",            w: 18, align: "right" }, 
-        { k: "uom",     t: "UOM",                      w: 12,  align: "left"  }, 
-      ];
+        { k: "pkgQty",  t: "Package\nQuantity",        w: 22,   align: "left"  },
+        { k: "pkgType", t: "Package\nType",            w: 22,   align: "left"  },
+        { k: "desc",    t: "Description",              w: 64,   align: "left"  },  // +4
+        { k: "dim",     t: "Dimension Per\nPackage",   w: 38.5, align: "left"  },  // +2.5
+        { k: "wPer",    t: "Weight Per\nPackage",      w: 18.7, align: "right" },  // +0.7
+        { k: "wTot",    t: "Total\nWeight",            w: 18.7, align: "right" },  // +0.7
+        { k: "uom",     t: "UOM",                      w: 12,   align: "left"  },
+      ]; // 22+22+64+38.5+18.7+18.7+12 = 195.9 = TAB_W
+
 
       // Función de medición local
       const measureRowH = (doc, row) => {
@@ -552,7 +553,7 @@ export default function GenerarBOL() {
       TMP.setFont("helvetica","normal").setFontSize(9);
 
       const preHeaderTableH = measureHeaderHeight(TMP, COLS, 8); // mídelo de verdad
-      const preBodyTableH   = rows.reduce((acc,r)=> acc + measureRowH(TMP, r), 0) + 1;
+      const preBodyTableH   = rows.reduce((acc,r)=> acc + measureRowH(TMP, r), 0);
 
       const totalsH = 8;
       const firmasH = 40;
