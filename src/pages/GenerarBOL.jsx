@@ -811,19 +811,16 @@ export default function GenerarBOL() {
 
       // === LEGAL FOOTER ===
       {
-        // Texto legal
         const legalText = `
         Received and mutually agreed by the shipper and his assigns and any additional party with an interest to any said property hereto and each carrier of all or any of said property over all or any portion of said route to destination, that every service to be performed hereunder shall be subject to the National Motor Freight classifications (NMF 100 Series) Including the Rules, packaging and the Uniform Bill of Lading Terms and Conditions, the applicable regulations of the US Department of Transportation (DOT), the ATA Hazardous Materials Rules Guide Book and the Household Goods Mileage Guides and to the Carriers tariffs, the Carriers pricing schedules, terms, conditions and rules maintained at Carriers general offices all of which are in effect as of the date of issue of this Bill of Lading. Shipper certifies that the consigned merchandise is properly weighed, classified, described, packaged, marked, labeled, destined as indicated, in apparent good order expect as noted (contents and conditions of contents of packages unknown), and in proper condition for transportation according to the DOT and the NMF 100 Series. Carrier (Carrier being understood throughout this contract as meaning in any person or corporation in possession of the property under this contact) agrees to carry to said destination if on its route, otherwise to deliver to another carrier on the route to said destination. Carrier shall in no event be liable for loss of profit, Income, Interest, attorney fees, or any special, incidental or consequential damages. Subject to section 7 of the conditions, if this shipment is to be delivered to the consignee without recourse on the consignor shall sign the following statement: The carrier shall not make the delivery of this shipment without payment of freight and all other lawful charges.`;
 
         // Configura fuente y color
         doc.setFont("helvetica", "normal");
         doc.setFontSize(5);
-        doc.setTextColor(180); // gris medio (puedes probar 180, 200, etc.)
+        doc.setTextColor(200); // gris medio (puedes probar 180, 200, etc.)
 
         // Posición Y = parte baja del documento
         const footerY = doc.internal.pageSize.height - 18; // 18 mm desde el borde inferior
-
-        // Ancho útil para texto (márgenes)
         const footerX = M;           // margen izquierdo ya definido arriba
         const footerW = TAB_W;       // ancho total de tabla principal
 
@@ -833,17 +830,16 @@ export default function GenerarBOL() {
         let currY = footerY;
 
         // Función para justificar manualmente
-        lines.forEach((line) => {
+        lines.forEach((line, idx) => {
           const words = line.trim().split(/\s+/);
-          if (words.length === 1) {
-            // línea corta o última: alineación normal
+          if (idx === lines.length - 1 || words.length === 1) {
+            // última línea: normal
             doc.text(line, footerX, currY);
           } else {
-            // justificado: calcular espaciado extra
+            // justificado
             const textWidth = doc.getTextWidth(line.replace(/\s+/g, " "));
             const spaceCount = words.length - 1;
             const extraSpace = (totalWidth - textWidth) / spaceCount;
-
             let cursorX = footerX;
             words.forEach((word, i) => {
               doc.text(word, cursorX, currY);
@@ -853,9 +849,8 @@ export default function GenerarBOL() {
           currY += 3.8; // separación entre líneas
         });
 
-        // Regresa color de texto al normal (negro)
-        doc.setTextColor(0);
-      }      
+        doc.setTextColor(0); // regresa a negro
+      }     
 
       // Guardar
       const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
