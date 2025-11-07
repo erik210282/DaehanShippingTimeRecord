@@ -59,6 +59,48 @@ export default function Catalogos() {
     activo: true,
   };
 
+  // --- Bill Charges To (ligado por PO) ---
+  const billToDefaults = {
+    bill_to_name: "",
+    bill_to_address1: "",
+    bill_to_address2: "",
+    bill_to_city: "",
+    bill_to_state: "",
+    bill_to_zip: "",
+    bill_to_country: "",
+    bill_to_phone: "",
+    bill_to_email: "",
+    bill_to_account: "",
+  };
+
+  const [billTo, setBillTo] = useState(billToDefaults);
+
+  async function loadBillToForPO(poNumber) {
+    if (!poNumber) { setBillTo({ ...billToDefaults }); return; }
+    const { data, error } = await supabase
+      .from("bill_charges_to")
+      .select("*")
+      .eq("po", poNumber)
+      .maybeSingle();
+    if (error) {
+      console.error(error);
+      setBillTo({ ...billToDefaults });
+      return;
+    }
+    setBillTo({
+      bill_to_name: data?.bill_to_name || "",
+      bill_to_address1: data?.bill_to_address1 || "",
+      bill_to_address2: data?.bill_to_address2 || "",
+      bill_to_city: data?.bill_to_city || "",
+      bill_to_state: data?.bill_to_state || "",
+      bill_to_zip: data?.bill_to_zip || "",
+      bill_to_country: data?.bill_to_country || "",
+      bill_to_phone: data?.bill_to_phone || "",
+      bill_to_email: data?.bill_to_email || "",
+      bill_to_account: data?.bill_to_account || "",
+    });
+  }
+
   const shipperDefaults = {
     shipper_name: "",
     shipper_address1: "",
@@ -101,7 +143,7 @@ export default function Catalogos() {
   const openNew = () => {
     setIsNew(true);
     if (tab === "productos") setEdit({ ...productDefaults });
-    else if (tab === "pos") setEdit({ ...poDefaults });
+    else if (tab === "pos") { setEdit({ ...poDefaults }); setBillTo({ ...billToDefaults }); }
     else if (tab === "shipper") setEdit({ ...shipperDefaults });
     else setEdit({ ...simpleDefaults });
   };
@@ -202,13 +244,36 @@ async function save() {
       ? supabase.from(tableName).insert(payload).select()
       : supabase.from(tableName).update(payload).eq("id", payload.id).select();
 
-    const { error } = await op;
+    const { data: saved, error } = await op;
+    if (error) throw error;
+
+    // ⬇️ Upsert a bill_charges_to cuando estamos en la pestaña de PO
+    if (tab === "pos") {
+      const poNumber = (saved && saved[0]?.po) || payload.po;
+
+      // normaliza: "" -> null
+      const billPayload = {
+        po: poNumber,
+        ...billTo,
+        updated_at: new Date().toISOString(),
+      };
+      Object.keys(billPayload).forEach((k) => {
+        if (billPayload[k] === "") billPayload[k] = null;
+      });
+
+      const { error: billErr } = await supabase
+        .from("bill_charges_to")
+        .upsert(billPayload, { onConflict: "po" });
+      if (billErr) throw billErr;
+    }
+
     if (error) throw error;
 
     toast.success(t("save_success"));
     setEdit(null);
     setIsNew(false);
     await load();
+    if (tab === "pos") setBillTo({ ...billToDefaults });
   } catch (e) {
     toast.error(e.message || t("error_saving") || "Error al guardar.");
   }
@@ -436,7 +501,9 @@ async function save() {
                         <td>{[r.freight_class, r.freight_charges].filter(Boolean).join(" / ")}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
+                          <button onClick={() => { setEdit(r); setIsNew(false); loadBillToForPO(r.po); }}>
+                            {t("edit")}
+                          </button>
                           <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
                         </td>
                       </>
@@ -472,7 +539,10 @@ async function save() {
           </table>
         </div>
 
-        <Modal isOpen={!!edit} onRequestClose={() => { setEdit(null); setIsNew(false); }}>
+        <Modal
+          isOpen={!!edit}
+          onRequestClose={() => { setEdit(null); setIsNew(false); setBillTo({ ...billToDefaults }); }}
+        >
           <div className="card">
             <h3>{isNew ? t("add") : t("edit")}</h3>
 
@@ -586,6 +656,60 @@ async function save() {
                   />{" "}
                   {t("active", "Activo")}
                 </label>
+                <hr style={{ gridColumn: "1 / -1", margin: "8px 0" }} />
+<strong style={{ gridColumn: "1 / -1" }}>Bill Charges To</strong>
+
+<input
+  placeholder="Name"
+  value={billTo.bill_to_name || ""}
+  onChange={(e) => setBillTo({ ...billTo, bill_to_name: e.target.value })}
+/>
+<input
+  placeholder="Address 1"
+  value={billTo.bill_to_address1 || ""}
+  onChange={(e) => setBillTo({ ...billTo, bill_to_address1: e.target.value })}
+/>
+<input
+  placeholder="Address 2"
+  value={billTo.bill_to_address2 || ""}
+  onChange={(e) => setBillTo({ ...billTo, bill_to_address2: e.target.value })}
+/>
+<input
+  placeholder="City"
+  value={billTo.bill_to_city || ""}
+  onChange={(e) => setBillTo({ ...billTo, bill_to_city: e.target.value })}
+/>
+<input
+  placeholder="State"
+  value={billTo.bill_to_state || ""}
+  onChange={(e) => setBillTo({ ...billTo, bill_to_state: e.target.value })}
+/>
+<input
+  placeholder="ZIP"
+  value={billTo.bill_to_zip || ""}
+  onChange={(e) => setBillTo({ ...billTo, bill_to_zip: e.target.value })}
+/>
+<input
+  placeholder="Country"
+  value={billTo.bill_to_country || ""}
+  onChange={(e) => setBillTo({ ...billTo, bill_to_country: e.target.value })}
+/>
+<input
+  placeholder="Phone (opc.)"
+  value={billTo.bill_to_phone || ""}
+  onChange={(e) => setBillTo({ ...billTo, bill_to_phone: e.target.value })}
+/>
+<input
+  placeholder="Email (opc.)"
+  value={billTo.bill_to_email || ""}
+  onChange={(e) => setBillTo({ ...billTo, bill_to_email: e.target.value })}
+/>
+<input
+  placeholder="Account (opc.)"
+  value={billTo.bill_to_account || ""}
+  onChange={(e) => setBillTo({ ...billTo, bill_to_account: e.target.value })}
+/>
+
               </div>
             )}
 
