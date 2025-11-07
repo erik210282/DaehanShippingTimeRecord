@@ -694,21 +694,6 @@ async function save() {
   value={billTo.bill_to_country || ""}
   onChange={(e) => setBillTo({ ...billTo, bill_to_country: e.target.value })}
 />
-<input
-  placeholder="Phone (opc.)"
-  value={billTo.bill_to_phone || ""}
-  onChange={(e) => setBillTo({ ...billTo, bill_to_phone: e.target.value })}
-/>
-<input
-  placeholder="Email (opc.)"
-  value={billTo.bill_to_email || ""}
-  onChange={(e) => setBillTo({ ...billTo, bill_to_email: e.target.value })}
-/>
-<input
-  placeholder="Account (opc.)"
-  value={billTo.bill_to_account || ""}
-  onChange={(e) => setBillTo({ ...billTo, bill_to_account: e.target.value })}
-/>
 
               </div>
             )}
