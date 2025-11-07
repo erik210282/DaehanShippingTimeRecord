@@ -399,10 +399,10 @@ export default function GenerarBOL() {
     return Math.max(7, 2 * CELL_PAD_Y + maxLines * (LINE_H - 0.4)); // un poquito más compacto
   }
 
-  function resolveBillTo(primaryPO, billToData, shipper) {
+  function resolveBillTo(primaryPO, billToData) {
     const pick = (...vals) => vals.find(v => (v ?? "").toString().trim() !== "") || "";
     return {
-      name:     pick(billToData?.bill_to_name,     primaryPO?.bill_to_name),
+      name:     pick(billToData?.bill_to_name,     primaryPO?.bill_to_name,     primaryPO?.bill_to),
       address1: pick(billToData?.bill_to_address1, primaryPO?.bill_to_address1),
       address2: pick(billToData?.bill_to_address2, primaryPO?.bill_to_address2),
       city:     pick(billToData?.bill_to_city,     primaryPO?.bill_to_city),
@@ -428,20 +428,6 @@ export default function GenerarBOL() {
       const poNumbers = selPOs.map((p) => p.po).filter(Boolean);
       const shipper = shipperData || {};
       const BT = resolveBillTo(primaryPO, billToData);
-
-      // --- BILL CHARGES TO: toma primero del PO; si falta, usa shipper (o N/A) ---
-      const billTo = {
-        name:      primaryPO?.bill_to_name      ?? shipper?.bill_to_name      ?? shipper?.shipper_name ?? "",
-        address1:  primaryPO?.bill_to_address1  ?? shipper?.bill_to_address1  ?? shipper?.address1     ?? "",
-        address2:  primaryPO?.bill_to_address2  ?? shipper?.bill_to_address2  ?? shipper?.address2     ?? "",
-        city:      primaryPO?.bill_to_city      ?? shipper?.bill_to_city      ?? "",
-        state:     primaryPO?.bill_to_state     ?? shipper?.bill_to_state     ?? "",
-        zip:       primaryPO?.bill_to_zip       ?? shipper?.bill_to_zip       ?? "",
-        country:   primaryPO?.bill_to_country   ?? shipper?.bill_to_country   ?? "",
-      };
-
-      // Cadena compacta para ciudad/estado/zip
-      const billToCityLine = [billTo.city, billTo.state, billTo.zip].filter(Boolean).join(", ");
 
       const join = (...a) => a.filter(Boolean).join(" ");
       const bolDate = new Date().toLocaleDateString();
@@ -641,7 +627,7 @@ export default function GenerarBOL() {
           ["Shipment Number",  shipmentNo || primaryPO?.shipment_number || ""],
           ["Container Number", trailerNo  || primaryPO?.trailer_number  || ""],
           ["Seal Number",      sealNo     || primaryPO?.seal_number     || ""],
-          ["Booking/Tracking Number", primaryPO?.booking_number ?? primaryPO?.tracking_number ?? ""],
+          ["Booking Number", primaryPO?.booking_number ?? primaryPO?.tracking_number ?? ""],
           ["PO #’s", poDisplay],
         ];
 
