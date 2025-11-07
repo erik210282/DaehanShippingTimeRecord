@@ -68,9 +68,6 @@ export default function Catalogos() {
     bill_to_state: "",
     bill_to_zip: "",
     bill_to_country: "",
-    bill_to_phone: "",
-    bill_to_email: "",
-    bill_to_account: "",
   };
 
   const [billTo, setBillTo] = useState(billToDefaults);
@@ -95,9 +92,6 @@ export default function Catalogos() {
       bill_to_state: data?.bill_to_state || "",
       bill_to_zip: data?.bill_to_zip || "",
       bill_to_country: data?.bill_to_country || "",
-      bill_to_phone: data?.bill_to_phone || "",
-      bill_to_email: data?.bill_to_email || "",
-      bill_to_account: data?.bill_to_account || "",
     });
   }
 
@@ -657,44 +651,42 @@ async function save() {
                   {t("active", "Activo")}
                 </label>
                 <hr style={{ gridColumn: "1 / -1", margin: "8px 0" }} />
-<strong style={{ gridColumn: "1 / -1" }}>Bill Charges To</strong>
-
-<input
-  placeholder="Name"
-  value={billTo.bill_to_name || ""}
-  onChange={(e) => setBillTo({ ...billTo, bill_to_name: e.target.value })}
-/>
-<input
-  placeholder="Address 1"
-  value={billTo.bill_to_address1 || ""}
-  onChange={(e) => setBillTo({ ...billTo, bill_to_address1: e.target.value })}
-/>
-<input
-  placeholder="Address 2"
-  value={billTo.bill_to_address2 || ""}
-  onChange={(e) => setBillTo({ ...billTo, bill_to_address2: e.target.value })}
-/>
-<input
-  placeholder="City"
-  value={billTo.bill_to_city || ""}
-  onChange={(e) => setBillTo({ ...billTo, bill_to_city: e.target.value })}
-/>
-<input
-  placeholder="State"
-  value={billTo.bill_to_state || ""}
-  onChange={(e) => setBillTo({ ...billTo, bill_to_state: e.target.value })}
-/>
-<input
-  placeholder="ZIP"
-  value={billTo.bill_to_zip || ""}
-  onChange={(e) => setBillTo({ ...billTo, bill_to_zip: e.target.value })}
-/>
-<input
-  placeholder="Country"
-  value={billTo.bill_to_country || ""}
-  onChange={(e) => setBillTo({ ...billTo, bill_to_country: e.target.value })}
-/>
-
+                <strong style={{ gridColumn: "1 / -1" }}>Bill Charges To</strong>
+                <input
+                  placeholder="Name"
+                  value={billTo.bill_to_name || ""}
+                  onChange={(e) => setBillTo({ ...billTo, bill_to_name: e.target.value })}
+                />
+                <input
+                  placeholder="Address 1"
+                  value={billTo.bill_to_address1 || ""}
+                  onChange={(e) => setBillTo({ ...billTo, bill_to_address1: e.target.value })}
+                />
+                <input
+                  placeholder="Address 2"
+                  value={billTo.bill_to_address2 || ""}
+                  onChange={(e) => setBillTo({ ...billTo, bill_to_address2: e.target.value })}
+                />
+                <input
+                  placeholder="City"
+                  value={billTo.bill_to_city || ""}
+                  onChange={(e) => setBillTo({ ...billTo, bill_to_city: e.target.value })}
+                />
+                <input
+                  placeholder="State"
+                  value={billTo.bill_to_state || ""}
+                  onChange={(e) => setBillTo({ ...billTo, bill_to_state: e.target.value })}
+                />
+                <input
+                  placeholder="ZIP"
+                  value={billTo.bill_to_zip || ""}
+                  onChange={(e) => setBillTo({ ...billTo, bill_to_zip: e.target.value })}
+                />
+                <input
+                  placeholder="Country"
+                  value={billTo.bill_to_country || ""}
+                  onChange={(e) => setBillTo({ ...billTo, bill_to_country: e.target.value })}
+                />
               </div>
             )}
 
