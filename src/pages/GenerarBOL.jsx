@@ -820,7 +820,7 @@ export default function GenerarBOL() {
         doc.setTextColor(150); // gris medio (puedes probar 180, 200, etc.)
 
         // Posición Y = parte baja del documento
-        const footerY = doc.internal.pageSize.height - 20; // 18 mm desde el borde inferior
+        const footerY = doc.internal.pageSize.height - 26; // 18 mm desde el borde inferior
         const footerX = M;           // margen izquierdo ya definido arriba
         const footerW = TAB_W;       // ancho total de tabla principal
 
