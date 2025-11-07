@@ -333,6 +333,53 @@ export default function GenerarBOL() {
     doc.text(s(value) || "—", x + 42, y);
   }
 
+  function drawRightFit(doc, text, xRight, y, maxWidth, baseSize = 9) {
+    doc.setFontSize(baseSize);
+    const dims = doc.getTextDimensions(String(text ?? ""));
+    if (dims.w <= maxWidth) {
+      doc.text(String(text ?? ""), xRight, y, { align: "right" });
+    } else {
+      const ratio = maxWidth / Math.max(1, dims.w);
+      const newSize = Math.max(7, Math.floor(baseSize * ratio * 100) / 100);
+      doc.setFontSize(newSize);
+      doc.text(String(text ?? ""), xRight, y, { align: "right" });
+      doc.setFontSize(baseSize);
+    }
+  }
+
+  // === Helpers de tabla auto-ajustable ===
+  const CELL_PAD_X = 2;      // padding horizontal
+  const CELL_PAD_Y = 3;      // padding vertical
+  const LINE_H = 4.6;        // alto de línea de texto
+  const MIN_ROW_H = 8;       // alto mínimo por fila
+
+  function splitFit(doc, txt, width, fontSize = 9) {
+    doc.setFontSize(fontSize);
+    const w = Math.max(2, width - 2 * CELL_PAD_X);
+    return doc.splitTextToSize(String(txt ?? ""), w);
+  }
+
+  function measureRowHeight(doc, row, COLS, fontSize = 9) {
+    let maxLines = 1;
+    for (let i = 0; i < COLS.length; i++) {
+      const c = COLS[i];
+      const lines = splitFit(doc, row[c.k], c.w, fontSize).length;
+      if (lines > maxLines) maxLines = lines;
+    }
+    const h = Math.max(MIN_ROW_H, 2 * CELL_PAD_Y + maxLines * LINE_H);
+    return h;
+  }
+
+  function measureHeaderHeight(doc, COLS, headerFont = 8) {
+    let maxLines = 1;
+    for (let i = 0; i < COLS.length; i++) {
+      const c = COLS[i];
+      const lines = splitFit(doc, c.t, c.w, headerFont).length;
+      if (lines > maxLines) maxLines = lines;
+    }
+    return Math.max(7, 2 * CELL_PAD_Y + maxLines * (LINE_H - 0.4)); // un poquito más compacto
+  }
+
   async function generarPDF() {
     try {
       setIsGenerating(true);
@@ -446,7 +493,6 @@ export default function GenerarBOL() {
         { k: "wTot",    t: "Total\nWeight",            w: 14, align: "right" },
         { k: "uom",     t: "UoM",                      w: 2,  align: "left"  },
       ];
-      const CELL_PAD_X = 2, ROW_PAD_Y = 4, LINE_H = 5, MIN_ROW_H = 8;
 
       // Función de medición local
       const measureRowH = (doc, row) => {
@@ -461,14 +507,16 @@ export default function GenerarBOL() {
           wrap(row.uom,    COLS[6].w).length,
         ];
         const count = Math.max(...lines);
-        return Math.max(MIN_ROW_H, ROW_PAD_Y + count * LINE_H);
+        // Usa el padding vertical que ya tienes definido
+        return Math.max(MIN_ROW_H, (2 * CELL_PAD_Y) + (count * LINE_H));
       };
 
       const TMP = new jsPDF({unit:"mm", format:"letter"}); // solo para medir
       TMP.setFont("helvetica","normal").setFontSize(9);
 
-      const headerTableH = 12; // header de la tabla (títulos en 1-2 líneas)
-      const bodyTableH = rows.reduce((acc,r)=> acc + measureRowH(TMP, r), 0) + 1; // +1 línea base inferior
+      const preHeaderTableH = measureHeaderHeight(TMP, COLS, 8); // mídelo de verdad
+      const preBodyTableH   = rows.reduce((acc,r)=> acc + measureRowH(TMP, r), 0) + 1;
+
       const totalsH = 8;
       const firmasH = 40;
       const legalH  = 10;
@@ -480,10 +528,11 @@ export default function GenerarBOL() {
         grid3H + gap +
         poShipH + gap +
         consigH + gap +
-        headerTableH + bodyTableH + gap +
+        preHeaderTableH + preBodyTableH + gap +
         totalsH + gap +
         firmasH + gap +
-        legalH + gap + 8; // respiración final
+        legalH + gap + 8;
+
 
       const pageH = Math.max(279.4, contentH); // al menos carta; crece si hace falta
 
@@ -637,55 +686,74 @@ export default function GenerarBOL() {
         y += rowH + gap;
       }
 
-      // --------- Tabla (encabezado + filas) ---------
-      const COLX = [M];
-      for (let i=0;i<COLS.length;i++) COLX.push(COLX[i]+COLS[i].w);
+      // ===== Tabla: encabezado y filas auto-ajustables =====
+      // posiciones X acumuladas
+      const COLX = [TAB_X];
+      for (let i = 0; i < COLS.length; i++) COLX.push(COLX[i] + COLS[i].w);
 
-      const TAB_Y = y; const TAB_H = headerTableH + bodyTableH;
-      // marco
-      doc.setLineWidth(0.25); doc.rect(TAB_X, TAB_Y, TAB_W, TAB_H);
+      // usar las medidas ya calculadas
+      const headerTableH = preHeaderTableH;
+      let bodyTableH = preBodyTableH;
+      doc.setFont("helvetica", "normal").setFontSize(9); // deja la fuente lista para el cuerpo
+
+      // marco total
+      const TAB_Y = y;
+      const TAB_H = headerTableH + bodyTableH;
+      doc.setLineWidth(0.25);
+      doc.rect(TAB_X, TAB_Y, TAB_W, TAB_H);
 
       // header
-      doc.setFont("helvetica","bold"); doc.setFontSize(8);
-      let hx = TAB_X;
-      COLS.forEach((c, idx)=>{
-        const lines = doc.splitTextToSize(c.t, c.w - 4);
-        let hy = TAB_Y + 4;
-        lines.forEach(ln=>{ doc.text(ln, hx + 2, hy); hy += 4; });
-        hx += c.w;
-        line(hx, TAB_Y, hx, TAB_Y + TAB_H);
-      });
-      line(TAB_X, TAB_Y + headerTableH, TAB_X + TAB_W, TAB_Y + headerTableH);
+      doc.setFont("helvetica", "bold").setFontSize(8);
+      for (let i = 0; i < COLS.length; i++) {
+        const c = COLS[i];
+        const hx = COLX[i];
+        const lines = splitFit(doc, c.t, c.w, 8);
+        // centrado vertical del título en el header
+        const headerBlockH = lines.length * (LINE_H - 0.4);
+        let hy = TAB_Y + CELL_PAD_Y + (headerTableH - 2 * CELL_PAD_Y - headerBlockH) / 2 + 3.5;
+        lines.forEach(ln => { doc.text(ln, hx + CELL_PAD_X, hy); hy += (LINE_H - 0.4); });
+        // separador vertical
+        doc.line(COLX[i + 1], TAB_Y, COLX[i + 1], TAB_Y + TAB_H);
+      }
+      // separador bajo el header
+      doc.line(TAB_X, TAB_Y + headerTableH, TAB_X + TAB_W, TAB_Y + headerTableH);
 
       // body
-      let ry = TAB_Y + headerTableH + 5;
-      doc.setFont("helvetica","normal"); doc.setFontSize(9);
-      rows.forEach((row)=>{
-        const wrap = (txt,w) => doc.splitTextToSize(String(txt||""), Math.max(2, w - 2*CELL_PAD_X));
-        const arrs = [
-          wrap(row.pkgQty, COLS[0].w), wrap(row.pkgType, COLS[1].w),
-          wrap(row.desc,   COLS[2].w), wrap(row.dim,    COLS[3].w),
-          wrap(row.wPer,   COLS[4].w), wrap(row.wTot,   COLS[5].w),
-          wrap(row.uom,    COLS[6].w),
-        ];
-        const count = Math.max(...arrs.map(a=>a.length));
-        const rowH  = Math.max(MIN_ROW_H, ROW_PAD_Y + count*LINE_H);
+      let ry = TAB_Y + headerTableH;
+      doc.setFont("helvetica", "normal").setFontSize(9);
 
-        let x = TAB_X;
-        arrs.forEach((linesArr, i)=>{
-          linesArr.forEach((ln, k)=>{
-            const yy = ry + k*LINE_H;
-            const c = COLS[i];
-            if (c.align === "right") doc.text(ln, x + c.w - CELL_PAD_X, yy, {align:"right"});
-            else doc.text(ln, x + CELL_PAD_X, yy);
+      for (let r = 0; r < rows.length; r++) {
+        const row = rows[r];
+        const rowH = measureRowHeight(doc, row, COLS, 9);
+
+        for (let i = 0; i < COLS.length; i++) {
+          const c = COLS[i];
+          const cx = COLX[i];
+          const content = splitFit(doc, row[c.k], c.w, 9);
+
+          // alto del bloque de texto y centrado vertical
+          const blockH = content.length * LINE_H;
+          let ty = ry + CELL_PAD_Y + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 2) + 3.5;
+
+          content.forEach(ln => {
+            if (c.align === "right") {
+              doc.text(ln, cx + c.w - CELL_PAD_X, ty, { align: "right" });
+            } else {
+              doc.text(ln, cx + CELL_PAD_X, ty);
+            }
+            ty += LINE_H;
           });
-          x += COLS[i].w;
-          line(x, ry - ROW_PAD_Y, x, ry - ROW_PAD_Y + rowH); // vertical
-        });
-        line(TAB_X, ry - ROW_PAD_Y + rowH, TAB_X + TAB_W, ry - ROW_PAD_Y + rowH); // horizontal
-        ry += rowH;
-      });
 
+          // línea vertical de la celda
+          doc.line(cx + c.w, ry, cx + c.w, ry + rowH);
+        }
+
+        // línea inferior de la fila
+        doc.line(TAB_X, ry + rowH, TAB_X + TAB_W, ry + rowH);
+        ry += rowH;
+      }
+
+      // cursor global debajo de la tabla
       y = TAB_Y + TAB_H + gap;
 
       // Totales
