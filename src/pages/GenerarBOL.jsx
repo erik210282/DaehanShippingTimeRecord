@@ -624,12 +624,12 @@ export default function GenerarBOL() {
 
         // --- Anchos personalizados (deben sumar TAB_W) ---
         const widths = [
-          TAB_W * 0.25, // 0 Bill Charges To
-          TAB_W * 0.15, // 1 Shipment Number
+          TAB_W * 0.23, // 0 Bill Charges To
+          TAB_W * 0.17, // 1 Shipment Number
           TAB_W * 0.15, // 2 Container Number
-          TAB_W * 0.15, // 3 Seal Number
-          TAB_W * 0.20, // 4 Booking/Tracking Number
-          TAB_W * 0.10, // 5 PO #'s (más pequeño)
+          TAB_W * 0.12, // 3 Seal Number
+          TAB_W * 0.15, // 4 Booking/Tracking Number
+          TAB_W * 0.18, // 5 PO #'s (más pequeño)
         ];
 
         // util: X inicial por columna (acumulado)
