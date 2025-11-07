@@ -532,74 +532,81 @@ export default function GenerarBOL() {
         y += cH + gap;
       }
 
-      // ===== Fila 2: Bill Charges To =====
+      // ===== Fila 2: Container / Seal / Shipment / Booking / Bill Charges To / PO# =====
       {
-        // Bill Charges To (ocupa el resto)
-        const billX = M + 46;
-        const billW = TAB_W - 46;
-        const billH = 16; // súbelo a 18-20 si tu dirección es larga
-        box(billX, y, billW, billH);
-        text("Bill Charges To", "", billX, y + 3.5, { size: 8, bold: true });
-
-        const btX = billX + 2;
-        const btW = billW - 4;
-        let by = y + 8.5;
-
-        const lines = [
-          billTo.name,
-          [billTo.address1, billTo.address2].filter(Boolean).join(" "),
-          billToCityLine,
-          billTo.country,
-          billTo.account ? `Acct: ${billTo.account}` : "",
-          billTo.phone   ? `Tel: ${billTo.phone}`   : "",
-          billTo.email   ? `Email: ${billTo.email}` : "",
-        ].filter(Boolean);
-
-        doc.setFontSize(9);
-        lines.forEach((s) => {
-          const wrapped = doc.splitTextToSize(String(s || ""), btW);
-          wrapped.forEach((ln) => { doc.text(ln, btX, by); by += 4.2; });
-        });
-
-        y += billH + gap;
-      }
-
-      // ===== Fila 3: Container / Seal / Shipment / Booking =====
-      {
-        const cW = (TAB_W / 4);
+        const cW = TAB_W / 6; // 6 columnas iguales
         const rH = 10;
+        
+        // 🔹 Formatea lista de POs seleccionados
+        const poList = (Array.isArray(poData) && poData.length > 0)
+          ? poData.map((p) => p.po || "").filter(Boolean).join(", ")
+          : (primaryPO?.po ?? "");
+        const poDisplay = doc.splitTextToSize(poList, cW - 4); // envuelve si hay muchos
+
+        // 🔹 Formatea "Bill Charges To" — usa name/address básicos si existen
+        const billToName =
+          primaryPO?.bill_to_name ??
+          primaryPO?.bill_to ??
+          primaryPO?.consignee_name ??
+          "";
+        const billToAddr = [
+          primaryPO?.bill_to_address1,
+          primaryPO?.bill_to_city,
+          primaryPO?.bill_to_state,
+          primaryPO?.bill_to_zip,
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const billToDisplay = doc.splitTextToSize(
+          [billToName, billToAddr].filter(Boolean).join(" "),
+          cW - 4
+        );
+
+        // 🔹 Arreglo de etiquetas y valores (mismos anchos)
         const items = [
+          ["Bill Charges To:", billToDisplay],
+          ["Shipment Number", shipmentNo || primaryPO?.shipment_number || ""],
           ["Container Number", trailerNo || primaryPO?.trailer_number || ""],
-          ["Seal Number",      sealNo || primaryPO?.seal_number || ""],
-          ["Shipment Number",  shipmentNo || primaryPO?.shipment_number || ""],
-          ["Booking/Tracking Number", primaryPO?.booking_number ?? primaryPO?.tracking_number ?? ""],
+          ["Seal Number", sealNo || primaryPO?.seal_number || ""],
+          [
+            "Booking/Tracking Number",
+            primaryPO?.booking_number ?? primaryPO?.tracking_number ?? "",
+          ],
+          ["PO #’s", poDisplay],
         ];
+
+        // 🔹 Dibuja las 6 cajas
         items.forEach((pair, i) => {
           const x = M + i * cW;
           box(x, y, cW, rH);
           text(pair[0], "", x, y + 3.5, { size: 8, bold: true });
-          text("", pair[1], x, y + 8.5, { size: 9 });
+
+          // Si el valor es texto simple
+          if (typeof pair[1] === "string") {
+            text("", pair[1], x, y + 8.5, { size: 9 });
+          } else {
+            // Si el valor es array (texto envuelto)
+            let yy = y + 8.5;
+            pair[1].forEach((ln) => {
+              doc.text(ln, x + 2, yy, { maxWidth: cW - 4 });
+              yy += 4;
+            });
+          }
         });
+
         y += rH + gap;
       }
 
-      // ===== Fila 4: Po# + Shipper (compacto) =====
+      // ===== Fila 3: Shipper (izquierda) + Consignee (derecha) =====
       {
-        // Po#
-        box(M, y, 56, 10);
-        text("Po#", "", M, y + 3.5, { size: 8, bold: true });
-        const poTxt = (() => {
-          if (poNumbers.length <= 2) return poNumbers.join(", ");
-          const mid = Math.ceil(poNumbers.length / 2);
-          return poNumbers.slice(0, mid).join(", ") + "\n" + poNumbers.slice(mid).join(", ");
-        })();
-        doc.setFontSize(9);
-        doc.text(doc.splitTextToSize(poTxt, 52), M + 2, y + 8.5);
+        const rowH = 18; // altura de ambas cajas
+        const shW = TAB_W / 2 - 1; // mitad izquierda
+        const coX = M + shW + 2;   // posición inicial de Consignee
+        const coW = TAB_W / 2 - 1; // mitad derecha
 
-        // Shipper Address
-        const shX = M + 58, shW = TAB_W - 58, shH = 16;
-        box(shX, y, shW, shH);
-        text("Shipper Address", "", shX, y + 3.5, { size: 8, bold: true });
+        // --- Shipper ---
+        box(M, y, shW, rowH);
+        text("Shipper Address", "", M, y + 3.5, { size: 8, bold: true });
         let sy = y + 8.5;
         doc.setFontSize(9);
         [
@@ -607,24 +614,27 @@ export default function GenerarBOL() {
           [shipper?.address1, shipper?.address2].filter(Boolean).join(" "),
           [shipper?.city, shipper?.state, shipper?.zip].filter(Boolean).join(" "),
           (shipper?.country ?? "")
-        ].forEach((str) => { doc.text(String(str || ""), shX + 2, sy); sy += 4.2; });
+        ].forEach((str) => {
+          doc.text(String(str || ""), M + 2, sy);
+          sy += 4.2;
+        });
 
-        y += shH + gap;
-      }
-
-      // ===== Fila 5: Consignee (compacto) =====
-      {
-        const h = 18;
-        box(M, y, TAB_W, h);
-        text("Consignee Address", "", M, y + 3.5, { size: 8, bold: true });
-        let cy = y + 8.5; doc.setFontSize(9);
+        // --- Consignee ---
+        box(coX, y, coW, rowH);
+        text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: true });
+        let cy = y + 8.5;
+        doc.setFontSize(9);
         [
           primaryPO?.consignee_name ?? "",
           [primaryPO?.consignee_address1, primaryPO?.consignee_address2].filter(Boolean).join(" "),
           [primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip].filter(Boolean).join(" "),
           primaryPO?.consignee_country ?? ""
-        ].forEach((str) => { doc.text(String(str || ""), M + 2, cy); cy += 4.2; });
-        y += h + gap;
+        ].forEach((str) => {
+          doc.text(String(str || ""), coX + 2, cy);
+          cy += 4.2;
+        });
+
+        y += rowH + gap;
       }
 
       // --------- Tabla (encabezado + filas) ---------
