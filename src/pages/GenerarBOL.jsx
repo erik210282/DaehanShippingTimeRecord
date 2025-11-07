@@ -441,7 +441,7 @@ export default function GenerarBOL() {
       const selPOs = Array.isArray(poData) ? poData : [];
       const primaryPO = selPOs[0] || {};
       const poNumbers = selPOs.map((p) => p.po).filter(Boolean);
-      const SH = normalizeShipper(shipper);
+      const SH = normalizeShipper(shipperData || {});
       const BT = resolveBillTo(primaryPO, billToData);
 
       const join = (...a) => a.filter(Boolean).join(" ");
@@ -649,7 +649,7 @@ export default function GenerarBOL() {
         items.forEach((pair, i) => {
           const x = M + i * cW;
           box(x, y, cW, rH);
-          text(pair[0], "", x, y + 3.5, { size: 8, bold: true });
+          text(pair[0], "", x, y + 3.5, { size: 7, bold: true });
 
           // valor: string, array simple o array de líneas envueltas
           let yy = y + 8.5;
@@ -677,7 +677,7 @@ export default function GenerarBOL() {
         box(M, y, shW, rowH);
         text("Shipper Address", "", M, y + 3.5, { size: 8, bold: true });
         let sy = y + 8.5;
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         [
           SH.name,
           [SH.address1, SH.address2].filter(Boolean).join(" "),
@@ -692,7 +692,7 @@ export default function GenerarBOL() {
         box(coX, y, coW, rowH);
         text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: true });
         let cy = y + 8.5;
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         [
           primaryPO?.consignee_name ?? "",
           [primaryPO?.consignee_address1, primaryPO?.consignee_address2].filter(Boolean).join(" "),
