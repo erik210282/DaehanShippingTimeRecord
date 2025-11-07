@@ -349,6 +349,20 @@ export default function GenerarBOL() {
       const poNumbers = selPOs.map((p) => p.po).filter(Boolean);
       const shipper = shipperData || {};
 
+      // --- BILL CHARGES TO: toma primero del PO; si falta, usa shipper (o N/A) ---
+      const billTo = {
+        name:      primaryPO?.bill_to_name      ?? shipper?.bill_to_name      ?? shipper?.shipper_name ?? "",
+        address1:  primaryPO?.bill_to_address1  ?? shipper?.bill_to_address1  ?? shipper?.address1     ?? "",
+        address2:  primaryPO?.bill_to_address2  ?? shipper?.bill_to_address2  ?? shipper?.address2     ?? "",
+        city:      primaryPO?.bill_to_city      ?? shipper?.bill_to_city      ?? "",
+        state:     primaryPO?.bill_to_state     ?? shipper?.bill_to_state     ?? "",
+        zip:       primaryPO?.bill_to_zip       ?? shipper?.bill_to_zip       ?? "",
+        country:   primaryPO?.bill_to_country   ?? shipper?.bill_to_country   ?? "",
+      };
+
+      // Cadena compacta para ciudad/estado/zip
+      const billToCityLine = [billTo.city, billTo.state, billTo.zip].filter(Boolean).join(", ");
+
       const join = (...a) => a.filter(Boolean).join(" ");
       const bolDate = new Date().toLocaleDateString();
 
@@ -519,25 +533,36 @@ export default function GenerarBOL() {
 
       // ===== Fila 2: BOL Date + Bill Charges To =====
       {
-        // BOL Date angosto
+        // BOL Date (angosto)
         box(M, y, 44, 10);
         text("BOL Date", "", M, y + 3.5, { size: 8, bold: true });
         text("", bolDate, M, y + 8.5, { size: 9 });
 
-        // Bill Charges To ocupa el resto (compactado)
-        const billX = M + 46;          // 2mm de respiración
+        // Bill Charges To (ocupa el resto)
+        const billX = M + 46;
         const billW = TAB_W - 46;
-        const billH = 16;              // si se queda corto, súbelo a 18–20
+        const billH = 16; // súbelo a 18-20 si tu dirección es larga
         box(billX, y, billW, billH);
         text("Bill Charges To", "", billX, y + 3.5, { size: 8, bold: true });
-        const btX = billX + 2, btW = billW - 4; let by = y + 8.5;
-        const billToName    = primaryPO?.bill_to_name ?? "";
-        const billToAddr    = [primaryPO?.bill_to_address1, primaryPO?.bill_to_address2].filter(Boolean).join(" ");
-        const billToCity    = [primaryPO?.bill_to_city, primaryPO?.bill_to_state, primaryPO?.bill_to_zip].filter(Boolean).join(" ");
-        const billToCountry = primaryPO?.bill_to_country ?? "";
-        [billToName, billToAddr, billToCity, billToCountry].forEach((s) => {
-          doc.setFontSize(9);
-          doc.splitTextToSize(String(s || ""), btW).forEach((ln) => { doc.text(ln, btX, by); by += 4.2; });
+
+        const btX = billX + 2;
+        const btW = billW - 4;
+        let by = y + 8.5;
+
+        const lines = [
+          billTo.name,
+          [billTo.address1, billTo.address2].filter(Boolean).join(" "),
+          billToCityLine,
+          billTo.country,
+          billTo.account ? `Acct: ${billTo.account}` : "",
+          billTo.phone   ? `Tel: ${billTo.phone}`   : "",
+          billTo.email   ? `Email: ${billTo.email}` : "",
+        ].filter(Boolean);
+
+        doc.setFontSize(9);
+        lines.forEach((s) => {
+          const wrapped = doc.splitTextToSize(String(s || ""), btW);
+          wrapped.forEach((ln) => { doc.text(ln, btX, by); by += 4.2; });
         });
 
         y += billH + gap;
