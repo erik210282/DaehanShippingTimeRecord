@@ -521,7 +521,7 @@ export default function GenerarBOL() {
           ["Freight Class",   primaryPO?.freight_class ?? ""],
           ["Freight Charges", primaryPO?.freight_charges ?? primaryPO?.freight_charge ?? ""],
           ["Carrier Name",    primaryPO?.carrier_name ?? ""],
-          ["BOL Date",        primaryPO?.bolDate ?? ""],
+          ["BOL Date",        bolDate ?? ""],
         ];
         items.forEach((h, i) => {
           const x = M + i * cW;
