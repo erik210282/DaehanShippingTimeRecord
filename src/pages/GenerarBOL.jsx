@@ -399,6 +399,21 @@ export default function GenerarBOL() {
     return Math.max(7, 2 * CELL_PAD_Y + maxLines * (LINE_H - 0.4)); // un poquito más compacto
   }
 
+  // Normaliza el shipper desde catalogo_shipper (soporta varios nombres de columna)
+  function normalizeShipper(s = {}) {
+    const pick = (...vals) => vals.find(v => (v ?? "").toString().trim() !== "") || "";
+
+    const name     = pick(s.shipper_name, s.shipper, s.name);
+    const address1 = pick(s.address1, s.shipper_address1, s.shipper_address, s.address, s.direccion, s.address_line1, s.street);
+    const address2 = pick(s.address2, s.shipper_address2, s.address_line2);
+    const city     = pick(s.city, s.shipper_city, s.ciudad);
+    const state    = pick(s.state, s.shipper_state, s.estado);
+    const zip      = pick(s.zip, s.zip_code, s.cp, s.postal, s.codigo_postal, s.postcode);
+    const country  = pick(s.country, s.shipper_country, s.pais);
+
+    return { name, address1, address2, city, state, zip, country };
+  }
+
   function resolveBillTo(primaryPO, billToData) {
     const pick = (...vals) => vals.find(v => (v ?? "").toString().trim() !== "") || "";
     return {
@@ -426,7 +441,7 @@ export default function GenerarBOL() {
       const selPOs = Array.isArray(poData) ? poData : [];
       const primaryPO = selPOs[0] || {};
       const poNumbers = selPOs.map((p) => p.po).filter(Boolean);
-      const shipper = shipperData || {};
+      const SH = normalizeShipper(shipper);
       const BT = resolveBillTo(primaryPO, billToData);
 
       const join = (...a) => a.filter(Boolean).join(" ");
@@ -653,10 +668,10 @@ export default function GenerarBOL() {
 
       // ===== Fila 3: Shipper (izquierda) + Consignee (derecha) =====
       {
-        const rowH = 18; // altura de ambas cajas
-        const shW = TAB_W / 2 - 1; // mitad izquierda
-        const coX = M + shW + 2;   // posición inicial de Consignee
-        const coW = TAB_W / 2 - 1; // mitad derecha
+        const rowH = 18;
+        const shW = TAB_W / 2 - 1;
+        const coX = M + shW + 2;
+        const coW = TAB_W / 2 - 1;
 
         // --- Shipper ---
         box(M, y, shW, rowH);
@@ -664,16 +679,16 @@ export default function GenerarBOL() {
         let sy = y + 8.5;
         doc.setFontSize(9);
         [
-          (shipper?.shipper_name ?? shipper?.shipper ?? ""),
-          [shipper?.address1, shipper?.address2].filter(Boolean).join(" "),
-          [shipper?.city, shipper?.state, shipper?.zip].filter(Boolean).join(" "),
-          (shipper?.country ?? "")
-        ].forEach((str) => {
-          doc.text(String(str || ""), M + 2, sy);
+          SH.name,
+          [SH.address1, SH.address2].filter(Boolean).join(" "),
+          [SH.city, SH.state, SH.zip].filter(Boolean).join(" "),
+          SH.country
+        ].filter(Boolean).forEach((str) => {
+          doc.text(String(str), M + 2, sy);
           sy += 4.2;
         });
 
-        // --- Consignee ---
+        // --- Consignee (sin cambios) ---
         box(coX, y, coW, rowH);
         text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: true });
         let cy = y + 8.5;
@@ -684,8 +699,10 @@ export default function GenerarBOL() {
           [primaryPO?.consignee_city, primaryPO?.consignee_state, primaryPO?.consignee_zip].filter(Boolean).join(" "),
           primaryPO?.consignee_country ?? ""
         ].forEach((str) => {
-          doc.text(String(str || ""), coX + 2, cy);
-          cy += 4.2;
+          if (String(str || "").trim() !== "") {
+            doc.text(String(str), coX + 2, cy);
+            cy += 4.2;
+          }
         });
 
         y += rowH + gap;
