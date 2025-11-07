@@ -618,7 +618,7 @@ export default function GenerarBOL() {
       // ===== Fila 2: Container / Seal / Shipment / Booking / Bill Charges To / PO# =====
       {
         const cW = TAB_W / 6; // 6 columnas
-        const rH = 12;
+        const rH = 20;
 
         // PO's seleccionados (envuelve si son muchos)
         const poList = (Array.isArray(poData) && poData.length > 0)
@@ -668,7 +668,7 @@ export default function GenerarBOL() {
 
       // ===== Fila 3: Shipper (izquierda) + Consignee (derecha) =====
       {
-        const rowH = 18;
+        const rowH = 30;
         const shW = TAB_W / 2 - 1;
         const coX = M + shW + 2;
         const coW = TAB_W / 2 - 1;
@@ -820,7 +820,7 @@ export default function GenerarBOL() {
         doc.setTextColor(150); // gris medio (puedes probar 180, 200, etc.)
 
         // Posición Y = parte baja del documento
-        const footerY = doc.internal.pageSize.height - 26; // 18 mm desde el borde inferior
+        const footerY = doc.internal.pageSize.height - 30; // 18 mm desde el borde inferior
         const footerX = M;           // margen izquierdo ya definido arriba
         const footerW = TAB_W;       // ancho total de tabla principal
 
