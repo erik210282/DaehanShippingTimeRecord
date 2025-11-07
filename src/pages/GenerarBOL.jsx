@@ -816,11 +816,11 @@ export default function GenerarBOL() {
 
         // Configura fuente y color
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(5);
-        doc.setTextColor(200); // gris medio (puedes probar 180, 200, etc.)
+        doc.setFontSize(6);
+        doc.setTextColor(250); // gris medio (puedes probar 180, 200, etc.)
 
         // Posición Y = parte baja del documento
-        const footerY = doc.internal.pageSize.height - 18; // 18 mm desde el borde inferior
+        const footerY = doc.internal.pageSize.height - 20; // 18 mm desde el borde inferior
         const footerX = M;           // margen izquierdo ya definido arriba
         const footerW = TAB_W;       // ancho total de tabla principal
 
@@ -846,7 +846,7 @@ export default function GenerarBOL() {
               cursorX += doc.getTextWidth(word) + extraSpace;
             });
           }
-          currY += 3.8; // separación entre líneas
+          currY += 3; // separación entre líneas
         });
 
         doc.setTextColor(0); // regresa a negro
