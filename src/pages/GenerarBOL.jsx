@@ -618,7 +618,7 @@ export default function GenerarBOL() {
       // ===== Fila 2: Container / Seal / Shipment / Booking / Bill Charges To / PO# =====
       {
         const cW = TAB_W / 6; // 6 columnas
-        const rH = 28;
+        const rH = 25;
 
         // PO's seleccionados (envuelve si son muchos)
         const poList = (Array.isArray(poData) && poData.length > 0)
@@ -668,7 +668,7 @@ export default function GenerarBOL() {
 
       // ===== Fila 3: Shipper (izquierda) + Consignee (derecha) =====
       {
-        const rowH = 35;
+        const rowH = 30;
         const shW = TAB_W / 2 - 1;
         const coX = M + shW + 2;
         const coW = TAB_W / 2 - 1;
