@@ -475,10 +475,10 @@ export default function GenerarBOL() {
 
       const headerH = 10;  // "Bill of Lading" + línea
       const grid1H  = 10;  // fila Freight/Charges/Carrier (3 cajas)
-      const grid2H  = 16;  // BOL Date + Bill Charges To (sin Secondary)
+      const grid2H  = 22;  // BOL Date + Bill Charges To (sin Secondary)
       const grid3H  = 10;  // Container/Seal/Shipment/Booking
-      const poShipH = 16;  // Po# + Shipper
-      const consigH = 18;  // Consignee
+      const poShipH = 25;  // Po# + Shipper
+      const consigH = 25;  // Consignee
       const gap     = 2;   // separación mínima entre bloques
 
       // Tabla
@@ -491,7 +491,7 @@ export default function GenerarBOL() {
         { k: "dim",     t: "Dimension Per\nPackage",   w: 36, align: "left"  },
         { k: "wPer",    t: "Weight Per\nPackage",      w: 18, align: "right" }, 
         { k: "wTot",    t: "Total\nWeight",            w: 18, align: "right" }, 
-        { k: "uom",     t: "UOM",                      w: 8,  align: "left"  }, 
+        { k: "uom",     t: "UOM",                      w: 12,  align: "left"  }, 
       ];
 
       // Función de medición local
