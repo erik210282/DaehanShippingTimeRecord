@@ -513,14 +513,15 @@ export default function GenerarBOL() {
       line(M, 24, W-M, 24);
       let y = 24 + gap;
 
-      // ===== Fila 1: 3 cajas (Freight/Charges/Carrier) =====
+      // ===== Fila 1: 3 cajas (Freight/Charges/Carrier/Bol Date) =====
       {
-        const cW = (TAB_W / 3);
+        const cW = (TAB_W / 4);
         const cH = 10; // súper compacto
         const items = [
           ["Freight Class",   primaryPO?.freight_class ?? ""],
           ["Freight Charges", primaryPO?.freight_charges ?? primaryPO?.freight_charge ?? ""],
           ["Carrier Name",    primaryPO?.carrier_name ?? ""],
+          ["BOL Date",        primaryPO?.bolDate ?? ""],
         ];
         items.forEach((h, i) => {
           const x = M + i * cW;
@@ -531,13 +532,8 @@ export default function GenerarBOL() {
         y += cH + gap;
       }
 
-      // ===== Fila 2: BOL Date + Bill Charges To =====
+      // ===== Fila 2: Bill Charges To =====
       {
-        // BOL Date (angosto)
-        box(M, y, 44, 10);
-        text("BOL Date", "", M, y + 3.5, { size: 8, bold: true });
-        text("", bolDate, M, y + 8.5, { size: 9 });
-
         // Bill Charges To (ocupa el resto)
         const billX = M + 46;
         const billW = TAB_W - 46;
