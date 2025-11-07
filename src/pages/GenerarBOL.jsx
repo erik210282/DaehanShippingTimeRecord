@@ -618,56 +618,74 @@ export default function GenerarBOL() {
         y += cH + gap;
       }
 
-      // ===== Fila 2: Container / Seal / Shipment / Booking / Bill Charges To / PO# =====
+      // ===== Fila 2: Bill Charges / Shipment / Container / Seal / Booking / PO =====
       {
-        const cW = TAB_W / 6; // 6 columnas
-        const rH = 30;
+        const rH = 33; // altura de las cajas
 
-        // PO's seleccionados (envuelve si son muchos)
+        // --- Anchos personalizados (deben sumar TAB_W) ---
+        const widths = [
+          TAB_W * 0.25, // 0 Bill Charges To
+          TAB_W * 0.15, // 1 Shipment Number
+          TAB_W * 0.15, // 2 Container Number
+          TAB_W * 0.15, // 3 Seal Number
+          TAB_W * 0.20, // 4 Booking/Tracking Number
+          TAB_W * 0.10, // 5 PO #'s (más pequeño)
+        ];
+
+        // util: X inicial por columna (acumulado)
+        const startX = widths.map((_, i) => M + widths.slice(0, i).reduce((a, b) => a + b, 0));
+
+        // PO's seleccionados (envuelve si son muchos) usando el ancho REAL de la 6a columna
         const poList = (Array.isArray(poData) && poData.length > 0)
           ? poData.map(p => p.po || "").filter(Boolean).join(", ")
           : (primaryPO?.po ?? "");
-        const poDisplay = doc.splitTextToSize(poList, cW - 4);
+        const poDisplay = doc.splitTextToSize(poList, Math.max(2, widths[5] - 4));
 
-        // Bill-To en líneas (nombre, dir1+dir2, ciudad/estado/zip, país, cuenta/teléfono/email)
+        // Bill-To en líneas (nombre, dir1+dir2, ciudad/estado/zip, país)
         const btLines = [
           BT.name,
           [BT.address1, BT.address2].filter(Boolean).join(" "),
           [BT.city, BT.state, BT.zip].filter(Boolean).join(", "),
           BT.country,
-          BT.account ? `Acct: ${BT.account}` : "",
-          BT.phone   ? `Tel: ${BT.phone}`   : "",
-          BT.email   ? `Email: ${BT.email}` : "",
         ].filter(Boolean);
 
         const items = [
-          ["Bill Charges To:", btLines], // ← array de líneas
-          ["Shipment Number",  shipmentNo || primaryPO?.shipment_number || ""],
-          ["Container Number", trailerNo  || primaryPO?.trailer_number  || ""],
-          ["Seal Number",      sealNo     || primaryPO?.seal_number     || ""],
-          ["Booking Number", primaryPO?.booking_number ?? primaryPO?.tracking_number ?? ""],
-          ["PO #’s", poDisplay],
+          ["Bill Charges To:", btLines],                                              // 0
+          ["Shipment Number",  shipmentNo || primaryPO?.shipment_number || ""],      // 1
+          ["Container Number", trailerNo  || primaryPO?.trailer_number  || ""],      // 2
+          ["Seal Number",      sealNo     || primaryPO?.seal_number     || ""],      // 3
+          ["Booking Number",   primaryPO?.booking_number ?? primaryPO?.tracking_number ?? ""], // 4
+          ["PO #’s",           poDisplay],                                            // 5
         ];
 
-        items.forEach((pair, i) => {
-          const x = M + i * cW;
-          box(x, y, cW, rH);
-          text(pair[0], "", x, y + 3.5, { size: 8, bold: true });
+        // offsets de texto (ajusta si quieres más/menos espacio vertical)
+        const labelY = 4.0;
+        const valueY = 9.5;
+        const lineSpacing = 3.8;
 
-          // valor: string, array simple o array de líneas envueltas
-          let yy = y + 8.5;
+        items.forEach((pair, i) => {
+          const x = startX[i];
+          const w = widths[i];
+
+          box(x, y, w, rH);
+          text(pair[0], "", x, y + labelY, { size: 8, bold: true });
+
+          let yy = y + valueY;
+
           if (typeof pair[1] === "string") {
-            doc.text(String(pair[1] || ""), x + 2, yy, { maxWidth: cW - 4 });
+            const wrapped = doc.splitTextToSize(String(pair[1] || ""), Math.max(2, w - 4));
+            wrapped.forEach(ln => { doc.text(ln, x + 2, yy); yy += lineSpacing; });
           } else if (Array.isArray(pair[1])) {
             pair[1].forEach(line => {
-              const wrapped = doc.splitTextToSize(String(line || ""), cW - 4);
-              wrapped.forEach(ln => { doc.text(ln, x + 2, yy); yy += 3.8; });
+              const wrapped = doc.splitTextToSize(String(line || ""), Math.max(2, w - 4));
+              wrapped.forEach(ln => { doc.text(ln, x + 2, yy); yy += lineSpacing; });
             });
           }
         });
 
         y += rH + gap;
       }
+
 
       // ===== Fila 3: Shipper (izquierda) + Consignee (derecha) =====
       {
@@ -680,11 +698,11 @@ export default function GenerarBOL() {
         box(M, y, shW, rowH);
         text("Shipper Address", "", M, y + 3.5, { size: 8, bold: true });
         let sy = y + 8.5;
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         [
           SH.name,
           [SH.address1, SH.address2].filter(Boolean).join(" "),
-          [SH.city, SH.state, SH.zip].filter(Boolean).join(" "),
+          [SH.city, SH.state, SH.zip].filter(Boolean).join(", "),
           SH.country,
           SH.contact_name,
           SH.contact_phone,
@@ -696,11 +714,11 @@ export default function GenerarBOL() {
         box(coX, y, coW, rowH);
         text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: true });
         let cy = y + 8.5;
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         [
           C.consignee_name,
           [C.consignee_address1, C.consignee_address2].filter(Boolean).join(" "),
-          [C.consignee_city, C.consignee_state, C.consignee_zip].filter(Boolean).join(" "),
+          [C.consignee_city, C.consignee_state, C.consignee_zip].filter(Boolean).join(", "),
           C.consignee_country,
           C.consignee_contact_name,
           C.consignee_contact_phone,
