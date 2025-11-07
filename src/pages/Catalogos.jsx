@@ -220,24 +220,21 @@ async function save() {
       payload = pick(edit, ["nombre", "activo", "id"]);
     }
 
-    // --- Normalización anti-errores ---
-    Object.keys(payload).forEach((k) => {
-      if (payload[k] === "") payload[k] = null;      // 1) "" -> null
-    });
-
-    // 2) Normaliza contacto (solo strings)
+    // 2) Normaliza contacto del SHIPPER (DB usa text[])
     if (tab === "shipper") {
-      if (payload.shipper_contact_phone != null) {
-        payload.shipper_contact_phone = String(payload.shipper_contact_phone).trim();
-      }
+      // email: a array (text[])
       if (payload.shipper_contact_email != null) {
-        payload.shipper_contact_email = String(payload.shipper_contact_email).trim();
+        const email = String(payload.shipper_contact_email).trim();
+        payload.shipper_contact_email = email ? [email] : null; // ← Array
+      }
+      // phone: a array (text[])
+      if (payload.shipper_contact_phone != null) {
+        const phone = String(payload.shipper_contact_phone).trim();
+        payload.shipper_contact_phone = phone ? [phone] : null; // ← Array
       }
     }
 
     if (tab === "pos") {
-      // Si tu columna de PO es string, déjala como string.
-      // Si en tu DB SÍ es text[] puedes volver a la versión con array solo aquí.
       if (payload.consignee_contact_phone != null) {
         payload.consignee_contact_phone = String(payload.consignee_contact_phone).trim();
       }
