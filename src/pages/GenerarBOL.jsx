@@ -683,7 +683,7 @@ export default function GenerarBOL() {
 
       // ===== Fila 2: Bill Charges / Shipment / Container / Seal / Packing Slip / PO =====
       {
-        const rH = 33; // altura de las cajas
+        const rH = 30; // altura de las cajas
 
         // --- Anchos personalizados (deben sumar TAB_W) ---
         const widths = [
