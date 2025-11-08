@@ -279,9 +279,6 @@ export default function GenerarBOL() {
           setProductosById(map);
         }
       }
-
-      // 4) guarda los items normalizados en el estado para dibujar tabla
-      //    (si ya usas lineasIdx para otras cosas, puedes omitir)
       setLineasIdx(items);
     }
 
@@ -498,7 +495,7 @@ export default function GenerarBOL() {
         rows.push({
           pkgQty: String(cajas),
           pkgType: "Box",
-          desc: (p?.nombre ?? p?.descripcion ?? "").toString(),
+          desc: (p?.descripcion ?? "").toString(),
           dim: dimText,
           wPer: pesoPorPaquete.toFixed(2),
           wTot: pesoLinea.toFixed(2),
@@ -522,13 +519,13 @@ export default function GenerarBOL() {
       const TAB_X = M;
       const TAB_W = W - 2 * M;
       const COLS = [
-        { k: "pkgQty",  t: "Package\nQuantity",        w: 22,   align: "left"  },
-        { k: "pkgType", t: "Package\nType",            w: 22,   align: "left"  },
-        { k: "desc",    t: "Description",              w: 64,   align: "left"  },  // +4
-        { k: "dim",     t: "Dimension Per\nPackage",   w: 38.5, align: "left"  },  // +2.5
-        { k: "wPer",    t: "Weight Per\nPackage",      w: 18.7, align: "right" },  // +0.7
-        { k: "wTot",    t: "Total\nWeight",            w: 18.7, align: "right" },  // +0.7
-        { k: "uom",     t: "UOM",                      w: 12,   align: "left"  },
+        { k: "pkgQty",  t: "Package\nQuantity",         w: 22,   align: "left"  },
+        { k: "pkgType", t: "Package\nType",             w: 22,   align: "left"  },
+        { k: "desc",    t: "Part Number / Description", w: 64,   align: "left"  },  // +4
+        { k: "dim",     t: "Dimension Per\nPackage",    w: 38.5, align: "left"  },  // +2.5
+        { k: "wPer",    t: "Weight Per\nPackage",       w: 18.7, align: "right" },  // +0.7
+        { k: "wTot",    t: "Total\nWeight",             w: 18.7, align: "right" },  // +0.7
+        { k: "uom",     t: "UoM",                       w: 12,   align: "left"  },
       ]; // 22+22+64+38.5+18.7+18.7+12 = 195.9 = TAB_W
 
 

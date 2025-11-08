@@ -7,6 +7,15 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../App.css";
 
+// === Helpers para teléfonos formato US ===
+const onlyDigits = (v) => (v ?? "").replace(/\D+/g, "");
+const formatPhoneUS = (v) => {
+  const d = onlyDigits(v).slice(0, 10);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0,3)}-${d.slice(3)}`;
+  return `${d.slice(0,3)}-${d.slice(3,6)}-${d.slice(6)}`;
+};
+
 Modal.setAppElement("#root");
 
 export default function Catalogos() {
@@ -220,26 +229,22 @@ async function save() {
       payload = pick(edit, ["nombre", "activo", "id"]);
     }
 
-    // 2) Normaliza contacto del SHIPPER (DB usa text[])
+    // 2) Normaliza contactos (texto plano) y formatea telefonos a ddd-ddd-dddd
     if (tab === "shipper") {
-      // email: a array (text[])
       if (payload.shipper_contact_email != null) {
-        const email = String(payload.shipper_contact_email).trim();
-        payload.shipper_contact_email = email ? [email] : null; // ← Array
+        payload.shipper_contact_email = String(payload.shipper_contact_email).trim() || null;
       }
-      // phone: a array (text[])
       if (payload.shipper_contact_phone != null) {
-        const phone = String(payload.shipper_contact_phone).trim();
-        payload.shipper_contact_phone = phone ? [phone] : null; // ← Array
+        payload.shipper_contact_phone = formatPhoneUS(payload.shipper_contact_phone) || null;
       }
     }
 
     if (tab === "pos") {
-      if (payload.consignee_contact_phone != null) {
-        payload.consignee_contact_phone = String(payload.consignee_contact_phone).trim();
-      }
       if (payload.consignee_contact_email != null) {
-        payload.consignee_contact_email = String(payload.consignee_contact_email).trim();
+        payload.consignee_contact_email = String(payload.consignee_contact_email).trim() || null;
+      }
+      if (payload.consignee_contact_phone != null) {
+        payload.consignee_contact_phone = formatPhoneUS(payload.consignee_contact_phone) || null;
       }
     }
 
@@ -635,7 +640,15 @@ async function save() {
                 <input
                   placeholder={t("contact_phone", "Contact Phone")}
                   value={edit?.consignee_contact_phone || ""}
-                  onChange={(e) => setEdit({ ...edit, consignee_contact_phone: e.target.value })}
+                  onChange={(e) =>
+                    setEdit((prev) => ({ ...prev, consignee_contact_phone: e.target.value }))
+                  }
+                  onBlur={(e) =>
+                    setEdit((prev) => ({
+                      ...prev,
+                      consignee_contact_phone: formatPhoneUS(e.target.value),
+                    }))
+                  }
                 />
                 <input
                   placeholder={t("freight_class", "Freight Class")}
@@ -762,7 +775,15 @@ async function save() {
                 <input
                   placeholder={t("contact_phone", "Contact Phone")}
                   value={edit?.shipper_contact_phone || ""}
-                  onChange={(e) => setEdit({ ...edit, shipper_contact_phone: e.target.value })}
+                  onChange={(e) =>
+                    setEdit((prev) => ({ ...prev, shipper_contact_phone: e.target.value }))
+                  }
+                  onBlur={(e) =>
+                    setEdit((prev) => ({
+                      ...prev,
+                      shipper_contact_phone: formatPhoneUS(e.target.value),
+                    }))
+                  }
                 />
                 <label style={{ gridColumn: "1 / -1" }}>
                   <input
