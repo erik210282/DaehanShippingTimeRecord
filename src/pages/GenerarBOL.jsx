@@ -943,6 +943,16 @@ export default function GenerarBOL() {
         const rowGap   = 5.0;
         const lineYOff = 3.4;
 
+        // Limites internos del bloque de firmas
+        const RIGHT_LIMIT_SIG = boxX + boxW - PAD - 1.5;
+
+        // Solo para firmas: asegura que la línea no se salga de la caja
+        const safeUline = (x, y, w) => {
+          if (w <= 0) return;
+          const maxW = Math.max(0, RIGHT_LIMIT_SIG - x);
+          doc.line(x, y, x + Math.min(w, maxW), y);
+        };
+
         function drawSignatureBox(title, startY, who1Left, who1Mid, time1Label, who2Left, who2Mid, time2Label) {
           // Marco
           doc.rect(boxX, startY, boxW, boxH);
@@ -963,7 +973,7 @@ export default function GenerarBOL() {
             const start = col1X + 30;                      // deja espacio para el label
             const maxW  = Math.max(18, col1W - 32);
             const s = clampStartForWidth(start, maxW);
-            uline(s, r1Y + lineYOff, Math.max(10, RIGHT_LIMIT - s - (innerW - col1W))); // línea dentro de col1
+            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
           }
 
           // Col2: Sign
@@ -972,7 +982,7 @@ export default function GenerarBOL() {
             const start = col2X + 18;
             const maxW  = Math.max(16, col2W - 20);
             const s = clampStartForWidth(start, maxW);
-            uline(s, r1Y + lineYOff, Math.min(maxW, RIGHT_LIMIT - s));
+            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
           }
 
           // Col3: In Time
@@ -981,7 +991,7 @@ export default function GenerarBOL() {
             const start = col3X + 15;
             const maxW  = Math.max(16, col3W - 17);
             const s = clampStartForWidth(start, maxW);
-            uline(s, r1Y + lineYOff, Math.min(maxW, RIGHT_LIMIT - s));
+            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
           }
 
           // Col4: AM/PM + Date (con clamps duros)
@@ -1003,7 +1013,7 @@ export default function GenerarBOL() {
             // Línea de fecha
             const lineW = Math.max(14, Math.min(24, RIGHT_LIMIT - (cx + tW) - 1));
             const lineX = cx + tW + 1;
-            uline(lineX, r1Y + lineYOff, lineW);
+            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
           }
 
           // ----- Fila 2 -----
@@ -1015,7 +1025,7 @@ export default function GenerarBOL() {
             const start = col1X + 30;
             const maxW  = Math.max(18, col1W - 32);
             const s = clampStartForWidth(start, maxW);
-            uline(s, r2Y + lineYOff, Math.max(10, RIGHT_LIMIT - s - (innerW - col1W)));
+            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
           }
 
           // Col2: Sign
@@ -1024,7 +1034,7 @@ export default function GenerarBOL() {
             const start = col2X + 18;
             const maxW  = Math.max(16, col2W - 20);
             const s = clampStartForWidth(start, maxW);
-            uline(s, r2Y + lineYOff, Math.min(maxW, RIGHT_LIMIT - s));
+            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
           }
 
           // Col3: Out Time
@@ -1033,29 +1043,40 @@ export default function GenerarBOL() {
             const start = col3X + 17;
             const maxW  = Math.max(16, col3W - 19);
             const s = clampStartForWidth(start, maxW);
-            uline(s, r2Y + lineYOff, Math.min(maxW, RIGHT_LIMIT - s));
+            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
           }
 
-          // Col4: AM/PM + Date
+          // Col4 Fila 2: AM/PM + UNA sola fecha del bloque, texto arriba de la línea
           {
-            let cx = col4X;
-            lbl(`AM`, cx, r2Y);
-            checkbox(cx + 7.5, r2Y); cx += 19;
+          let cx = col4X;
+          // AM / PM alineados a la izquierda de la columna
+          lbl(`AM`, cx, r2Y);
+          checkbox(cx + 7.5, r2Y); cx += 19;
 
-            lbl(`PM`, cx, r2Y);
-            checkbox(cx + 7.5, r2Y); cx += 22;
+          lbl(`PM`, cx, r2Y);
+          checkbox(cx + 7.5, r2Y); cx += 22;
 
-            const dateText = `Date (MM/DD/YYYY)`;
-            doc.setFontSize(6.2);
-            const tW = doc.getTextWidth(dateText);
-            cx = clampStartForWidth(cx, tW + 18);
-            lbl(dateText, cx, r2Y, 6.2);
+          // Texto de la fecha ARRIBA de la línea
+          const dateText = `Date (MM/DD/YYYY)`;
+          doc.setFontSize(6.2);
 
-            const lineW = Math.max(14, Math.min(24, RIGHT_LIMIT - (cx + tW) - 1));
-            const lineX = cx + tW + 1;
-            uline(lineX, r2Y + lineYOff, lineW);
-          }
+          // deja un pequeño espacio antes del texto
+          cx += 2;
 
+          // mide, calcula inicio y traza dentro de límites
+          const tW = doc.getTextWidth(dateText);
+          const maxStart = Math.max(col4X, Math.min(cx, RIGHT_LIMIT_SIG - (tW + 16))); // 16mm reservados para línea
+          const tx = maxStart;
+
+          // texto arriba (un poco más alto que r2Y)
+          lbl(dateText, tx, r2Y - 1.8, 6.2);
+
+          // línea para escribir la fecha, debajo del texto
+          const lineX = tx;
+          const lineY = r2Y + lineYOff;
+          const lineW = 22; // ancho fijo y compacto
+          safeUline(lineX, lineY, lineW);
+        }
           return startY + boxH;
         }
 
