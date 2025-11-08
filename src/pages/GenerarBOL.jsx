@@ -752,7 +752,6 @@ export default function GenerarBOL() {
         y += rH + gap;
       }
 
-
       // ===== Fila 3: Shipper (izquierda) + Consignee (derecha) =====
       {
         const rowH = 33;
@@ -860,7 +859,9 @@ export default function GenerarBOL() {
           });
 
           // línea vertical de la celda
-          doc.line(cx + c.w, ry, cx + c.w, ry + rowH);
+          if (r < rows.length - 1) {
+            doc.line(TAB_X, ry + rowH, TAB_X + TAB_W, ry + rowH);
+          }
         }
 
         // línea inferior de la fila
@@ -869,7 +870,7 @@ export default function GenerarBOL() {
       }
 
       // cursor global debajo de la tabla
-      y = TAB_Y + TAB_H + gap + 10;
+      y = TAB_Y + TAB_H + gap + 5;
 
       // Totales
       doc.setFont("helvetica","bold").setFontSize(9);
