@@ -477,11 +477,12 @@ export default function GenerarBOL() {
           ? Number(p?.peso_caja_retornable ?? p?.peso_por_caja_retornable ?? 0)
           : Number(p?.peso_caja_expendable ?? p?.peso_por_caja_expendable ?? 0);
 
-        // dimensiones (opcional)
-        const L = p?.dim_l ?? p?.length_in ?? p?.largo ?? "";
-        const W = p?.dim_w ?? p?.width_in  ?? p?.ancho ?? "";
-        const H = p?.dim_h ?? p?.height_in ?? p?.alto  ?? "";
-        const dimText = (L && W && H) ? `${L} X ${W} X ${H} IN` : "";
+        // dimensiones 
+        const L = p?.dim_l ?? p?.length_in ?? p?.largo_in ?? p?.largo ?? "";
+        const W = p?.dim_w ?? p?.width_in  ?? p?.ancho_in ?? p?.ancho ?? "";
+        const H = p?.dim_h ?? p?.height_in ?? p?.alto_in  ?? p?.alto ?? "";
+        const dimText = (L && W && H) ? `${L} x ${W} x ${H} IN` : "—";
+
 
         // --- Reglas de peso ---
         // Peso por paquete (1 caja): (piezasPorCaja * pesoPieza) + pesoCaja
@@ -495,7 +496,7 @@ export default function GenerarBOL() {
         rows.push({
           pkgQty: String(cajas),
           pkgType: "Box",
-          desc: (p?.descripcion ?? "").toString(),
+          desc: `${p?.part_number || p?.codigo || ""} ${p?.descripcion || ""}`.trim(),
           dim: dimText,
           wPer: pesoPorPaquete.toFixed(2),
           wTot: pesoLinea.toFixed(2),
@@ -801,7 +802,7 @@ export default function GenerarBOL() {
       }
 
       // cursor global debajo de la tabla
-      y = TAB_Y + TAB_H + gap;
+      y = TAB_Y + TAB_H + gap + 5;
 
       // Totales
       doc.setFont("helvetica","bold").setFontSize(9);
