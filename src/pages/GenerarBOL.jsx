@@ -461,6 +461,73 @@ export default function GenerarBOL() {
       let totalUnits = 0;
       let totalWeight = 0;
 
+      // --- Helpers para dimensiones por paquete ---
+      // Convierte "24x18x12", "24 x 18 x 12", "24*18*12" a {L,W,H}
+      function parseDimsFromText(s) {
+        if (!s) return null;
+        const str = String(s).trim();
+        const m = str.replace(/,/g, 'x').match(/(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)/i);
+        if (!m) return null;
+        return { L: m[1], W: m[2], H: m[3] };
+      }
+      // Toma el primer valor no vacío entre varias claves del producto
+      function pick(p, ...keys) {
+        for (const k of keys) {
+          const v = p?.[k];
+          if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+        }
+        return "";
+      }
+      // Resuelve la dimensión por paquete del producto según packType
+      function getPackageDimensions(p, packType) {
+        if (!p) return "—";
+
+        if (packType === "returnable") {
+          // 1) Texto del tipo de empaque (ej. "24x18x12")
+          const text = pick(
+            p,
+            "tipo_empaque_retornable", "empaque_retornable",
+            "returnable_pack_type", "packaging_returnable", "pack_type_returnable"
+          );
+          const tDims = parseDimsFromText(text);
+          if (tDims) return `${tDims.L} x ${tDims.W} x ${tDims.H} IN`;
+
+          // 2) Campos numéricos por eje (retornable)
+          const L = pick(p, "ret_l", "ret_length_in", "length_in_ret", "dim_ret_l",
+                            "returnable_l", "largo_ret", "largo_ret_in", "dim_l_ret");
+          const W = pick(p, "ret_w", "ret_width_in", "width_in_ret", "dim_ret_w",
+                            "returnable_w", "ancho_ret", "ancho_ret_in", "dim_w_ret");
+          const H = pick(p, "ret_h", "ret_height_in", "height_in_ret", "dim_ret_h",
+                            "returnable_h", "alto_ret", "alto_ret_in", "dim_h_ret");
+          if (L && W && H) return `${L} x ${W} x ${H} IN`;
+        } else {
+          // expendable
+          const text = pick(
+            p,
+            "tipo_empaque_expendable", "empaque_expendable",
+            "expendable_pack_type", "packaging_expendable", "pack_type_expendable"
+          );
+          const tDims = parseDimsFromText(text);
+          if (tDims) return `${tDims.L} x ${tDims.W} x ${tDims.H} IN`;
+
+          const L = pick(p, "exp_l", "exp_length_in", "length_in_exp", "dim_exp_l",
+                            "expendable_l", "largo_exp", "largo_exp_in", "dim_l_exp");
+          const W = pick(p, "exp_w", "exp_width_in", "width_in_exp", "dim_exp_w",
+                            "expendable_w", "ancho_exp", "ancho_exp_in", "dim_w_exp");
+          const H = pick(p, "exp_h", "exp_height_in", "height_in_exp", "dim_exp_h",
+                            "expendable_h", "alto_exp", "alto_exp_in", "dim_h_exp");
+          if (L && W && H) return `${L} x ${W} x ${H} IN`;
+        }
+
+        // 3) Fallback genérico si no hay campos específicos de empaque
+        const Lg = pick(p, "dim_l", "length_in", "largo_in", "largo");
+        const Wg = pick(p, "dim_w", "width_in",  "ancho_in", "ancho");
+        const Hg = pick(p, "dim_h", "height_in", "alto_in",  "alto");
+        if (Lg && Wg && Hg) return `${Lg} x ${Wg} x ${Hg} IN`;
+
+        return "—";
+      }
+
       Object.keys(cajasPorProducto).forEach((pid) => {
         const p = productosById[pid] || {};
         const cajas = Number(cajasPorProducto[pid] ?? 0) || 0;
@@ -497,7 +564,7 @@ export default function GenerarBOL() {
           pkgQty: String(cajas),
           pkgType: "Box",
           desc: `${p?.part_number || p?.codigo || ""} ${p?.descripcion || ""}`.trim(),
-          dim: dimText,
+          dim: getPackageDimensions(p, packType),
           wPer: pesoPorPaquete.toFixed(2),
           wTot: pesoLinea.toFixed(2),
           uom: "LB",
