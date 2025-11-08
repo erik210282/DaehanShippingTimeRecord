@@ -885,103 +885,109 @@ export default function GenerarBOL() {
 
       // =================== FIRMAS (Pickup / Dropoff) ===================
       {
-        // Reservas usadas en el bloque legal más abajo
-        const LEGAL_RESERVED = 30;          // lo que ocupa el legal (coincide con tu footerY)
-        const GAP_BEFORE_LEGAL = 6;         // aire entre firmas y legal
-        const OUTER_PAD = 5;
+        // Debe coincidir con tu footer legal (abajo no lo toques)
+        const LEGAL_RESERVED = 30;     // alto que ocupa el bloque legal
+        const GAP_BEFORE_LEGAL = 4;    // separación entre firmas y legal
+        const OUTER_PAD = 4;           // margen interno del marco
 
-        // Medidas del bloque de firmas compacto
+        // Tamaños CHICOS (más compactos que antes)
         const boxX = M;
         const boxW = TAB_W;
-        const boxH = 28;                    // alto por bloque (Pickup/Dropoff)
-        const dividerH = 1;                 // línea divisoria entre Pickup y Dropoff
+        const boxH = 22;               // alto por bloque: Pickup/Dropoff (chico)
+        const dividerH = 0.8;          // línea divisoria entre ambos
 
-        // Calcula inicio Y de firmas para que queden pegadas encima del legal
+        // Calcula Y de inicio para que SIEMPRE quede arriba del legal
         const pageHnow = doc.internal.pageSize.height;
-        const totalSigH = (boxH * 2) + dividerH;   // Pickup + Divider + Dropoff
+        const totalSigH = (boxH * 2) + dividerH;
         const sigStartY = pageHnow - (LEGAL_RESERVED + GAP_BEFORE_LEGAL + totalSigH);
 
-        const lbl = (txt, x, y, sz = 8.5, bold = false) => {
+        // Helpers tipográficos
+        const lbl = (txt, x, y, sz = 7.5, bold = false) => {
           doc.setFont("helvetica", bold ? "bold" : "normal");
           doc.setFontSize(sz);
-          doc.text(txt, x, y);
+          doc.text(String(txt), x, y);
         };
         const uline = (x, y, w) => doc.line(x, y, x + w, y);
-        const checkbox = (x, y, s = 3.8) => doc.rect(x, y - s + 0.8, s, s);
+        const checkbox = (x, y, s = 3.2) => doc.rect(x, y - s + 0.7, s, s); // cajita pequeña
 
-        // Layout interno: 4 columnas compactas
+        // Layout 4 columnas COMPACTO (ajustado para que no se salga)
         const innerX = boxX + OUTER_PAD;
         const innerW = boxW - OUTER_PAD * 2;
 
-        const col1W = innerW * 0.36; // Printed Name
-        const col2W = innerW * 0.20; // Sign
-        const col3W = innerW * 0.18; // In/Out Time
-        const col4W = innerW * 0.26; // AM/PM + Date
+        // repartimos más espacio a la col4 (AM/PM + Date) para evitar desborde
+        const col1W = innerW * 0.32;  // Printed Name
+        const col2W = innerW * 0.18;  // Sign
+        const col3W = innerW * 0.18;  // In/Out Time
+        const col4W = innerW * 0.32;  // AM/PM + Date (más ancho)
 
         const col1X = innerX;
         const col2X = innerX + col1W;
         const col3X = innerX + col1W + col2W;
         const col4X = innerX + col1W + col2W + col3W;
 
-        const headerH  = 7;   // altura del título
-        const rowGap   = 7;   // separación entre fila 1 y 2
-        const lineYOff = 4.5; // distancia de las líneas bajo los labels
+        const headerH  = 6;    // altura del renglón del título
+        const rowGap   = 5.5;  // separación entre fila 1 y 2
+        const lineYOff = 3.8;  // distancia para las líneas bajo los labels
 
         function drawSignatureBox(title, startY, who1Left, who1Mid, time1Label, who2Left, who2Mid, time2Label) {
-          // Marco exterior
+          // Marco exterior compacto
           doc.rect(boxX, startY, boxW, boxH);
 
           // Título
-          lbl(title, innerX, startY + 5.5, 11, true);
+          lbl(title, innerX, startY + 5, 10, true);
 
           // Línea bajo el título
           doc.setLineWidth(0.25);
           doc.line(boxX, startY + headerH, boxX + boxW, startY + headerH);
 
-          // 1a fila
-          const r1Y = startY + headerH + 6;
+          // -------- Fila 1 --------
+          const r1Y = startY + headerH + 5;
           lbl(`${who1Left}:`, col1X, r1Y);
-          uline(col1X + 34, r1Y + lineYOff, col1W - 36);
+          uline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
 
           lbl(`${who1Mid}:`,  col2X, r1Y);
-          uline(col2X + 22, r1Y + lineYOff, col2W - 24);
+          uline(col2X + 20, r1Y + lineYOff, Math.max(18, col2W - 22));
 
           lbl(`${time1Label}:`, col3X, r1Y);
-          uline(col3X + 18, r1Y + lineYOff, col3W - 20);
+          uline(col3X + 16, r1Y + lineYOff, Math.max(18, col3W - 18));
 
           let cx = col4X;
           lbl(`AM`, cx, r1Y);
-          checkbox(cx + 9, r1Y);  cx += 22;
+          checkbox(cx + 8, r1Y);   cx += 20;
           lbl(`PM`, cx, r1Y);
-          checkbox(cx + 9, r1Y);  cx += 28;
-          lbl(`Date`, cx, r1Y);
-          lbl(`(MM/DD/YYYY)`, cx, r1Y + 4.5, 6.8);
-          uline(cx - 2, r1Y + lineYOff, col4W - (cx - col4X) - 2);
+          checkbox(cx + 8, r1Y);   cx += 24;
 
-          // 2a fila
-          const r2Y = r1Y + rowGap + 5.5;
+          // “Date (MM/DD/YYYY)” en una sola línea pero con tamaño pequeño
+          lbl(`Date (MM/DD/YYYY)`, cx, r1Y, 6.6);
+          // línea de fecha corta a la derecha sin salirse del cuadro
+          const remW1 = Math.max(16, col4W - (cx - col4X) - 2);
+          uline(cx - 1, r1Y + lineYOff, remW1);
+
+          // -------- Fila 2 --------
+          const r2Y = r1Y + rowGap + 4.5;
           lbl(`${who2Left}:`, col1X, r2Y);
-          uline(col1X + 34, r2Y + lineYOff, col1W - 36);
+          uline(col1X + 32, r2Y + lineYOff, Math.max(20, col1W - 34));
 
           lbl(`${who2Mid}:`,  col2X, r2Y);
-          uline(col2X + 22, r2Y + lineYOff, col2W - 24);
+          uline(col2X + 20, r2Y + lineYOff, Math.max(18, col2W - 22));
 
           lbl(`${time2Label}:`, col3X, r2Y);
-          uline(col3X + 21, r2Y + lineYOff, col3W - 23);
+          uline(col3X + 19, r2Y + lineYOff, Math.max(18, col3W - 21));
 
           cx = col4X;
           lbl(`AM`, cx, r2Y);
-          checkbox(cx + 9, r2Y);  cx += 22;
+          checkbox(cx + 8, r2Y);   cx += 20;
           lbl(`PM`, cx, r2Y);
-          checkbox(cx + 9, r2Y);  cx += 28;
-          lbl(`Date`, cx, r2Y);
-          lbl(`(MM/DD/YYYY)`, cx, r2Y + 4.5, 6.8);
-          uline(cx - 2, r2Y + lineYOff, col4W - (cx - col4X) - 2);
+          checkbox(cx + 8, r2Y);   cx += 24;
+
+          lbl(`Date (MM/DD/YYYY)`, cx, r2Y, 6.6);
+          const remW2 = Math.max(16, col4W - (cx - col4X) - 2);
+          uline(cx - 1, r2Y + lineYOff, remW2);
 
           return startY + boxH;
         }
 
-        // === PICKUP ===
+        // === PICKUP (compacto) ===
         let nextY = sigStartY;
         nextY = drawSignatureBox(
           "Pickup",
@@ -994,10 +1000,10 @@ export default function GenerarBOL() {
           "Out Time"
         );
 
-        // Separador fino entre Pickup y Dropoff
+        // separador fino entre Pickup y Dropoff
         doc.line(boxX, nextY, boxX + boxW, nextY);
 
-        // === DROPOFF ===
+        // === DROPOFF (compacto) ===
         nextY = drawSignatureBox(
           "Dropoff",
           nextY,
@@ -1009,9 +1015,9 @@ export default function GenerarBOL() {
           "Out Time"
         );
 
-        // No tocamos `y` aquí. El footer legal se dibuja más abajo usando su propia `footerY`,
-        // y este bloque siempre quedará justo encima del legal gracias a `sigStartY`.
+        // No modificamos `y`; este bloque queda fijo y no invade el legal.
       }
+
 
       // === LEGAL FOOTER ===
       {
