@@ -336,9 +336,6 @@ export default function GenerarBOL() {
       doc.setFontSize(11);
       doc.text(String(rightText), 200, y, { align: "right" });
     }
-
-    doc.setLineWidth(0.25);
-    doc.line(M, y - 2, W - M, y - 2);
   }
 
 
@@ -870,7 +867,7 @@ export default function GenerarBOL() {
       }
 
       // cursor global debajo de la tabla
-      y = TAB_Y + TAB_H + gap + 5;
+      y = TAB_Y + TAB_H + gap + 8;
 
       // Totales
       doc.setFont("helvetica","bold").setFontSize(9);
