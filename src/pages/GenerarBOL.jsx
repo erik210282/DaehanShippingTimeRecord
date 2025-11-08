@@ -885,85 +885,73 @@ export default function GenerarBOL() {
 
       // =================== FIRMAS (Pickup / Dropoff) ===================
       {
-        // Debe coincidir con tu bloque legal (más abajo)
+        // Debe coincidir con tu bloque legal (abajo)
         const LEGAL_RESERVED = 30;   // alto del legal
         const GAP_BEFORE_LEGAL = 3;  // espacio entre firmas y legal
 
-        // Marco exterior de cada bloque de firmas
         const boxX = M;
         const boxW = TAB_W;
-        const boxH = 18;             // MÁS CHICO que antes (cada bloque Pickup/Dropoff)
+        const boxH = 18;             // alto por caja (compacto)
         const dividerH = 0.8;        // separador entre Pickup y Dropoff
         const PAD = 3;               // padding interno
 
-        // Y fijo para que las firmas queden SIEMPRE arriba del legal
+        // Posición fija para que siempre quede encima del legal
         const pageHnow = doc.internal.pageSize.height;
         const totalSigH = (boxH * 2) + dividerH;
         const sigStartY = pageHnow - (LEGAL_RESERVED + GAP_BEFORE_LEGAL + totalSigH);
 
-        // Helpers
+        // Helpers básicos
         const lbl = (txt, x, y, sz = 7.0, bold = false) => {
           doc.setFont("helvetica", bold ? "bold" : "normal");
           doc.setFontSize(sz);
           doc.text(String(txt), x, y);
         };
-        const uline = (x, y, w) => {
+
+        // LÍMITE DERECHO del bloque de firmas (para evitar que algo se salga)
+        const RIGHT_LIMIT_SIG = boxX + boxW - PAD - 1.5;
+
+        // Línea segura (recorta si se acercara al borde)
+        const safeUline = (x, y, w) => {
           if (w <= 0) return;
-          doc.line(x, y, x + w, y);
+          const maxW = Math.max(0, RIGHT_LIMIT_SIG - x);
+          doc.line(x, y, x + Math.min(w, maxW), y);
         };
+
+        // Cajita AM/PM
         const checkbox = (x, y, s = 3.0) => {
-          // cajita AM/PM pequeña
           doc.rect(x, y - s + 0.6, s, s);
         };
 
-        // Layout interno (4 columnas, la 4 es más ancha para el Date)
+        // Layout 4 columnas (col4 es más ancha para AM/PM + Date)
         const innerX = boxX + PAD;
         const innerW = boxW - (PAD * 2);
 
         const col1W = innerW * 0.30; // Printed Name
         const col2W = innerW * 0.18; // Sign
         const col3W = innerW * 0.18; // In/Out Time
-        const col4W = innerW * 0.34; // AM/PM + Date  (más ancho para evitar desbordes)
+        const col4W = innerW * 0.34; // AM/PM + Date
 
         const col1X = innerX;
         const col2X = col1X + col1W;
         const col3X = col2X + col2W;
         const col4X = col3X + col3W;
 
-        // ⬇️ NUEVO: fin seguro de cada columna (no traspasar el borde del cuadro)
+        // FIN SEGURO de cada columna (para que las líneas no traspasen)
         const COL_END1 = col1X + col1W - 1.5;
         const COL_END2 = col2X + col2W - 1.5;
         const COL_END3 = col3X + col3W - 1.5;
         const COL_END4 = col4X + col4W - 1.5;
 
-        // ⬇️ NUEVO: dibuja una línea que termina en el borde interno de la columna
+        // Dibuja una línea que “tope” al borde interno de la columna
         const lineToEnd = (startX, y, colEnd) => {
           const w = Math.max(8, colEnd - startX);
           safeUline(startX, y, w);
         };
 
-        // Borde derecho interno MÁXIMO permitido para texto/elementos
-        const RIGHT_LIMIT = innerX + innerW - 1.5; // margen de seguridad 1.5mm
-
-        // util: garantiza que el punto de inicio + ancho no rebase RIGHT_LIMIT
-        const clampStartForWidth = (startX, neededW) => {
-          const maxStart = RIGHT_LIMIT - neededW;
-          return Math.min(startX, maxStart);
-        };
-
+        // Métricas verticales (compactas)
         const headerH  = 5.2;
         const rowGap   = 4.2;
         const lineYOff = 3.0;
-
-        // Limites internos del bloque de firmas
-        const RIGHT_LIMIT_SIG = boxX + boxW - PAD - 1.5;
-
-        // Solo para firmas: asegura que la línea no se salga de la caja
-        const safeUline = (x, y, w) => {
-          if (w <= 0) return;
-          const maxW = Math.max(0, RIGHT_LIMIT_SIG - x);
-          doc.line(x, y, x + Math.min(w, maxW), y);
-        };
 
         function drawSignatureBox(title, startY, who1Left, who1Mid, time1Label, who2Left, who2Mid, time2Label) {
           // Marco
@@ -987,11 +975,11 @@ export default function GenerarBOL() {
           lbl(`${who1Mid}:`, col2X, r1Y);
           lineToEnd(col2X + 24, r1Y + lineYOff, COL_END2);
 
-          // Col3: In Time  (termina antes de la col4)
+          // Col3: In Time  (tope antes de col4)
           lbl(`${time1Label}:`, col3X, r1Y);
           lineToEnd(col3X + 22, r1Y + lineYOff, Math.min(COL_END3, col4X - 3));
 
-          // Col4: SOLO AM/PM (SIN fecha)
+          // Col4: SOLO AM/PM (SIN fecha en fila 1)
           {
             let cx = col4X;
             lbl(`AM`, cx, r1Y);
@@ -1012,7 +1000,7 @@ export default function GenerarBOL() {
           lbl(`${who2Mid}:`, col2X, r2Y);
           lineToEnd(col2X + 24, r2Y + lineYOff, COL_END2);
 
-          // Col3: Out Time  (termina antes de la col4)
+          // Col3: Out Time  (tope antes de col4)
           lbl(`${time2Label}:`, col3X, r2Y);
           lineToEnd(col3X + 22, r2Y + lineYOff, Math.min(COL_END3, col4X - 3));
 
@@ -1028,24 +1016,27 @@ export default function GenerarBOL() {
 
             // Texto de la fecha (encima de la línea)
             const dateText = `Date (MM/DD/YYYY)`;
-            doc.setFontSize(6.2);
+            const dateTextSize = 6.2;
+            doc.setFontSize(dateTextSize);
 
             // deja un pequeño espacio antes del texto
             cx += 2;
 
-            // Garantiza que texto + línea no salgan de la caja
+            // Encajar texto + línea dentro de col4
             const tW = doc.getTextWidth(dateText);
-            const maxStart = Math.max(col4X, Math.min(cx, RIGHT_LIMIT_SIG - (tW + 16))); // 16mm reservados a la línea
-            const tx = maxStart;
+            const tx = Math.max(col4X, Math.min(cx, COL_END4 - (tW + 14))); // 14mm reservados a la línea
 
-            // texto arriba
-            lbl(dateText, tx, r2Y - 1.8, 6.2);
+            // Texto ARRIBA (subimos un poco para que no quede “bajo”)
+            const dateLabelY = r2Y - 1.8; // <- súbelo/bájalo aquí si lo quieres más alto/bajo
+            lbl(dateText, tx, dateLabelY, dateTextSize);
 
-            // línea de fecha justo debajo del texto
+            // Línea justo DEBAJO del texto, tope dentro de col4
             const lineX = tx;
-            const lineW = 22; // ancho compacto
-            safeUline(lineX, r2Y + lineYOff, lineW);
+            const lineW = Math.min(22, COL_END4 - lineX);
+            const dateLineY = r2Y + lineYOff; // <- línea donde escribir
+            safeUline(lineX, dateLineY, lineW);
           }
+
           return startY + boxH;
         }
 
