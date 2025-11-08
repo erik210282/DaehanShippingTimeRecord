@@ -611,11 +611,20 @@ export default function GenerarBOL() {
         return Math.max(MIN_ROW_H, (2 * CELL_PAD_Y) + (count * LINE_H));
       };
 
-      const TMP = new jsPDF({unit:"mm", format:"letter"}); // solo para medir
-      TMP.setFont("helvetica","normal").setFontSize(9);
+      const TMP = new jsPDF({ unit: "mm", format: "letter" });
+      TMP.setFont("helvetica", "normal").setFontSize(9);
 
-      const preHeaderTableH = measureHeaderHeight(TMP, COLS, 8); // mídelo de verdad
-      const preBodyTableH   = rows.reduce((acc,r)=> acc + measureRowH(TMP, r), 0);
+      const preHeaderTableH = measureHeaderHeight(TMP, COLS, 8);
+
+      // 👉 calcula el alto de CADA fila y usa el MÁXIMO para todas
+      const rowHeights = rows.map(r => {
+        return measureRowHeight(TMP, r, COLS, 9);
+      });
+      const maxRowH = rowHeights.length ? Math.max(...rowHeights) : MIN_ROW_H;
+
+      // el alto total del cuerpo ahora es: maxRowH * número de filas
+      const preBodyTableH = maxRowH * rows.length;
+
 
       const totalsH = 8;
       const firmasH = 40;
@@ -683,7 +692,7 @@ export default function GenerarBOL() {
 
       // ===== Fila 2: Bill Charges / Shipment / Container / Seal / Packing Slip / PO =====
       {
-        const rH = 30; // altura de las cajas
+        const rH = 28; // altura de las cajas
 
         // --- Anchos personalizados (deben sumar TAB_W) ---
         const widths = [
@@ -835,14 +844,13 @@ export default function GenerarBOL() {
 
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r];
-        const rowH = measureRowHeight(doc, row, COLS, 9);
+        const rowH = maxRowH; // 👈 alto uniforme
 
         for (let i = 0; i < COLS.length; i++) {
           const c = COLS[i];
           const cx = COLX[i];
           const content = splitFit(doc, row[c.k], c.w, 9);
 
-          // alto del bloque de texto y centrado vertical
           const blockH = content.length * LINE_H;
           let ty = ry + CELL_PAD_Y + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 2);
 
@@ -855,17 +863,17 @@ export default function GenerarBOL() {
             ty += LINE_H;
           });
 
-          // línea vertical de la celda
-          if (r < rows.length - 1) {
-            doc.line(TAB_X, ry + rowH, TAB_X + TAB_W, ry + rowH);
-          }
+          // (no dibujar líneas horizontales aquí)
         }
 
-        // línea inferior de la fila
-        doc.line(TAB_X, ry + rowH, TAB_X + TAB_W, ry + rowH);
+        // ✅ Línea inferior del renglón: solo si NO es la última fila
+        if (r < rows.length - 1) {
+          doc.line(TAB_X, ry + rowH, TAB_X + TAB_W, ry + rowH);
+        }
+
         ry += rowH;
       }
-
+      
       // cursor global debajo de la tabla
       y = TAB_Y + TAB_H + gap + 8;
 
