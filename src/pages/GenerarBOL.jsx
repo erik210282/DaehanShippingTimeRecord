@@ -967,116 +967,73 @@ export default function GenerarBOL() {
           // ----- Fila 1 -----
           const r1Y = startY + headerH + 4.2;
 
-          // Col1: Printed Name
+          // Col1: Printed Name  (línea dentro de su columna)
           lbl(`${who1Left}:`, col1X, r1Y);
-          {
-            const start = col1X + 30;                      // deja espacio para el label
-            const maxW  = Math.max(18, col1W - 32);
-            const s = clampStartForWidth(start, maxW);
-            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
-          }
+          safeUline(col1X + 34, r1Y + lineYOff, Math.max(20, col1W - 36));
 
           // Col2: Sign
           lbl(`${who1Mid}:`, col2X, r1Y);
-          {
-            const start = col2X + 18;
-            const maxW  = Math.max(16, col2W - 20);
-            const s = clampStartForWidth(start, maxW);
-            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
-          }
+          safeUline(col2X + 24, r1Y + lineYOff, Math.max(18, col2W - 26));
 
           // Col3: In Time
           lbl(`${time1Label}:`, col3X, r1Y);
-          {
-            const start = col3X + 15;
-            const maxW  = Math.max(16, col3W - 17);
-            const s = clampStartForWidth(start, maxW);
-            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
-          }
+          safeUline(col3X + 22, r1Y + lineYOff, Math.max(18, col3W - 24));
 
-          // Col4: AM/PM + Date (con clamps duros)
+          // Col4: SOLO AM/PM (SIN fecha)
           {
             let cx = col4X;
             lbl(`AM`, cx, r1Y);
             checkbox(cx + 7.5, r1Y); cx += 19;
 
             lbl(`PM`, cx, r1Y);
-            checkbox(cx + 7.5, r1Y); cx += 22;
-
-            // Texto "Date (MM/DD/YYYY)" medido y clavado
-            const dateText = `Date (MM/DD/YYYY)`;
-            doc.setFontSize(6.2);
-            const tW = doc.getTextWidth(dateText);
-            cx = clampStartForWidth(cx, tW + 18); // 18mm reservados para la línea
-            lbl(dateText, cx, r1Y, 6.2);
-
-            // Línea de fecha
-            const lineW = Math.max(14, Math.min(24, RIGHT_LIMIT - (cx + tW) - 1));
-            const lineX = cx + tW + 1;
-            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
+            checkbox(cx + 7.5, r1Y);
           }
 
           // ----- Fila 2 -----
           const r2Y = r1Y + rowGap + 4.0;
 
-          // Col1: Printed Name
+          // Col1: Driver/Receiver Printed Name
           lbl(`${who2Left}:`, col1X, r2Y);
-          {
-            const start = col1X + 30;
-            const maxW  = Math.max(18, col1W - 32);
-            const s = clampStartForWidth(start, maxW);
-            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
-          }
+          safeUline(col1X + 34, r2Y + lineYOff, Math.max(20, col1W - 36));
 
-          // Col2: Sign
+          // Col2: Driver/Receiver Sign
           lbl(`${who2Mid}:`, col2X, r2Y);
-          {
-            const start = col2X + 18;
-            const maxW  = Math.max(16, col2W - 20);
-            const s = clampStartForWidth(start, maxW);
-            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
-          }
+          safeUline(col2X + 24, r2Y + lineYOff, Math.max(18, col2W - 26));
 
           // Col3: Out Time
           lbl(`${time2Label}:`, col3X, r2Y);
+          safeUline(col3X + 22, r2Y + lineYOff, Math.max(18, col3W - 24));
+
+          // Col4: AM/PM + ÚNICA fecha del bloque (texto arriba, línea debajo)
           {
-            const start = col3X + 17;
-            const maxW  = Math.max(16, col3W - 19);
-            const s = clampStartForWidth(start, maxW);
-            safeUline(col1X + 32, r1Y + lineYOff, Math.max(20, col1W - 34));
+            let cx = col4X;
+
+            lbl(`AM`, cx, r2Y);
+            checkbox(cx + 7.5, r2Y); cx += 19;
+
+            lbl(`PM`, cx, r2Y);
+            checkbox(cx + 7.5, r2Y); cx += 22;
+
+            // Texto de la fecha (encima de la línea)
+            const dateText = `Date (MM/DD/YYYY)`;
+            doc.setFontSize(6.2);
+
+            // deja un pequeño espacio antes del texto
+            cx += 2;
+
+            // Garantiza que texto + línea no salgan de la caja
+            const tW = doc.getTextWidth(dateText);
+            const maxStart = Math.max(col4X, Math.min(cx, RIGHT_LIMIT_SIG - (tW + 16))); // 16mm reservados a la línea
+            const tx = maxStart;
+
+            // texto arriba
+            lbl(dateText, tx, r2Y - 1.8, 6.2);
+
+            // línea de fecha justo debajo del texto
+            const lineX = tx;
+            const lineW = 22; // ancho compacto
+            safeUline(lineX, r2Y + lineYOff, lineW);
           }
-
-          // Col4 Fila 2: AM/PM + UNA sola fecha del bloque, texto arriba de la línea
-          {
-          let cx = col4X;
-          // AM / PM alineados a la izquierda de la columna
-          lbl(`AM`, cx, r2Y);
-          checkbox(cx + 7.5, r2Y); cx += 19;
-
-          lbl(`PM`, cx, r2Y);
-          checkbox(cx + 7.5, r2Y); cx += 22;
-
-          // Texto de la fecha ARRIBA de la línea
-          const dateText = `Date (MM/DD/YYYY)`;
-          doc.setFontSize(6.2);
-
-          // deja un pequeño espacio antes del texto
-          cx += 2;
-
-          // mide, calcula inicio y traza dentro de límites
-          const tW = doc.getTextWidth(dateText);
-          const maxStart = Math.max(col4X, Math.min(cx, RIGHT_LIMIT_SIG - (tW + 16))); // 16mm reservados para línea
-          const tx = maxStart;
-
-          // texto arriba (un poco más alto que r2Y)
-          lbl(dateText, tx, r2Y - 1.8, 6.2);
-
-          // línea para escribir la fecha, debajo del texto
-          const lineX = tx;
-          const lineY = r2Y + lineYOff;
-          const lineW = 22; // ancho fijo y compacto
-          safeUline(lineX, lineY, lineW);
-        }
           return startY + boxH;
         }
 
