@@ -337,8 +337,8 @@ export default function GenerarBOL() {
       doc.text(String(rightText), 200, y, { align: "right" });
     }
 
-    doc.setLineWidth(0.5);
-    doc.line(12, y + 2, 200, y + 2);
+    doc.setLineWidth(0.25);
+    doc.line(M, y - 2, W - M, y - 2);
   }
 
 
@@ -367,7 +367,7 @@ export default function GenerarBOL() {
   const CELL_PAD_X = 2;      // padding horizontal
   const CELL_PAD_Y = 3;      // padding vertical
   const LINE_H = 4.3;        // alto de línea de texto
-  const MIN_ROW_H = 8;       // alto mínimo por fila
+  const MIN_ROW_H = 10;       // alto mínimo por fila
 
   function splitFit(doc, txt, width, fontSize = 9) {
     doc.setFontSize(fontSize);
@@ -781,7 +781,7 @@ export default function GenerarBOL() {
 
           // alto del bloque de texto y centrado vertical
           const blockH = content.length * LINE_H;
-          let ty = ry + CELL_PAD_Y + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 2) + 3.5;
+          let ty = ry + CELL_PAD_Y + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 2);
 
           content.forEach(ln => {
             if (c.align === "right") {
@@ -802,7 +802,7 @@ export default function GenerarBOL() {
       }
 
       // cursor global debajo de la tabla
-      y = TAB_Y + TAB_H + gap + 5;
+      y = TAB_Y + TAB_H + gap + 10;
 
       // Totales
       doc.setFont("helvetica","bold").setFontSize(9);
