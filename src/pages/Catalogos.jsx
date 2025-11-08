@@ -7,7 +7,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../App.css";
 
-// === Helpers para teléfonos formato US ===
+// === Helpers email/phone ===
 const onlyDigits = (v) => (v ?? "").replace(/\D+/g, "");
 const formatPhoneUS = (v) => {
   const d = onlyDigits(v).slice(0, 10);
@@ -15,6 +15,25 @@ const formatPhoneUS = (v) => {
   if (d.length <= 6) return `${d.slice(0,3)}-${d.slice(3)}`;
   return `${d.slice(0,3)}-${d.slice(3,6)}-${d.slice(6)}`;
 };
+
+const parseEmails = (v) => {
+  const parts = String(v ?? "")
+    .split(/[,\s;]+/)            // separa por coma, espacio o ;
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean);
+  // desduplicar y validación básica
+  const seen = new Set();
+  const basic = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return parts.filter(x => {
+    if (!basic.test(x)) return false;
+    if (seen.has(x)) return false;
+    seen.add(x);
+    return true;
+  });
+};
+
+const emailsToInput = (val) =>
+  Array.isArray(val) ? val.join(", ") : (val ?? "");
 
 Modal.setAppElement("#root");
 
@@ -231,22 +250,26 @@ async function save() {
 
     // 2) Normaliza contactos (texto plano) y formatea telefonos a ddd-ddd-dddd
     if (tab === "shipper") {
-      if (payload.shipper_contact_email != null) {
-        payload.shipper_contact_email = String(payload.shipper_contact_email).trim() || null;
-      }
-      if (payload.shipper_contact_phone != null) {
-        payload.shipper_contact_phone = formatPhoneUS(payload.shipper_contact_phone) || null;
-      }
+    // emails: convertir string "a, b; c" -> ["a","b","c"]
+    if (payload.shipper_contact_email != null) {
+      const arr = parseEmails(payload.shipper_contact_email);
+      payload.shipper_contact_email = arr.length ? arr : null; // <-- ARRAY para Postgres text[]
     }
+    // phone: texto formateado
+    if (payload.shipper_contact_phone != null) {
+      payload.shipper_contact_phone = formatPhoneUS(payload.shipper_contact_phone) || null;
+    }
+  }
 
-    if (tab === "pos") {
-      if (payload.consignee_contact_email != null) {
-        payload.consignee_contact_email = String(payload.consignee_contact_email).trim() || null;
-      }
-      if (payload.consignee_contact_phone != null) {
-        payload.consignee_contact_phone = formatPhoneUS(payload.consignee_contact_phone) || null;
-      }
+  if (tab === "pos") {
+    if (payload.consignee_contact_email != null) {
+      const arr = parseEmails(payload.consignee_contact_email);
+      payload.consignee_contact_email = arr.length ? arr : null; // <-- ARRAY
     }
+    if (payload.consignee_contact_phone != null) {
+      payload.consignee_contact_phone = formatPhoneUS(payload.consignee_contact_phone) || null;
+    }
+  }
 
     // ✅ Insertar o actualizar según sea nuevo o existente
     const op = isNew
@@ -510,7 +533,16 @@ async function save() {
                         <td>{[r.freight_class, r.freight_charges].filter(Boolean).join(" / ")}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <button onClick={() => { setEdit(r); setIsNew(false); loadBillToForPO(r.po); }}>
+                          <button
+                            onClick={() => {
+                              setEdit({
+                                ...r,
+                                consignee_contact_email: emailsToInput(r.consignee_contact_email),
+                              });
+                              setIsNew(false);
+                              loadBillToForPO(r.po);
+                            }}
+                          >
                             {t("edit")}
                           </button>
                           <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
@@ -526,7 +558,17 @@ async function save() {
                         <td>{r.shipper_zip}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
+                          <button
+                            onClick={() => {
+                              setEdit({
+                                ...r,
+                                shipper_contact_email: emailsToInput(r.shipper_contact_email),
+                              });
+                              setIsNew(false);
+                            }}
+                          >
+                            {t("edit")}
+                          </button>
                           <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
                         </td>
                       </>
@@ -635,7 +677,9 @@ async function save() {
                 <input
                   placeholder={t("contact_email", "Contact Email")}
                   value={edit?.consignee_contact_email || ""}
-                  onChange={(e) => setEdit({ ...edit, consignee_contact_email: e.target.value })}
+                  onChange={(e) =>
+                    setEdit((prev) => ({ ...prev, consignee_contact_email: e.target.value }))
+                  }
                 />
                 <input
                   placeholder={t("contact_phone", "Contact Phone")}
@@ -770,7 +814,9 @@ async function save() {
                 <input
                   placeholder={t("contact_email", "Contact Email")}
                   value={edit?.shipper_contact_email || ""}
-                  onChange={(e) => setEdit({ ...edit, shipper_contact_email: e.target.value })}
+                  onChange={(e) =>
+                    setEdit((prev) => ({ ...prev, shipper_contact_email: e.target.value }))
+                  }
                 />
                 <input
                   placeholder={t("contact_phone", "Contact Phone")}
