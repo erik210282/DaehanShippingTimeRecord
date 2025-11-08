@@ -892,9 +892,9 @@ export default function GenerarBOL() {
         // Marco exterior de cada bloque de firmas
         const boxX = M;
         const boxW = TAB_W;
-        const boxH = 20;             // MÁS CHICO que antes (cada bloque Pickup/Dropoff)
+        const boxH = 18;             // MÁS CHICO que antes (cada bloque Pickup/Dropoff)
         const dividerH = 0.8;        // separador entre Pickup y Dropoff
-        const PAD = 4;               // padding interno
+        const PAD = 3;               // padding interno
 
         // Y fijo para que las firmas queden SIEMPRE arriba del legal
         const pageHnow = doc.internal.pageSize.height;
@@ -930,6 +930,18 @@ export default function GenerarBOL() {
         const col3X = col2X + col2W;
         const col4X = col3X + col3W;
 
+        // ⬇️ NUEVO: fin seguro de cada columna (no traspasar el borde del cuadro)
+        const COL_END1 = col1X + col1W - 1.5;
+        const COL_END2 = col2X + col2W - 1.5;
+        const COL_END3 = col3X + col3W - 1.5;
+        const COL_END4 = col4X + col4W - 1.5;
+
+        // ⬇️ NUEVO: dibuja una línea que termina en el borde interno de la columna
+        const lineToEnd = (startX, y, colEnd) => {
+          const w = Math.max(8, colEnd - startX);
+          safeUline(startX, y, w);
+        };
+
         // Borde derecho interno MÁXIMO permitido para texto/elementos
         const RIGHT_LIMIT = innerX + innerW - 1.5; // margen de seguridad 1.5mm
 
@@ -939,9 +951,9 @@ export default function GenerarBOL() {
           return Math.min(startX, maxStart);
         };
 
-        const headerH  = 5.8;
-        const rowGap   = 5.0;
-        const lineYOff = 3.4;
+        const headerH  = 5.2;
+        const rowGap   = 4.2;
+        const lineYOff = 3.0;
 
         // Limites internos del bloque de firmas
         const RIGHT_LIMIT_SIG = boxX + boxW - PAD - 1.5;
@@ -967,17 +979,17 @@ export default function GenerarBOL() {
           // ----- Fila 1 -----
           const r1Y = startY + headerH + 4.2;
 
-          // Col1: Printed Name  (línea dentro de su columna)
+          // Col1: Printed Name
           lbl(`${who1Left}:`, col1X, r1Y);
-          safeUline(col1X + 34, r1Y + lineYOff, Math.max(20, col1W - 36));
+          lineToEnd(col1X + 34, r1Y + lineYOff, COL_END1);
 
           // Col2: Sign
           lbl(`${who1Mid}:`, col2X, r1Y);
-          safeUline(col2X + 24, r1Y + lineYOff, Math.max(18, col2W - 26));
+          lineToEnd(col2X + 24, r1Y + lineYOff, COL_END2);
 
-          // Col3: In Time
+          // Col3: In Time  (termina antes de la col4)
           lbl(`${time1Label}:`, col3X, r1Y);
-          safeUline(col3X + 22, r1Y + lineYOff, Math.max(18, col3W - 24));
+          lineToEnd(col3X + 22, r1Y + lineYOff, Math.min(COL_END3, col4X - 3));
 
           // Col4: SOLO AM/PM (SIN fecha)
           {
@@ -994,15 +1006,15 @@ export default function GenerarBOL() {
 
           // Col1: Driver/Receiver Printed Name
           lbl(`${who2Left}:`, col1X, r2Y);
-          safeUline(col1X + 34, r2Y + lineYOff, Math.max(20, col1W - 36));
+          lineToEnd(col1X + 34, r2Y + lineYOff, COL_END1);
 
           // Col2: Driver/Receiver Sign
           lbl(`${who2Mid}:`, col2X, r2Y);
-          safeUline(col2X + 24, r2Y + lineYOff, Math.max(18, col2W - 26));
+          lineToEnd(col2X + 24, r2Y + lineYOff, COL_END2);
 
-          // Col3: Out Time
+          // Col3: Out Time  (termina antes de la col4)
           lbl(`${time2Label}:`, col3X, r2Y);
-          safeUline(col3X + 22, r2Y + lineYOff, Math.max(18, col3W - 24));
+          lineToEnd(col3X + 22, r2Y + lineYOff, Math.min(COL_END3, col4X - 3));
 
           // Col4: AM/PM + ÚNICA fecha del bloque (texto arriba, línea debajo)
           {
