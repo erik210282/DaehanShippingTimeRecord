@@ -692,7 +692,7 @@ export default function GenerarBOL() {
 
       // ===== Fila 2: Bill Charges / Shipment / Container / Seal / Packing Slip / PO =====
       {
-        const rH = 28; // altura de las cajas
+        const rH = 29; // altura de las cajas
 
         // --- Anchos personalizados (deben sumar TAB_W) ---
         const widths = [
@@ -883,23 +883,127 @@ export default function GenerarBOL() {
       doc.text(`Total Shipping Units: ${String(totalUnits)}`, M+108, y);
       y += 8;
 
-      // Firmas
-      const signY = y;
-      doc.setFont("helvetica","normal");
-      doc.rect(M, signY, 84, 38);
-      doc.text("Pickup", M+2, signY+6); 
-      doc.text("Shipper Printed Name", M+2, signY+14);
-      doc.text("Sign", M+2, signY+20);
-      doc.text("In Time", M+2, signY+26);
-      doc.text("Date (MM/DD/YYYY)", M+2, signY+32);
+      // =================== FIRMAS (Pickup / Dropoff) ===================
+      {
+        const boxX = M;
+        const boxW = TAB_W;
+        const boxH = 42;      // alto por bloque (más alto que antes para que quepa todo cómodo)
+        const pad  = 6;       // padding interior
+        const lbl  = (txt, x, y, sz = 9, bold = false) => {
+          doc.setFont("helvetica", bold ? "bold" : "normal");
+          doc.setFontSize(sz);
+          doc.text(txt, x, y);
+        };
+        const uline = (x, y, w) => doc.line(x, y, x + w, y);
+        const checkbox = (x, y, s = 4) => doc.rect(x, y - s + 0.8, s, s); // cajita AM/PM
 
-      doc.rect(M+92, signY, 84, 38);
-      doc.text("Drop off", M+94, signY+6);
-      doc.text("Receiver Printed Name", M+94, signY+14);
-      doc.text("Sign", M+94, signY+20);
-      doc.text("In Time", M+94, signY+26);
-      doc.text("Date (MM/DD/YYYY)", M+94, signY+32);
-      y += 38 + 6;
+        // Layout de columnas internas (4 columnas como en la referencia)
+        // | Col1: Printed Name | Col2: Sign | Col3: In/Out Time | Col4: AM/PM + Date |
+        const innerX = boxX + pad;
+        const innerW = boxW - pad * 2;
+
+        const col1W = innerW * 0.36;          // Printed Name
+        const col2W = innerW * 0.22;          // Sign
+        const col3W = innerW * 0.18;          // In/Out Time
+        const col4W = innerW * 0.24;          // AM/PM + Date
+
+        const col1X = innerX;
+        const col2X = innerX + col1W;
+        const col3X = innerX + col1W + col2W;
+        const col4X = innerX + col1W + col2W + col3W;
+
+        // Alturas de renglón
+        const headerH  = 8;
+        const rowGap   = 8;    // separación entre las dos filas (Shipper/Driver o Receiver/Driver)
+        const lineYOff = 5;    // offset vertical para las líneas bajo los textos
+
+        // --- Función para pintar un bloque de firmas (Pickup o Dropoff)
+        function drawSignatureBox(title, startY, who1Left, who1Mid, time1Label, who2Left, who2Mid, time2Label) {
+          // Marco
+          doc.rect(boxX, startY, boxW, boxH);
+
+          // Título
+          lbl(title, innerX, startY + 6, 12, true);
+
+          // Línea divisoria bajo el título
+          doc.setLineWidth(0.25);
+          doc.line(boxX, startY + headerH, boxX + boxW, startY + headerH);
+
+          // 1a fila (ej. Shipper / Shipper Sign / In Time / AM-PM-Date)
+          const r1Y = startY + headerH + 7;
+          lbl(`${who1Left}:`, col1X, r1Y);
+          uline(col1X + 34, r1Y + lineYOff, col1W - 36);       // línea de Printed Name
+
+          lbl(`${who1Mid}:`,  col2X, r1Y);
+          uline(col2X + 26, r1Y + lineYOff, col2W - 28);       // línea de Sign
+
+          lbl(`${time1Label}:`, col3X, r1Y);
+          uline(col3X + 20, r1Y + lineYOff, col3W - 22);       // línea de hora
+
+          // AM / PM + Date
+          let cx = col4X;
+          lbl(`AM`, cx, r1Y);
+          checkbox(cx + 10, r1Y);  cx += 24;
+          lbl(`PM`, cx, r1Y);
+          checkbox(cx + 10, r1Y);  cx += 32;
+          lbl(`Date`, cx, r1Y);
+          lbl(`(MM/DD/YYYY)`, cx, r1Y + 5, 7);
+          uline(cx - 2, r1Y + lineYOff, col4W - (cx - col4X) - 2);
+
+          // 2a fila (ej. Driver / Driver Sign / Out Time / AM-PM-Date)
+          const r2Y = r1Y + rowGap + 6;
+          lbl(`${who2Left}:`, col1X, r2Y);
+          uline(col1X + 34, r2Y + lineYOff, col1W - 36);
+
+          lbl(`${who2Mid}:`,  col2X, r2Y);
+          uline(col2X + 26, r2Y + lineYOff, col2W - 28);
+
+          lbl(`${time2Label}:`, col3X, r2Y);
+          uline(col3X + 23, r2Y + lineYOff, col3W - 25);
+
+          cx = col4X;
+          lbl(`AM`, cx, r2Y);
+          checkbox(cx + 10, r2Y);  cx += 24;
+          lbl(`PM`, cx, r2Y);
+          checkbox(cx + 10, r2Y);  cx += 32;
+          lbl(`Date`, cx, r2Y);
+          lbl(`(MM/DD/YYYY)`, cx, r2Y + 5, 7);
+          uline(cx - 2, r2Y + lineYOff, col4W - (cx - col4X) - 2);
+
+          return startY + boxH;  // siguiente Y
+        }
+
+        // === Pinta PICKUP ===
+        let nextY = y;
+        nextY = drawSignatureBox(
+          "Pickup",
+          nextY,
+          "Shipper Printed Name",
+          "Shipper Sign",
+          "In Time",
+          "Driver Printed Name",
+          "Driver Sign",
+          "Out Time"
+        );
+
+        // línea horizontal entre Pickup y Dropoff (como en tu imagen)
+        doc.line(boxX, nextY, boxX + boxW, nextY);
+
+        // === Pinta DROPOFF ===
+        nextY = drawSignatureBox(
+          "Dropoff",
+          nextY,
+          "Receiver Printed Name",
+          "Receiver Sign",
+          "In Time",
+          "Driver Printed Name",
+          "Driver Sign",
+          "Out Time"
+        );
+
+        y = nextY + 8; // deja aire antes del legal
+      }
+
 
       // === LEGAL FOOTER ===
       {
