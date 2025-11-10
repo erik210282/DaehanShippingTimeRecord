@@ -976,17 +976,19 @@ export default function GenerarBOL() {
           lineToEnd(col2X + 18, r1Y + lineYOff, COL_END2);
 
           // Col3: In Time  (tope antes de col4)
-          lbl(`${time1Label}:`, col3X, r1Y);
-          lineToEnd(col3X + 22, r1Y + lineYOff, Math.min(COL_END3, col4X - 5));
+          lbl(`${time1Label}:`, col3X + 2, r1Y);
+          lineToEnd(col3X + 26, r1Y + lineYOff, Math.min(COL_END3, col4X - 5));
 
-          // Col4: SOLO AM/PM (SIN fecha en fila 1)
+          // Col4 Fila 1: AM / PM (alineados y más a la derecha)
           {
-            let cx = col4X;
-            lbl(`AM`, cx, r1Y);
-            checkbox(cx + 7.5, r1Y); cx += 19;
+            const amX = col4X + 2;   // mueve AM a la derecha
+            const pmX = col4X + 30;  // PM queda a la MISMA X en ambas filas
 
-            lbl(`PM`, cx, r1Y);
-            checkbox(cx + 7.5, r1Y);
+            lbl('AM', amX, r1Y);
+            checkbox(amX + 7.0, r1Y);
+
+            lbl('PM', pmX, r1Y);
+            checkbox(pmX + 7.0, r1Y);
           }
 
           // ----- Fila 2 -----
@@ -1001,8 +1003,8 @@ export default function GenerarBOL() {
           lineToEnd(col2X + 18, r2Y + lineYOff -1.5, COL_END2);
 
           // Col3: Out Time  (tope antes de col4)
-          lbl(`${time2Label}:`, col3X, r2Y);
-          lineToEnd(col3X + 22, r2Y + lineYOff -1.5, Math.min(COL_END3, col4X - 5));
+          lbl(`${time2Label}:`, col3X + 2, r2Y);
+          lineToEnd(col3X + 26, r2Y + lineYOff -1.5, Math.min(COL_END3, col4X - 5));
 
           // Col4: AM/PM + ÚNICA fecha del bloque (texto arriba, línea debajo)
           {
