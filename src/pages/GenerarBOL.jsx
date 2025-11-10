@@ -940,7 +940,7 @@ export default function GenerarBOL() {
         const col4W = innerW * 0.31; // AM/PM + Date
 
         const col1X = innerX;
-        const SHIFT234 = 4; 
+        const SHIFT234 = 2; 
         const COL4_SHIFT = 3; 
         const col2X = col1X + col1W + SHIFT234;
         const col3X = col2X + col2W;
@@ -950,7 +950,7 @@ export default function GenerarBOL() {
         const COL_END1 = col1X + col1W - 2.5;
         const COL_END2 = col3X + 8;
         const COL_END3 = col3X + col3W - 1.5;
-        const COL_END4 = col4X + col4W - 2.5;
+        const COL_END4 = col4X + col4W - 0.5;
 
         // Dibuja una línea que “tope” al borde interno de la columna
         const lineToEnd = (startX, y, colEnd) => {
