@@ -976,13 +976,13 @@ export default function GenerarBOL() {
           lineToEnd(col2X + 18, r1Y + lineYOff, COL_END2);
 
           // Col3: In Time  (tope antes de col4)
-          lbl(`${time1Label}:`, col3X + 2, r1Y);
+          lbl(`${time1Label}:`, col3X + 10, r1Y);
           lineToEnd(col3X + 26, r1Y + lineYOff, Math.min(COL_END3, col4X - 5));
 
           // Col4 Fila 1: AM / PM (alineados y más a la derecha)
           {
-            const amX = col4X + 2;   // mueve AM a la derecha
-            const pmX = col4X + 30;  // PM queda a la MISMA X en ambas filas
+            const amX = col4X + 6;   // mueve AM a la derecha
+            const pmX = col4X + 16;  // PM queda a la MISMA X en ambas filas
 
             lbl('AM', amX, r1Y);
             checkbox(amX + 7.0, r1Y);
@@ -1003,40 +1003,43 @@ export default function GenerarBOL() {
           lineToEnd(col2X + 18, r2Y + lineYOff -1.5, COL_END2);
 
           // Col3: Out Time  (tope antes de col4)
-          lbl(`${time2Label}:`, col3X + 2, r2Y);
+          lbl(`${time2Label}:`, col3X + 10, r2Y);
           lineToEnd(col3X + 26, r2Y + lineYOff -1.5, Math.min(COL_END3, col4X - 5));
 
           // Col4: AM/PM + ÚNICA fecha del bloque (texto arriba, línea debajo)
           {
-            const amX = col4X + 2;   // misma X que arriba
-            const pmX = col4X + 30;  // misma X que arriba (PM alineado en ambas filas)
+            const amX = col4X + 6;   // misma X que arriba
+            const pmX = col4X + 16;  // misma X que arriba (PM alineado en ambas filas)
 
             lbl('AM', amX, r2Y);
             checkbox(amX + 7.0, r2Y);
 
             lbl('PM', pmX, r2Y);
             checkbox(pmX + 7.0, r2Y);
+          }
 
-            // Texto de la fecha (encima de la línea) — más a la derecha y más arriba
-            const dateText     = `Date (MM/DD/YYYY)`;
+          // Col4 Fila 2: ÚNICA fecha — mismo Y que PM, más a la derecha y línea al nivel de Out Time
+          {
+            const dateText     = 'Date (MM/DD/YYYY)';
             const dateTextSize = 6.2;
             doc.setFontSize(dateTextSize);
 
-            // Base a la derecha: usa pmX como referencia y deja margen
-            const dateBaseX = (col4X + 30) + 16; // pmX + ~16 mm → empuja a la derecha
-            const tW = doc.getTextWidth(dateText);
+            // Usa la X de PM como base y empuja a la derecha
+            const amX = col4X + 6;
+            const pmX = amX + 16;
+            const dateBaseX = pmX + 14;                  // más a la derecha; ajusta +/− si hace falta
 
-            // Encaja texto + línea dentro de la columna 4
+            const tW = doc.getTextWidth(dateText);
             const tx = Math.max(col4X, Math.min(dateBaseX, COL_END4 - (tW + 12)));
 
-            // SUBE el texto
-            const dateLabelY = r2Y - 3.6; // más arriba que antes
+            // Texto DATE a la MISMA ALTURA que PM
+            const dateLabelY = r2Y;                      // mismo Y que 'PM'
             lbl(dateText, tx, dateLabelY, dateTextSize);
 
-            // Línea justo debajo del texto (también más a la derecha y un poco más alta)
+            // Línea DATE al MISMO Y que la línea de Out Time
             const lineX     = tx;
-            const lineW     = Math.min(20, COL_END4 - lineX); // largo de la línea
-            const dateLineY = r2Y + lineYOff - 1.0;          // sube la línea
+            const lineW     = Math.min(24, COL_END4 - lineX);   // un poco más larga
+            const dateLineY = r2Y + lineYOff - 1.5;             // igual que Out Time (usa -1.5)
             safeUline(lineX, dateLineY, lineW);
           }
           return startY + boxH;
