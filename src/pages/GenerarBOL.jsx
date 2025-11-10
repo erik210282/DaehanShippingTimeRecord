@@ -52,6 +52,7 @@ export default function GenerarBOL() {
 
     setShipmentNo("");
     setTrailerNo("");
+    setDockNo("");
     setSealNo("");
     setPackingSlip("");
 
@@ -73,9 +74,9 @@ export default function GenerarBOL() {
 
   const [shipperOptions, setShipperOptions] = React.useState([]);
   const [selectedShipperId, setSelectedShipperId] = React.useState("");
-
   const [shipmentNo, setShipmentNo] = React.useState("");
   const [trailerNo, setTrailerNo] = React.useState("");
+  const [dockNo, setDockNo] = React.useState("");
   const [sealNo, setSealNo] = React.useState("");
   const [packingSlip, setPackingSlip] = React.useState("");
 
@@ -673,13 +674,14 @@ export default function GenerarBOL() {
 
       // ===== Fila 1: 3 cajas (Freight/Charges/Carrier/Bol Date) =====
       {
-        const cW = (TAB_W / 4);
+        const cW = (TAB_W / 5);
         const cH = 10; // súper compacto
         const items = [
           ["Freight Class",   primaryPO?.freight_class ?? ""],
           ["Freight Charges", primaryPO?.freight_charges ?? primaryPO?.freight_charge ?? ""],
           ["Carrier Name",    primaryPO?.carrier_name ?? ""],
           ["BOL Date",        bolDate ?? ""],
+          ["Dock Number",     dockNo ?? ""],
         ];
         items.forEach((h, i) => {
           const x = M + i * cW;
@@ -726,7 +728,7 @@ export default function GenerarBOL() {
           ["Shipment Number",  shipmentNo || primaryPO?.shipment_number || ""],      // 1
           ["Container Number", trailerNo  || primaryPO?.trailer_number  || ""],      // 2
           ["Seal Number",      sealNo     || primaryPO?.seal_number     || ""],      // 3
-          ["Packing Slip",   packingSlip || ""], // 4
+          ["Packing Slip",   packingSlip || ""],                                      // 4
           ["PO #’s",           poDisplay],                                            // 5
         ];
 
@@ -945,7 +947,7 @@ export default function GenerarBOL() {
 
         // FIN SEGURO de cada columna (para que las líneas no traspasen)
         const COL_END1 = col1X + col1W - 2.5;
-        const COL_END2 = col2X + col2W + 0.5;
+        const COL_END2 = col3X - 6;
         const COL_END3 = col3X + col3W - 1.5;
         const COL_END4 = col4X + col4W - 2.5;
 
@@ -1032,9 +1034,9 @@ export default function GenerarBOL() {
             doc.setFontSize(dateTextSize);
 
             // Usa la X de PM como base y empuja a la derecha
-            const amX = col4X + 6;
-            const pmX = amX + 16;
-            const dateBaseX = pmX + 14;                  // más a la derecha; ajusta +/− si hace falta
+            const amX = col4X + 8;
+            const pmX = amX + 18;
+            const dateBaseX = pmX + 22;                  // más a la derecha; ajusta +/− si hace falta
 
             const tW = doc.getTextWidth(dateText);
             const tx = Math.max(col4X, Math.min(dateBaseX, COL_END4 - (tW + 12)));
@@ -1044,8 +1046,8 @@ export default function GenerarBOL() {
             lbl(dateText, tx, dateLabelY, dateTextSize);
 
             // Línea DATE al MISMO Y que la línea de Out Time
-            const lineX     = tx;
-            const lineW     = Math.min(24, COL_END4 - lineX);   // un poco más larga
+            const lineX     = tx + 0.5;
+            const lineW     = Math.min(20, COL_END4 - lineX);   // un poco más larga
             const dateLineY = r2Y + lineYOff - 1.5;             // igual que Out Time (usa -1.5)
             safeUline(lineX, dateLineY, lineW);
           }
@@ -1181,6 +1183,9 @@ export default function GenerarBOL() {
 
           {/* Trailer/Container */}
           <input placeholder={t("trailer_number", "No. de Trailer/Contenedor")} value={trailerNo} onChange={(e) => setTrailerNo(e.target.value)} />
+
+          {/* Dock Number */}
+          <input placeholder={t("dock_number", "Dock Number")} value={dockNo} onChange={(e) => setDockNo(e.target.value)} />
 
           {/* PO (multi-select estilo react-select) */}
           <Select
