@@ -941,7 +941,7 @@ export default function GenerarBOL() {
         const SHIFT234 = 10; 
         const col2X = col1X + col1W + SHIFT234;
         const col3X = col2X + col2W;
-        const col4X = col3X + col3W;
+        const col4X = col3X + col3W + 10;
 
         // FIN SEGURO de cada columna (para que las líneas no traspasen)
         const COL_END1 = col1X + col1W - 2.5;
