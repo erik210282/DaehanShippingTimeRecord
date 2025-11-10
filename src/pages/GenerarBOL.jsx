@@ -958,7 +958,7 @@ export default function GenerarBOL() {
           doc.rect(boxX, startY, boxW, boxH);
 
           // Título
-          lbl(title, innerX, startY + 4.8, 9.5, true);
+          lbl(title, innerX, startY + 3.8, 9.5, true); 
 
           // Línea bajo título
           doc.setLineWidth(0.25);
