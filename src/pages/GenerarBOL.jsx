@@ -347,7 +347,7 @@ export default function GenerarBOL() {
     doc.text(s(value) || "—", x + 42, y);
   }
 
-  function drawRightFit(doc, text, xRight, y, maxWidth, baseSize = 9) {
+  function drawRightFit(doc, text, xRight, y, maxWidth, baseSize = 8.5) {
     doc.setFontSize(baseSize);
     const dims = doc.getTextDimensions(String(text ?? ""));
     if (dims.w <= maxWidth) {
@@ -363,8 +363,8 @@ export default function GenerarBOL() {
 
   // === Helpers de tabla auto-ajustable ===
   const CELL_PAD_X = 2;      // padding horizontal
-  const CELL_PAD_Y = 3;      // padding vertical
-  const LINE_H = 3.6;        // alto de línea de texto
+  const CELL_PAD_Y = 2.2;      // padding vertical
+  const LINE_H = 3.4;        // alto de línea de texto
   const MIN_ROW_H = 6;       // alto mínimo por fila
 
   function splitFit(doc, txt, width, fontSize = 9) {
@@ -373,7 +373,7 @@ export default function GenerarBOL() {
     return doc.splitTextToSize(String(txt ?? ""), w);
   }
 
-  function measureRowHeight(doc, row, COLS, fontSize = 9) {
+  function measureRowHeight(doc, row, COLS, fontSize = 8.5) {
     let maxLines = 1;
     for (let i = 0; i < COLS.length; i++) {
       const c = COLS[i];
@@ -769,7 +769,7 @@ export default function GenerarBOL() {
 
         // --- Shipper ---
         box(M, y, shW, rowH);
-        text("Shipper Address", "", M, y + 3.5, { size: 8, bold: true });
+        text("Shipper Address", "", M, y + 3.5, { size: 8, bold: false });
         let sy = y + 8.5;
         doc.setFontSize(8);
         [
@@ -785,7 +785,7 @@ export default function GenerarBOL() {
         // --- Consignee ---
         const C = primaryPO || {};
         box(coX, y, coW, rowH);
-        text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: true });
+        text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: false });
         let cy = y + 8.5;
         doc.setFontSize(8);
         [
@@ -825,8 +825,9 @@ export default function GenerarBOL() {
         const lines = splitFit(doc, c.t, c.w, 8);
 
         // alto del bloque de texto y centrado vertical sin extra
-        const blockH = lines.length * (LINE_H - 0.2);
-        let hy = TAB_Y + CELL_PAD_Y + (headerTableH - 2 * CELL_PAD_Y - blockH) / 2;
+        const blockH = lines.length * LINE_H;
+        const TOP_OFFSET = 0.4;               // leve separación del borde superior
+        let ty = ry + CELL_PAD_Y + TOP_OFFSET; // ← texto siempre arranca arriba igual
 
         lines.forEach(ln => {
           doc.text(ln, hx + CELL_PAD_X, hy);
