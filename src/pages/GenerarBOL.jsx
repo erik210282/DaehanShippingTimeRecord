@@ -932,10 +932,10 @@ export default function GenerarBOL() {
         const innerX = boxX + PAD;
         const innerW = boxW - (PAD * 2);
 
-        const col1W = innerW * 0.30; // Printed Name
-        const col2W = innerW * 0.18; // Sign
-        const col3W = innerW * 0.18; // In/Out Time
-        const col4W = innerW * 0.34; // AM/PM + Date
+        const col1W = innerW * 0.39; // Printed Name
+        const col2W = innerW * 0.15; // Sign
+        const col3W = innerW * 0.15; // In/Out Time
+        const col4W = innerW * 0.31; // AM/PM + Date
 
         const col1X = innerX;
         const col2X = col1X + col1W;
