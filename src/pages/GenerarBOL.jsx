@@ -1008,37 +1008,37 @@ export default function GenerarBOL() {
 
           // Col4: AM/PM + ÚNICA fecha del bloque (texto arriba, línea debajo)
           {
-            let cx = col4X;
+            const amX = col4X + 2;   // misma X que arriba
+            const pmX = col4X + 30;  // misma X que arriba (PM alineado en ambas filas)
 
-            lbl(`AM`, cx, r2Y);
-            checkbox(cx + 7.0, r2Y); cx += 17;
+            lbl('AM', amX, r2Y);
+            checkbox(amX + 7.0, r2Y);
 
-            lbl(`PM`, cx, r2Y);
-            checkbox(cx + 7.0, r2Y); cx += 17;
+            lbl('PM', pmX, r2Y);
+            checkbox(pmX + 7.0, r2Y);
 
-            // Texto de la fecha (encima de la línea)
-            const dateText = `Date (MM/DD/YYYY)`;
+            // Texto de la fecha (encima de la línea) — más a la derecha y más arriba
+            const dateText     = `Date (MM/DD/YYYY)`;
             const dateTextSize = 6.2;
             doc.setFontSize(dateTextSize);
 
-            // deja un pequeño espacio antes del texto
-            cx += 2;
-
-            // Encajar texto + línea dentro de col4
+            // Base a la derecha: usa pmX como referencia y deja margen
+            const dateBaseX = (col4X + 30) + 16; // pmX + ~16 mm → empuja a la derecha
             const tW = doc.getTextWidth(dateText);
-            const tx = Math.max(col4X, Math.min(cx, COL_END4 - (tW + 12))); // 14mm reservados a la línea
 
-            // Texto ARRIBA (subimos un poco para que no quede “bajo”)
-            const dateLabelY = r2Y - 3.0; // <- súbelo/bájalo aquí si lo quieres más alto/bajo
+            // Encaja texto + línea dentro de la columna 4
+            const tx = Math.max(col4X, Math.min(dateBaseX, COL_END4 - (tW + 12)));
+
+            // SUBE el texto
+            const dateLabelY = r2Y - 3.6; // más arriba que antes
             lbl(dateText, tx, dateLabelY, dateTextSize);
 
-            // Línea justo DEBAJO del texto, tope dentro de col4
-            const lineX = tx;
-            const lineW = Math.min(20, COL_END4 - lineX);
-            const dateLineY = r2Y + lineYOff - 0.6; // <- línea donde escribir
+            // Línea justo debajo del texto (también más a la derecha y un poco más alta)
+            const lineX     = tx;
+            const lineW     = Math.min(20, COL_END4 - lineX); // largo de la línea
+            const dateLineY = r2Y + lineYOff - 1.0;          // sube la línea
             safeUline(lineX, dateLineY, lineW);
           }
-
           return startY + boxH;
         }
 
