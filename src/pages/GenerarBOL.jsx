@@ -826,14 +826,12 @@ export default function GenerarBOL() {
 
         // alto del bloque de texto y centrado vertical sin extra
         const blockH = lines.length * LINE_H;
-        const TOP_OFFSET = 0.4;               // leve separación del borde superior
-        let ty = ry + CELL_PAD_Y + TOP_OFFSET; // ← texto siempre arranca arriba igual
-
+        const TOP_OFFSET = 0.4;
+        let hy = TAB_Y + CELL_PAD_Y + TOP_OFFSET;            // ← Y inicial del header (ARRIBA)
         lines.forEach(ln => {
           doc.text(ln, hx + CELL_PAD_X, hy);
           hy += (LINE_H - 0.2);
         });
-
         // separador vertical
         doc.line(COLX[i + 1], TAB_Y, COLX[i + 1], TAB_Y + TAB_H);
       }
@@ -852,7 +850,7 @@ export default function GenerarBOL() {
         for (let i = 0; i < COLS.length; i++) {
           const c = COLS[i];
           const cx = COLX[i];
-          const content = splitFit(doc, row[c.k], c.w, 9);
+          const content = splitFit(doc, row[c.k], c.w, 8.5);
 
           const blockH = content.length * LINE_H;
           let ty = ry + CELL_PAD_Y + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 2);
