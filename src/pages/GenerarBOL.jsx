@@ -983,10 +983,10 @@ export default function GenerarBOL() {
           {
             let cx = col4X;
             lbl(`AM`, cx, r1Y);
-            checkbox(cx + 7.5, r1Y); cx += 19;
+            checkbox(cx + 7.0, r1Y); cx += 17;
 
             lbl(`PM`, cx, r1Y);
-            checkbox(cx + 7.5, r1Y);
+            checkbox(cx + 7.0, r1Y); cx += 19
           }
 
           // ----- Fila 2 -----
