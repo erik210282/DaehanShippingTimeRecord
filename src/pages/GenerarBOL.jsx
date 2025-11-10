@@ -945,7 +945,7 @@ export default function GenerarBOL() {
         // FIN SEGURO de cada columna (para que las líneas no traspasen)
         const COL_END1 = col1X + col1W - 2.5;
         const COL_END2 = col2X + col2W - 0.5;
-        const COL_END3 = col3X + col3W - 2.5;
+        const COL_END3 = col3X + col3W - 1.5;
         const COL_END4 = col4X + col4W - 2.5;
 
         // Dibuja una línea que “tope” al borde interno de la columna
@@ -994,7 +994,7 @@ export default function GenerarBOL() {
             checkbox(amX + 6.0, r1Y);
 
             lbl('PM', pmX, r1Y);
-            checkbox(pmX + 7.0, r1Y);
+            checkbox(pmX + 6.0, r1Y);
           }
 
           // ----- Fila 2 -----
@@ -1021,7 +1021,7 @@ export default function GenerarBOL() {
             checkbox(amX + 6.0, r2Y, 3.0, -0.6);
 
             lbl('PM', pmX, r2Y);
-            checkbox(pmX + 7.0, r2Y, 3.0, -0.6);
+            checkbox(pmX + 6.0, r2Y, 3.0, -0.6);
           }
 
           // Col4 Fila 2: ÚNICA fecha — mismo Y que PM, más a la derecha y línea al nivel de Out Time
@@ -1039,7 +1039,7 @@ export default function GenerarBOL() {
             const tx = Math.max(col4X, Math.min(dateBaseX, COL_END4 - (tW + 12)));
 
             // Texto DATE a la MISMA ALTURA que PM
-            const dateLabelY = r2Y;                      // mismo Y que 'PM'
+            const dateLabelY = r1Y;                      // mismo Y que 'PM'
             lbl(dateText, tx, dateLabelY, dateTextSize);
 
             // Línea DATE al MISMO Y que la línea de Out Time
