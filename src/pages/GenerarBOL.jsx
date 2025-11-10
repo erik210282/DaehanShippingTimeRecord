@@ -945,7 +945,7 @@ export default function GenerarBOL() {
 
         // FIN SEGURO de cada columna (para que las líneas no traspasen)
         const COL_END1 = col1X + col1W - 2.5;
-        const COL_END2 = col2X + col2W;
+        const COL_END2 = col2X + col2W + 1.0;
         const COL_END3 = col3X + col3W - 1.5;
         const COL_END4 = col4X + col4W - 2.5;
 
@@ -980,7 +980,7 @@ export default function GenerarBOL() {
 
           // Col2: Sign
           lbl(`${who1Mid}:`, col2X, r1Y);
-          lineToEnd(col2X + 18, r1Y + lineYOff, COL_END2);
+          lineToEnd(col2X + 15, r1Y + lineYOff, COL_END2);
 
           // Col3: In Time  (tope antes de col4)
           lbl(`${time1Label}:`, col3X + 10, r1Y);
@@ -1007,7 +1007,7 @@ export default function GenerarBOL() {
 
           // Col2: Driver/Receiver Sign
           lbl(`${who2Mid}:`, col2X, r2Y);
-          lineToEnd(col2X + 18, r2Y + lineYOff -1.5, COL_END2);
+          lineToEnd(col2X + 15, r2Y + lineYOff -1.5, COL_END2);
 
           // Col3: Out Time  (tope antes de col4)
           lbl(`${time2Label}:`, col3X + 10, r2Y);
