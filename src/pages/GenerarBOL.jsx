@@ -951,7 +951,7 @@ export default function GenerarBOL() {
         // Métricas verticales (compactas)
         const headerH  = 5.2;
         const rowGap   = 4.2;
-        const lineYOff = 2.5;
+        const lineYOff = 0.5;
 
         function drawSignatureBox(title, startY, who1Left, who1Mid, time1Label, who2Left, who2Mid, time2Label) {
           // Marco
@@ -969,7 +969,7 @@ export default function GenerarBOL() {
 
           // Col1: Printed Name
           lbl(`${who1Left}:`, col1X, r1Y);
-          lineToEnd(col1X + 30, r1Y + lineYOff, COL_END1);
+          lineToEnd(col1X + 28, r1Y + lineYOff, COL_END1);
 
           // Col2: Sign
           lbl(`${who1Mid}:`, col2X, r1Y);
@@ -994,7 +994,7 @@ export default function GenerarBOL() {
 
           // Col1: Driver/Receiver Printed Name
           lbl(`${who2Left}:`, col1X, r2Y);
-          lineToEnd(col1X + 30, r2Y + lineYOff, COL_END1);
+          lineToEnd(col1X + 28, r2Y + lineYOff, COL_END1);
 
           // Col2: Driver/Receiver Sign
           lbl(`${who2Mid}:`, col2X, r2Y);
