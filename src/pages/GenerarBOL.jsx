@@ -937,10 +937,10 @@ export default function GenerarBOL() {
         const col4X = col3X + col3W;
 
         // FIN SEGURO de cada columna (para que las líneas no traspasen)
-        const COL_END1 = col1X + col1W - 1.5;
-        const COL_END2 = col2X + col2W - 1.5;
-        const COL_END3 = col3X + col3W - 1.5;
-        const COL_END4 = col4X + col4W - 1.5;
+        const COL_END1 = col1X + col1W - 2.5;
+        const COL_END2 = col2X + col2W - 2.5;
+        const COL_END3 = col3X + col3W - 2.5;
+        const COL_END4 = col4X + col4W - 2.5;
 
         // Dibuja una línea que “tope” al borde interno de la columna
         const lineToEnd = (startX, y, colEnd) => {
@@ -977,7 +977,7 @@ export default function GenerarBOL() {
 
           // Col3: In Time  (tope antes de col4)
           lbl(`${time1Label}:`, col3X, r1Y);
-          lineToEnd(col3X + 22, r1Y + lineYOff, Math.min(COL_END3, col4X - 3));
+          lineToEnd(col3X + 22, r1Y + lineYOff, Math.min(COL_END3, col4X - 5));
 
           // Col4: SOLO AM/PM (SIN fecha en fila 1)
           {
@@ -1002,17 +1002,17 @@ export default function GenerarBOL() {
 
           // Col3: Out Time  (tope antes de col4)
           lbl(`${time2Label}:`, col3X, r2Y);
-          lineToEnd(col3X + 22, r2Y + lineYOff, Math.min(COL_END3, col4X - 3));
+          lineToEnd(col3X + 22, r2Y + lineYOff, Math.min(COL_END3, col4X - 5));
 
           // Col4: AM/PM + ÚNICA fecha del bloque (texto arriba, línea debajo)
           {
             let cx = col4X;
 
             lbl(`AM`, cx, r2Y);
-            checkbox(cx + 7.5, r2Y); cx += 19;
+            checkbox(cx + 7.0, r2Y); cx += 17;
 
             lbl(`PM`, cx, r2Y);
-            checkbox(cx + 7.5, r2Y); cx += 22;
+            checkbox(cx + 7.0, r2Y); cx += 19;
 
             // Texto de la fecha (encima de la línea)
             const dateText = `Date (MM/DD/YYYY)`;
@@ -1024,16 +1024,16 @@ export default function GenerarBOL() {
 
             // Encajar texto + línea dentro de col4
             const tW = doc.getTextWidth(dateText);
-            const tx = Math.max(col4X, Math.min(cx, COL_END4 - (tW + 14))); // 14mm reservados a la línea
+            const tx = Math.max(col4X, Math.min(cx, COL_END4 - (tW + 12))); // 14mm reservados a la línea
 
             // Texto ARRIBA (subimos un poco para que no quede “bajo”)
-            const dateLabelY = r2Y - 1.8; // <- súbelo/bájalo aquí si lo quieres más alto/bajo
+            const dateLabelY = r2Y - 3.0; // <- súbelo/bájalo aquí si lo quieres más alto/bajo
             lbl(dateText, tx, dateLabelY, dateTextSize);
 
             // Línea justo DEBAJO del texto, tope dentro de col4
             const lineX = tx;
-            const lineW = Math.min(22, COL_END4 - lineX);
-            const dateLineY = r2Y + lineYOff; // <- línea donde escribir
+            const lineW = Math.min(20, COL_END4 - lineX);
+            const dateLineY = r2Y + lineYOff - 0.6; // <- línea donde escribir
             safeUline(lineX, dateLineY, lineW);
           }
 
