@@ -425,6 +425,126 @@ export default function GenerarBOL() {
     };
   }
 
+  // ======================= Cover Sheet (Hoja 2) =======================
+function drawCoverSheet(doc, data) {
+  // carta en mm
+  const W = 215.9, H = 279.4, M = 12, GAP = 4;
+  const { SH, PO, poNumbers, shipmentNo, trailerNo, packingSlip, bolDate } = data;
+  const C = PO || {};
+
+  // hacer nueva página en formato carta
+  doc.addPage([W, H]);
+
+  // Título
+  doc.setFont("helvetica", "bold").setFontSize(20);
+  doc.text("COVER SHEET", W / 2, 18, { align: "center" });
+  doc.setLineWidth(0.4);
+  doc.line(M, 22, W - M, 22);
+
+  // Helper de caja + label + valor
+  const box = (x, y, w, h) => { doc.setLineWidth(0.25); doc.rect(x, y, w, h); };
+  const label = (t, x, y) => { doc.setFont("helvetica", "bold").setFontSize(9); doc.text(String(t), x, y); };
+  const value = (v, x, y, w) => {
+    doc.setFont("helvetica", "normal").setFontSize(10);
+    const txt = String(v ?? "—");
+    const lines = doc.splitTextToSize(txt, Math.max(2, w - 4));
+    let yy = y;
+    lines.forEach(ln => { doc.text(ln, x, yy); yy += 4; });
+  };
+
+  // Columnas
+  const colW = (W - 2*M - GAP) / 2;
+  let y = 28;
+
+  // ===== Bloque Dirección Consignee (instalación receptora) =====
+  // Usamos los datos del consignee del PO (ya vienen en tu BOL)
+  {
+    const x = M, w = W - 2*M, h = 36;
+    box(x, y, w, h);
+    label("Facility / Consignee Address", x + 2, y + 5.5);
+    doc.setFont("helvetica","normal").setFontSize(9);
+
+    const addr = [
+      C.consignee_name,
+      [C.consignee_address1, C.consignee_address2].filter(Boolean).join(" "),
+      [C.consignee_city, C.consignee_state, C.consignee_zip].filter(Boolean).join(", "),
+      C.consignee_country
+    ].filter(Boolean).join("\n");
+
+    const lines = doc.splitTextToSize(addr || "—", w - 4);
+    let yy = y + 10;
+    lines.forEach(ln => { doc.text(ln, x + 2, yy); yy += 4; });
+    y += h + GAP;
+  }
+
+  // ===== Columna izquierda =====
+  {
+    let x = M, w = colW, h = 16;
+
+    // Ship Date
+    box(x, y, w, h);
+    label("Ship Date", x + 2, y + 5.5);
+    value(bolDate, x + 2, y + 10.5, w - 4);
+    y += h + GAP;
+
+    // Shipment Number
+    box(x, y, w, h);
+    label("Shipment Number", x + 2, y + 5.5);
+    value(shipmentNo, x + 2, y + 10.5, w - 4);
+    y += h + GAP;
+
+    // Packing Slip Number
+    box(x, y, w, h);
+    label("Packing Slip Number", x + 2, y + 5.5);
+    value(packingSlip, x + 2, y + 10.5, w - 4);
+    y += h + GAP;
+
+    // Trailer Number
+    box(x, y, w, h);
+    label("Trailer Number", x + 2, y + 5.5);
+    value(trailerNo, x + 2, y + 10.5, w - 4);
+    // no movemos y: pasamos a columna derecha
+  }
+
+  // ===== Columna derecha =====
+  {
+    let x = M + colW + GAP, w = colW, y2 = 28;
+
+    // Carrier
+    box(x, y2, w, 16);
+    label("Carrier", x + 2, y2 + 5.5);
+    value(C.carrier_name, x + 2, y2 + 10.5, w - 4);
+    y2 += 16 + GAP;
+
+    // Supplier
+    box(x, y2, w, 16);
+    label("Supplier", x + 2, y2 + 5.5);
+    value(SH?.name, x + 2, y2 + 10.5, w - 4);
+    y2 += 16 + GAP;
+
+    // PO(s)
+    box(x, y2, w, 22);
+    label("PO Number(s)", x + 2, y2 + 5.5);
+    value((poNumbers && poNumbers.length) ? poNumbers.join(", ") : "—", x + 2, y2 + 10.5, w - 4);
+    y2 += 22 + GAP;
+
+    // Part Number(s) principales (si quieres más, puedes concatenar de rows)
+    box(x, y2, w, 36);
+    label("Part Number(s)", x + 2, y2 + 5.5);
+    // Tomamos hasta 6 PN de tus filas (sin pedir datos nuevos)
+    const partNumbers = (data.rows || [])
+      .map(r => String(r.desc || "").split(" ")[0]) // PN es el 1er token de tu desc
+      .filter(Boolean)
+      .slice(0, 6)
+      .join(", ");
+    value(partNumbers || "—", x + 2, y2 + 10.5, w - 4);
+  }
+
+  // Nota o pie
+  doc.setFont("helvetica","normal").setFontSize(8);
+  doc.text("This cover sheet is generated automatically from the BOL data.", W/2, H - 12, { align: "center" });
+}
+
   async function generarPDF() {
     try {
       setIsGenerating(true);
@@ -625,7 +745,6 @@ export default function GenerarBOL() {
 
       // el alto total del cuerpo ahora es: maxRowH * número de filas
       const preBodyTableH = maxRowH * rows.length;
-
 
       const totalsH = 8;
       const firmasH = 40;
@@ -1138,6 +1257,17 @@ export default function GenerarBOL() {
 
         doc.setTextColor(0); // vuelve a negro
       }  
+
+      // ========= HOJA 2: COVER SHEET =========
+      drawCoverSheet(doc, {
+        SH,                  // shipper normalizado (ya lo tienes)
+        PO: primaryPO,       // PO principal (ya lo tienes)
+        poNumbers,           // arreglo de POs seleccionados
+        shipmentNo, trailerNo, packingSlip,
+        bolDate,
+        rows                 // filas de la tabla (para listar algunos part numbers)
+      });
+
       // Guardar
       const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
       doc.save(fileName);
