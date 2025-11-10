@@ -842,7 +842,7 @@ export default function GenerarBOL() {
 
       // body
       let ry = TAB_Y + headerTableH;
-      doc.setFont("helvetica", "normal").setFontSize(9);
+      doc.setFont("helvetica", "normal").setFontSize(8.5);
 
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r];
@@ -864,8 +864,6 @@ export default function GenerarBOL() {
             }
             ty += LINE_H;
           });
-
-          // (no dibujar líneas horizontales aquí)
         }
 
         // ✅ Línea inferior del renglón: solo si NO es la última fila
@@ -950,7 +948,7 @@ export default function GenerarBOL() {
         const COL_END1 = col1X + col1W - 2.5;
         const COL_END2 = col3X + 8;
         const COL_END3 = col3X + col3W - 1.5;
-        const COL_END4 = col4X + col4W - 0.5;
+        const COL_END4 = col4X + col4W;
 
         // Dibuja una línea que “tope” al borde interno de la columna
         const lineToEnd = (startX, y, colEnd) => {
@@ -987,7 +985,7 @@ export default function GenerarBOL() {
 
           // Col3: In Time  (tope antes de col4)
           lbl(`${time1Label}:`, col3X + 10, r1Y);
-          lineToEnd(col3X + 26, r1Y + lineYOff, Math.min(COL_END3, col4X - 5));
+          lineToEnd(col3X + 26, r1Y + lineYOff, Math.min(COL_END3, col4X - 4));
 
           // Col4 Fila 1: AM / PM (alineados y más a la derecha)
           {
@@ -1014,7 +1012,7 @@ export default function GenerarBOL() {
 
           // Col3: Out Time  (tope antes de col4)
           lbl(`${time2Label}:`, col3X + 10, r2Y);
-          lineToEnd(col3X + 26, r2Y + lineYOff -1.5, Math.min(COL_END3, col4X - 5));
+          lineToEnd(col3X + 26, r2Y + lineYOff -1.5, Math.min(COL_END3, col4X - 4));
 
           // Col4: AM/PM + ÚNICA fecha del bloque (texto arriba, línea debajo)
           {
