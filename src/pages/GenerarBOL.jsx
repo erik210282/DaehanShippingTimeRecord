@@ -363,9 +363,9 @@ export default function GenerarBOL() {
 
   // === Helpers de tabla auto-ajustable ===
   const CELL_PAD_X = 2;      // padding horizontal
-  const CELL_PAD_Y = 3;      // padding vertical
-  const LINE_H = 4.3;        // alto de línea de texto
-  const MIN_ROW_H = 10;       // alto mínimo por fila
+  const CELL_PAD_Y = 2;      // padding vertical
+  const LINE_H = 4.0;        // alto de línea de texto
+  const MIN_ROW_H = 8;       // alto mínimo por fila
 
   function splitFit(doc, txt, width, fontSize = 9) {
     doc.setFontSize(fontSize);
@@ -619,7 +619,7 @@ export default function GenerarBOL() {
 
       // 👉 calcula el alto de CADA fila y usa el MÁXIMO para todas
       const rowHeights = rows.map(r => {
-        return measureRowHeight(TMP, r, COLS, 9);
+        return measureRowHeight(TMP, r, COLS, 8.5);
       });
       const maxRowH = rowHeights.length ? Math.max(...rowHeights) : MIN_ROW_H;
 
