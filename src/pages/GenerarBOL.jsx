@@ -363,9 +363,9 @@ export default function GenerarBOL() {
 
   // === Helpers de tabla auto-ajustable ===
   const CELL_PAD_X = 2;      // padding horizontal
-  const CELL_PAD_Y = 2;      // padding vertical
-  const LINE_H = 4.0;        // alto de línea de texto
-  const MIN_ROW_H = 8;       // alto mínimo por fila
+  const CELL_PAD_Y = 3;      // padding vertical
+  const LINE_H = 3.6;        // alto de línea de texto
+  const MIN_ROW_H = 6;       // alto mínimo por fila
 
   function splitFit(doc, txt, width, fontSize = 9) {
     doc.setFontSize(fontSize);
@@ -613,7 +613,7 @@ export default function GenerarBOL() {
       };
 
       const TMP = new jsPDF({ unit: "mm", format: "letter" });
-      TMP.setFont("helvetica", "normal").setFontSize(9);
+      TMP.setFont("helvetica", "normal").setFontSize(8.5);
 
       const preHeaderTableH = measureHeaderHeight(TMP, COLS, 8);
 
