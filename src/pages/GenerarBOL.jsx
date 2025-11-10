@@ -940,8 +940,8 @@ export default function GenerarBOL() {
         const col4W = innerW * 0.31; // AM/PM + Date
 
         const col1X = innerX;
-        const SHIFT234 = 10; 
-        const COL4_SHIFT = 6; 
+        const SHIFT234 = 6; 
+        const COL4_SHIFT = 3; 
         const col2X = col1X + col1W + SHIFT234;
         const col3X = col2X + col2W;
         const col4X = col3X + col3W + COL4_SHIFT;
@@ -1185,9 +1185,6 @@ export default function GenerarBOL() {
           {/* Trailer/Container */}
           <input placeholder={t("trailer_number", "No. de Trailer/Contenedor")} value={trailerNo} onChange={(e) => setTrailerNo(e.target.value)} />
 
-          {/* Dock Number */}
-          <input placeholder={t("dock_number", "Dock Number")} value={dockNo} onChange={(e) => setDockNo(e.target.value)} />
-
           {/* PO (multi-select estilo react-select) */}
           <Select
             isMulti
@@ -1281,6 +1278,9 @@ export default function GenerarBOL() {
               }),
             }}
           />
+          
+          {/* Dock Number */}
+          <input placeholder={t("dock_number", "Dock Number")} value={dockNo} onChange={(e) => setDockNo(e.target.value)} />
 
           {/* Seal */}
           <input placeholder={t("seal_number", "No. de Sello")} value={sealNo} onChange={(e) => setSealNo(e.target.value)} />

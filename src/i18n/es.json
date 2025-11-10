@@ -35,6 +35,7 @@
   "delete_user": "Eliminar usuario",
   "description": "Descripción",
   "dimension": "Dimensión",
+  "dock_number": "Número de Bahia",
   "done": "Hecho",
   "download_bol": "Descargar PDF (BOL + Cover)",
   "duration_min": "Duración Min",

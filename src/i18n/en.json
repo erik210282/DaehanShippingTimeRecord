@@ -35,6 +35,7 @@
   "delete_user": "Delete user",
   "description": "Description",
   "dimension": "Dimension",
+  "dock_number": "Dock Number",
   "done": "Done",
   "download_bol": "Download BOL + Cover PDF",
   "duration_min": "Duration Min",
