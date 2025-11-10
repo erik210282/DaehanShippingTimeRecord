@@ -726,7 +726,7 @@ export default function GenerarBOL() {
           ["Shipment Number",  shipmentNo || primaryPO?.shipment_number || ""],      // 1
           ["Container Number", trailerNo  || primaryPO?.trailer_number  || ""],      // 2
           ["Seal Number",      sealNo     || primaryPO?.seal_number     || ""],      // 3
-          ["Packing Slip",   primaryPO?.packing_slip || ""], // 4
+          ["Packing Slip",   packingSlip || ""], // 4
           ["PO #’s",           poDisplay],                                            // 5
         ];
 
@@ -983,10 +983,10 @@ export default function GenerarBOL() {
           {
             let cx = col4X;
             lbl(`AM`, cx, r1Y);
-            checkbox(cx + 7.0, r1Y); cx += 17;
+            checkbox(cx + 7.5, r1Y); cx += 19;
 
             lbl(`PM`, cx, r1Y);
-            checkbox(cx + 7.0, r1Y); cx += 19
+            checkbox(cx + 7.5, r1Y);
           }
 
           // ----- Fila 2 -----
