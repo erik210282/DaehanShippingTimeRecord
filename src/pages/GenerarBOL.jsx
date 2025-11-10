@@ -838,7 +838,6 @@ export default function GenerarBOL() {
       // línea bajo el header
       doc.line(TAB_X, TAB_Y + headerTableH, TAB_X + TAB_W, TAB_Y + headerTableH);
 
-
       // body
       let ry = TAB_Y + headerTableH;
       doc.setFont("helvetica", "normal").setFontSize(8.5);
@@ -853,7 +852,10 @@ export default function GenerarBOL() {
           const content = splitFit(doc, row[c.k], c.w, 8.5);
 
           const blockH = content.length * LINE_H;
-          let ty = ry + CELL_PAD_Y + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 2);
+          const BODY_TEXT_SHIFT = 0.6; // << mueve el texto hacia ABAJO (en mm)
+          let ty = ry + CELL_PAD_Y
+              + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 2)
+              + BODY_TEXT_SHIFT;
 
           content.forEach(ln => {
             if (c.align === "right") {
