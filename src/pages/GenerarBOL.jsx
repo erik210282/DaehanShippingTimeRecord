@@ -940,7 +940,7 @@ export default function GenerarBOL() {
         const col4W = innerW * 0.31; // AM/PM + Date
 
         const col1X = innerX;
-        const SHIFT234 = 6; 
+        const SHIFT234 = 4; 
         const COL4_SHIFT = 3; 
         const col2X = col1X + col1W + SHIFT234;
         const col3X = col2X + col2W;
