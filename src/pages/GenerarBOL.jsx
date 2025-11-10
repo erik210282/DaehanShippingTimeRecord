@@ -922,6 +922,12 @@ export default function GenerarBOL() {
           doc.rect(x, y - s + 0.6, s, s);
         };
 
+        // Versión con ajuste vertical fino
+        const checkboxAt = (x, y, s = 3.0, dy = 0) => {
+          // dy negativo = sube el cuadrito | dy positivo = baja
+          doc.rect(x, (y - s + 0.6) + dy, s, s);
+        };
+
         // Layout 4 columnas (col4 es más ancha para AM/PM + Date)
         const innerX = boxX + PAD;
         const innerW = boxW - (PAD * 2);
@@ -985,7 +991,7 @@ export default function GenerarBOL() {
             const pmX = col4X + 16;  // PM queda a la MISMA X en ambas filas
 
             lbl('AM', amX, r1Y);
-            checkbox(amX + 7.0, r1Y);
+            checkbox(amX + 6.0, r1Y);
 
             lbl('PM', pmX, r1Y);
             checkbox(pmX + 7.0, r1Y);
@@ -1012,10 +1018,10 @@ export default function GenerarBOL() {
             const pmX = col4X + 16;  // misma X que arriba (PM alineado en ambas filas)
 
             lbl('AM', amX, r2Y);
-            checkbox(amX + 7.0, r2Y);
+            checkbox(amX + 6.0, r2Y, 3.0, -0.6);
 
             lbl('PM', pmX, r2Y);
-            checkbox(pmX + 7.0, r2Y);
+            checkbox(pmX + 7.0, r2Y, 3.0, -0.6);
           }
 
           // Col4 Fila 2: ÚNICA fecha — mismo Y que PM, más a la derecha y línea al nivel de Out Time
