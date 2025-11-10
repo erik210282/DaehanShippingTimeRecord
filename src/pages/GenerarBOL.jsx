@@ -723,6 +723,8 @@ export default function GenerarBOL() {
           BT.country,
         ].filter(Boolean);
 
+        doc.setFont("helvetica", "bold"); 
+
         const items = [
           ["Bill Charges To:", btLines],                                              // 0
           ["Shipment Number",  shipmentNo || primaryPO?.shipment_number || ""],      // 1
