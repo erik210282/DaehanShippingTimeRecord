@@ -681,7 +681,7 @@ export default function GenerarBOL() {
           ["Freight Charges", primaryPO?.freight_charges ?? primaryPO?.freight_charge ?? ""],
           ["Carrier Name",    primaryPO?.carrier_name ?? ""],
           ["BOL Date",        bolDate ?? ""],
-          ["Dock Number",     dockNo ?? ""],
+          ["Dock/Door Number",     dockNo ?? ""],
         ];
         items.forEach((h, i) => {
           const x = M + i * cW;
@@ -985,7 +985,7 @@ export default function GenerarBOL() {
 
           // Col3: In Time  (tope antes de col4)
           lbl(`${time1Label}:`, col3X + 10, r1Y);
-          lineToEnd(col3X + 26, r1Y + lineYOff, Math.min(COL_END3, col4X - 4));
+          lineToEnd(col3X + 28, r1Y + lineYOff, Math.min(COL_END3, col4X - 4));
 
           // Col4 Fila 1: AM / PM (alineados y más a la derecha)
           {
@@ -1012,7 +1012,7 @@ export default function GenerarBOL() {
 
           // Col3: Out Time  (tope antes de col4)
           lbl(`${time2Label}:`, col3X + 10, r2Y);
-          lineToEnd(col3X + 26, r2Y + lineYOff -1.5, Math.min(COL_END3, col4X - 4));
+          lineToEnd(col3X + 28, r2Y + lineYOff -1.5, Math.min(COL_END3, col4X - 4));
 
           // Col4: AM/PM + ÚNICA fecha del bloque (texto arriba, línea debajo)
           {
