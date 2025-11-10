@@ -742,7 +742,7 @@ export default function GenerarBOL() {
           const w = widths[i];
 
           box(x, y, w, rH);
-          text(pair[0], "", x, y + labelY, { size: 8, bold: true });
+          text(pair[0], "", x, y + labelY, { size: 8, bold: false });
 
           let yy = y + valueY;
 
@@ -769,9 +769,9 @@ export default function GenerarBOL() {
 
         // --- Shipper ---
         box(M, y, shW, rowH);
-        text("Shipper Address", "", M, y + 3.5, { size: 8, bold: false });
+        text("Shipper Address", "", M, y + 3.5, { size: 8, bold: true });
         let sy = y + 8.5;
-        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal").setFontSize(8);
         [
           SH.name,
           [SH.address1, SH.address2].filter(Boolean).join(" "),
@@ -785,9 +785,9 @@ export default function GenerarBOL() {
         // --- Consignee ---
         const C = primaryPO || {};
         box(coX, y, coW, rowH);
-        text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: false });
+        text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: true });
         let cy = y + 8.5;
-        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal").setFontSize(8);
         [
           C.consignee_name,
           [C.consignee_address1, C.consignee_address2].filter(Boolean).join(" "),
