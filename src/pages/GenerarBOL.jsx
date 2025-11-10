@@ -938,7 +938,8 @@ export default function GenerarBOL() {
         const col4W = innerW * 0.31; // AM/PM + Date
 
         const col1X = innerX;
-        const col2X = col1X + col1W;
+        const SHIFT234 = 10; 
+        const col2X = col1X + col1W + SHIFT234;
         const col3X = col2X + col2W;
         const col4X = col3X + col3W;
 
@@ -998,7 +999,7 @@ export default function GenerarBOL() {
           }
 
           // ----- Fila 2 -----
-          const r2Y = r1Y + rowGap + 4.0;
+          const r2Y = r1Y + rowGap + 3.0;
 
           // Col1: Driver/Receiver Printed Name
           lbl(`${who2Left}:`, col1X, r2Y);
