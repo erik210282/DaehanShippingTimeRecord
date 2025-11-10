@@ -1012,7 +1012,7 @@ export default function GenerarBOL() {
             checkbox(cx + 7.0, r2Y); cx += 17;
 
             lbl(`PM`, cx, r2Y);
-            checkbox(cx + 7.0, r2Y); cx += 19;
+            checkbox(cx + 7.0, r2Y); cx += 17;
 
             // Texto de la fecha (encima de la línea)
             const dateText = `Date (MM/DD/YYYY)`;
