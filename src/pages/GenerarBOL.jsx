@@ -941,7 +941,7 @@ export default function GenerarBOL() {
 
         const col1X = innerX;
         const SHIFT234 = 10; 
-        const COL4_SHIFT = 3; 
+        const COL4_SHIFT = 6; 
         const col2X = col1X + col1W + SHIFT234;
         const col3X = col2X + col2W;
         const col4X = col3X + col3W + COL4_SHIFT;
