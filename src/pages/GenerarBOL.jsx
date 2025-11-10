@@ -980,7 +980,7 @@ export default function GenerarBOL() {
 
           // Col2: Sign
           lbl(`${who1Mid}:`, col2X, r1Y);
-          lineToEnd(col2X + 18, r1Y + lineYOff, COL_END2);
+          lineToEnd(col2X + 22, r1Y + lineYOff, COL_END2);
 
           // Col3: In Time  (tope antes de col4)
           lbl(`${time1Label}:`, col3X + 10, r1Y);
@@ -1007,7 +1007,7 @@ export default function GenerarBOL() {
 
           // Col2: Driver/Receiver Sign
           lbl(`${who2Mid}:`, col2X, r2Y);
-          lineToEnd(col2X + 18, r2Y + lineYOff -1.5, COL_END2);
+          lineToEnd(col2X + 22, r2Y + lineYOff -1.5, COL_END2);
 
           // Col3: Out Time  (tope antes de col4)
           lbl(`${time2Label}:`, col3X + 10, r2Y);
