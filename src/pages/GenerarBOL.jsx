@@ -367,6 +367,12 @@ export default function GenerarBOL() {
   const LINE_H = 3.4;        // alto de línea de texto
   const MIN_ROW_H = 6;       // alto mínimo por fila
 
+  const fmt = (n, d = 2) =>
+  Number(n || 0).toLocaleString("en-US", {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  });
+
   function splitFit(doc, txt, width, fontSize = 9) {
     doc.setFontSize(fontSize);
     const w = Math.max(2, width - 2 * CELL_PAD_X);
@@ -710,8 +716,8 @@ export default function GenerarBOL() {
           pkgType: "Box",
           desc: `${p?.part_number || p?.codigo || ""} ${p?.descripcion || ""}`.trim(),
           dim: getPackageDimensions(p, packType),
-          wPer: pesoPorPaquete.toFixed(2),
-          wTot: pesoLinea.toFixed(2),
+          wPer: fmt(pesoPorPaquete),
+          wTot: fmt(pesoLinea),
           uom: "LB",
         });
       });
@@ -837,8 +843,6 @@ export default function GenerarBOL() {
 
       // ===== Fila 2: Bill Charges / Shipment / Container / Seal / Packing Slip / PO =====
       {
-        const rH = 29; // altura de las cajas
-
         // --- Anchos personalizados (deben sumar TAB_W) ---
         const widths = [
           TAB_W * 0.23, // 0 Bill Charges To
@@ -875,10 +879,34 @@ export default function GenerarBOL() {
           ["PO #’s",           poDisplay],                                            // 5
         ];
 
-        // offsets de texto (ajusta si quieres más/menos espacio vertical)
+        // offsets de texto (ya los tienes arriba)
         const labelY = 4.0;
         const valueY = 9.5;
         const lineSpacing = 3.8;
+
+        // 👉 medir cuántas líneas ocupa el contenido en cada columna
+        const wrapCount = (pair, w) => {
+          const avail = Math.max(2, w - 4);
+          if (typeof pair[1] === "string") {
+            return doc.splitTextToSize(String(pair[1] || ""), avail).length;
+          }
+          if (Array.isArray(pair[1])) {
+            return pair[1].reduce(
+              (sum, line) => sum + doc.splitTextToSize(String(line || ""), avail).length,
+              0
+            );
+          }
+          return 1;
+        };
+
+        // altura necesaria por columna = desde la parte superior hasta la última línea + un padding
+        const MIN_RH = 18;
+        const BOTTOM_PAD = 3;
+        const requiredHeights = items.map((pair, i) =>
+          valueY + wrapCount(pair, widths[i]) * lineSpacing + BOTTOM_PAD
+        );
+        // ✅ altura final de la fila (máximo entre columnas)
+        const rH = Math.max(MIN_RH, ...requiredHeights);
 
         items.forEach((pair, i) => {
           const x = startX[i];
@@ -1024,7 +1052,7 @@ export default function GenerarBOL() {
 
       // Totales
       doc.setFont("helvetica","bold").setFontSize(9);
-      doc.text(`Total Shipment Weight: ${totalWeight.toFixed(2)} LB`, M, y);
+      doc.text(`Total Shipment Weight: ${fmt(totalWeight)} LB`, M, y);
       doc.text(`Total Shipping Units: ${String(totalUnits)}`, M+108, y);
       y += 8;
 
