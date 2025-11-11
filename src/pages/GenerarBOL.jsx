@@ -331,7 +331,7 @@ export default function GenerarBOL() {
 
   /* ---------------- Generar PDF ---------------- */
   function drawHeader(doc, title, rightText = null, y = 12) {
-    doc.setFontSize(20);
+    doc.setFontSize(26);
     doc.text(title, 12, y);
 
     if (rightText) {
@@ -456,7 +456,7 @@ export default function GenerarBOL() {
 
     // ===== Encabezado: Consignee (título) + Dirección completa =====
     const centerX = W / 2;
-    doc.setFont("helvetica", "bold").setFontSize(24);
+    doc.setFont("helvetica", "bold").setFontSize(26);
     const consigneeName = String(C.consignee_name || "—");
 
     // Calcular desplazamiento para no invadir el área del logo
