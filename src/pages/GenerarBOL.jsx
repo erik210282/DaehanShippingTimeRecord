@@ -1520,8 +1520,8 @@ export default function GenerarBOL() {
           />
 
           {basePoAddrKey && (
-            <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "#bbb" }}>
-              Solo se mostrarán PO con la misma dirección del Consignee que el primero seleccionado.
+            <div style={{ gridColumn: "1 / -1", fontSize: 14, color: "#a5a5a5ff" }}>
+              {t("same_consignee_warning")}
             </div>
           )}
           

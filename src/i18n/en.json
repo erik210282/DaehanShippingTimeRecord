@@ -135,6 +135,7 @@
   "records_title": "Activity Records",
   "returnable": "Returnable",
   "returnablebox": "Returnable Box Meassures",
+  "same_consignee_warning": "Only POs with the same Consignee address as the first selected one will be shown.",
   "save": "Save",
   "save_and_link": "Save to Storage & link",
   "save_success": "Record saved successfully.",
