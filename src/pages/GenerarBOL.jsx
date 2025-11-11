@@ -502,14 +502,14 @@ export default function GenerarBOL() {
       .slice(0, 8); // muestra hasta 8
 
     const fields = [
-      ["Ship Date",           bolDate],
-      ["Shipment Number",     shipmentNo],
-      ["Packing Slip Number", packingSlip],
-      ["Trailer Number",      trailerNo],
-      ["Part Number(s)",      pnLines.length ? pnLines.join("\n") : "—"],
-      ["Supplier",            supplierName],
-      ["Carrier",             carrierName],
-      ["Dock Number",         dockNo],
+      ["Ship Date: ",           bolDate],
+      ["Shipment Number: ",     shipmentNo],
+      ["Packing Slip Number: ", packingSlip],
+      ["Trailer Number: ",      trailerNo],
+      ["Part Number(s): ",      pnLines.length ? pnLines.join("\n") : "—"],
+      ["Supplier: " ,            supplierName],
+      ["Carrier: ",             carrierName],
+      ["Dock Number: ",         dockNo],
     ];
 
     // Layout de una sola lista (título izq, valor der)
@@ -522,46 +522,51 @@ export default function GenerarBOL() {
 
     const ROW_MIN_H    = 12;        // alto mínimo de cada fila
     const LINE_Y_OFF   = 8.0;       // posición de la línea dentro de la fila
-    const VALUE_STEP   = 4.2;       // salto entre líneas del valor (wrapping)
+    const VALUE_STEP   = 5.0;       // salto entre líneas del valor (wrapping)
 
-    // ↓ Reemplaza TODA la función drawPair por esta
     const drawPair = (label, value) => {
-      // --- Config ---
-      const LINE_MARGIN_RIGHT = 30; // termina 10 mm antes del borde
+      // --- Configurables ---
+      const LINE_MARGIN_RIGHT = 30; // línea termina 30 mm antes del borde derecho
+      const LABEL_RIGHT_PAD   = 2;  // separación entre el final del label y el inicio del valor
       const VALUE_PADDING_TOP = 2.0; // aire superior respecto a la fila
-      const GAP_AFTER_LINE   = 2.0;  // espacio para la siguiente fila
+      const GAP_AFTER_LINE    = 4.0; // ↑ espacio ENTRE FILAS (ajusta a gusto)
 
-      // Etiqueta (columna izq)
-      doc.setFont("helvetica", "bold").setFontSize(LABEL_SIZE);
-      const labelY = y + VALUE_PADDING_TOP;
-      doc.text(String(label || ""), LABEL_X, labelY);
-
-      // Valor (columna der)
+      // --- Valor (2ª columna) ---
       doc.setFont("helvetica", "normal").setFontSize(VALUE_SIZE);
       const txt = String(value ?? "—");
       const wrapped = doc.splitTextToSize(txt, Math.max(2, VALUE_W - 5));
 
-      // Centramos verticalmente el bloque del valor
+      // Altura del bloque de valor y punto de arranque centrado vertical
       const valueBlockH = Math.max(ROW_MIN_H, wrapped.length * VALUE_STEP);
       const startVy = y + VALUE_PADDING_TOP
         + Math.max(0, (valueBlockH - (wrapped.length * VALUE_STEP)) / 2);
 
+      // --- Label (1ª columna) alineado con el inicio del valor ---
+      // Lo alineamos a la DERECHA exactamente donde empieza la 2ª columna (menos un acolchado)
+      // y centramos verticalmente el label respecto al bloque del valor.
+      doc.setFont("helvetica", "bold").setFontSize(LABEL_SIZE);
+      const labelBaseline = startVy + ((wrapped.length - 1) * VALUE_STEP) / 2; // centro del bloque
+      const labelX = VALUE_X - LABEL_RIGHT_PAD;
+      doc.text(String(label || ""), labelX, labelBaseline, { align: "right" });
+
+      // --- Dibuja el valor (izquierda) ---
+      doc.setFont("helvetica", "normal").setFontSize(VALUE_SIZE);
       let vy = startVy;
       wrapped.forEach(ln => { doc.text(ln, VALUE_X, vy); vy += VALUE_STEP; });
 
-      // Línea justo debajo del texto (pegada)
-      // vy ahora quedó una "paso" por debajo de la última línea
-      const lastBaseline = vy - VALUE_STEP;
-      const lineY = lastBaseline + 1.6; // 1.6 mm debajo del texto
+      // --- Línea justo debajo del texto (pegada) ---
+      const lastBaseline = vy - VALUE_STEP;   // baseline de la última línea
+      const lineY = lastBaseline + 1.6;       // a ~1.6 mm por debajo
 
       doc.setLineWidth(0.25);
-      const lineStartX = VALUE_X;              // inicia donde arranca la 2ª columna
-      const lineEndX   = W - LINE_MARGIN_RIGHT;
+      const lineStartX = VALUE_X;                   // inicia donde arranca la 2ª columna
+      const lineEndX   = W - LINE_MARGIN_RIGHT;     // termina antes del borde
       doc.line(lineStartX, lineY, lineEndX, lineY);
 
-      // Avanzamos Y justo después de la línea
+      // --- Avanza Y al siguiente renglón (controla el espaciado entre filas) ---
       y = lineY + GAP_AFTER_LINE;
     };
+
 
     // Pinta todos los pares en una sola lista
     fields.forEach(([lbl, val]) => drawPair(lbl, val));
