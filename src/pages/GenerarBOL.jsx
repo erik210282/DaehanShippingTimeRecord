@@ -363,8 +363,8 @@ export default function GenerarBOL() {
 
   // === Helpers de tabla auto-ajustable ===
   const CELL_PAD_X = 2;      // padding horizontal
-  const CELL_PAD_Y = 1.5;      // padding vertical
-  const LINE_H = 2.5;        // alto de línea de texto
+  const CELL_PAD_Y = 2.2;      // padding vertical
+  const LINE_H = 3.0;        // alto de línea de texto
   const MIN_ROW_H = 6;       // alto mínimo por fila
 
   const fmt = (n, d = 2) =>
@@ -773,7 +773,7 @@ export default function GenerarBOL() {
 
       // alto uniforme = el mayor alto necesario (redondeado a 0.1 mm)
       const round01 = v => Math.round(v * 10) / 10;
-      const uniformRowH = round01(Math.max(MIN_ROW_H, ...rowHeights));
+      const uniformRowH = round01(Math.max(MIN_ROW_H, ...rowHeights)) - 0.5;
 
       // alto total del cuerpo = uniforme * número de filas
       const preBodyTableH = uniformRowH * rows.length;
