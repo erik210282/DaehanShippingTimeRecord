@@ -14,7 +14,7 @@
   "average_time_minutes": "Average time (minutes)",
   "back_to_register": "Back to register",
   "bar_chart": "Bar chart",
-  "bin_type": "Bin Type",
+  "bin_type": "Returnable Bin Type",
   "bucket_missing": "Storage bucket not found. Create a bucket named 'bol' in Supabase Storage.",
   "cancel": "Cancel",
   "carrier": "Carrier",
