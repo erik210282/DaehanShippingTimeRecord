@@ -769,9 +769,10 @@ export default function GenerarBOL() {
       TMP.setFont("helvetica", "normal").setFontSize(8.5);
 
       const preHeaderTableH = measureHeaderHeight(TMP, COLS, 8);
+      const rowHeights = rows.map(r => measureRowH(TMP, r));
 
-      // 👉 calcula el alto de CADA fila y usa el MÁXIMO para todas
-      const round01 = v => Math.round(v * 10) / 10; // redondeo a 0.1 mm
+      // redondea y suma el alto del cuerpo
+      const round01 = v => Math.round(v * 10) / 10;
       const rowHeightsRounded = rowHeights.map(h => round01(Math.max(h, MIN_ROW_H)));
       const preBodyTableH = rowHeightsRounded.reduce((a, b) => a + b, 0);
 
