@@ -1,5 +1,14 @@
-
-/* App.css */
+.navbar select {
+  background: #111;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+.navbar select:focus {
+  outline: none;
+  border-color: #007bff;
+}
 
 body {
   margin: 0;

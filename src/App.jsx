@@ -62,13 +62,11 @@ const Navbar = () => {
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
 
-      <div className="navbar-right">
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => i18n.changeLanguage('es')} aria-label="Español" title="Español" style={{ background:"#111", color:"#fff", border:"1px solid #111", borderRadius:8, padding:"6px 10px", cursor:"pointer" }}>🇲🇽</button>
-          <button onClick={() => i18n.changeLanguage('en')} aria-label="English" title="English" style={{ background:"#111", color:"#fff", border:"1px solid #111", borderRadius:8, padding:"6px 10px", cursor:"pointer" }}>🇺🇸</button>
-          <button onClick={() => i18n.changeLanguage('ko')} aria-label="한국어" title="한국어" style={{ background:"#111", color:"#fff", border:"1px solid #111", borderRadius:8, padding:"6px 10px", cursor:"pointer" }}>🇰🇷</button>
-        </div>
-      </div>
+      <select onChange={handleLanguageChange} value={i18n.language} style={{ minWidth: 120 }}>
+        <option value="es">🇲🇽 Español</option>
+        <option value="en">🇺🇸 English</option>
+        <option value="ko">🇰🇷 한국어</option>
+      </select>
     </div>
   );
 };
