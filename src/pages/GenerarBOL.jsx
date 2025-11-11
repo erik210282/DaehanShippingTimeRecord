@@ -522,14 +522,14 @@ export default function GenerarBOL() {
 
     const ROW_MIN_H    = 12;        // alto mínimo de cada fila
     const LINE_Y_OFF   = 8.0;       // posición de la línea dentro de la fila
-    const VALUE_STEP   = 5.0;       // salto entre líneas del valor (wrapping)
+    const VALUE_STEP   = 7.0;       // salto entre líneas del valor (wrapping)
 
     const drawPair = (label, value) => {
       // --- Configurables ---
       const LINE_MARGIN_RIGHT = 45; // línea termina 30 mm antes del borde derecho
       const LABEL_RIGHT_PAD   = 5;  // separación entre el final del label y el inicio del valor
       const VALUE_PADDING_TOP = 2.0; // aire superior respecto a la fila
-      const GAP_AFTER_LINE    = 8.0; // ↑ espacio ENTRE FILAS (ajusta a gusto)
+      const GAP_AFTER_LINE    = 10.0; // ↑ espacio ENTRE FILAS (ajusta a gusto)
 
       // --- Valor (2ª columna) ---
       doc.setFont("helvetica", "normal").setFontSize(VALUE_SIZE);
