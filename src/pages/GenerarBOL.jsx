@@ -426,7 +426,7 @@ export default function GenerarBOL() {
   }
 
   // ======================= Cover Sheet (Hoja 2) =======================
-  async function drawCoverSheet(doc, data) {
+  function drawCoverSheet(doc, data) {
     // Formato carta en mm
     const W = 215.9, H = 279.4, M = 12;
 
