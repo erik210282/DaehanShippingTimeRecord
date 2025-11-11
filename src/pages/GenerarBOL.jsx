@@ -480,7 +480,7 @@ export default function GenerarBOL() {
     addrLines.forEach(ln => { doc.text(ln, centerX, y, { align: "center" }); y += ADDR_LEADING; });
 
     // Línea separadora y continuar...
-    doc.setLineWidth(0.70);
+    doc.setLineWidth(0.95);
     doc.line(M, y + 3, W - M, y + 3);
     y += 10;
 
@@ -517,8 +517,8 @@ export default function GenerarBOL() {
     const LABEL_X      = M;         // X del título
     const VALUE_X      = M + LABEL_COL_W + 6; // X donde inicia el valor (izquierda)
     const VALUE_W      = W - M - VALUE_X;     // ancho disponible para el valor
-    const LABEL_SIZE   = 10;
-    const VALUE_SIZE   = 11;
+    const LABEL_SIZE   = 15;
+    const VALUE_SIZE   = 17;
 
     const ROW_MIN_H    = 12;        // alto mínimo de cada fila
     const LINE_Y_OFF   = 8.0;       // posición de la línea dentro de la fila
