@@ -769,12 +769,14 @@ export default function GenerarBOL() {
       TMP.setFont("helvetica", "normal").setFontSize(8.5);
 
       const preHeaderTableH = measureHeaderHeight(TMP, COLS, 8);
-      const rowHeights = rows.map(r => measureRowH(TMP, r));
+      const rowHeights = rows.map(r => measureRowH(TMP, r, COLS, 8.5));
 
-      // redondea y suma el alto del cuerpo
+      // alto uniforme = el mayor alto necesario (redondeado a 0.1 mm)
       const round01 = v => Math.round(v * 10) / 10;
-      const rowHeightsRounded = rowHeights.map(h => round01(Math.max(h, MIN_ROW_H)));
-      const preBodyTableH = rowHeightsRounded.reduce((a, b) => a + b, 0);
+      const uniformRowH = round01(Math.max(MIN_ROW_H, ...rowHeights));
+
+      // alto total del cuerpo = uniforme * número de filas
+      const preBodyTableH = uniformRowH * rows.length;
 
       const totalsH = 8;
       const firmasH = 40;
@@ -1020,7 +1022,7 @@ export default function GenerarBOL() {
 
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r];
-        const rowH = rowHeightsRounded[r]; // alto real de ESTA fila (redondeado)
+        const rowH = uniformRowH;
 
         for (let i = 0; i < COLS.length; i++) {
           const c = COLS[i];
