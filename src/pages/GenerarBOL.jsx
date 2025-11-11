@@ -33,6 +33,32 @@ const lower = (v) => s(v).toLowerCase();
 const isFinal = (r) => (r?.estado ?? "").trim().toLowerCase() === "finalizada";
 const isLoad = (r) => /load/i.test(s(r?.actividad));
 
+// --- Normalizador de dirección de Consignee (para comparar POs) ---
+function norm(v) {
+  return String(v ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+function poAddressKey(p) {
+  // ajusta los nombres si tus columnas difieren
+  return [
+    norm(p?.consignee_name),
+    norm(p?.consignee_address1 ?? p?.consignee_address),
+    norm(p?.consignee_address2),
+    norm(p?.consignee_city),
+    norm(p?.consignee_state),
+    norm(p?.consignee_zip),
+    norm(p?.consignee_country),
+  ].join("|");
+}
+
+{basePoAddrKey && (
+  <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "#bbb" }}>
+    Solo se mostrarán PO con la misma dirección de Consignee que el primero seleccionado.
+  </div>
+)}
+
 /* ======================================================= */
 export default function GenerarBOL() {
   // wrapper seguro: si t no es función (por cualquier motivo), usa fallback
@@ -183,6 +209,23 @@ export default function GenerarBOL() {
       setShipperOptions([]);
     }
   }, []);
+
+  // La "clave de dirección" del primer PO seleccionado (si hay)
+  const basePoAddrKey = React.useMemo(() => {
+    if (!selectedPoIds?.length) return null;
+    const first = poOptions.find(p => String(p.id) === String(selectedPoIds[0]));
+    return first ? poAddressKey(first) : null;
+  }, [selectedPoIds, poOptions]);
+
+  // Opciones de PO filtradas: si ya hay un PO base, solo deja los de la misma dirección
+  const filteredPoOptions = React.useMemo(() => {
+    const mapOpt = (p) => ({
+      value: p.id,
+      label: p.po ? `${p.po} — ${p.consignee_name || ""}` : `ID ${p.id}`,
+    });
+    if (!basePoAddrKey) return poOptions.map(mapOpt);
+    return poOptions.filter(p => poAddressKey(p) === basePoAddrKey).map(mapOpt);
+  }, [poOptions, basePoAddrKey]);
 
   React.useEffect(() => {
     cargarIdxOptions();
@@ -1408,15 +1451,10 @@ export default function GenerarBOL() {
           {/* Trailer/Container */}
           <input placeholder={t("trailer_number", "No. de Trailer/Contenedor")} value={trailerNo} onChange={(e) => setTrailerNo(e.target.value)} />
 
-          {/* PO (multi-select estilo react-select) */}
+          {/* PO (multi-select: SOLO misma dirección de Consignee) */}
           <Select
             isMulti
-            options={poOptions.map((p) => ({
-              value: p.id,
-              label: p.po
-                ? `${p.po} — ${p.consignee_name || ""}`
-                : `ID ${p.id}`,
-            }))}
+            options={filteredPoOptions}
             value={selectedPoIds.map((id) => {
               const po = poOptions.find((p) => String(p.id) === String(id));
               return po
@@ -1428,12 +1466,38 @@ export default function GenerarBOL() {
                   }
                 : { value: id, label: id };
             })}
-            onChange={(e) => setSelectedPoIds(e.map((i) => i.value))}
+            onChange={(items) => {
+              const newIds = (items || []).map(i => i.value);
+
+              // Si aún no hay "base", la primera selección define la clave
+              if (!newIds.length) {
+                setSelectedPoIds([]);
+                return;
+              }
+
+              // Clave base calculada con la primera opción del nuevo set
+              const first = poOptions.find(p => String(p.id) === String(newIds[0]));
+              const kBase = first ? poAddressKey(first) : null;
+
+              // Verifica que TODOS los seleccionados compartan la misma clave
+              const allSame = newIds.every((vid) => {
+                const po = poOptions.find(p => String(p.id) === String(vid));
+                return po && poAddressKey(po) === kBase;
+              });
+
+              if (!allSame) {
+                // Rechaza el cambio y avisa
+                toast.error("Todos los PO deben tener la MISMA dirección del Consignee.");
+                return;
+              }
+
+              setSelectedPoIds(newIds);
+            }}
             placeholder={t("select_po", "Selecciona un PO")}
             styles={{
               control: (base, state) => ({
                 ...base,
-                backgroundColor: "#333", // fondo igual al input
+                backgroundColor: "#333",
                 borderColor: state.isFocused ? "#007BFF" : "#333",
                 boxShadow: "none",
                 color: "#fff",
@@ -1442,63 +1506,22 @@ export default function GenerarBOL() {
                 minHeight: "38px",
                 "&:hover": { borderColor: "#007BFF" },
               }),
-              valueContainer: (base) => ({
-                ...base,
-                color: "#fff",
-              }),
-              singleValue: (base) => ({
-                ...base,
-                color: "#fff",
-              }),
-              input: (base) => ({
-                ...base,
-                color: "#fff",
-              }),
-              placeholder: (base) => ({
-                ...base,
-                color: "#bbb", // texto placeholder gris claro
-              }),
+              valueContainer: (base) => ({ ...base, color: "#fff" }),
+              singleValue: (base) => ({ ...base, color: "#fff" }),
+              input: (base) => ({ ...base, color: "#fff" }),
+              placeholder: (base) => ({ ...base, color: "#bbb" }),
               option: (base, state) => ({
                 ...base,
-                backgroundColor: state.isSelected
-                  ? "#007BFF"
-                  : state.isFocused
-                  ? "#555"
-                  : "#333",
+                backgroundColor: state.isSelected ? "#007BFF" : state.isFocused ? "#555" : "#333",
                 color: "#fff",
                 cursor: "pointer",
               }),
-              multiValue: (base) => ({
-                ...base,
-                backgroundColor: "#007BFF", // fondo de etiqueta seleccionada
-                color: "#fff",
-                borderRadius: 4,
-              }),
-              multiValueLabel: (base) => ({
-                ...base,
-                color: "#fff",
-                fontWeight: "bold",
-              }),
-              multiValueRemove: (base) => ({
-                ...base,
-                color: "#fff",
-                ":hover": { backgroundColor: "#0056b3", color: "#fff" },
-              }),
-              menu: (base) => ({
-                ...base,
-                backgroundColor: "#333",
-                zIndex: 9999,
-              }),
-              dropdownIndicator: (base) => ({
-                ...base,
-                color: "#fff",
-                ":hover": { color: "#007BFF" },
-              }),
-              clearIndicator: (base) => ({
-                ...base,
-                color: "#fff",
-                ":hover": { color: "#ff5555" },
-              }),
+              multiValue: (base) => ({ ...base, backgroundColor: "#007BFF", color: "#fff", borderRadius: 4 }),
+              multiValueLabel: (base) => ({ ...base, color: "#fff", fontWeight: "bold" }),
+              multiValueRemove: (base) => ({ ...base, color: "#fff", ":hover": { backgroundColor: "#0056b3", color: "#fff" } }),
+              menu: (base) => ({ ...base, backgroundColor: "#333", zIndex: 9999 }),
+              dropdownIndicator: (base) => ({ ...base, color: "#fff", ":hover": { color: "#007BFF" } }),
+              clearIndicator: (base) => ({ ...base, color: "#fff", ":hover": { color: "#ff5555" } }),
             }}
           />
           
