@@ -463,7 +463,11 @@ export default function GenerarBOL() {
 
     const addrLines = doc.splitTextToSize(addrBlock || "—", Math.min(140, W - 2 * M));
     let y = 34;
-    addrLines.forEach(ln => { doc.text(ln, centerX, y, { align: "center" }); y += 4; });
+    const ADDR_LEADING = 5.4; // ↑ interlineado mayor para dirección
+    addrLines.forEach(ln => {
+      doc.text(ln, centerX, y, { align: "center" });
+      y += ADDR_LEADING;
+    });
 
     // Línea separadora
     doc.setLineWidth(0.35);
@@ -497,8 +501,6 @@ export default function GenerarBOL() {
       ["Carrier",             carrierName],
       ["Dock Number",         dockNo],
     ];
-    // Si quieres Dock Number:
-    // fields.splice(4, 0, ["Dock Number", dockNo || C.dock_number || ""]);
 
     // Layout de una sola lista (título izq, valor der)
     const LABEL_COL_W  = 60;        // ancho reservado para el título
@@ -510,6 +512,7 @@ export default function GenerarBOL() {
 
     const ROW_MIN_H    = 12;        // alto mínimo de cada fila
     const LINE_Y_OFF   = 8.0;       // posición de la línea dentro de la fila
+    const VALUE_STEP   = 4.2;       // salto entre líneas del valor (wrapping)
 
     const drawPair = (label, value) => {
       // Título (izq)
@@ -523,10 +526,10 @@ export default function GenerarBOL() {
 
       // dibuja cada línea del valor
       let vy = y;
-      wrapped.forEach(ln => { doc.text(ln, VALUE_X, vy); vy += 4; });
+      wrapped.forEach(ln => { doc.text(ln, VALUE_X, vy); vy += VALUE_STEP; });
 
       // calcula altura de bloque y dibuja la línea horizontal
-      const blockH = Math.max(ROW_MIN_H, (wrapped.length - 1) * 4 + 0);
+      const blockH = Math.max(ROW_MIN_H, (wrapped.length * VALUE_STEP) + 4); // padding extra
       doc.setLineWidth(0.25);
       doc.line(M, y + LINE_Y_OFF, W - M, y + LINE_Y_OFF);
 
