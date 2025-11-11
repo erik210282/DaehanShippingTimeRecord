@@ -142,8 +142,9 @@ export default function GenerarBOL() {
       }
 
       const uniq = Array.from(setIdx).map(String).sort((a, b) => b.localeCompare(a));
-      setIdxOptions(uniq);
-      setSelectedIdx(prev => (prev && !uniq.includes(prev) ? "" : prev));
+      const onlyIdx = uniq.filter(v => /idx/i.test(v));
+      setIdxOptions(onlyIdx);
+      setSelectedIdx(prev => (prev && !onlyIdx.includes(prev) ? "" : prev));
     } catch (e) {
       console.warn("cargarIdxOptions:", e?.message || e);
       setIdxOptions([]);
@@ -1343,14 +1344,51 @@ export default function GenerarBOL() {
         <h2>{t("generate_bol_coversheet", "Generar BOL y Cover Sheet")}</h2>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(200px, 1fr))", gap: 8, marginBottom: 10 }}>
-          {/* IDX */}
-          <select value={selectedIdx} onChange={(e) => setSelectedIdx(e.target.value)} disabled={idxOptions.length === 0}>
-            <option value="">{t("select_idx", "Seleccionar IDX")}</option>
-            {idxOptions.map((v) => {
-              const sv = String(v);
-              return <option key={sv} value={sv}>{sv}</option>;
-            })}
-          </select>
+          {/* IDX (searchable) */}
+          <Select
+            isClearable
+            // por defecto react-select es searchable
+            placeholder={t("select_idx", "Seleccionar IDX")}
+            options={idxOptions
+              .filter(v => /idx/i.test(String(v))) // redundante pero garantiza el filtro
+              .map(v => ({ value: String(v), label: String(v) }))
+            }
+            value={selectedIdx ? { value: selectedIdx, label: selectedIdx } : null}
+            onChange={(opt) => setSelectedIdx(opt?.value || "")}
+            styles={{
+              control: (base, state) => ({
+                ...base,
+                backgroundColor: "#333",
+                borderColor: state.isFocused ? "#007BFF" : "#333",
+                boxShadow: "none",
+                color: "#fff",
+                minHeight: "38px",
+                fontSize: "14px",
+                "&:hover": { borderColor: "#007BFF" },
+              }),
+              singleValue: (base) => ({ ...base, color: "#fff" }),
+              input: (base) => ({ ...base, color: "#fff" }),
+              placeholder: (base) => ({ ...base, color: "#bbb" }),
+              menu: (base) => ({ ...base, backgroundColor: "#333", zIndex: 9999 }),
+              option: (base, state) => ({
+                ...base,
+                backgroundColor: state.isSelected ? "#007BFF" : state.isFocused ? "#555" : "#333",
+                color: "#fff",
+                cursor: "pointer",
+              }),
+              dropdownIndicator: (base) => ({ ...base, color: "#fff", ":hover": { color: "#007BFF" } }),
+              clearIndicator: (base) => ({ ...base, color: "#fff", ":hover": { color: "#ff5555" } }),
+              valueContainer: (base) => ({ ...base, color: "#fff" }),
+            }}
+            // filtro adicional: solo deja pasar opciones que tengan "idx" y que hagan match con lo que escribes
+            filterOption={(option, input) => {
+              const label = option.label.toLowerCase();
+              const typed = (input || "").toLowerCase();
+              if (!label.includes("idx")) return false;         // exige que contenga “idx”
+              if (!typed) return true;                          // sin texto, muestra todos los “idx”
+              return label.includes(typed);                     // match por lo que escribas
+            }}
+          />
 
           {/* Shipper */}
           <select value={selectedShipperId} onChange={(e) => setSelectedShipperId(e.target.value)} disabled={shipperOptions.length === 0}>
