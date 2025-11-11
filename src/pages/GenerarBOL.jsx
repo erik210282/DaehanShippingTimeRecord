@@ -480,59 +480,62 @@ export default function GenerarBOL() {
 
     const carrierName  = C.carrier_name || "";
     const supplierName = SH?.name || "";
+
+    // Part numbers como líneas (uno por renglón)
+    const pnLines = (rows || [])
+      .map(r => (String(r.desc || "").trim().split(/\s+/)[0] || ""))
+      .filter(Boolean)
+      .slice(0, 8); // muestra hasta 8
+
     const fields = [
       ["Ship Date",           bolDate],
       ["Shipment Number",     shipmentNo],
       ["Packing Slip Number", packingSlip],
       ["Trailer Number",      trailerNo],
+      ["Part Number(s)",      pnLines.length ? pnLines.join("\n") : "—"],
       ["Supplier",            supplierName],
       ["Carrier",             carrierName],
-      ["Part Number(s)",      partNumbers],
-      // ["Dock Number",       dockNo || C.dock_number || ""],
+      ["Dock Number",         dockNo],
     ];
+    // Si quieres Dock Number:
+    // fields.splice(4, 0, ["Dock Number", dockNo || C.dock_number || ""]);
 
-    // Layout
-    const COL_GAP   = 10;
-    const colW      = (W - 2 * M - COL_GAP) / 2;
-    const colLeftX  = M;
-    const colRightX = M + colW + COL_GAP;
+    // Layout de una sola lista (título izq, valor der)
+    const LABEL_COL_W  = 60;        // ancho reservado para el título
+    const LABEL_X      = M;         // X del título
+    const VALUE_X      = M + LABEL_COL_W + 6; // X donde inicia el valor (izquierda)
+    const VALUE_W      = W - M - VALUE_X;     // ancho disponible para el valor
+    const LABEL_SIZE   = 10;
+    const VALUE_SIZE   = 11;
 
-    const rowH      = 12;   // alto por fila
-    const labelSize = 10;
-    const valueSize = 11;
-    const LABEL_W   = 44;   // ancho reservado para el título dentro de la columna
-    const valueX    = (x) => x + LABEL_W + 2; // inicio del valor (alineado a la IZQUIERDA)
-    const lineY     = 7.8;  // posición de la línea dentro de la fila
+    const ROW_MIN_H    = 12;        // alto mínimo de cada fila
+    const LINE_Y_OFF   = 8.0;       // posición de la línea dentro de la fila
 
-    const mid          = Math.ceil(fields.length / 2);
-    const leftFields   = fields.slice(0, mid);
-    const rightFields  = fields.slice(mid);
+    const drawPair = (label, value) => {
+      // Título (izq)
+      doc.setFont("helvetica", "bold").setFontSize(LABEL_SIZE);
+      doc.text(String(label || ""), LABEL_X, y);
 
-    const drawRow = (baseX, baseY, label, value) => {
-      // Etiqueta
-      doc.setFont("helvetica", "bold").setFontSize(labelSize);
-      doc.text(String(label || ""), baseX, baseY);
-
-      // Línea de la fila (a lo ancho de la columna)
-      doc.setLineWidth(0.25);
-      doc.line(baseX, baseY + lineY, baseX + colW, baseY + lineY);
-
-      // Valor (izquierda)
-      doc.setFont("helvetica", "normal").setFontSize(valueSize);
+      // Valor (der, alineado a la IZQUIERDA y con wrapping)
+      doc.setFont("helvetica", "normal").setFontSize(VALUE_SIZE);
       const txt = String(value ?? "—");
-      const usableW = colW - LABEL_W - 4;
-      const wrapped = doc.splitTextToSize(txt, Math.max(2, usableW));
-      let vy = baseY;
-      wrapped.forEach(ln => { doc.text(ln, valueX(baseX), vy); vy += 4; });
+      const wrapped = doc.splitTextToSize(txt, Math.max(2, VALUE_W));
+
+      // dibuja cada línea del valor
+      let vy = y;
+      wrapped.forEach(ln => { doc.text(ln, VALUE_X, vy); vy += 4; });
+
+      // calcula altura de bloque y dibuja la línea horizontal
+      const blockH = Math.max(ROW_MIN_H, (wrapped.length - 1) * 4 + 0);
+      doc.setLineWidth(0.25);
+      doc.line(M, y + LINE_Y_OFF, W - M, y + LINE_Y_OFF);
+
+      // avanza Y al siguiente renglón
+      y += blockH;
     };
 
-    // Columna izquierda
-    let yL = y;
-    leftFields.forEach(([lbl, val]) => { drawRow(colLeftX, yL, lbl, val); yL += rowH; });
-
-    // Columna derecha
-    let yR = y;
-    rightFields.forEach(([lbl, val]) => { drawRow(colRightX, yR, lbl, val); yR += rowH; });
+    // Pinta todos los pares en una sola lista
+    fields.forEach(([lbl, val]) => drawPair(lbl, val));
   }
 
   async function generarPDF() {
