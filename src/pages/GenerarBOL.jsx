@@ -879,12 +879,11 @@ export default function GenerarBOL() {
           ["PO #’s",           poDisplay],                                            // 5
         ];
 
-        // offsets de texto (ya los tienes arriba)
+        // offsets de texto (ajusta si quieres más/menos espacio vertical)
         const labelY = 4.0;
         const valueY = 9.5;
         const lineSpacing = 3.8;
 
-        // 👉 medir cuántas líneas ocupa el contenido en cada columna
         const wrapCount = (pair, w) => {
           const avail = Math.max(2, w - 4);
           if (typeof pair[1] === "string") {
@@ -898,7 +897,6 @@ export default function GenerarBOL() {
           }
           return 1;
         };
-
         // altura necesaria por columna = desde la parte superior hasta la última línea + un padding
         const MIN_RH = 18;
         const BOTTOM_PAD = 3;
