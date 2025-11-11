@@ -60,6 +60,7 @@ export default function Catalogos() {
     part_number: "",
     descripcion: "",
     peso_por_pieza: "",
+    bin_type: "",
     tipo_empaque_retornable: "",
     tipo_empaque_expendable: "",
     peso_caja_retornable: "",
@@ -201,6 +202,7 @@ async function save() {
         "part_number",
         "descripcion",
         "peso_por_pieza",
+        "bin_type",
         "tipo_empaque_retornable",
         "tipo_empaque_expendable",
         "peso_caja_retornable",
@@ -361,6 +363,7 @@ async function save() {
           PartNumber: r.part_number || "",
           [t("description")]: r.descripcion || "",
           "Weight/Piece": r.peso_por_pieza ?? "",
+          "bin_type": r.bin_type?? "",
           "Returnable Type": r.tipo_empaque_retornable || "",
           "Expendable Type": r.tipo_empaque_expendable || "",
           "Returnable Box W.": r.peso_caja_retornable ?? "",
@@ -454,6 +457,7 @@ async function save() {
                     <th>{t("part_number")}</th>
                     <th>{t("description")}</th>
                     <th>{t("weight_piece")}</th>
+                    <th>{t("bin_type")}</th>
                     <th>{t("returnable")}</th>
                     <th>{t("expendable")}</th>
                     <th>{t("units_returnable")}</th>
@@ -510,6 +514,7 @@ async function save() {
                         <td>{r.part_number}</td>
                         <td>{r.descripcion}</td>
                         <td>{r.peso_por_pieza}</td>
+                        <td>{r.bin_type}</td>
                         <td>{r.tipo_empaque_retornable}</td>
                         <td>{r.tipo_empaque_expendable}</td>
                         <td>{r.cantidad_por_caja_retornable}</td>
@@ -603,6 +608,7 @@ async function save() {
                 <input placeholder={t("part_number")} value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
                 <input placeholder={t("description")} value={edit?.descripcion || ""} onChange={e => setEdit({ ...edit, descripcion: e.target.value })} />
                 <input type="number" placeholder={t("weight_piece")} value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
+                <input placeholder={t("bin_type")} value={edit?.bin_type || ""} onChange={e => setEdit({ ...edit, bin_type: e.target.value })} />
                 <input placeholder={t("returnable_type")} value={edit?.tipo_empaque_retornable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_retornable: e.target.value })} />
                 <input placeholder={t("expendable_type")} value={edit?.tipo_empaque_expendable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_expendable: e.target.value })} />
                 <input type="number" placeholder={t("returnablebw")} value={edit?.peso_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_retornable: e.target.value })} />
