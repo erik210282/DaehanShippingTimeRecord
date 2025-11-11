@@ -563,18 +563,6 @@ export default function GenerarBOL() {
       y = lineY + GAP_AFTER_LINE;
     };
 
-    // --- Línea horizontal ajustada al valor ---
-    doc.setLineWidth(0.25);
-    const lineY = y + blockH; // línea justo bajo la fila
-    const lineStartX = VALUE_X; // inicia justo donde comienza la segunda columna
-    const lineEndX = W - LINE_MARGIN_RIGHT;
-    doc.line(lineStartX, lineY, lineEndX, lineY);
-
-    // --- Avanza a la siguiente fila ---
-    y += blockH + LABEL_GAP_Y;
-  };
-
-
     // Pinta todos los pares en una sola lista
     fields.forEach(([lbl, val]) => drawPair(lbl, val));
   }
