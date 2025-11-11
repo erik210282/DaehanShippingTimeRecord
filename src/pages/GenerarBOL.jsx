@@ -363,8 +363,8 @@ export default function GenerarBOL() {
 
   // === Helpers de tabla auto-ajustable ===
   const CELL_PAD_X = 2;      // padding horizontal
-  const CELL_PAD_Y = 2.2;      // padding vertical
-  const LINE_H = 3.0;        // alto de línea de texto
+  const CELL_PAD_Y = 1.5;      // padding vertical
+  const LINE_H = 2.5;        // alto de línea de texto
   const MIN_ROW_H = 6;       // alto mínimo por fila
 
   const fmt = (n, d = 2) =>
