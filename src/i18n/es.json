@@ -210,6 +210,7 @@
   "city": "Ciudad",
   "state": "Estado",
   "zip": "Código Postal",
+  "wrongpo":"Todos los PO's deben tener la MISMA dirección.",
   "returnable_type": "Tipo de Retornable", 
   "expendable_type": "Tipo de Desechable",
   "returnablebw": "Peso de Caja Retornable",

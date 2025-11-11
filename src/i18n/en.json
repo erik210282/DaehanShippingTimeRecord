@@ -210,6 +210,7 @@
   "city": "City",
   "state": "State",
   "zip": "ZIP",
+  "wrongpo":"All POs must have the SAME address",
   "returnable_type": "Returnable Type", 
   "expendable_type": "Expendable Type",
   "returnablebw": "Returnable Box Weight",

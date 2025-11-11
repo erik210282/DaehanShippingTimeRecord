@@ -1481,7 +1481,7 @@ export default function GenerarBOL() {
 
               if (!allSame) {
                 // Rechaza el cambio y avisa
-                toast.error("Todos los PO deben tener la MISMA dirección del Consignee.");
+                toast.error (t("wrongpo"));
                 return;
               }
 
