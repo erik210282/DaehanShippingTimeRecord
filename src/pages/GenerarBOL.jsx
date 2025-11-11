@@ -713,7 +713,7 @@ export default function GenerarBOL() {
 
         rows.push({
           pkgQty: String(cajas),
-          pkgType: "Box",
+          pkgType: p?.bin_type,
           desc: `${p?.part_number || p?.codigo || ""} ${p?.descripcion || ""}`.trim(),
           dim: getPackageDimensions(p, packType),
           wPer: fmt(pesoPorPaquete),
