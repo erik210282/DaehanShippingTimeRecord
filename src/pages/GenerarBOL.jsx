@@ -331,7 +331,7 @@ export default function GenerarBOL() {
 
   /* ---------------- Generar PDF ---------------- */
   function drawHeader(doc, title, rightText = null, y = 12) {
-    doc.setFontSize(16);
+    doc.setFontSize(20);
     doc.text(title, 12, y);
 
     if (rightText) {
@@ -536,7 +536,7 @@ export default function GenerarBOL() {
       const LINE_MARGIN_RIGHT = 45; // línea termina 30 mm antes del borde derecho
       const LABEL_RIGHT_PAD   = 5;  // separación entre el final del label y el inicio del valor
       const VALUE_PADDING_TOP = 2.0; // aire superior respecto a la fila
-      const GAP_AFTER_LINE    = 10.0; // ↑ espacio ENTRE FILAS (ajusta a gusto)
+      const GAP_AFTER_LINE    = 15.0; // ↑ espacio ENTRE FILAS (ajusta a gusto)
 
       // --- Valor (2ª columna) ---
       doc.setFont("helvetica", "normal").setFontSize(VALUE_SIZE);
