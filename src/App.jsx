@@ -63,11 +63,11 @@ const Navbar = () => {
       </div>
 
       <div className="navbar-right">
-        <select onChange={handleLanguageChange} value={i18n.language}>
-          <option value="es">🇲🇽 Español</option>
-          <option value="en">🇺🇸 English</option>
-          <option value="ko">한국어 (Korean)</option>
-        </select>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => i18n.changeLanguage('es')} aria-label="Español" title="Español" style={{ background:"#111", color:"#fff", border:"1px solid #111", borderRadius:8, padding:"6px 10px", cursor:"pointer" }}>🇲🇽</button>
+          <button onClick={() => i18n.changeLanguage('en')} aria-label="English" title="English" style={{ background:"#111", color:"#fff", border:"1px solid #111", borderRadius:8, padding:"6px 10px", cursor:"pointer" }}>🇺🇸</button>
+          <button onClick={() => i18n.changeLanguage('ko')} aria-label="한국어" title="한국어" style={{ background:"#111", color:"#fff", border:"1px solid #111", borderRadius:8, padding:"6px 10px", cursor:"pointer" }}>🇰🇷</button>
+        </div>
       </div>
     </div>
   );
