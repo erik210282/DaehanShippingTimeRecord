@@ -459,12 +459,12 @@ export default function GenerarBOL() {
 
     // ===== Encabezado: Consignee (título) + Dirección completa =====
     const centerX = W / 2;
-    doc.setFont("helvetica", "bold").setFontSize(17);
+    doc.setFont("helvetica", "bold").setFontSize(22);
     const consigneeName = String(C.consignee_name || "—");
     doc.text(consigneeName, centerX, 26, { align: "center" });
 
     // Dirección multilinea (centrada)
-    doc.setFont("helvetica", "normal").setFontSize(9);
+    doc.setFont("helvetica", "normal").setFontSize(16);
     const addrBlock = [
       [C.consignee_address1, C.consignee_address2].filter(Boolean).join(" "),
       [C.consignee_city, C.consignee_state, C.consignee_zip].filter(Boolean).join(", "),
