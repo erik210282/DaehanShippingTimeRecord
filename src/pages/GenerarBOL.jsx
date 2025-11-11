@@ -426,124 +426,110 @@ export default function GenerarBOL() {
   }
 
   // ======================= Cover Sheet (Hoja 2) =======================
-function drawCoverSheet(doc, data) {
-  // carta en mm
-  const W = 215.9, H = 279.4, M = 12, GAP = 4;
-  const { SH, PO, poNumbers, shipmentNo, trailerNo, packingSlip, bolDate } = data;
-  const C = PO || {};
+  async function drawCoverSheet(doc, data) {
+    // Formato carta en mm
+    const W = 215.9, H = 279.4, M = 12;
 
-  // hacer nueva página en formato carta
-  doc.addPage([W, H]);
+    const {
+      SH,          // shipper normalizado
+      PO,          // PO principal
+      poNumbers,   // array de POs seleccionados
+      shipmentNo,
+      trailerNo,
+      packingSlip,
+      dockNo,
+      bolDate,
+      rows
+    } = data;
 
-  // Título
-  doc.setFont("helvetica", "bold").setFontSize(20);
-  doc.text("COVER SHEET", W / 2, 18, { align: "center" });
-  doc.setLineWidth(0.4);
-  doc.line(M, 22, W - M, 22);
+    const C = PO || {};
 
-  // Helper de caja + label + valor
-  const box = (x, y, w, h) => { doc.setLineWidth(0.25); doc.rect(x, y, w, h); };
-  const label = (t, x, y) => { doc.setFont("helvetica", "bold").setFontSize(9); doc.text(String(t), x, y); };
-  const value = (v, x, y, w) => {
-    doc.setFont("helvetica", "normal").setFontSize(10);
-    const txt = String(v ?? "—");
-    const lines = doc.splitTextToSize(txt, Math.max(2, w - 4));
-    let yy = y;
-    lines.forEach(ln => { doc.text(ln, x, yy); yy += 4; });
-  };
+    // --- Página nueva (Hoja 2) ---
+    doc.addPage([W, H]);
 
-  // Columnas
-  const colW = (W - 2*M - GAP) / 2;
-  let y = 28;
+    // --- Logo Daehan ---
+    try {
+      // ya tienes DA_LOGO importado arriba
+      const img = await (async () => {
+        // si DA_LOGO es base64/asset soportado por bundler, puedes pasarlo directo
+        try { return DA_LOGO; } catch { return null; }
+      })();
+      if (img) doc.addImage(img, "PNG", M, 10, 28, 12);
+    } catch {}
 
-  // ===== Bloque Dirección Consignee (instalación receptora) =====
-  // Usamos los datos del consignee del PO (ya vienen en tu BOL)
-  {
-    const x = M, w = W - 2*M, h = 36;
-    box(x, y, w, h);
-    label("Facility / Consignee Address", x + 2, y + 5.5);
-    doc.setFont("helvetica","normal").setFontSize(9);
+    // ===== Encabezado: Consignee (título) + Dirección completa =====
+    const centerX = W / 2;
+    doc.setFont("helvetica", "bold").setFontSize(17);
+    const consigneeName = String(C.consignee_name || "—");
+    doc.text(consigneeName, centerX, 26, { align: "center" });
 
-    const addr = [
-      C.consignee_name,
+    // Dirección multilinea (centrada)
+    doc.setFont("helvetica", "normal").setFontSize(9);
+    const addrBlock = [
       [C.consignee_address1, C.consignee_address2].filter(Boolean).join(" "),
       [C.consignee_city, C.consignee_state, C.consignee_zip].filter(Boolean).join(", "),
       C.consignee_country
-    ].filter(Boolean).join("\n");
+    ]
+    .filter(Boolean)
+    .join("\n");
 
-    const lines = doc.splitTextToSize(addr || "—", w - 4);
-    let yy = y + 10;
-    lines.forEach(ln => { doc.text(ln, x + 2, yy); yy += 4; });
-    y += h + GAP;
-  }
+    const addrLines = doc.splitTextToSize(addrBlock || "—", Math.min(140, W - 2 * M));
+    let y = 34;
+    addrLines.forEach(ln => { doc.text(ln, centerX, y, { align: "center" }); y += 4; });
 
-  // ===== Columna izquierda =====
-  {
-    let x = M, w = colW, h = 16;
+    // Línea separadora
+    doc.setLineWidth(0.35);
+    doc.line(M, y + 3, W - M, y + 3);
+    y += 10;
 
-    // Ship Date
-    box(x, y, w, h);
-    label("Ship Date", x + 2, y + 5.5);
-    value(bolDate, x + 2, y + 10.5, w - 4);
-    y += h + GAP;
+    // ===== Lista vertical con líneas (etiqueta izquierda / valor derecha) =====
+    // helper para una fila con línea base
+    const rowH = 12;
+    const labelX = M;
+    const valueRight = W - M;  // borde derecho para alinear valor a la derecha
+    const lineYoffset = 7.8;   // posición de la línea dentro de la fila
 
-    // Shipment Number
-    box(x, y, w, h);
-    label("Shipment Number", x + 2, y + 5.5);
-    value(shipmentNo, x + 2, y + 10.5, w - 4);
-    y += h + GAP;
+    const drawField = (label, value) => {
+      doc.setFont("helvetica", "bold").setFontSize(10);
+      doc.text(String(label || ""), labelX, y);
 
-    // Packing Slip Number
-    box(x, y, w, h);
-    label("Packing Slip Number", x + 2, y + 5.5);
-    value(packingSlip, x + 2, y + 10.5, w - 4);
-    y += h + GAP;
+      // línea horizontal “simple” (estilo hoja anexa)
+      doc.setLineWidth(0.25);
+      doc.line(M, y + lineYoffset, W - M, y + lineYoffset);
 
-    // Trailer Number
-    box(x, y, w, h);
-    label("Trailer Number", x + 2, y + 5.5);
-    value(trailerNo, x + 2, y + 10.5, w - 4);
-    // no movemos y: pasamos a columna derecha
-  }
+      // valor, alineado a la derecha
+      doc.setFont("helvetica", "normal").setFontSize(11);
+      const valTxt = String(value ?? "—");
+      doc.text(valTxt, valueRight, y, { align: "right" });
 
-  // ===== Columna derecha =====
-  {
-    let x = M + colW + GAP, w = colW, y2 = 28;
+      y += rowH;
+    };
 
-    // Carrier
-    box(x, y2, w, 16);
-    label("Carrier", x + 2, y2 + 5.5);
-    value(C.carrier_name, x + 2, y2 + 10.5, w - 4);
-    y2 += 16 + GAP;
-
-    // Supplier
-    box(x, y2, w, 16);
-    label("Supplier", x + 2, y2 + 5.5);
-    value(SH?.name, x + 2, y2 + 10.5, w - 4);
-    y2 += 16 + GAP;
-
-    // PO(s)
-    box(x, y2, w, 22);
-    label("PO Number(s)", x + 2, y2 + 5.5);
-    value((poNumbers && poNumbers.length) ? poNumbers.join(", ") : "—", x + 2, y2 + 10.5, w - 4);
-    y2 += 22 + GAP;
-
-    // Part Number(s) principales (si quieres más, puedes concatenar de rows)
-    box(x, y2, w, 36);
-    label("Part Number(s)", x + 2, y2 + 5.5);
-    // Tomamos hasta 6 PN de tus filas (sin pedir datos nuevos)
-    const partNumbers = (data.rows || [])
-      .map(r => String(r.desc || "").split(" ")[0]) // PN es el 1er token de tu desc
+    // Part numbers (compacto desde las filas de tu BOL)
+    const partNumbers = (rows || [])
+      .map(r => (String(r.desc || "").trim().split(/\s+/)[0] || ""))
       .filter(Boolean)
-      .slice(0, 6)
+      .slice(0, 8)              // hasta 8 para que no se desborde
       .join(", ");
-    value(partNumbers || "—", x + 2, y2 + 10.5, w - 4);
+
+    // Si hay varios PO, únelos en una sola línea (tal como hiciste en el BOL)
+    const poJoined = (poNumbers && poNumbers.length) ? poNumbers.join(", ") : (C.po || "");
+
+    // Carrier / Supplier
+    const carrierName  = C.carrier_name || "";
+    const supplierName = SH?.name || "";
+
+    // Campos en el orden del cover
+    drawField("Ship Date",           bolDate);
+    drawField("Shipment Number",     shipmentNo);
+    drawField("Packing Slip Number", packingSlip);
+    drawField("Trailer Number",      trailerNo);
+    drawField("Part Number(s)",      partNumbers);
+    drawField("Supplier",            supplierName);
+    drawField("Carrier",             carrierName);
+    drawField("Dock Number",         dockNo);
   }
 
-  // Nota o pie
-  doc.setFont("helvetica","normal").setFontSize(8);
-  doc.text("This cover sheet is generated automatically from the BOL data.", W/2, H - 12, { align: "center" });
-}
 
   async function generarPDF() {
     try {
