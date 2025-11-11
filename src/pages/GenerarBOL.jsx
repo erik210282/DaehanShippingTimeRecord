@@ -922,19 +922,19 @@ export default function GenerarBOL() {
         ].filter(Boolean).forEach((str) => { doc.text(String(str), M + 2, sy); sy += 3.8; });
 
         // --- Consignee ---
-        const C = primaryPO || {};
+        const CP = primaryPO || {};
         box(coX, y, coW, rowH);
         text("Consignee Address", "", coX, y + 3.5, { size: 8, bold: true });
         let cy = y + 8.5;
         doc.setFont("helvetica", "normal").setFontSize(8);
         [
-          C.consignee_name,
-          [C.consignee_address1, C.consignee_address2].filter(Boolean).join(" "),
-          [C.consignee_city, C.consignee_state, C.consignee_zip].filter(Boolean).join(", "),
-          C.consignee_country,
-          C.consignee_contact_name,
-          C.consignee_contact_phone,
-          C.consignee_contact_email,
+          CP.consignee_name,
+          [CP.consignee_address1, CP.consignee_address2].filter(Boolean).join(" "),
+          [CP.consignee_city, CP.consignee_state, CP.consignee_zip].filter(Boolean).join(", "),
+          CP.consignee_country,
+          CP.consignee_contact_name,
+          CP.consignee_contact_phone,
+          CP.consignee_contact_email,
         ].filter(Boolean).forEach((str) => { doc.text(String(str), coX + 2, cy); cy += 3.8; });
 
         y += rowH + gap;
