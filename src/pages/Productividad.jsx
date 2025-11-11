@@ -26,7 +26,7 @@ export default function Productividad() {
   const [productos, setProductos] = useState({});
   const [actividades, setActividades] = useState({});
 
-  const [agrupadoPor, setAgrupadoPor] = useState("actividad");
+  const [agrupadoPor, setAgrupadoPor] = useState("");
   const [agrupadoPor2, setAgrupadoPor2] = useState("");
   const [tipoGrafica, setTipoGrafica] = useState("bar");
   const [desde, setDesde] = useState(""); // string YYYY-MM-DD
@@ -345,9 +345,22 @@ export default function Productividad() {
   const limpiarFiltros = () => {
     setDesde("");
     setHasta("");
-    setAgrupadoPor("actividad");
+    setAgrupadoPor("");
     setAgrupadoPor2("");
     setErrorFecha("");
+  };
+
+  const traducirAgrupacion = (valor) => {
+    switch (valor) {
+      case "actividad":
+        return t("activity");
+      case "operador":
+        return t("operator");
+      case "producto":
+        return t("product");
+      default:
+        return valor;
+    }
   };
 
   return (
@@ -422,7 +435,11 @@ export default function Productividad() {
             <table className="table">
                 <thead>
                   <tr>
-                    <th>{agrupadoPor2 ? `${t(agrupadoPor)} - ${t(agrupadoPor2)}` : t(agrupadoPor)}</th>
+                    <th>
+                      {agrupadoPor2
+                        ? `${traducirAgrupacion(agrupadoPor)} - ${traducirAgrupacion(agrupadoPor2)}`
+                        : traducirAgrupacion(agrupadoPor)}
+                    </th>
                     <th>{t("average_time_minutes")}</th>
                   </tr>
                 </thead>

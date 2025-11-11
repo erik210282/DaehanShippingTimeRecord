@@ -202,5 +202,16 @@
   "returnable_type": "반환용 유형",
   "expendable_type": "일회용 유형",
   "returnablebw": "반환용 박스 무게",
-  "expendablebw": "일회용 박스 무게"
+  "expendablebw": "일회용 박스 무게",
+  "idxcode": "IDX 코드",
+  "buscaridx": "IDX로 검색",
+  "start_time": "시작 시간",
+  "fecha": "날짜",
+  "display_name": "표시 이름",
+  "activo": "활성",
+  "active": "활성",
+  "rol": "역할",
+  "role_operator": "작업자",
+  "role_supervisor": "관리자",
+  "select_role_placeholder": "작업자 유형을 선택하세요"
 }

@@ -223,7 +223,7 @@ export default function Resumen() {
         <div style={{ marginBottom: 12 }}>
           <input
             type="text"
-            placeholder={t("Buscar por IDX")}
+            placeholder={t("buscaridx")}
             value={filtroIdx}
             onChange={(e) => setFiltroIdx(e.target.value)}
             style={{ marginRight: 10, padding: 4 }}
@@ -246,7 +246,7 @@ export default function Resumen() {
           <table className="table">
             <thead>
               <tr>
-                <th>{t("Código IDX")}</th>
+                <th>{t("idxcode")}</th>
                 <th>{t("product")}</th>
                 <th>{t("quantity")}</th>
                 <th>{t("Stage")}</th>

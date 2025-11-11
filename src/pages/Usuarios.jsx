@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
 
@@ -10,7 +10,7 @@ export default function Usuarios() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState('');
-  const [role, setRole] = useState('operador'); 
+  const [role, setRole] = useState(""); 
   const [isActive, setIsActive] = useState(true);
   const [usuarios, setUsuarios] = useState([]);
   const [mostrarUsuarios, setMostrarUsuarios] = useState(false);
@@ -20,8 +20,13 @@ export default function Usuarios() {
 
   const usuarioLogueado = JSON.parse(localStorage.getItem("usuario"));
 
+  const ROLE_OPTIONS = useMemo(() => ([
+    { value: 'operador',   label: t('role_operator') },
+    { value: 'supervisor', label: t('role_supervisor') },
+  ]), [t]);
+
   const crearUsuario = async () => {
-    if (!email || !password) {
+    if (!email || !password || !role) {
       setMensaje(t("error_user_creation"));
       return;
     }
@@ -154,7 +159,7 @@ export default function Usuarios() {
 
           <input
             type="text"
-            placeholder="Nombre para mostrar (opcional)"
+            placeholder={t("display_name") || "Nombre para mostrar"}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             autoComplete="off"
@@ -164,8 +169,10 @@ export default function Usuarios() {
             value={role}
             onChange={(e) => setRole(e.target.value)}
           >
-            <option value="operador">Operador</option>
-            <option value="supervisor">Supervisor</option>
+            <option value="" disabled>{t('select_role_placeholder')}</option>
+            {ROLE_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
 
           <label style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
@@ -174,7 +181,7 @@ export default function Usuarios() {
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
             />
-            Activo
+            {t('active')}
           </label>
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
@@ -207,10 +214,9 @@ export default function Usuarios() {
                   {usuarios.map((u) => (
                     <tr key={u.uid}>
                       <td>{u.email}</td>
-                      <td>{u.uid}</td>
                       <td>
                         <select
-                          value={u.role || 'operador'}
+                          value={u.role || ''}
                           onChange={async (e) => {
                             await fetch(`${API_URL}/update-user-role`, {
                               method: 'POST',
@@ -220,24 +226,11 @@ export default function Usuarios() {
                             cargarUsuarios();
                           }}
                         >
-                          <option value="operador">Operador</option>
-                          <option value="supervisor">Supervisor</option>
+                          <option value="" disabled>{t('select_role_placeholder')}</option>
+                          {ROLE_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
                         </select>
-                      </td>
-
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={u.is_active ?? true}
-                          onChange={async (e) => {
-                            await fetch(`${API_URL}/update-user-role`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-                              body: JSON.stringify({ uid: u.uid, is_active: e.target.checked }),
-                            });
-                            cargarUsuarios();
-                          }}
-                        />
                       </td>
                       <td>
                         <input
@@ -262,6 +255,21 @@ export default function Usuarios() {
                           </button>
                         </div>
                       </td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={u.is_active ?? true}
+                          onChange={async (e) => {
+                            await fetch(`${API_URL}/update-user-role`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                              body: JSON.stringify({ uid: u.uid, is_active: e.target.checked }),
+                            });
+                            cargarUsuarios();
+                          }}
+                        />
+                      </td>
+                      <td>{u.uid}</td>
                     </tr>
                   ))}
                 </tbody>
