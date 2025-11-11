@@ -458,8 +458,8 @@ async function save() {
                     <th>{t("description")}</th>
                     <th>{t("weight_piece")}</th>
                     <th>{t("bin_type")}</th>
-                    <th>{t("returnable")}</th>
-                    <th>{t("expendable")}</th>
+                    <th>{t("returnablebox")}</th>
+                    <th>{t("expendablebox")}</th>
                     <th>{t("units_returnable")}</th>
                     <th>{t("units_expendable")}</th>
                     <th>{t("status")}</th>
