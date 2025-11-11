@@ -1,4 +1,7 @@
-.navbar select {
+
+.navbar select,
+.navbar-right select,
+.navbar-select {
   background: #111;
   color: #fff;
   border: 1px solid #333;
@@ -9,16 +12,17 @@
   width: auto;
   min-width: 80px;
   height: 32px;
-  appearance: none;        /* elimina estilo nativo */
+  appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   cursor: pointer;
 }
-
-.navbar select option {
+.navbar select option,
+.navbar-right select option,
+.navbar-select option {
   background: #111;
   color: #fff;
-  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; /* fuerza soporte emoji */
+  font-family: "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;
 }
 
 .navbar select:focus {
