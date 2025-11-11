@@ -426,7 +426,7 @@ export default function GenerarBOL() {
   }
 
   // ======================= Cover Sheet (Hoja 2) =======================
-  function drawCoverSheet(doc, data) {
+  async function drawCoverSheet(doc, data) {
     // Formato carta en mm
     const W = 215.9, H = 279.4, M = 12;
 
@@ -1249,9 +1249,8 @@ export default function GenerarBOL() {
         SH,                  // shipper normalizado (ya lo tienes)
         PO: primaryPO,       // PO principal (ya lo tienes)
         poNumbers,           // arreglo de POs seleccionados
-        shipmentNo, trailerNo, packingSlip,
-        bolDate,
-        rows                 // filas de la tabla (para listar algunos part numbers)
+        shipmentNo, trailerNo, packingSlip, dockNo,
+        bolDate
       });
 
       // Guardar
