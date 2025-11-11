@@ -66,6 +66,7 @@ const Navbar = () => {
         <select onChange={handleLanguageChange} value={i18n.language}>
           <option value="es">🇲🇽 Español</option>
           <option value="en">🇺🇸 English</option>
+          <option value="ko">한국어 (Korean)</option>
         </select>
       </div>
     </div>

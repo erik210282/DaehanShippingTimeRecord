@@ -4,6 +4,7 @@ import { initReactI18next } from 'react-i18next';
 
 import es from './es.json';
 import en from './en.json';
+import ko from './ko.json';
 
 i18n
   .use(initReactI18next)
@@ -11,6 +12,7 @@ i18n
     resources: {
       es: { translation: es },
       en: { translation: en },
+      ko: { translation: ko },
     },
     lng: 'es',
     fallbackLng: 'es',
