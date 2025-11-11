@@ -771,13 +771,9 @@ export default function GenerarBOL() {
       const preHeaderTableH = measureHeaderHeight(TMP, COLS, 8);
 
       // 👉 calcula el alto de CADA fila y usa el MÁXIMO para todas
-      const rowHeights = rows.map(r => {
-        return measureRowHeight(TMP, r, COLS, 8.5);
-      });
-      const maxRowH = rowHeights.length ? Math.max(...rowHeights) : MIN_ROW_H;
-
-      // el alto total del cuerpo ahora es: maxRowH * número de filas
-      const preBodyTableH = rowHeights.reduce((a, b) => a + b, 0);
+      const round01 = v => Math.round(v * 10) / 10; // redondeo a 0.1 mm
+      const rowHeightsRounded = rowHeights.map(h => round01(Math.max(h, MIN_ROW_H)));
+      const preBodyTableH = rowHeightsRounded.reduce((a, b) => a + b, 0);
 
       const totalsH = 8;
       const firmasH = 40;
@@ -1023,15 +1019,15 @@ export default function GenerarBOL() {
 
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r];
-        const rowH = rowHeights[r];
+        const rowH = rowHeightsRounded[r]; // alto real de ESTA fila (redondeado)
 
         for (let i = 0; i < COLS.length; i++) {
           const c = COLS[i];
           const cx = COLX[i];
           const content = splitFit(doc, row[c.k], c.w, 8.5);
 
-          const BODY_TEXT_SHIFT = 0.2; // opcional, deja 0.2–0.4
-          let ty = ry + CELL_PAD_Y + BODY_TEXT_SHIFT; // sin centrado: texto arriba
+          const TOP_TEXT_PAD = 0.8;  // ↑ separa el texto de la línea superior (ajusta 0.6–1.0)
+          let ty = ry + CELL_PAD_Y + TOP_TEXT_PAD;
           
           content.forEach(ln => {
             if (c.align === "right") {
