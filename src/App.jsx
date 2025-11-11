@@ -62,7 +62,7 @@ const Navbar = () => {
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
 
-      <select onChange={handleLanguageChange} value={i18n.language} style={{ minWidth: 120 }}>
+      <select onChange={handleLanguageChange} value={i18n.language} className="navbar-select">
         <option value="es">🇲🇽 Español</option>
         <option value="en">🇺🇸 English</option>
         <option value="ko">🇰🇷 한국어</option>
