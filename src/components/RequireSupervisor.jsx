@@ -67,7 +67,7 @@ export default function RequireSupervisor({ children }) {
   if (checking) {
     return (
       <div style={{height:'100vh', display:'flex', alignItems:'center', justifyContent:'center'}}>
-        (t("loading") || "Cargando...")
+        {t("loading")}
       </div>
     );
   }
