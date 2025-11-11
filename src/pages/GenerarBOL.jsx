@@ -1033,7 +1033,7 @@ export default function GenerarBOL() {
           const blockH = content.length * LINE_H;
           const BODY_TEXT_SHIFT = 0.6; // << mueve el texto hacia ABAJO (en mm)
           let ty = ry + CELL_PAD_Y
-              + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 4)
+              + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 6)
               + BODY_TEXT_SHIFT;
 
           content.forEach(ln => {
