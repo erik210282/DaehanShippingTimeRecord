@@ -2,12 +2,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/client";
+import { useTranslation } from "react-i18next";
 
 
 export default function RequireSupervisor({ children }) {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     let mounted = true;
