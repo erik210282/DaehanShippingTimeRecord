@@ -364,7 +364,7 @@ export default function GenerarBOL() {
   // === Helpers de tabla auto-ajustable ===
   const CELL_PAD_X = 2;      // padding horizontal
   const CELL_PAD_Y = 2.2;      // padding vertical
-  const LINE_H = 3.4;        // alto de línea de texto
+  const LINE_H = 3.0;        // alto de línea de texto
   const MIN_ROW_H = 6;       // alto mínimo por fila
 
   const fmt = (n, d = 2) =>
@@ -884,6 +884,7 @@ export default function GenerarBOL() {
         const valueY = 8.5;
         const lineSpacing = 3.8;
 
+        // 👉 medir cuántas líneas ocupa el contenido en cada columna
         const wrapCount = (pair, w) => {
           const avail = Math.max(2, w - 4);
           if (typeof pair[1] === "string") {
@@ -897,13 +898,21 @@ export default function GenerarBOL() {
           }
           return 1;
         };
-        // altura necesaria por columna = desde la parte superior hasta la última línea + un padding
-        const MIN_RH = 18;
-        const BOTTOM_PAD = 3;
-        const requiredHeights = items.map((pair, i) =>
-          valueY + wrapCount(pair, widths[i]) * lineSpacing + BOTTOM_PAD
-        );
-        // ✅ altura final de la fila (máximo entre columnas)
+
+        // Altura mínima + pads muy pequeños
+        const MIN_RH       = 18;
+        const PAD_BOTTOM   = 1.6; // ↓ reduce el espacio bajo el último renglón
+        const LABEL_LINE_H = 3.0; // aprox alto visual del label (size 8)
+
+        // Para cada columna, calcula hasta dónde llega realmente el contenido
+        const requiredHeights = items.map((pair, i) => {
+          const nLines = wrapCount(pair, widths[i]);          // 1,2,3...
+          const valueBottom = valueY + ((nLines - 1) * lineSpacing) + PAD_BOTTOM;
+          const labelBottom = labelY + LABEL_LINE_H;
+          return Math.max(valueBottom, labelBottom);
+        });
+
+        // ✅ altura final de la fila = máximo entre columnas
         const rH = Math.max(MIN_RH, ...requiredHeights);
 
         items.forEach((pair, i) => {
@@ -1024,7 +1033,7 @@ export default function GenerarBOL() {
           const blockH = content.length * LINE_H;
           const BODY_TEXT_SHIFT = 0.6; // << mueve el texto hacia ABAJO (en mm)
           let ty = ry + CELL_PAD_Y
-              + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 2)
+              + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 4)
               + BODY_TEXT_SHIFT;
 
           content.forEach(ln => {
