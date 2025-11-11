@@ -14,6 +14,7 @@
   "average_time_minutes": "Promedio de tiempo (minutos)",
   "back_to_register": "Volver a registrar",
   "bar_chart": "Gráfico de barras",
+  "bin_type": "Tipo de Caja",
   "bucket_missing": "Falta el bucket de Storage. Crea un bucket llamado 'bol' en Supabase Storage.",
   "cancel": "Cancelar",
   "carrier": "Transportista",
