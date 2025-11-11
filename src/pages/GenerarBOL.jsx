@@ -777,7 +777,7 @@ export default function GenerarBOL() {
       const maxRowH = rowHeights.length ? Math.max(...rowHeights) : MIN_ROW_H;
 
       // el alto total del cuerpo ahora es: maxRowH * número de filas
-      const preBodyTableH = maxRowH * rows.length;
+      const preBodyTableH = rowHeights.reduce((a, b) => a + b, 0);
 
       const totalsH = 8;
       const firmasH = 40;
@@ -1023,19 +1023,16 @@ export default function GenerarBOL() {
 
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r];
-        const rowH = maxRowH; // 👈 alto uniforme
+        const rowH = rowHeights[r];
 
         for (let i = 0; i < COLS.length; i++) {
           const c = COLS[i];
           const cx = COLX[i];
           const content = splitFit(doc, row[c.k], c.w, 8.5);
 
-          const blockH = content.length * LINE_H;
-          const BODY_TEXT_SHIFT = 0.6; // << mueve el texto hacia ABAJO (en mm)
-          let ty = ry + CELL_PAD_Y
-              + Math.max(0, (rowH - 2 * CELL_PAD_Y - blockH) / 6)
-              + BODY_TEXT_SHIFT;
-
+          const BODY_TEXT_SHIFT = 0.2; // opcional, deja 0.2–0.4
+          let ty = ry + CELL_PAD_Y + BODY_TEXT_SHIFT; // sin centrado: texto arriba
+          
           content.forEach(ln => {
             if (c.align === "right") {
               doc.text(ln, cx + c.w - CELL_PAD_X, ty, { align: "right" });
