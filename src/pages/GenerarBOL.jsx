@@ -442,16 +442,29 @@ export default function GenerarBOL() {
     doc.addPage([W, H]);
 
     // --- Logo Daehan ---
+    const LOGO_X = M, LOGO_Y = 10, LOGO_W = 28, LOGO_H = 12;
     try {
-      // usa el asset empaquetado (evita CORS)
-      doc.addImage(DA_LOGO, "PNG", M, 10, 28, 12);
+      doc.addImage(DA_LOGO, "PNG", LOGO_X, LOGO_Y, LOGO_W, LOGO_H);
     } catch {}
 
     // ===== Encabezado: Consignee (título) + Dirección completa =====
     const centerX = W / 2;
     doc.setFont("helvetica", "bold").setFontSize(24);
     const consigneeName = String(C.consignee_name || "—");
-    doc.text(consigneeName, centerX, 26, { align: "center" });
+
+    // Calcular desplazamiento para no invadir el área del logo
+    const SAFE_LEFT = LOGO_X + LOGO_W + 4; // “zona segura” a la derecha del logo
+    const titleWidth = doc.getTextWidth(consigneeName); // en mm con font actual
+    let titleX = centerX;
+    const leftEdge = titleX - (titleWidth / 2);
+
+    if (leftEdge < SAFE_LEFT) {
+      // desplaza lo necesario para que el borde izq. quede fuera del logo
+      titleX += (SAFE_LEFT - leftEdge);
+    }
+
+    const TITLE_Y = 26; // ya va debajo del logo (logo llega hasta y=22)
+    doc.text(consigneeName, titleX, TITLE_Y, { align: "center" });
 
     // Dirección multilinea (centrada)
     doc.setFont("helvetica", "normal").setFontSize(14);
@@ -462,14 +475,11 @@ export default function GenerarBOL() {
     ].filter(Boolean).join("\n");
 
     const addrLines = doc.splitTextToSize(addrBlock || "—", Math.min(140, W - 2 * M));
-    let y = 34;
-    const ADDR_LEADING = 5.4; // ↑ interlineado mayor para dirección
-    addrLines.forEach(ln => {
-      doc.text(ln, centerX, y, { align: "center" });
-      y += ADDR_LEADING;
-    });
+    let y = 34; // se mantiene por debajo del título
+    const ADDR_LEADING = 5.4;
+    addrLines.forEach(ln => { doc.text(ln, centerX, y, { align: "center" }); y += ADDR_LEADING; });
 
-    // Línea separadora
+    // Línea separadora y continuar...
     doc.setLineWidth(0.35);
     doc.line(M, y + 3, W - M, y + 3);
     y += 10;
@@ -514,33 +524,44 @@ export default function GenerarBOL() {
     const LINE_Y_OFF   = 8.0;       // posición de la línea dentro de la fila
     const VALUE_STEP   = 4.2;       // salto entre líneas del valor (wrapping)
 
+    // ↓ Reemplaza TODA la función drawPair por esta
     const drawPair = (label, value) => {
-    // --- Configuración ---
-    const LINE_MARGIN_RIGHT = 10; // deja 10 mm antes del final
-    const LABEL_GAP_Y = 3;        // espacio vertical extra sobre la línea
-    const PADDING_TOP = 2.5;      // aire entre línea superior y texto
+      // --- Config ---
+      const LINE_MARGIN_RIGHT = 30; // termina 10 mm antes del borde
+      const VALUE_PADDING_TOP = 2.0; // aire superior respecto a la fila
+      const GAP_AFTER_LINE   = 2.0;  // espacio para la siguiente fila
 
-    // --- Etiqueta (columna izquierda) ---
-    doc.setFont("helvetica", "bold").setFontSize(LABEL_SIZE);
-    const labelY = y + PADDING_TOP;
-    doc.text(String(label || ""), LABEL_X, labelY);
+      // Etiqueta (columna izq)
+      doc.setFont("helvetica", "bold").setFontSize(LABEL_SIZE);
+      const labelY = y + VALUE_PADDING_TOP;
+      doc.text(String(label || ""), LABEL_X, labelY);
 
-    // --- Valor (columna derecha) ---
-    doc.setFont("helvetica", "normal").setFontSize(VALUE_SIZE);
-    const txt = String(value ?? "—");
-    const wrapped = doc.splitTextToSize(txt, Math.max(2, VALUE_W - 5));
+      // Valor (columna der)
+      doc.setFont("helvetica", "normal").setFontSize(VALUE_SIZE);
+      const txt = String(value ?? "—");
+      const wrapped = doc.splitTextToSize(txt, Math.max(2, VALUE_W - 5));
 
-    // Altura del bloque de valor
-    const blockH = Math.max(ROW_MIN_H, (wrapped.length * VALUE_STEP) + 4);
-    // Calcula Y de inicio del texto para centrar verticalmente
-    const startVy = y + (blockH / 2) - ((wrapped.length * VALUE_STEP) / 2);
+      // Centramos verticalmente el bloque del valor
+      const valueBlockH = Math.max(ROW_MIN_H, wrapped.length * VALUE_STEP);
+      const startVy = y + VALUE_PADDING_TOP
+        + Math.max(0, (valueBlockH - (wrapped.length * VALUE_STEP)) / 2);
 
-    // Dibuja texto de valor (alineado a la izquierda)
-    let vy = startVy;
-    wrapped.forEach(ln => {
-      doc.text(ln, VALUE_X, vy);
-      vy += VALUE_STEP;
-    });
+      let vy = startVy;
+      wrapped.forEach(ln => { doc.text(ln, VALUE_X, vy); vy += VALUE_STEP; });
+
+      // Línea justo debajo del texto (pegada)
+      // vy ahora quedó una "paso" por debajo de la última línea
+      const lastBaseline = vy - VALUE_STEP;
+      const lineY = lastBaseline + 1.6; // 1.6 mm debajo del texto
+
+      doc.setLineWidth(0.25);
+      const lineStartX = VALUE_X;              // inicia donde arranca la 2ª columna
+      const lineEndX   = W - LINE_MARGIN_RIGHT;
+      doc.line(lineStartX, lineY, lineEndX, lineY);
+
+      // Avanzamos Y justo después de la línea
+      y = lineY + GAP_AFTER_LINE;
+    };
 
     // --- Línea horizontal ajustada al valor ---
     doc.setLineWidth(0.25);
