@@ -53,12 +53,6 @@ function poAddressKey(p) {
   ].join("|");
 }
 
-{basePoAddrKey && (
-  <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "#bbb" }}>
-    Solo se mostrarán PO con la misma dirección de Consignee que el primero seleccionado.
-  </div>
-)}
-
 /* ======================================================= */
 export default function GenerarBOL() {
   // wrapper seguro: si t no es función (por cualquier motivo), usa fallback
@@ -1524,6 +1518,12 @@ export default function GenerarBOL() {
               clearIndicator: (base) => ({ ...base, color: "#fff", ":hover": { color: "#ff5555" } }),
             }}
           />
+
+          {basePoAddrKey && (
+            <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "#bbb" }}>
+              Solo se mostrarán PO con la misma dirección del Consignee que el primero seleccionado.
+            </div>
+          )}
           
           {/* Dock Number */}
           <input placeholder={t("dock_number", "Dock Number")} value={dockNo} onChange={(e) => setDockNo(e.target.value)} />
