@@ -1,3 +1,83 @@
+/* === Selector de idioma compacto y con banderita fija === */
+.lang-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #111;
+  padding: 4px 8px;
+  border: 1px solid #333;
+  border-radius: 6px;
+  height: 32px;
+}
+
+.navbar-select {
+  background: transparent;
+  color: #fff;
+  border: none;
+  outline: none;
+  height: 24px;
+  line-height: 24px;
+  font-size: 14px;
+  padding: 0;
+  width: auto !important;
+  max-width: none !important;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+}
+
+/* Icono de banderita */
+.lang-wrap .flag {
+  width: 22px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid #333;
+  background-size: cover;
+  background-position: center;
+}
+
+/* ===== Bandera por idioma (SVGs simplificados embebidos) ===== */
+
+/* 🇲🇽 Mexico (tricolor) */
+.lang-wrap.es .flag {
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='22' height='16'>\
+<rect width='7.33' height='16' fill='%2300682a'/>\
+<rect x='7.33' width='7.33' height='16' fill='%23ffffff'/>\
+<rect x='14.66' width='7.34' height='16' fill='%23ce1126'/>\
+</svg>");
+}
+
+/* 🇺🇸 USA (simplificado) */
+.lang-wrap.en .flag {
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='22' height='16'>\
+<rect width='22' height='16' fill='%23b22234'/>\
+<g fill='%23ffffff'>\
+<rect y='2'  width='22' height='2'/>\
+<rect y='6'  width='22' height='2'/>\
+<rect y='10' width='22' height='2'/>\
+<rect y='14' width='22' height='2'/>\
+</g>\
+<rect width='10' height='8' fill='%23025'/>\
+</svg>");
+}
+
+/* 🇰🇷 Korea (simplificado: círculo rojo/azul) */
+.lang-wrap.ko .flag {
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='22' height='16'>\
+<rect width='22' height='16' fill='%23ffffff'/>\
+<circle cx='11' cy='8' r='5' fill='%23cd2e3a'/>\
+<path d='M6 8a5 5 0 1 0 10 0A5 5 0 0 1 6 8z' fill='%230047a0'/>\
+</svg>");
+}
+
+/* Asegurar hover/focus sin agrandar */
+.lang-wrap:focus-within {
+  border-color: #007bff;
+}
 
 .navbar select,
 .navbar-right select,

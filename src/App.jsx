@@ -62,11 +62,23 @@ const Navbar = () => {
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
 
-      <select onChange={handleLanguageChange} value={i18n.language} className="navbar-select">
-        <option value="es">🇲🇽 Español</option>
-        <option value="en">🇺🇸 English</option>
-        <option value="ko">🇰🇷 한국어</option>
-      </select>
+      <div className={`lang-wrap ${i18n.language}`}>
+        <span className="flag" aria-hidden="true"></span>
+        <select
+          onChange={(e) => {
+            const lang = e.target.value;
+            i18n.changeLanguage(lang);
+            try { localStorage.setItem('lang', lang); } catch {}
+          }}
+          value={i18n.language}
+          className="navbar-select"
+          aria-label="Language"
+        >
+          <option value="es">Español</option>
+          <option value="en">English</option>
+          <option value="ko">한국어</option>
+        </select>
+      </div>
     </div>
   );
 };
