@@ -881,7 +881,7 @@ export default function GenerarBOL() {
 
         // offsets de texto (ajusta si quieres más/menos espacio vertical)
         const labelY = 4.0;
-        const valueY = 9.5;
+        const valueY = 8.5;
         const lineSpacing = 3.8;
 
         const wrapCount = (pair, w) => {
@@ -912,7 +912,7 @@ export default function GenerarBOL() {
 
           box(x, y, w, rH);
           text(pair[0], "", x, y + labelY, { size: 8, bold: true });
-          doc.setFont("helvetica", "normal").setFontSize(9); 
+          doc.setFont("helvetica", "normal").setFontSize(8); 
 
           let yy = y + valueY;
 
