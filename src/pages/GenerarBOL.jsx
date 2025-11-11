@@ -749,16 +749,13 @@ export default function GenerarBOL() {
         legalH + gap + 8;
 
 
-      const pageH = Math.max(279.4, contentH); // al menos carta; crece si hace falta
+      const pageH = Number.isFinite(contentH) ? Math.max(279.4, contentH) : 279.4;
 
       // --------- 4) Crear documento con alto dinámico y dibujar ---------
       const doc = new jsPDF({ unit: "mm", format: [W, pageH] });
 
       // Logo
-      try {
-        const logo = await loadImg(DA_LOGO);
-        doc.addImage(logo, "PNG", M, 10, 30, 12);
-      } catch {}
+      try { doc.addImage(DA_LOGO, "PNG", M, 10, 30, 12); } catch {}
 
       // helpers
       const text = (label, value, x, y, opts = {}) => {
@@ -1245,12 +1242,13 @@ export default function GenerarBOL() {
       }  
 
       // ========= HOJA 2: COVER SHEET =========
-      drawCoverSheet(doc, {
-        SH,                  // shipper normalizado (ya lo tienes)
-        PO: primaryPO,       // PO principal (ya lo tienes)
-        poNumbers,           // arreglo de POs seleccionados
-        shipmentNo, trailerNo, packingSlip, dockNo,
-        bolDate
+      await drawCoverSheet(doc, {
+        SH,
+        PO: primaryPO,
+        poNumbers,
+        shipmentNo, trailerNo, packingSlip, dockNo, sealNo,
+        bolDate,
+        rows
       });
 
       // Guardar
