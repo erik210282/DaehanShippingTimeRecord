@@ -480,7 +480,7 @@ export default function GenerarBOL() {
     addrLines.forEach(ln => { doc.text(ln, centerX, y, { align: "center" }); y += ADDR_LEADING; });
 
     // Línea separadora y continuar...
-    doc.setLineWidth(0.35);
+    doc.setLineWidth(0.70);
     doc.line(M, y + 3, W - M, y + 3);
     y += 10;
 
@@ -489,7 +489,7 @@ export default function GenerarBOL() {
     const partNumbers = (rows || [])
       .map(r => (String(r.desc || "").trim().split(/\s+/)[0] || ""))
       .filter(Boolean)
-      .slice(0, 8)
+      .slice(0, 15)
       .join(", ");
 
     const carrierName  = C.carrier_name || "";
@@ -499,7 +499,7 @@ export default function GenerarBOL() {
     const pnLines = (rows || [])
       .map(r => (String(r.desc || "").trim().split(/\s+/)[0] || ""))
       .filter(Boolean)
-      .slice(0, 8); // muestra hasta 8
+      .slice(0, 15); 
 
     const fields = [
       ["Ship Date: ",           bolDate],
@@ -526,8 +526,8 @@ export default function GenerarBOL() {
 
     const drawPair = (label, value) => {
       // --- Configurables ---
-      const LINE_MARGIN_RIGHT = 30; // línea termina 30 mm antes del borde derecho
-      const LABEL_RIGHT_PAD   = 2;  // separación entre el final del label y el inicio del valor
+      const LINE_MARGIN_RIGHT = 45; // línea termina 30 mm antes del borde derecho
+      const LABEL_RIGHT_PAD   = 5;  // separación entre el final del label y el inicio del valor
       const VALUE_PADDING_TOP = 2.0; // aire superior respecto a la fila
       const GAP_AFTER_LINE    = 4.0; // ↑ espacio ENTRE FILAS (ajusta a gusto)
 
