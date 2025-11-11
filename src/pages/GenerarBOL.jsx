@@ -912,7 +912,7 @@ export default function GenerarBOL() {
 
           box(x, y, w, rH);
           text(pair[0], "", x, y + labelY, { size: 8, bold: true });
-          doc.setFont("helvetica", "normal");
+          doc.setFont("helvetica", "normal").setFontSize(9); 
 
           let yy = y + valueY;
 
