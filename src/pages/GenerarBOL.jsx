@@ -1520,7 +1520,7 @@ export default function GenerarBOL() {
           />
 
           {basePoAddrKey && (
-            <div style={{ gridColumn: "1 / -1", fontSize: 14, color: "#a5a5a5ff" }}>
+            <div style={{ gridColumn: "1 / -1", fontSize: 14, color: "#5a5858ff" }}>
               {t("same_consignee_warning")}
             </div>
           )}

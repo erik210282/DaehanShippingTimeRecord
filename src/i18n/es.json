@@ -135,7 +135,7 @@
   "records_title": "Registros de actividades",
   "returnable": "Retornable",
   "returnablebox": "Dimensiones de Caja Retornable",
-  "same_consignee_warning": "Solo se mostrarán PO con la misma dirección del Destinario que el primero seleccionado.",
+  "same_consignee_warning": "Solo se mostrarán PO con la misma dirección del Destinario que selecciono primero.",
   "save": "Guardar",
   "save_and_link": "Guardar en Storage y vincular",
   "save_success": "Guardado correctamente",
