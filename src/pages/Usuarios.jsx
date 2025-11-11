@@ -203,11 +203,11 @@ export default function Usuarios() {
                 <thead>
                   <tr>
                     <th>{t("email")}</th>
-                    <th>{t("user_id")}</th>
-                    <th>{t("rol")}</th>
-                    <th>{t("activo")}</th>
+                    <th>{t("rol")}</th>                    
                     <th>{t("new_password")}</th>
                     <th>{t("actions")}</th>
+                    <th>{t("activo")}</th>
+                    <th>{t("user_id")}</th>
                   </tr>
                 </thead>
                 <tbody>
