@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
+import { DSInput, DSNativeSelect, PrimaryBtn, SecondaryBtn, EditDarkBtn, DangerBtn } from "../components/controls";
 
 const API_URL = "https://daehanshippingbackend.onrender.com";
 const API_KEY = "clave-super-secreta-$hipping*2025*";
@@ -140,7 +141,7 @@ export default function Usuarios() {
         <h2>{t("user_management")}</h2>
 
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-          <input
+          <DSInput
             type="email"
             name="email"
             placeholder={t("email_placeholder") || "Escribe correo"}
@@ -148,7 +149,7 @@ export default function Usuarios() {
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="off"
           />
-          <input
+          <DSInput
             type="password"
             name="password"
             placeholder={t("password_placeholder") || "Escribe contraseña"}
@@ -157,7 +158,7 @@ export default function Usuarios() {
             autoComplete="new-password"
           />
 
-          <input
+          <DSInput
             type="text"
             placeholder={t("display_name") || "Nombre para mostrar"}
             value={displayName}
@@ -165,7 +166,7 @@ export default function Usuarios() {
             autoComplete="off"
           />
 
-          <select
+          <DSNativeSelect
             value={role}
             onChange={(e) => setRole(e.target.value)}
           >
@@ -173,7 +174,7 @@ export default function Usuarios() {
             {ROLE_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
-          </select>
+          </DSNativeSelect>
 
           <label style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
             <input
@@ -185,12 +186,12 @@ export default function Usuarios() {
           </label>
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <button className="primary" onClick={crearUsuario}>
+            <PrimaryBtn onClick={crearUsuario}>
               {t("create_user")}
-            </button>
-            <button className="secondary" onClick={alternarMostrarUsuarios}>
+            </PrimaryBtn>
+            <SecondaryBtn onClick={alternarMostrarUsuarios}>
               {mostrarUsuarios ? t("hide_users") : t("show_users")}
-            </button>
+            </SecondaryBtn>
           </div>
         </div>
 
@@ -215,7 +216,7 @@ export default function Usuarios() {
                     <tr key={u.uid}>
                       <td>{u.email}</td>
                       <td>
-                        <select
+                        <DSNativeSelect
                           value={u.role || ''}
                           onChange={async (e) => {
                             await fetch(`${API_URL}/update-user-role`, {
@@ -230,10 +231,10 @@ export default function Usuarios() {
                           {ROLE_OPTIONS.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                           ))}
-                        </select>
+                        </DSNativeSelect>
                       </td>
                       <td>
-                        <input
+                        <DSInput
                           type="password"
                           value={nuevosPasswords[u.uid] || ""}
                           onChange={(e) =>
@@ -247,12 +248,12 @@ export default function Usuarios() {
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                          <button className="edit-btn" onClick={() => actualizarPassword(u.uid)}>
+                          <EditDarkBtn onClick={() => actualizarPassword(u.uid)}>
                             {t("update_password")}
-                          </button>
-                          <button className="delete-btn" onClick={() => eliminarUsuario(u.uid)}>
+                          </EditDarkBtn>
+                          <DangerBtn onClick={() => eliminarUsuario(u.uid)}>
                             {t("delete_user")}
-                          </button>
+                          </DangerBtn>
                         </div>
                       </td>
                       <td>
