@@ -639,7 +639,11 @@ export default function GenerarBOL() {
       const BT = resolveBillTo(primaryPO, billToData);
 
       const join = (...a) => a.filter(Boolean).join(" ");
-      const bolDateFormatted = new Date(bolDate).toLocaleDateString("en-US");
+      const bolDateFormatted = new Date(bolDate).toLocaleString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric"
+      }).replace(/ /g, "/").replace(",", ""); // convierte espacios en "/" 
 
       // --------- 1) Normaliza items (cajas por producto) ---------
       const cajasPorProducto = {};
