@@ -12,7 +12,12 @@ import {
   tinyRoundBtn,
 } from "./styles";
 
-// --------- Inputs básicos ----------
+const ArrowIcon = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="#ccc">
+    <path d="M7 10l5 5 5-5z" />
+  </svg>
+);
+
 export const DSInput = ({ style, ...props }) => (
   <input {...props} style={{ ...inputStyle, ...style }} />
 );
@@ -21,32 +26,41 @@ export const DSDate = ({ style, ...props }) => (
   <input type="date" {...props} style={{ ...inputStyle, ...style }} />
 );
 
-// --------- <select> nativo con flechita ----------
-// --------- <select> nativo (flecha del navegador) ----------
 export const DSNativeSelect = ({ children, style, ...rest }) => (
-  <select
-    {...rest}
-    style={{
-      ...nativeSelectStyle,
-      ...style,
-    }}
-  >
-    {children}
-  </select>
+  <div style={{ position: "relative", width: "100%" }}>
+    <select
+      {...rest}
+      style={{
+        ...nativeSelectStyle,
+        paddingRight: "32px",     // espacio para flecha
+        appearance: "none",
+        WebkitAppearance: "none",
+        MozAppearance: "none",
+        ...style,
+      }}
+    >
+      {children}
+    </select>
+
+    <div
+      style={{
+        position: "absolute",
+        right: "10px",
+        top: "50%",
+        transform: "translateY(-50%)",
+        pointerEvents: "none",
+        display: "flex",
+        alignItems: "center",
+      }}
+    >
+      {ArrowIcon}
+    </div>
+  </div>
 );
 
-// --------- react-select con flechita personalizada ----------
 const DropdownArrow = (props) => (
   <components.DropdownIndicator {...props}>
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="#ccc"
-      style={{ marginRight: 2 }}
-    >
-      <path d="M7 10l5 5 5-5z" />
-    </svg>
+    {ArrowIcon}
   </components.DropdownIndicator>
 );
 
