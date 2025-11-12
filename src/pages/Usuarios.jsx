@@ -20,6 +20,12 @@ export default function Usuarios() {
   const [nuevosPasswords, setNuevosPasswords] = useState({});
   const [cargando, setCargando] = useState(false);
 
+  const debugT = (key) => {
+    const translated = t(key);
+    console.log("[Usuarios.jsx] i18n lang:", i18n.language, "key:", key, "=>", translated);
+    return translated;
+  };
+
   const usuarioLogueado = JSON.parse(localStorage.getItem("usuario"));
 
   const ROLE_OPTIONS = useMemo(() => ([
@@ -207,7 +213,7 @@ export default function Usuarios() {
 
         {mensajeKey && (
           <p style={{ marginTop: "1rem", color: "#007bff" }}>
-            {t(mensajeKey)}
+            {debugT(mensajeKey)}
             {mensajeExtra}
           </p>
         )}
