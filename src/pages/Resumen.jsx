@@ -244,7 +244,7 @@ export default function Resumen() {
         </div>
 
         <div className="table-wrap">
-          <table className="table" align="center">
+          <table className="table">
             <thead>
               <tr>
                 <th>{t("idxcode")}</th>

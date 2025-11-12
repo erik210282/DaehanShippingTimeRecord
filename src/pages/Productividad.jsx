@@ -15,6 +15,7 @@ import {
   Legend,
 } from "chart.js";
 import Papa from "papaparse";
+import { DSDate, DSNativeSelect, PrimaryBtn, SecondaryBtn } from "../components/controls";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend);
 
@@ -326,7 +327,10 @@ export default function Productividad() {
 
   const exportarCSV = () => {
     const datosCSV = (agrupadoPor2 ? etiquetasCruzadas : etiquetas).map((etiqueta, i) => ({
-      [agrupadoPor2 ? `${t(agrupadoPor)} - ${t(agrupadoPor2)}` : t(agrupadoPor)]: etiqueta,
+      [agrupadoPor2
+        ? `${traducirAgrupacion(agrupadoPor)} - ${traducirAgrupacion(agrupadoPor2)}`
+        : traducirAgrupacion(agrupadoPor)
+      ]: etiqueta,
       [t("average_time_minutes")]: agrupadoPor2 ? promediosCruzados[i] : promedios[i],
     }));
 
@@ -378,8 +382,8 @@ export default function Productividad() {
             justifyContent: "flex-start",
           }}
         >
-          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={{ padding: "0.5rem" }} />
-          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={{ padding: "0.5rem" }} />
+          <DSDate value={desde} onChange={(e) => setDesde(e.target.value)} />
+          <DSDate value={hasta} onChange={(e) => setHasta(e.target.value)} />
         </div>
 
         {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
@@ -394,41 +398,30 @@ export default function Productividad() {
             justifyContent: "flex-start",
           }}
         >
-          <select value={agrupadoPor} onChange={(e) => setAgrupadoPor(e.target.value)} style={{ padding: "0.5rem" }}>
-            <option value="">{t("select_first_group",)}</option>
+          <DSNativeSelect value={agrupadoPor} onChange={(e) => setAgrupadoPor(e.target.value)}>
+            <option value="">{t("select_first_group")}</option>
             <option value="actividad">{t("activity")}</option>
             <option value="operador">{t("operator")}</option>
             <option value="producto">{t("product")}</option>
-          </select>
+          </DSNativeSelect>
 
-          <select value={agrupadoPor2} onChange={(e) => setAgrupadoPor2(e.target.value)} style={{ padding: "0.5rem" }}>
+          <DSNativeSelect value={agrupadoPor2} onChange={(e) => setAgrupadoPor2(e.target.value)}>
             <option value="">{t("select_second_group")}</option>
             <option value="actividad">{t("activity")}</option>
             <option value="operador">{t("operator")}</option>
             <option value="producto">{t("product")}</option>
-          </select>
+          </DSNativeSelect>
 
-          <select value={tipoGrafica} onChange={(e) => setTipoGrafica(e.target.value)} style={{ padding: "0.5rem" }}>
+          <DSNativeSelect value={tipoGrafica} onChange={(e) => setTipoGrafica(e.target.value)}>
             <option value="bar">{t("bar_chart")}</option>
             <option value="pie">{t("pie_chart")}</option>
-          </select>
+          </DSNativeSelect>
         </div>
 
         {/* Botón limpiar */}
-        <button
-          onClick={limpiarFiltros}
-          style={{
-            padding: "0.5rem 1rem",
-            backgroundColor: "#000",
-            color: "white",
-            border: "none",
-            borderRadius: "0.5rem",
-            cursor: "pointer",
-            marginBottom: "1rem",
-          }}
-        >
+        <SecondaryBtn onClick={limpiarFiltros} style={{ marginBottom: "1rem" }}>
           {t("clear_filters")}
-        </button>
+        </SecondaryBtn>
 
         {/* Tabla */}
         <div style={{ marginTop: "2rem", overflowX: "auto" }}>
@@ -464,9 +457,9 @@ export default function Productividad() {
         </div>
 
         {/* Exportar */}
-        <button className="primary" onClick={exportarCSV} style={{ marginTop: "1rem", padding: "0.5rem 1rem" }}>
+        <PrimaryBtn onClick={exportarCSV} style={{ marginTop: "1rem" }}>
           {t("export_csv")}
-        </button>
+        </PrimaryBtn>
 
         {/* Gráfico */}
         {etiquetas.length > 0 ? (
