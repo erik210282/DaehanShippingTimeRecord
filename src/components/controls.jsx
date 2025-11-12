@@ -36,7 +36,7 @@ const DropdownArrow = (props) => (
   <components.DropdownIndicator {...props}>
     <span
       style={{
-        fontSize: 10,
+        fontSize: 15,
         color: "#ffffff",
         lineHeight: 1,
         display: "inline-block",

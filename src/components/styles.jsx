@@ -15,48 +15,6 @@ export const inputStyle = {
   fontSize: 14,
   fontFamily: FIELD_FONT,
   boxSizing: "border-box",
-  container: (base) => ({
-    ...base,
-    width: "100%",
-  }),
-  control: (base, state) => ({
-    ...base,
-    backgroundColor: "#333",
-    borderColor: state.isFocused ? "#007BFF" : "#333",
-    boxShadow: "none",
-    minHeight: FIELD_HEIGHT,
-    height: FIELD_HEIGHT,
-    borderRadius: 6,
-    cursor: "pointer",
-    fontFamily: FIELD_FONT,
-    fontSize: 14,
-    width: "100%", 
-  }),
-  valueContainer: (base) => ({
-    ...base,
-    height: FIELD_HEIGHT,
-    padding: "0 10px",
-    alignItems: "center",
-  }),
-  placeholder: (base) => ({ ...base, color: "#bbb" }),
-  singleValue: (base) => ({ ...base, color: "#fff" }),
-  input: (base) => ({ ...base, color: "#fff" }),
-  indicatorSeparator: () => ({ display: "none" }),
-  dropdownIndicator: (base) => ({ ...base, color: "#fff" }),
-  clearIndicator: (base) => ({ ...base, color: "#fff" }),
-  menu: (base) => ({ ...base, backgroundColor: "#333", zIndex: 9999 }),
-  option: (base, state) => ({
-    ...base,
-    backgroundColor: state.isSelected ? "#007BFF" : state.isFocused ? "#555" : "#333",
-    color: "#fff",
-  }),
-  multiValue: (base) => ({ ...base, backgroundColor: "#007BFF", color: "#fff", borderRadius: 4 }),
-  multiValueLabel: (base) => ({ ...base, color: "#fff", fontWeight: "bold" }),
-  multiValueRemove: (base) => ({
-    ...base,
-    color: "#fff",
-    ":hover": { backgroundColor: "#0056b3", color: "#fff" },
-  }),
 };
 
 export const nativeSelectStyle = {
@@ -65,10 +23,6 @@ export const nativeSelectStyle = {
 };
 
 export const RS_COMMON_STYLES = {
-  container: (base) => ({
-    ...base,
-    width: "100%",
-  }),
   control: (base, state) => ({
     ...base,
     backgroundColor: "#333",
@@ -80,7 +34,6 @@ export const RS_COMMON_STYLES = {
     cursor: "pointer",
     fontFamily: FIELD_FONT,
     fontSize: 14,
-    width: "100%", 
   }),
   valueContainer: (base) => ({
     ...base,
