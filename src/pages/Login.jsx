@@ -9,6 +9,9 @@ import logo from "../assets/Daehan.png";
 export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const handleLanguageChange = (e) => {
+    i18n.changeLanguage(e.target.value);
+  };
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
