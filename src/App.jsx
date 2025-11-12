@@ -1,4 +1,3 @@
-import React from "react";
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import Registros from "./pages/Registros";
 import Productividad from "./pages/Productividad";
@@ -12,7 +11,7 @@ import ConfiguracionTareas from "./pages/ConfiguracionTareas";
 import { useTranslation } from "react-i18next";
 import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
 import LanguageBar from "./components/LanguageBar";

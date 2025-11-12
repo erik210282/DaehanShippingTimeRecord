@@ -751,7 +751,10 @@ export default function GenerarBOL() {
 
         rows.push({
           pkgQty: String(cajas),
-          pkgType: p?.bin_type,
+          pkgType:
+            packType === "expendable"
+              ? "Box" // cuando es desechable, fuerza "Box"
+              : (p?.bin_type),
           desc: `${p?.part_number || p?.codigo || ""} ${p?.descripcion || ""}`.trim(),
           dim: getPackageDimensions(p, packType),
           wPer: fmt(pesoPorPaquete),
