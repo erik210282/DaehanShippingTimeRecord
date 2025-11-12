@@ -15,11 +15,18 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
+import ReactCountryFlag from "react-country-flag";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
+  const langToCountry = (lang) => {
+  if (lang === "es") return "MX";
+  if (lang === "en") return "US";
+  if (lang === "ko") return "KR";
+  return "US";
+};
 
   useEffect(() => {
     const obtenerSesion = async () => {
@@ -63,7 +70,12 @@ const Navbar = () => {
       </div>
 
       <div className={`lang-wrap ${i18n.language}`}>
-        <span className="flag" aria-hidden="true"></span>
+        <ReactCountryFlag
+          countryCode={langToCountry(i18n.language)}
+          svg
+          style={{ width: 20, height: 14 }}
+          aria-label="flag"
+        />
         <select
           onChange={(e) => {
             const lang = e.target.value;
