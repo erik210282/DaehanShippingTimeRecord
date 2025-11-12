@@ -256,6 +256,7 @@ button {
   min-width: 680px;                 
   font-size: clamp(12px, 1.5vw, 14px);
   align-items: center;
+  text-align: center;
 }
 
 /* Ajusta densidad en pantallas chicas */
@@ -266,6 +267,7 @@ button {
   .table th, .table td {
     padding: 10px;                        /* filas más compactas */
     font-size: 14px;
+    align-items: center;
   }
 
   /* Barra de scroll cómoda */
