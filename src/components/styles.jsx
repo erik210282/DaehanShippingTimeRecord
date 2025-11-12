@@ -19,9 +19,6 @@ export const inputStyle = {
 
 export const nativeSelectStyle = {
   ...inputStyle,
-  appearance: "none",
-  WebkitAppearance: "none",
-  MozAppearance: "none",
   lineHeight: "normal",
 };
 
