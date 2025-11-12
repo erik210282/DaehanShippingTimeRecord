@@ -113,9 +113,9 @@ export default function Login() {
             required
           />
 
-          <BtnPrimary type="submit" disabled={busy} style={{ width: "100%", marginTop: 12 }}>
+          <PrimaryBtn type="submit" disabled={busy} style={{ width: "100%", marginTop: 12 }}>
             {busy ? (t("loading") || "Cargando...") : (t("signIn") || "Sign In")}
-          </BtnPrimary>
+          </PrimaryBtn>
         </form>
       </div>
       <ToastContainer position="top-center" autoClose={1200} />
