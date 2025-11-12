@@ -12,12 +12,6 @@ import {
   tinyRoundBtn,
 } from "./styles";
 
-const ArrowIcon = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="#ccc">
-    <path d="M7 10l5 5 5-5z" />
-  </svg>
-);
-
 export const DSInput = ({ style, ...props }) => (
   <input {...props} style={{ ...inputStyle, ...style }} />
 );
@@ -40,7 +34,17 @@ export const DSNativeSelect = ({ children, style, ...rest }) => (
 
 const DropdownArrow = (props) => (
   <components.DropdownIndicator {...props}>
-    {ArrowIcon}
+    <span
+      style={{
+        fontSize: 10,
+        color: "#ffffff",
+        lineHeight: 1,
+        display: "inline-block",
+        transform: "translateY(-1px)", // pequeño ajuste vertical
+      }}
+    >
+      ▾
+    </span>
   </components.DropdownIndicator>
 );
 
