@@ -24,7 +24,7 @@ export const DSNativeSelect = ({ children, style, ...rest }) => (
   <select
     {...rest}
     style={{
-      ...RS_COMMON_STYLES, 
+      ...nativeSelectStyle, 
       ...style,
     }}
   >
@@ -57,7 +57,7 @@ export const DSSelect = ({
 }) => (
   <Select
     {...rest}
-    styles={{ ...RS_COMMON_STYLES, ...(styles || {}) }}
+    styles={{ ...nativeSelectStyle, ...(styles || {}) }}
     components={{
       ...customComponents,
       DropdownIndicator: DropdownArrow,
