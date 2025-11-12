@@ -91,7 +91,7 @@
   "item_in_use": "❌ No se puede eliminar porque está en uso en registros.",
   "label": "Etiquetar",
   "stage": "Preparar",
-  "scan": "EScanear",
+  "scan": "Escanear",
   "load": "Cargar",
   "load_error": "Error al cargar los datos.",
   "loading": "Cargando...",
