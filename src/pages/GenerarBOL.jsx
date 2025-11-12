@@ -639,7 +639,7 @@ export default function GenerarBOL() {
       const BT = resolveBillTo(primaryPO, billToData);
 
       const join = (...a) => a.filter(Boolean).join(" ");
-      const bolDateFormatted = new Date(bolDate).toLocaleDateString();
+      const bolDateFormatted = new Date(bolDate).toLocaleDateString("en-US");
 
       // --------- 1) Normaliza items (cajas por producto) ---------
       const cajasPorProducto = {};
