@@ -5,10 +5,19 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { supabase } from "../supabase/client";
 import logo from "../assets/Daehan.png";
+import ReactCountryFlag from "react-country-flag";
 
 export default function Login() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+
+  const handleLanguageChange = (e) => {
+  const lang = e.target.value;
+    i18n.changeLanguage(lang);
+    try {
+      localStorage.setItem('lang', lang);
+    } catch {}
+  };
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -108,6 +117,30 @@ export default function Login() {
             {busy ? (t("loading") || "Cargando...") : (t("signIn") || "Sign In")}
           </button>
         </form>
+
+        <div className={`lang-wrap ${i18n.language}`}>
+          <ReactCountryFlag
+            countryCode={langToCountry(i18n.language)}
+            svg
+            style={{ width: 20, height: 14 }}
+            aria-label="flag"
+          />
+          <select
+            value={i18n.language}
+            onChange={handleLanguageChange}
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 6,
+              padding: '4px 8px',
+            }}
+          >
+            <option value="es">Español</option>
+            <option value="en">English</option>
+            <option value="ko">한국어</option>
+          </select>
+        </div>
       </div>
 
       <ToastContainer position="top-center" autoClose={1200} />
