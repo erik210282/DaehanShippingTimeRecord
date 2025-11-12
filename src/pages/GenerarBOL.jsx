@@ -1386,6 +1386,7 @@ export default function GenerarBOL() {
             isClearable
             // por defecto react-select es searchable
             placeholder={t("select_idx", "Seleccionar IDX")}
+            noOptionsMessage={() => t("no_results_found", "No hay resultados")}
             options={idxOptions
               .filter(v => /idx/i.test(String(v))) // redundante pero garantiza el filtro
               .map(v => ({ value: String(v), label: String(v) }))
@@ -1449,6 +1450,9 @@ export default function GenerarBOL() {
           <Select
             isMulti
             options={filteredPoOptions}
+            noOptionsMessage={() => t("no_results_found", "No hay resultados")}
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
             value={selectedPoIds.map((id) => {
               const po = poOptions.find((p) => String(p.id) === String(id));
               return po
@@ -1489,6 +1493,7 @@ export default function GenerarBOL() {
             }}
             placeholder={t("select_po", "Selecciona un PO")}
             styles={{
+              menuPortal: (base) => ({ ...base, zIndex: 9999 }),
               control: (base, state) => ({
                 ...base,
                 backgroundColor: "#333",
@@ -1497,6 +1502,7 @@ export default function GenerarBOL() {
                 color: "#fff",
                 fontFamily: "inherit",
                 fontSize: "14px",
+                
                 minHeight: "38px",
                 "&:hover": { borderColor: "#007BFF" },
               }),
