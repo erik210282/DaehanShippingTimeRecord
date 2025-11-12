@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { supabase } from "../supabase/client";
 import logo from "../assets/Daehan.png";
 import LanguageBar from "../components/LanguageBar";
+import { DSInput, BtnPrimary } from "../components/controls";
 
 export default function Login() {
   const { t, i18n } = useTranslation();
@@ -82,7 +83,6 @@ export default function Login() {
 
   return (
     <div className="login-screen">
-      {/* Barra de idiomas global (arriba a la derecha) */}
       <LanguageBar fixedTopRight />
 
       <img className="login-logo" src={logo} alt="DAEHAN" />
@@ -91,11 +91,8 @@ export default function Login() {
         <h2 className="login-title">{t("title") || "Sign In"}</h2>
 
         <form onSubmit={handleLogin} autoComplete="on">
-          <label className="login-label">
-            {t("email") || "Email"}
-          </label>
-          <input
-            className="login-input"
+          <label className="login-label">{t("email") || "Email"}</label>
+          <DSInput
             type="email"
             name="email"
             autoComplete="email"
@@ -105,11 +102,8 @@ export default function Login() {
             required
           />
 
-          <label className="login-label">
-            {t("password") || "Password"}
-          </label>
-          <input
-            className="login-input"
+          <label className="login-label">{t("password") || "Password"}</label>
+          <DSInput
             type="password"
             name="password"
             autoComplete="current-password"
@@ -119,13 +113,11 @@ export default function Login() {
             required
           />
 
-          <button className="login-btn" type="submit" disabled={busy}>
+          <BtnPrimary type="submit" disabled={busy} style={{ width: "100%", marginTop: 12 }}>
             {busy ? (t("loading") || "Cargando...") : (t("signIn") || "Sign In")}
-          </button>
+          </BtnPrimary>
         </form>
-
       </div>
-
       <ToastContainer position="top-center" autoClose={1200} />
     </div>
   );
