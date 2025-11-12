@@ -11,6 +11,84 @@ import { supabase } from "../supabase/client";
 
 Modal.setAppElement("#root");
 
+// ---------- Estilos rápidos reutilizables ----------
+const pillInput = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "10px",
+  border: "1px solid #cfd4dc",
+  outline: "none",
+  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
+};
+const pillInputNumber = {
+  width: "55px",
+  height: "34px",
+  textAlign: "center",
+  fontSize: "15px",
+  borderRadius: "8px",
+  border: "1px solid #cfd4dc",
+  outline: "none",
+  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
+  padding: "2px 6px",
+  margin: 0,
+};
+const textAreaStyle = {
+  ...pillInput,
+  resize: "vertical",
+};
+const primaryBtn = {
+  padding: "8px 14px",
+  borderRadius: "10px",
+  border: "none",
+  background: "linear-gradient(180deg,#3b82f6,#1d4ed8)",
+  color: "#fff",
+  cursor: "pointer",
+  boxShadow: "0 4px 10px rgba(6, 26, 136, 0.25)",
+};
+
+const secondaryBtn = {
+  padding: "8px 14px",
+  borderRadius: "10px",
+  border: "1px solid #111",
+  background: "#111",
+  color: "#fff",
+  cursor: "pointer",
+};
+
+const editBtnDark = {
+  padding: "8px 14px",
+  borderRadius: "10px",
+  border: "1px solid #111",
+  background: "#111",
+  color: "#fff",
+  cursor: "pointer",
+};
+
+const dangerBtn = {
+  padding: "8px 14px",
+  borderRadius: "10px",
+  border: "1px solid #111",
+  background: "#111",
+  color: "#fd2b1cff",
+  cursor: "pointer",
+};
+
+const tinyRoundBtn = {
+  width: 34,
+  height: 34,
+  borderRadius: "9999px",
+  border: "1px solid #111",
+  background: "#111",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  userSelect: "none",
+  padding: 0,
+  margin: 0,
+  transform: "translateY(1px)", // pequeño ajuste visual
+};
+
 export default function Registros() {
   const { t, i18n } = useTranslation();
 
@@ -703,7 +781,9 @@ useEffect(() => {
                 <button type="button" onClick={() => {
                   const nuevos = registroActual.productos.filter((_, i) => i !== index);
                   setRegistroActual({ ...registroActual, productos: nuevos });
-                }}>✖</button>
+                }}
+                style={dangerBtn}
+                >✖</button>
               )}
             </div>
           ))}
@@ -712,7 +792,7 @@ useEffect(() => {
               ...registroActual,
               productos: [...registroActual.productos, { producto: "", cantidad: "" }],
             })}
-            style={{ marginTop: "10px" }}
+            style={{ ...secondaryBtn, marginTop: "10px" }}
           >
             ➕ {t("add_product")}
           </button>
@@ -731,8 +811,8 @@ useEffect(() => {
               }
             />
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <button type="button" onClick={guardarRegistro}>{t("save")}</button>
-            <button type="button" onClick={() => setModalAbierto(false)}>{t("cancel")}</button>
+            <button type="button" onClick={guardarRegistro} style={primaryBtn}>{t("save")}</button>
+            <button type="button" onClick={() => setModalAbierto(false)} style={secondaryBtn}>{t("cancel")}</button>
           </div>
         </Modal>  
 
@@ -748,14 +828,14 @@ useEffect(() => {
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
               <button
-                className="btn btn-secondary"
+                className="secondaryBtn"
                 onClick={() => setRegistroAEliminar(null)}
               >
                 {t("cancel")}
               </button>
 
               <button
-                className="btn btn-danger"
+                className="dangerBtn"
                 onClick={async () => {
                   try {
                     console.log("[Registros] Eliminar Registros 8:", registroAEliminar.id);

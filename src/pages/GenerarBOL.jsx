@@ -10,6 +10,81 @@ import DA_LOGO from "../assets/Daehan.png";
 
 const DAEHAN_LOGO_SRC = "/assets/Daehan.png";
 
+// ---------- Estilos rápidos reutilizables ----------
+const primaryBtn = {
+  padding: "8px 14px",
+  borderRadius: "10px",
+  border: "none",
+  background: "linear-gradient(180deg,#3b82f6,#1d4ed8)",
+  color: "#fff",
+  cursor: "pointer",
+  boxShadow: "0 4px 10px rgba(6, 26, 136, 0.25)",
+};
+
+// === Estilos unificados para TODOS los campos de formulario ===
+const FIELD_HEIGHT = 38;
+const FIELD_FONT =
+  "'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+
+const inputStyle = {
+  width: "100%",
+  height: FIELD_HEIGHT,
+  lineHeight: `${FIELD_HEIGHT}px`,
+  padding: "0 10px",
+  backgroundColor: "#333",
+  color: "#fff",
+  border: "1px solid #333",
+  borderRadius: 6,
+  fontSize: 14,
+  fontFamily: FIELD_FONT,
+  boxSizing: "border-box",
+};
+
+const nativeSelectStyle = {
+  ...inputStyle,
+  appearance: "none",
+  WebkitAppearance: "none",
+  MozAppearance: "none",
+  lineHeight: "normal",
+};
+
+const RS_COMMON_STYLES = {
+  control: (base, state) => ({
+    ...base,
+    backgroundColor: "#333",
+    borderColor: state.isFocused ? "#007BFF" : "#333",
+    boxShadow: "none",
+    minHeight: FIELD_HEIGHT,
+    height: FIELD_HEIGHT,
+    borderRadius: 6,
+    cursor: "pointer",
+    fontFamily: FIELD_FONT,
+    fontSize: 14,
+  }),
+  valueContainer: (base) => ({
+    ...base,
+    height: FIELD_HEIGHT,
+    padding: "0 10px",
+    alignItems: "center",
+  }),
+  placeholder: (base) => ({ ...base, color: "#bbb" }),
+  singleValue: (base) => ({ ...base, color: "#fff" }),
+  input: (base) => ({ ...base, color: "#fff" }),
+  indicatorSeparator: () => ({ display: "none" }),
+  dropdownIndicator: (base) => ({ ...base, color: "#fff" }),
+  clearIndicator: (base) => ({ ...base, color: "#fff" }),
+  menu: (base) => ({ ...base, backgroundColor: "#333", zIndex: 9999 }),
+  option: (base, state) => ({
+    ...base,
+    backgroundColor: state.isSelected ? "#007BFF" : state.isFocused ? "#555" : "#333",
+    color: "#fff",
+  }),
+  // Para los chips del PO (cuando esMulti)
+  multiValue: (base) => ({ ...base, backgroundColor: "#007BFF", color: "#fff", borderRadius: 4 }),
+  multiValueLabel: (base) => ({ ...base, color: "#fff", fontWeight: "bold" }),
+  multiValueRemove: (base) => ({ ...base, color: "#fff", ":hover": { backgroundColor: "#0056b3", color: "#fff" } }),
+};
+
 // Envuelve texto al ancho indicado usando jsPDF
 function wrapText(doc, txt, maxWidth, fontSize = 9) {
   if (!txt) return [];
@@ -1405,31 +1480,7 @@ export default function GenerarBOL() {
             }
             value={selectedIdx ? { value: selectedIdx, label: selectedIdx } : null}
             onChange={(opt) => setSelectedIdx(opt?.value || "")}
-            styles={{
-              control: (base, state) => ({
-                ...base,
-                backgroundColor: "#333",
-                borderColor: state.isFocused ? "#007BFF" : "#333",
-                boxShadow: "none",
-                color: "#fff",
-                minHeight: "38px",
-                fontSize: "14px",
-                "&:hover": { borderColor: "#007BFF" },
-              }),
-              singleValue: (base) => ({ ...base, color: "#fff" }),
-              input: (base) => ({ ...base, color: "#fff" }),
-              placeholder: (base) => ({ ...base, color: "#bbb" }),
-              menu: (base) => ({ ...base, backgroundColor: "#333", zIndex: 9999 }),
-              option: (base, state) => ({
-                ...base,
-                backgroundColor: state.isSelected ? "#007BFF" : state.isFocused ? "#555" : "#333",
-                color: "#fff",
-                cursor: "pointer",
-              }),
-              dropdownIndicator: (base) => ({ ...base, color: "#fff", ":hover": { color: "#007BFF" } }),
-              clearIndicator: (base) => ({ ...base, color: "#fff", ":hover": { color: "#ff5555" } }),
-              valueContainer: (base) => ({ ...base, color: "#fff" }),
-            }}
+            styles={RS_COMMON_STYLES}
             // filtro adicional: solo deja pasar opciones que tengan "idx" y que hagan match con lo que escribes
             filterOption={(option, input) => {
               const label = option.label.toLowerCase();
@@ -1441,7 +1492,7 @@ export default function GenerarBOL() {
           />
 
           {/* Shipper */}
-          <select value={selectedShipperId} onChange={(e) => setSelectedShipperId(e.target.value)} disabled={shipperOptions.length === 0}>
+          <select value={selectedShipperId} onChange={(e) => setSelectedShipperId(e.target.value)} disabled={shipperOptions.length === 0} style={nativeSelectStyle}>
             <option value="">{t("select_shipper", "Seleccionar Remitente")}</option>
             {shipperOptions.map((p) => (
               <option key={p.id} value={String(p.id)}>
@@ -1453,10 +1504,10 @@ export default function GenerarBOL() {
           </select>
 
           {/* Shipment # */}
-          <input placeholder={t("shipment_number", "No. de envío (Shipment #)")} value={shipmentNo} onChange={(e) => setShipmentNo(e.target.value)} />
+          <input placeholder={t("shipment_number", "No. de envío (Shipment #)")} value={shipmentNo} onChange={(e) => setShipmentNo(e.target.value)} style={inputStyle} />
 
           {/* Trailer/Container */}
-          <input placeholder={t("trailer_number", "No. de Trailer/Contenedor")} value={trailerNo} onChange={(e) => setTrailerNo(e.target.value)} />
+          <input placeholder={t("trailer_number", "No. de Trailer/Contenedor")} value={trailerNo} onChange={(e) => setTrailerNo(e.target.value)} style={inputStyle}/>
 
           {/* PO (multi-select: SOLO misma dirección de Consignee) */}
           <Select
@@ -1504,47 +1555,17 @@ export default function GenerarBOL() {
               setSelectedPoIds(newIds);
             }}
             placeholder={t("select_po", "Selecciona un PO")}
-            styles={{
-              menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-              control: (base, state) => ({
-                ...base,
-                backgroundColor: "#333",
-                borderColor: state.isFocused ? "#007BFF" : "#333",
-                boxShadow: "none",
-                color: "#fff",
-                fontFamily: "inherit",
-                fontSize: "14px",
-                
-                minHeight: "38px",
-                "&:hover": { borderColor: "#007BFF" },
-              }),
-              valueContainer: (base) => ({ ...base, color: "#fff" }),
-              singleValue: (base) => ({ ...base, color: "#fff" }),
-              input: (base) => ({ ...base, color: "#fff" }),
-              placeholder: (base) => ({ ...base, color: "#bbb" }),
-              option: (base, state) => ({
-                ...base,
-                backgroundColor: state.isSelected ? "#007BFF" : state.isFocused ? "#555" : "#333",
-                color: "#fff",
-                cursor: "pointer",
-              }),
-              multiValue: (base) => ({ ...base, backgroundColor: "#007BFF", color: "#fff", borderRadius: 4 }),
-              multiValueLabel: (base) => ({ ...base, color: "#fff", fontWeight: "bold" }),
-              multiValueRemove: (base) => ({ ...base, color: "#fff", ":hover": { backgroundColor: "#0056b3", color: "#fff" } }),
-              menu: (base) => ({ ...base, backgroundColor: "#333", zIndex: 9999 }),
-              dropdownIndicator: (base) => ({ ...base, color: "#fff", ":hover": { color: "#007BFF" } }),
-              clearIndicator: (base) => ({ ...base, color: "#fff", ":hover": { color: "#ff5555" } }),
-            }}
+            styles={RS_COMMON_STYLES}
           />
 
           {/* Dock Number */}
-          <input placeholder={t("dock_number", "Dock Number")} value={dockNo} onChange={(e) => setDockNo(e.target.value)} />
+          <input placeholder={t("dock_number", "Dock Number")} value={dockNo} onChange={(e) => setDockNo(e.target.value)} style={inputStyle}/>
 
           {/* Seal */}
-          <input placeholder={t("seal_number", "No. de Sello")} value={sealNo} onChange={(e) => setSealNo(e.target.value)} />
+          <input placeholder={t("seal_number", "No. de Sello")} value={sealNo} onChange={(e) => setSealNo(e.target.value)} style={inputStyle}/>
 
           {/* Packing Slip */}
-          <input placeholder={t("packing_slip", "Packing Slip #")} value={packingSlip} onChange={(e) => setPackingSlip(e.target.value)} />
+          <input placeholder={t("packing_slip", "Packing Slip #")} value={packingSlip} onChange={(e) => setPackingSlip(e.target.value)} style={inputStyle}/>
 
           {basePoAddrKey && (
             <div style={{ gridColumn: "1 / -1", fontSize: 15, color: "#5a5858ff" }}>
@@ -1553,7 +1574,7 @@ export default function GenerarBOL() {
           )}
 
           {/* Packaging type */}
-          <select value={packType} onChange={(e) => setPackType(e.target.value)}>
+          <select value={packType} onChange={(e) => setPackType(e.target.value)} style={nativeSelectStyle}>
             <option value="expendable">{t("expendable", "Expendable")}</option>
             <option value="returnable">{t("returnable", "Retornable")}</option>
           </select>
@@ -1563,12 +1584,12 @@ export default function GenerarBOL() {
             type="date"
             value={bolDate}
             onChange={(e) => setBolDate(e.target.value)}
-            style={{ padding: "6px", fontSize: "14px" }}
+            style={inputStyle}
           />
 
           {/* Botón GENERAR BOL */}
           <button
-            className="primary"
+            className="primaryBtn"
             onClick={generarPDF}
             style={{ alignSelf: "center" }}
             disabled={isGenerating}
