@@ -137,20 +137,7 @@ export default function Login() {
           </button>
         </form>
 
-        <div
-          style={{
-            position: 'absolute',
-            top: 16,        // distancia desde arriba
-            right: 16,      // distancia desde la derecha
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,         // separación entre bandera y texto
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            padding: '4px 8px',
-            borderRadius: 6,
-            boxShadow: '0 0 6px rgba(0,0,0,0.3)',
-          }}
-        >
+        <div className={`lang-wrap ${i18n.language}`}>
           <ReactCountryFlag
             countryCode={langToCountry(i18n.language)}
             svg
@@ -160,19 +147,13 @@ export default function Login() {
           <select
             value={i18n.resolvedLanguage || i18n.language}
             onChange={handleLanguageChange}
-            style={{
-              backgroundColor: 'transparent',
-              color: 'white',
-              border: 'none',
-              outline: 'none',
-              fontSize: 14,
-            }}
           >
             <option value="es">Español</option>
             <option value="en">English</option>
             <option value="ko">한국어</option>
           </select>
         </div>
+      </div>
 
       <ToastContainer position="top-center" autoClose={1200} />
     </div>
