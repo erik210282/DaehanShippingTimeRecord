@@ -112,7 +112,6 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-
           <PrimaryBtn type="submit" disabled={busy} style={{ width: "100%", marginTop: 12 }}>
             {busy ? (t("loading") || "Cargando...") : (t("signIn") || "Sign In")}
           </PrimaryBtn>
