@@ -551,7 +551,7 @@ export default function GenerarBOL() {
       .slice(0, 15); 
 
     const fields = [
-      ["Ship Date: ",           bolDate],
+      ["Ship Date: ",           bolDateFormatted],
       ["Shipment Number: ",     shipmentNo],
       ["Packing Slip Number: ", packingSlip],
       ["Trailer Number: ",      trailerNo],
