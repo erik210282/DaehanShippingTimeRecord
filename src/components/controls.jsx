@@ -57,7 +57,7 @@ export const DSSelect = ({
 }) => (
   <Select
     {...rest}
-    styles={{ ...nativeSelectStyle, ...(styles || {}) }}
+    styles={{ ...RS_COMMON_STYLES, ...(styles || {}) }}
     components={{
       ...customComponents,
       DropdownIndicator: DropdownArrow,
