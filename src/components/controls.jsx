@@ -1,5 +1,5 @@
 // src/components/controls.jsx
-import { Select, components } from "react-select";
+import Select, { components } from "react-select";
 import {
   inputStyle,
   nativeSelectStyle,
