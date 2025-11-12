@@ -1,6 +1,5 @@
 // src/components/controls.jsx
-import React from "react";
-import Select from "react-select";
+import { Select, components } from "react-select";
 import {
   inputStyle,
   nativeSelectStyle,
@@ -50,15 +49,40 @@ export const DSNativeSelect = ({ children, style, ...rest }) => (
   </div>
 );
 
-// Permite styles extra y setea defaults útiles (portal, posición)
-export const DSSelect = ({ styles, menuPortalTarget, menuPosition = "fixed", ...rest }) => (
+const DropdownArrow = (props) => (
+  <components.DropdownIndicator {...props}>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="#ccc"
+      style={{ marginRight: 2 }}
+    >
+      <path d="M7 10l5 5 5-5z" />
+    </svg>
+  </components.DropdownIndicator>
+);
+
+export const DSSelect = ({
+  styles,
+  components: customComponents,
+  menuPortalTarget,
+  menuPosition = "fixed",
+  ...rest
+}) => (
   <Select
     {...rest}
     styles={{ ...RS_COMMON_STYLES, ...(styles || {}) }}
+    components={{
+      ...customComponents,
+      DropdownIndicator: DropdownArrow, // 👈 flechita personalizada
+      IndicatorSeparator: () => null,   // quita la barra fea
+    }}
     menuPortalTarget={menuPortalTarget ?? document.body}
     menuPosition={menuPosition}
   />
 );
+
 
 // Botones
 export const BtnPrimary   = ({ children, style, ...p }) => (
