@@ -100,6 +100,11 @@ export default function GenerarBOL() {
   const [sealNo, setSealNo] = React.useState("");
   const [packingSlip, setPackingSlip] = React.useState("");
 
+  const [bolDate, setBolDate] = React.useState(() => {
+  const hoy = new Date();
+    return hoy.toISOString().split("T")[0]; // formato YYYY-MM-DD
+  });
+
   // "returnable" | "expendable"
   const [packType, setPackType] = React.useState("returnable");
 
@@ -477,7 +482,7 @@ export default function GenerarBOL() {
     const {
       SH, PO, poNumbers,
       shipmentNo, trailerNo, packingSlip, dockNo,
-      bolDate, rows
+      bolDateFormatted, rows
     } = data;
 
     const C = PO || {};
@@ -634,7 +639,7 @@ export default function GenerarBOL() {
       const BT = resolveBillTo(primaryPO, billToData);
 
       const join = (...a) => a.filter(Boolean).join(" ");
-      const bolDate = new Date().toLocaleDateString();
+      const bolDateFormatted = new Date(bolDate).toLocaleDateString();
 
       // --------- 1) Normaliza items (cajas por producto) ---------
       const cajasPorProducto = {};
@@ -1360,7 +1365,7 @@ export default function GenerarBOL() {
         PO: primaryPO,
         poNumbers,
         shipmentNo, trailerNo, packingSlip, dockNo, sealNo,
-        bolDate,
+        bolDateFormatted,
         rows
       });
 
@@ -1550,7 +1555,12 @@ export default function GenerarBOL() {
           </select>
 
           {/* Date */}
-          <input placeholder={t("date")} value={bolDate} onChange={(e) => setbolDate(e.target.value)} />
+          <input
+            type="date"
+            value={bolDate}
+            onChange={(e) => setBolDate(e.target.value)}
+            style={{ padding: "6px", fontSize: "14px" }}
+          />
 
           {/* Botón GENERAR BOL */}
           <button
