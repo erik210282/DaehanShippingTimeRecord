@@ -223,6 +223,6 @@
   "change_order": "순서 변경",
   "success_user_created": "성공 사용자 생성",
   "enter_new_password": "새 비밀번호를 입력하세요",
-  "success_password_update": "비밀번호 업데이트 성공",
+  "success_password_updated": "비밀번호 업데이트 성공",
   "error_password_update": "비밀번호 업데이트 오류"
 }

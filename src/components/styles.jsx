@@ -23,6 +23,10 @@ export const nativeSelectStyle = {
 };
 
 export const RS_COMMON_STYLES = {
+  container: (base) => ({
+    ...base,
+    width: "100%",
+  }),
   control: (base, state) => ({
     ...base,
     backgroundColor: "#333",
@@ -34,6 +38,7 @@ export const RS_COMMON_STYLES = {
     cursor: "pointer",
     fontFamily: FIELD_FONT,
     fontSize: 14,
+    width: "100%", 
   }),
   valueContainer: (base) => ({
     ...base,

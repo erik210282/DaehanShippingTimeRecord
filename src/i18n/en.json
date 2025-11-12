@@ -223,6 +223,6 @@
   "change_order": "Change Order",
   "success_user_created": "Success User Created",
   "enter_new_password": "Enter New Password",
-  "success_password_update": "Success Password Update",
+  "success_password_updated": "Success Password Update",
   "error_password_update": "Error Password Update"
 }
