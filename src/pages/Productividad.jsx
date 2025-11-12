@@ -395,6 +395,7 @@ export default function Productividad() {
           }}
         >
           <select value={agrupadoPor} onChange={(e) => setAgrupadoPor(e.target.value)} style={{ padding: "0.5rem" }}>
+            <option value="">{t("select_first_group",)}</option>
             <option value="actividad">{t("activity")}</option>
             <option value="operador">{t("operator")}</option>
             <option value="producto">{t("product")}</option>
