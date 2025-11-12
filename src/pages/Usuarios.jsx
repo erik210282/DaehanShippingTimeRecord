@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
-import { DSInput, DSNativeSelect, PrimaryBtn, SecondaryBtn, EditDarkBtn, DangerBtn } from "../components/controls";
+import { DSInput, DSNativeSelect, BtnPrimary, SecondaryBtn, EditDarkBtn, DangerBtn } from "../components/controls";
 
 const API_URL = "https://daehanshippingbackend.onrender.com";
 const API_KEY = "clave-super-secreta-$hipping*2025*";
@@ -186,9 +186,9 @@ export default function Usuarios() {
           </label>
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <PrimaryBtn onClick={crearUsuario}>
+            <BtnPrimary onClick={crearUsuario}>
               {t("create_user")}
-            </PrimaryBtn>
+            </BtnPrimary>
             <SecondaryBtn onClick={alternarMostrarUsuarios}>
               {mostrarUsuarios ? t("hide_users") : t("show_users")}
             </SecondaryBtn>
