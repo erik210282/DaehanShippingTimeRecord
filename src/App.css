@@ -22,22 +22,6 @@
   flex-shrink: 0;
 }
 
-/* texto del select centrado con la bandera */
-.lang-wrap .navbar-select {
-  background: transparent !important;
-  color: #fff !important;
-  border: none !important;
-  outline: none !important;
-  height: 20px !important;
-  line-height: 20px !important;
-  font-size: 14px !important;
-  padding: 0 18px 0 0 !important;
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  cursor: pointer;
-}
-
 /* caret */
 .lang-wrap::after {
   content: "▾";
@@ -60,8 +44,8 @@
   color: #fff !important;
   border: none !important;
   outline: none !important;
-  height: 24px !important;
-  line-height: 24px !important;
+  height: 26px !important;
+  line-height: 30px !important;
   font-size: 14px !important;
   padding: 0 18px 0 0 !important; /* espacio para el caret a la derecha */
   width: auto !important;
@@ -70,6 +54,10 @@
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
   cursor: pointer;
+}
+
+.lang-wrap .navbar-select {
+  transform: translateY(1px);
 }
 
 /* Evitar que reglas globales apliquen a este select */
