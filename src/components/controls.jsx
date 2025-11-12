@@ -32,7 +32,7 @@ export const DSNativeSelect = ({ children, style, ...rest }) => (
       {...rest}
       style={{
         ...nativeSelectStyle,
-        paddingRight: "32px",     // espacio para flecha
+        paddingRight: "32px",   
         appearance: "none",
         WebkitAppearance: "none",
         MozAppearance: "none",
