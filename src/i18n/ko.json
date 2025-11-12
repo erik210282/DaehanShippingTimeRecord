@@ -215,5 +215,7 @@
   "wrongpo": "모든 PO는 동일한 주소를 가져야 합니다.",
   "role_operator": "작업자",
   "role_supervisor": "관리자",
-  "select_role_placeholder": "작업자 유형을 선택하세요"
+  "select_role_placeholder": "작업자 유형을 선택하세요",
+  "task_order_updated": "작업 순서가 업데이트되었습니다",
+  "change_order": "순서 변경"
 }

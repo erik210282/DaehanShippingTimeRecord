@@ -215,5 +215,7 @@
   "returnable_type": "Tipo de Retornable", 
   "expendable_type": "Tipo de Desechable",
   "returnablebw": "Peso de Caja Retornable",
-  "expendablebw": "Peso de Caja Desechable"
+  "expendablebw": "Peso de Caja Desechable",
+  "task_order_updated": "Orden de tareas actualizado",
+  "change_order": "Cambiar Orden"
 }

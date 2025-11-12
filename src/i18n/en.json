@@ -215,5 +215,7 @@
   "returnable_type": "Returnable Type", 
   "expendable_type": "Expendable Type",
   "returnablebw": "Returnable Box Weight",
-  "expendablebw": "Expendable Box Weight"
+  "expendablebw": "Expendable Box Weight",
+  "task_order_updated": "Task order updated",
+  "change_order": "Change Order"
 }
