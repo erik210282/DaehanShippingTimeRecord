@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
-import { DSInput, DSNativeSelect, BtnPrimary, BtnSecondary, EditDarkBtn, DangerBtn } from "../components/controls";
+import { DSInput, DSNativeSelect, BtnPrimary, BtnSecondary, BtnEditDark, BtnDanger } from "../components/controls";
 
 const API_URL = "https://daehanshippingbackend.onrender.com";
 const API_KEY = "clave-super-secreta-$hipping*2025*";
@@ -248,12 +248,12 @@ export default function Usuarios() {
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                          <EditDarkBtn onClick={() => actualizarPassword(u.uid)}>
+                          <BtnEditDark onClick={() => actualizarPassword(u.uid)}>
                             {t("update_password")}
-                          </EditDarkBtn>
-                          <DangerBtn onClick={() => eliminarUsuario(u.uid)}>
+                          </BtnEditDark>
+                          <BtnDanger onClick={() => eliminarUsuario(u.uid)}>
                             {t("delete_user")}
-                          </DangerBtn>
+                          </BtnDanger>
                         </div>
                       </td>
                       <td>
