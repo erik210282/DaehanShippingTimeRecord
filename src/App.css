@@ -1,18 +1,44 @@
-/* === Language pill: UNA sola caja (flag + select) === */
+/* === Selector de idioma: bandera + texto perfectamente alineados === */
 .lang-wrap {
   display: inline-flex;
-  align-items: center;
+  align-items: center;          /* centra bandera y texto */
   gap: 8px;
   background: #111;
-  padding: 4px 10px;
+  padding: 3px 10px;
   border: 1px solid #333;
   border-radius: 8px;
-  height: 32px;
-  line-height: 24px;
+  height: 30px;
+  line-height: 1;
   position: relative;
 }
 
-/* Caret (flecha) dibujada en el mismo pill */
+.lang-wrap .flag {
+  width: 22px;
+  height: 14px;                 /* bandera un poco más baja */
+  border-radius: 2px;
+  border: 1px solid #333;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+/* texto del select centrado con la bandera */
+.lang-wrap .navbar-select {
+  background: transparent !important;
+  color: #fff !important;
+  border: none !important;
+  outline: none !important;
+  height: 20px !important;
+  line-height: 20px !important;
+  font-size: 14px !important;
+  padding: 0 18px 0 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  cursor: pointer;
+}
+
+/* caret */
 .lang-wrap::after {
   content: "▾";
   position: absolute;
@@ -20,8 +46,12 @@
   top: 50%;
   transform: translateY(-50%);
   color: #bbb;
-  font-size: 12px;
+  font-size: 11px;
   pointer-events: none;
+}
+
+.lang-wrap:focus-within {
+  border-color: #007bff;
 }
 
 /* El <select> NO debe tener su propia caja */
