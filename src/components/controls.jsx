@@ -27,36 +27,15 @@ export const DSDate = ({ style, ...props }) => (
 );
 
 export const DSNativeSelect = ({ children, style, ...rest }) => (
-  <div style={{ position: "relative", width: "100%" }}>
-    <select
-      {...rest}
-      style={{
-        ...nativeSelectStyle,
-        paddingRight: "34px", // espacio para la flecha igual que DSSelect
-        appearance: "none",
-        WebkitAppearance: "none",
-        MozAppearance: "none",
-        ...style,
-      }}
-    >
-      {children}
-    </select>
-
-    {/* Flechita SVG (misma que DSSelect) */}
-    <div
-      style={{
-        position: "absolute",
-        right: "10px",
-        top: "50%",
-        transform: "translateY(-50%)",
-        pointerEvents: "none",
-        display: "flex",
-        alignItems: "center",
-      }}
-    >
-      {ArrowIcon}
-    </div>
-  </div>
+  <select
+    {...rest}
+    style={{
+      ...nativeSelectStyle, 
+      ...style,
+    }}
+  >
+    {children}
+  </select>
 );
 
 const DropdownArrow = (props) => (
