@@ -1528,12 +1528,6 @@ export default function GenerarBOL() {
             }}
           />
 
-          {basePoAddrKey && (
-            <div style={{ fontSize: 12, color: "#5a5858ff" }}>
-              {t("same_consignee_warning")}
-            </div>
-          )}
-          
           {/* Dock Number */}
           <input placeholder={t("dock_number", "Dock Number")} value={dockNo} onChange={(e) => setDockNo(e.target.value)} />
 
@@ -1542,6 +1536,13 @@ export default function GenerarBOL() {
 
           {/* Packing Slip */}
           <input placeholder={t("packing_slip", "Packing Slip #")} value={packingSlip} onChange={(e) => setPackingSlip(e.target.value)} />
+
+          {basePoAddrKey && (
+            <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "#5a5858ff" }}>
+              {t("same_consignee_warning")}
+            </div>
+          )}
+          
 
           {/* Packaging type */}
           <select value={packType} onChange={(e) => setPackType(e.target.value)}>
