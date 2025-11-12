@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
@@ -9,14 +9,24 @@ import ReactCountryFlag from "react-country-flag";
 
 export default function Login() {
   const { t, i18n } = useTranslation();
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('lang');
+      const lang = saved || i18n.language || 'es';
+      if (lang && i18n.language !== lang) {
+        i18n.changeLanguage(lang);
+      }
+    } catch {
+    }
+  }, [i18n]);
+
   const navigate = useNavigate();
 
   const handleLanguageChange = (e) => {
   const lang = e.target.value;
     i18n.changeLanguage(lang);
-    try {
-      localStorage.setItem('lang', lang);
-    } catch {}
+    try { localStorage.setItem('lang', lang); } catch {}
   };
 
   const [email, setEmail] = useState("");
@@ -126,15 +136,8 @@ export default function Login() {
             aria-label="flag"
           />
           <select
-            value={i18n.language}
+            value={i18n.resolvedLanguage || i18n.language}
             onChange={handleLanguageChange}
-            style={{
-              backgroundColor: 'rgba(0,0,0,0.7)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 6,
-              padding: '4px 8px',
-            }}
           >
             <option value="es">Español</option>
             <option value="en">English</option>
