@@ -57,7 +57,7 @@
 }
 
 .lang-wrap .navbar-select {
-  transform: translateY(1px);
+  transform: translateY(5px);
 }
 
 /* Evitar que reglas globales apliquen a este select */
