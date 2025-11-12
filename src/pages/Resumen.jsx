@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../supabase/client";
 import { format } from "date-fns";
+import { DSInput } from "../components/controls";
 
 export default function Resumen() {
   const { t } = useTranslation();
@@ -221,20 +222,20 @@ export default function Resumen() {
       <div className="card">
         <h2>{t("summary")}</h2>
         <div style={{ marginBottom: 12 }}>
-          <input
+          <DSInput
             type="text"
             placeholder={t("buscaridx")}
             value={filtroIdx}
             onChange={(e) => setFiltroIdx(e.target.value)}
             style={{ marginRight: 10, padding: 4 }}
           />
-          <input
+          <DSInput
             type="date"
             value={fechaInicio}
             onChange={(e) => setFechaInicio(e.target.value)}
             style={{ marginRight: 10, padding: 4 }}
           />
-          <input
+          <DSInput
             type="date"
             value={fechaFin}
             onChange={(e) => setFechaFin(e.target.value)}
