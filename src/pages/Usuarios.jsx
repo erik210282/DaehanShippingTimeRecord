@@ -7,7 +7,7 @@ const API_URL = "https://daehanshippingbackend.onrender.com";
 const API_KEY = "clave-super-secreta-$hipping*2025*";
 
 export default function Usuarios() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState('');

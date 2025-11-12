@@ -7,6 +7,7 @@ import { jsPDF } from "jspdf";
 import "../App.css";
 import Select from "react-select";
 import DA_LOGO from "../assets/Daehan.png"; 
+import { DSInput, DSNativeSelect, BtnPrimary, BtnSecondary, BtnEditDark, BtnDanger } from "../components/controls";
 
 const DAEHAN_LOGO_SRC = "/assets/Daehan.png";
 
