@@ -8,67 +8,10 @@ import "../App.css";
 import DA_LOGO from "../assets/Daehan.png"; 
 import { DSInput, DSDate, DSNativeSelect, DSSelect, BtnPrimary } from "../components/controls";
 
-const DAEHAN_LOGO_SRC = "/assets/Daehan.png";
-
-const RS_COMMON_STYLES = {
-  control: (base, state) => ({
-    ...base,
-    backgroundColor: "#333",
-    borderColor: state.isFocused ? "#007BFF" : "#333",
-    boxShadow: "none",
-    minHeight: FIELD_HEIGHT,
-    height: FIELD_HEIGHT,
-    borderRadius: 6,
-    cursor: "pointer",
-    fontFamily: FIELD_FONT,
-    fontSize: 14,
-  }),
-  valueContainer: (base) => ({
-    ...base,
-    height: FIELD_HEIGHT,
-    padding: "0 10px",
-    alignItems: "center",
-  }),
-  placeholder: (base) => ({ ...base, color: "#bbb" }),
-  singleValue: (base) => ({ ...base, color: "#fff" }),
-  input: (base) => ({ ...base, color: "#fff" }),
-  indicatorSeparator: () => ({ display: "none" }),
-  dropdownIndicator: (base) => ({ ...base, color: "#fff" }),
-  clearIndicator: (base) => ({ ...base, color: "#fff" }),
-  menu: (base) => ({ ...base, backgroundColor: "#333", zIndex: 9999 }),
-  option: (base, state) => ({
-    ...base,
-    backgroundColor: state.isSelected ? "#007BFF" : state.isFocused ? "#555" : "#333",
-    color: "#fff",
-  }),
-  // Para los chips del PO (cuando esMulti)
-  multiValue: (base) => ({ ...base, backgroundColor: "#007BFF", color: "#fff", borderRadius: 4 }),
-  multiValueLabel: (base) => ({ ...base, color: "#fff", fontWeight: "bold" }),
-  multiValueRemove: (base) => ({ ...base, color: "#fff", ":hover": { backgroundColor: "#0056b3", color: "#fff" } }),
-};
-
-// Envuelve texto al ancho indicado usando jsPDF
-function wrapText(doc, txt, maxWidth, fontSize = 9) {
-  if (!txt) return [];
-  doc.setFontSize(fontSize);
-  return doc.splitTextToSize(String(txt), maxWidth);
-}
-
-async function loadImg(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
 /* ----------------------- Helpers ----------------------- */
 const s = (v) => (v ?? "").toString().trim();
 const lower = (v) => s(v).toLowerCase();
 const isFinal = (r) => (r?.estado ?? "").trim().toLowerCase() === "finalizada";
-const isLoad = (r) => /load/i.test(s(r?.actividad));
 
 // --- Normalizador de dirección de Consignee (para comparar POs) ---
 function norm(v) {
@@ -1433,23 +1376,20 @@ export default function GenerarBOL() {
           {/* IDX (searchable) */}
           <DSSelect
             isClearable
-            // por defecto react-select es searchable
             placeholder={t("select_idx", "Seleccionar IDX")}
             noOptionsMessage={() => t("no_results_found", "No hay resultados")}
             options={idxOptions
-              .filter(v => /idx/i.test(String(v))) // redundante pero garantiza el filtro
+              .filter(v => /idx/i.test(String(v)))
               .map(v => ({ value: String(v), label: String(v) }))
             }
             value={selectedIdx ? { value: selectedIdx, label: selectedIdx } : null}
             onChange={(opt) => setSelectedIdx(opt?.value || "")}
-            styles={RS_COMMON_STYLES}
-            // filtro adicional: solo deja pasar opciones que tengan "idx" y que hagan match con lo que escribes
             filterOption={(option, input) => {
               const label = option.label.toLowerCase();
               const typed = (input || "").toLowerCase();
-              if (!label.includes("idx")) return false;         // exige que contenga “idx”
-              if (!typed) return true;                          // sin texto, muestra todos los “idx”
-              return label.includes(typed);                     // match por lo que escribas
+              if (!label.includes("idx")) return false;
+              if (!typed) return true;
+              return label.includes(typed);
             }}
           />
 
@@ -1491,33 +1431,23 @@ export default function GenerarBOL() {
             })}
             onChange={(items) => {
               const newIds = (items || []).map(i => i.value);
-
-              // Si aún no hay "base", la primera selección define la clave
               if (!newIds.length) {
                 setSelectedPoIds([]);
                 return;
               }
-
-              // Clave base calculada con la primera opción del nuevo set
               const first = poOptions.find(p => String(p.id) === String(newIds[0]));
               const kBase = first ? poAddressKey(first) : null;
-
-              // Verifica que TODOS los seleccionados compartan la misma clave
               const allSame = newIds.every((vid) => {
                 const po = poOptions.find(p => String(p.id) === String(vid));
                 return po && poAddressKey(po) === kBase;
               });
-
               if (!allSame) {
-                // Rechaza el cambio y avisa
-                toast.error (t("wrongpo"));
+                toast.error(t("wrongpo"));
                 return;
               }
-
               setSelectedPoIds(newIds);
             }}
             placeholder={t("select_po", "Selecciona un PO")}
-            styles={RS_COMMON_STYLES}
           />
 
           {/* Dock Number */}
@@ -1543,7 +1473,6 @@ export default function GenerarBOL() {
 
           {/* Date */}
           <DSDate
-            type="date"
             value={bolDate}
             onChange={(e) => setBolDate(e.target.value)}
           />
