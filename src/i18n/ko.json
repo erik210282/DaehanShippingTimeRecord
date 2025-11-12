@@ -220,5 +220,9 @@
   "role_supervisor": "관리자",
   "select_role_placeholder": "작업자 유형을 선택하세요",
   "task_order_updated": "작업 순서가 업데이트되었습니다",
-  "change_order": "순서 변경"
+  "change_order": "순서 변경",
+  "success_user_created": "성공 사용자 생성",
+  "enter_new_password": "새 비밀번호를 입력하세요",
+  "success_password_update": "비밀번호 업데이트 성공",
+  "error_password_update": "비밀번호 업데이트 오류"
 }

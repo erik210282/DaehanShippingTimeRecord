@@ -220,5 +220,9 @@
   "returnablebw": "Peso de Caja Retornable",
   "expendablebw": "Peso de Caja Desechable",
   "task_order_updated": "Orden de tareas actualizado",
-  "change_order": "Cambiar Orden"
+  "change_order": "Cambiar Orden",
+  "success_user_created": "Usuario Creado Exitosamente",
+  "enter_new_password": "Introduce Nueva Contraseña",
+  "success_password_update": "Contraseña Actualizada Correctamente",
+  "error_password_update": "Error al Actualizar la Contraseña"
 }
