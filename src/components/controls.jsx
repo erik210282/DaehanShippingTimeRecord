@@ -21,9 +21,33 @@ export const DSDate = (props) => (
 );
 
 export const DSNativeSelect = ({ children, style, ...rest }) => (
-  <select {...rest} style={{ ...nativeSelectStyle, ...style }}>
-    {children}
-  </select>
+  <div style={{ position: "relative", width: "100%" }}>
+    <select
+      {...rest}
+      style={{
+        ...nativeSelectStyle,
+        paddingRight: "32px", // espacio para la flecha
+        ...style,
+      }}
+    >
+      {children}
+    </select>
+
+    {/* Flechita */}
+    <div
+      style={{
+        position: "absolute",
+        right: "10px",
+        top: "50%",
+        transform: "translateY(-50%)",
+        pointerEvents: "none",
+      }}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="#ccc">
+        <path d="M7 10l5 5 5-5z" />
+      </svg>
+    </div>
+  </div>
 );
 
 // Permite styles extra y setea defaults útiles (portal, posición)
