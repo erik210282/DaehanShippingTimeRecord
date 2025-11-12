@@ -24,7 +24,7 @@ export const DSNativeSelect = ({ children, style, ...rest }) => (
   <select
     {...rest}
     style={{
-      ...nativeSelectStyle, 
+      ...RS_COMMON_STYLES, 
       ...style,
     }}
   >
