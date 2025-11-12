@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../supabase/client";
 import { format } from "date-fns";
-import { DSInput } from "../components/controls";
+import { DSInput, DSDate } from "../components/controls";
 
 export default function Resumen() {
   const { t } = useTranslation();
@@ -229,13 +229,13 @@ export default function Resumen() {
             onChange={(e) => setFiltroIdx(e.target.value)}
             style={{ marginRight: 10, padding: 4 }}
           />
-          <DSInput
+          <DSDate
             type="date"
             value={fechaInicio}
             onChange={(e) => setFechaInicio(e.target.value)}
             style={{ marginRight: 10, padding: 4 }}
           />
-          <DSInput
+          <DSDate
             type="date"
             value={fechaFin}
             onChange={(e) => setFechaFin(e.target.value)}
@@ -250,10 +250,10 @@ export default function Resumen() {
                 <th>{t("idxcode")}</th>
                 <th>{t("product")}</th>
                 <th>{t("quantity")}</th>
-                <th>{t("Stage")}</th>
-                <th>{t("Label")}</th>
-                <th>{t("Scan")}</th>
-                <th>{t("Load")}</th>
+                <th>{t("stage")}</th>
+                <th>{t("label")}</th>
+                <th>{t("scan")}</th>
+                <th>{t("load")}</th>
                 <th>{t("notes")}</th>
               </tr>
             </thead>
