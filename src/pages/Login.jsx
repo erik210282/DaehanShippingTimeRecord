@@ -7,6 +7,15 @@ import { supabase } from "../supabase/client";
 import logo from "../assets/Daehan.png";
 import ReactCountryFlag from "react-country-flag";
 
+function langToCountry(code) {
+  switch (code) {
+    case 'es': return 'MX'; 
+    case 'en': return 'US';
+    case 'ko': return 'KR';
+    default:   return 'US';
+  }
+}
+
 export default function Login() {
   const { t, i18n } = useTranslation();
 
