@@ -15,18 +15,12 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
-import ReactCountryFlag from "react-country-flag";
+import LanguageBar from "./components/LanguageBar";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
-  const langToCountry = (lang) => {
-  if (lang === "es") return "MX";
-  if (lang === "en") return "US";
-  if (lang === "ko") return "KR";
-  return "US";
-};
 
   useEffect(() => {
     const obtenerSesion = async () => {
@@ -68,29 +62,7 @@ const Navbar = () => {
         <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
-
-      <div className={`lang-wrap ${i18n.language}`}>
-        <ReactCountryFlag
-          countryCode={langToCountry(i18n.language)}
-          svg
-          style={{ width: 20, height: 14 }}
-          aria-label="flag"
-        />
-        <select
-          onChange={(e) => {
-            const lang = e.target.value;
-            i18n.changeLanguage(lang);
-            try { localStorage.setItem('lang', lang); } catch {}
-          }}
-          value={i18n.language}
-          className="navbar-select"
-          aria-label="Language"
-        >
-          <option value="es">Español</option>
-          <option value="en">English</option>
-          <option value="ko">한국어</option>
-        </select>
-      </div>
+      <LanguageBar />
     </div>
   );
 };

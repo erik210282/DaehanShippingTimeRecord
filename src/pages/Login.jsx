@@ -5,16 +5,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { supabase } from "../supabase/client";
 import logo from "../assets/Daehan.png";
-import ReactCountryFlag from "react-country-flag";
-
-function langToCountry(code) {
-  switch (code) {
-    case 'es': return 'MX'; 
-    case 'en': return 'US';
-    case 'ko': return 'KR';
-    default:   return 'US';
-  }
-}
+import LanguageBar from "../components/LanguageBar";
 
 export default function Login() {
   const { t, i18n } = useTranslation();
@@ -31,13 +22,6 @@ export default function Login() {
   }, [i18n]);
 
   const navigate = useNavigate();
-
-  const handleLanguageChange = (e) => {
-  const lang = e.target.value;
-    i18n.changeLanguage(lang);
-    try { localStorage.setItem('lang', lang); } catch {}
-  };
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -98,6 +82,9 @@ export default function Login() {
 
   return (
     <div className="login-screen">
+      {/* Barra de idiomas global (arriba a la derecha) */}
+      <LanguageBar fixedTopRight />
+
       <img className="login-logo" src={logo} alt="DAEHAN" />
 
       <div className="login-card">
@@ -137,22 +124,6 @@ export default function Login() {
           </button>
         </form>
 
-        <div className={`lang-wrap ${i18n.language}`}>
-          <ReactCountryFlag
-            countryCode={langToCountry(i18n.language)}
-            svg
-            style={{ width: 20, height: 14 }}
-            aria-label="flag"
-          />
-          <select
-            value={i18n.resolvedLanguage || i18n.language}
-            onChange={handleLanguageChange}
-          >
-            <option value="es">Español</option>
-            <option value="en">English</option>
-            <option value="ko">한국어</option>
-          </select>
-        </div>
       </div>
 
       <ToastContainer position="top-center" autoClose={1200} />
