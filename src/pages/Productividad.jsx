@@ -15,7 +15,7 @@ import {
   Legend,
 } from "chart.js";
 import Papa from "papaparse";
-import { DSDate, DSNativeSelect, PrimaryBtn, SecondaryBtn } from "../components/controls";
+import { DSDate, DSNativeSelect, BtnPrimary, BtnSecondary } from "../components/controls";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend);
 
@@ -419,9 +419,9 @@ export default function Productividad() {
         </div>
 
         {/* Botón limpiar */}
-        <SecondaryBtn onClick={limpiarFiltros} style={{ marginBottom: "1rem" }}>
+        <BtnSecondary onClick={limpiarFiltros} style={{ marginBottom: "1rem" }}>
           {t("clear_filters")}
-        </SecondaryBtn>
+        </BtnSecondary>
 
         {/* Tabla */}
         <div style={{ marginTop: "2rem", overflowX: "auto" }}>
@@ -457,9 +457,9 @@ export default function Productividad() {
         </div>
 
         {/* Exportar */}
-        <PrimaryBtn onClick={exportarCSV} style={{ marginTop: "1rem" }}>
+        <BtnPrimary onClick={exportarCSV} style={{ marginTop: "1rem" }}>
           {t("export_csv")}
-        </PrimaryBtn>
+        </BtnPrimary>
 
         {/* Gráfico */}
         {etiquetas.length > 0 ? (
