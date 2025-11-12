@@ -5,49 +5,10 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { jsPDF } from "jspdf";
 import "../App.css";
-import Select from "react-select";
 import DA_LOGO from "../assets/Daehan.png"; 
-import { DSInput, DSNativeSelect, BtnPrimary, BtnSecondary, BtnEditDark, BtnDanger } from "../components/controls";
+import { DSInput, DSDate, DSNativeSelect, DSSelect, BtnPrimary } from "../components/controls";
 
 const DAEHAN_LOGO_SRC = "/assets/Daehan.png";
-
-// ---------- Estilos rápidos reutilizables ----------
-const primaryBtn = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "none",
-  background: "linear-gradient(180deg,#3b82f6,#1d4ed8)",
-  color: "#fff",
-  cursor: "pointer",
-  boxShadow: "0 4px 10px rgba(6, 26, 136, 0.25)",
-};
-
-// === Estilos unificados para TODOS los campos de formulario ===
-const FIELD_HEIGHT = 38;
-const FIELD_FONT =
-  "'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
-
-const inputStyle = {
-  width: "100%",
-  height: FIELD_HEIGHT,
-  lineHeight: `${FIELD_HEIGHT}px`,
-  padding: "0 10px",
-  backgroundColor: "#333",
-  color: "#fff",
-  border: "1px solid #333",
-  borderRadius: 6,
-  fontSize: 14,
-  fontFamily: FIELD_FONT,
-  boxSizing: "border-box",
-};
-
-const nativeSelectStyle = {
-  ...inputStyle,
-  appearance: "none",
-  WebkitAppearance: "none",
-  MozAppearance: "none",
-  lineHeight: "normal",
-};
 
 const RS_COMMON_STYLES = {
   control: (base, state) => ({
@@ -1470,7 +1431,7 @@ export default function GenerarBOL() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(200px, 1fr))", gap: 8, marginBottom: 10 }}>
           {/* IDX (searchable) */}
-          <Select
+          <DSSelect
             isClearable
             // por defecto react-select es searchable
             placeholder={t("select_idx", "Seleccionar IDX")}
@@ -1493,7 +1454,7 @@ export default function GenerarBOL() {
           />
 
           {/* Shipper */}
-          <select value={selectedShipperId} onChange={(e) => setSelectedShipperId(e.target.value)} disabled={shipperOptions.length === 0} style={nativeSelectStyle}>
+          <DSNativeSelect value={selectedShipperId} onChange={(e) => setSelectedShipperId(e.target.value)} disabled={shipperOptions.length === 0}>
             <option value="">{t("select_shipper", "Seleccionar Remitente")}</option>
             {shipperOptions.map((p) => (
               <option key={p.id} value={String(p.id)}>
@@ -1502,16 +1463,16 @@ export default function GenerarBOL() {
                   : p.shipper || `ID ${p.id}`}
               </option>
             ))}
-          </select>
+          </DSNativeSelect>
 
           {/* Shipment # */}
-          <input placeholder={t("shipment_number", "No. de envío (Shipment #)")} value={shipmentNo} onChange={(e) => setShipmentNo(e.target.value)} style={inputStyle} />
+          <DSInput placeholder={t("shipment_number", "No. de envío (Shipment #)")} value={shipmentNo} onChange={(e) => setShipmentNo(e.target.value)}/>
 
           {/* Trailer/Container */}
-          <input placeholder={t("trailer_number", "No. de Trailer/Contenedor")} value={trailerNo} onChange={(e) => setTrailerNo(e.target.value)} style={inputStyle}/>
+          <DSInput placeholder={t("trailer_number", "No. de Trailer/Contenedor")} value={trailerNo} onChange={(e) => setTrailerNo(e.target.value)}/>
 
           {/* PO (multi-select: SOLO misma dirección de Consignee) */}
-          <Select
+          <DSSelect
             isMulti
             options={filteredPoOptions}
             noOptionsMessage={() => t("no_results_found", "No hay resultados")}
@@ -1560,13 +1521,13 @@ export default function GenerarBOL() {
           />
 
           {/* Dock Number */}
-          <input placeholder={t("dock_number", "Dock Number")} value={dockNo} onChange={(e) => setDockNo(e.target.value)} style={inputStyle}/>
+          <DSInput placeholder={t("dock_number", "Dock Number")} value={dockNo} onChange={(e) => setDockNo(e.target.value)}/>
 
           {/* Seal */}
-          <input placeholder={t("seal_number", "No. de Sello")} value={sealNo} onChange={(e) => setSealNo(e.target.value)} style={inputStyle}/>
+          <DSInput placeholder={t("seal_number", "No. de Sello")} value={sealNo} onChange={(e) => setSealNo(e.target.value)}/>
 
           {/* Packing Slip */}
-          <input placeholder={t("packing_slip", "Packing Slip #")} value={packingSlip} onChange={(e) => setPackingSlip(e.target.value)} style={inputStyle}/>
+          <DSInput placeholder={t("packing_slip", "Packing Slip #")} value={packingSlip} onChange={(e) => setPackingSlip(e.target.value)}/>
 
           {basePoAddrKey && (
             <div style={{ gridColumn: "1 / -1", fontSize: 15, color: "#5a5858ff" }}>
@@ -1575,30 +1536,24 @@ export default function GenerarBOL() {
           )}
 
           {/* Packaging type */}
-          <select value={packType} onChange={(e) => setPackType(e.target.value)} style={nativeSelectStyle}>
+          <DSNativeSelect value={packType} onChange={(e) => setPackType(e.target.value)}>
             <option value="expendable">{t("expendable", "Expendable")}</option>
             <option value="returnable">{t("returnable", "Retornable")}</option>
-          </select>
+          </DSNativeSelect>
 
           {/* Date */}
-          <input
+          <DSDate
             type="date"
             value={bolDate}
             onChange={(e) => setBolDate(e.target.value)}
-            style={inputStyle}
           />
 
           {/* Botón GENERAR BOL */}
-          <button
-            className="primaryBtn"
-            onClick={generarPDF}
-            style={{ alignSelf: "center" }}
-            disabled={isGenerating}
-          >
+          <BtnPrimary onClick={generarPDF}>
             {isGenerating
               ? t("loading", "Generando...")
               : t("generate_bol", "Generar BOL y Cover Sheet")}
-          </button>
+          </BtnPrimary>
         </div>
 
         <div className="card" style={{ padding: 12 }}>

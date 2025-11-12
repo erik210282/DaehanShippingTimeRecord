@@ -15,7 +15,8 @@ export default function Usuarios() {
   const [isActive, setIsActive] = useState(true);
   const [usuarios, setUsuarios] = useState([]);
   const [mostrarUsuarios, setMostrarUsuarios] = useState(false);
-  const [mensaje, setMensaje] = useState("");
+  const [mensajeKey, setMensajeKey] = useState("");
+  const [mensajeExtra, setMensajeExtra] = useState(""); // por si quieres mostrar detalles del error
   const [nuevosPasswords, setNuevosPasswords] = useState({});
   const [cargando, setCargando] = useState(false);
 
@@ -28,7 +29,8 @@ export default function Usuarios() {
 
   const crearUsuario = async () => {
     if (!email || !password || !role) {
-      setMensaje(t("error_user_creation"));
+      setMensajeKey("error_user_creation");
+      setMensajeExtra("");
       return;
     }
 
@@ -51,12 +53,14 @@ export default function Usuarios() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setMensaje(t("success_user_created"));
+      setMensajeKey("success_user_created");
+      setMensajeExtra("");
       setEmail("");
       setPassword("");
       if (mostrarUsuarios) cargarUsuarios();
     } catch (error) {
-      setMensaje(`${t("error_user_creation")}: ${error.message}`);
+      setMensajeKey("error_user_creation");
+      setMensajeExtra(`: ${error.message}`);
     }
   };
 
@@ -74,7 +78,8 @@ export default function Usuarios() {
 
       setUsuarios(lista);
     } catch (error) {
-      setMensaje(t("network_error"));
+      setMensajeKey("network_error");
+      setMensajeExtra("");
     } finally {
       setCargando(false);
     }
@@ -83,7 +88,8 @@ export default function Usuarios() {
   const actualizarPassword = async (uid) => {
     const nuevoPassword = nuevosPasswords[uid] || "";
     if (!nuevoPassword) {
-      setMensaje(t("enter_new_password"));
+      setMensajeKey("enter_new_password");
+      setMensajeExtra("");
       return;
     }
 
@@ -100,10 +106,12 @@ export default function Usuarios() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setMensaje(t("success_password_updated"));
+      setMensajeKey("success_password_updated");
+      setMensajeExtra("");
       setNuevosPasswords((prev) => ({ ...prev, [uid]: "" }));
     } catch (error) {
-      setMensaje(t("error_password_update"));
+      setMensajeKey("error_password_update");
+      setMensajeExtra("");
     }
   };
 
@@ -123,10 +131,12 @@ export default function Usuarios() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setMensaje(t("user_deleted"));
+      setMensajeKey("user_deleted");
+      setMensajeExtra("");
       cargarUsuarios();
     } catch (error) {
-      setMensaje(t("error_deleting_user"));
+      setMensajeKey("error_deleting_user");
+      setMensajeExtra("");
     }
   };
 
@@ -195,7 +205,12 @@ export default function Usuarios() {
           </div>
         </div>
 
-        {mensaje && <p style={{ marginTop: "1rem", color: "#007bff" }}>{mensaje}</p>}
+        {mensajeKey && (
+          <p style={{ marginTop: "1rem", color: "#007bff" }}>
+            {t(mensajeKey)}
+            {mensajeExtra}
+          </p>
+        )}
         {cargando && <p>{t("loading")}...</p>}
 
         {mostrarUsuarios && usuarios.length > 0 && (
