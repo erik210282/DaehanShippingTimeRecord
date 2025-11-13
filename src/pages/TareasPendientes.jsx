@@ -657,7 +657,7 @@ export default function TareasPendientes() {
                   marginTop: "10px",
                   minHeight: "90px",  
                   resize: "vertical",
-                  width: "1200px", 
+                  width: 1200, 
                 }}
               />
 
