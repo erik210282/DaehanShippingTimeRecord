@@ -9,6 +9,7 @@ import { supabase } from "../supabase/client";
 import {
   DSInput,
   DSSelect,
+  DSNativeSelect,
   BtnPrimary,
   BtnSecondary,
   BtnEditDark,
