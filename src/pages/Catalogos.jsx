@@ -436,7 +436,7 @@ async function save() {
       <div className="card">
         <h2>{t("catalogs")}</h2>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 8 }}>
-          <DSInput placeholder={t("search")} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ minWidth: 220, maxWidth: 260 }}/>
+          <DSInput placeholder={t("search")} value={filter} onChange={(e) => setFilter(e.target.value)}/>
           <BtnSecondary onClick={() => setTab("productos")}>{t("products")}</BtnSecondary>
           <BtnSecondary onClick={() => setTab("pos")}>{t("po")}</BtnSecondary>
           <BtnSecondary onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
