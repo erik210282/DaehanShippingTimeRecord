@@ -505,9 +505,13 @@ export default function GenerarBOL() {
     const QR_SIZE_COVER = 28;
     if (qrShipmentImg) {
       const QR1_X = LOGO_X;                     // alineado con el logo
-      const QR1_Y = LOGO_Y + LOGO_H + 2;        // justo debajo del logo
+      const QR1_Y = LOGO_Y + LOGO_H + 4;        // justo debajo del logo
       try {
         doc.addImage(qrShipmentImg, "PNG", QR1_X, QR1_Y, QR_SIZE_COVER, QR_SIZE_COVER);
+        doc.setFontSize(10);
+        doc.text("Shipment Number", QR1_X + QR_SIZE_COVER / 2, QR1_Y + QR_SIZE_COVER + 2, {
+          align: "center"
+        });
       } catch (err) {
         console.warn("Error agregando QR Shipment en Cover:", err);
       }
@@ -515,9 +519,13 @@ export default function GenerarBOL() {
 
     if (qrTrailerImg) {
       const QR2_X = W - M - QR_SIZE_COVER;      // pegado a la derecha
-      const QR2_Y = LOGO_Y + LOGO_H + 2;        // misma altura que el QR izquierdo
+      const QR2_Y = LOGO_Y + LOGO_H + 4;        // misma altura que el QR izquierdo
       try {
         doc.addImage(qrTrailerImg, "PNG", QR2_X, QR2_Y, QR_SIZE_COVER, QR_SIZE_COVER);
+        doc.setFontSize(10);
+        doc.text("Trailer Number.", QR2_X + QR_SIZE_COVER / 2, QR2_Y + QR_SIZE_COVER + 2, {
+          align: "center"
+        });
       } catch (err) {
         console.warn("Error agregando QR Trailer en Cover:", err);
       }
