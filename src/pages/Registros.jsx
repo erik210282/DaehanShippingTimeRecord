@@ -13,6 +13,7 @@ import {
   BtnPrimary,
   BtnSecondary,
   BtnEditDark,
+  BtnTinyRound,
   BtnDanger,
   DSDate,
 } from "../components/controls";
