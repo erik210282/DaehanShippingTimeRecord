@@ -29,11 +29,12 @@ export const RS_COMMON_STYLES = {
 
     return {
       ...base,
+      display: "flex",
       backgroundColor: "#333",
       borderColor: state.isFocused ? "#007BFF" : "#333",
       boxShadow: "none",
       minHeight: FIELD_HEIGHT,
-      // 👉 los single siguen fijos, los multi crecen
+      alignItems: "center", 
       height: isMulti ? "auto" : FIELD_HEIGHT,
       borderRadius: 10,
       cursor: "pointer",
@@ -55,6 +56,8 @@ export const RS_COMMON_STYLES = {
       alignItems: isMulti && hasValues ? "flex-start" : "center",
       // 👉 Wrap hasta que aparezcan pills
       flexWrap: isMulti && hasValues ? "wrap" : "nowrap",
+      display: "flex",     
+      alignItems: "center",  
     };
   },
 
@@ -62,7 +65,12 @@ export const RS_COMMON_STYLES = {
   singleValue: (base) => ({ ...base, color: "#fff" }),
   input: (base) => ({ ...base, color: "#fff" }),
   indicatorSeparator: () => ({ display: "none" }),
-  dropdownIndicator: (base) => ({ ...base, color: "#fff" }),
+  dropdownIndicator: (base) => ({ 
+    ...base, 
+    color: "#fff",
+    display: "flex",     
+    alignItems: "center",
+  }),
   clearIndicator: (base) => ({ ...base, color: "#fff" }),
   menu: (base) => ({ ...base, backgroundColor: "#333", zIndex: 9999 }),
   option: (base, state) => ({
@@ -73,6 +81,8 @@ export const RS_COMMON_STYLES = {
       ? "#555"
       : "#333",
     color: "#fff",
+    display: "flex", 
+    alignItems: "center", 
   }),
   multiValue: (base) => ({
     ...base,

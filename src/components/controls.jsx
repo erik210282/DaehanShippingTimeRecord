@@ -24,7 +24,7 @@ export const PillInputNumber = ({ style, ...props }) => (
 );
 
 export const TextAreaStyle = ({ style, ...props }) => (
-  <input {...props} style={{ ...textAreaStyle, ...style }} />
+  <textarea {...props} style={{ ...textAreaStyle, ...style }} />
 );
 
 export const DSInput = ({ style, ...props }) => (
