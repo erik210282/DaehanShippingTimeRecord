@@ -62,7 +62,7 @@ export const RS_COMMON_STYLES = {
   }),
 };
 
-// === Botones (los tuyos) ===
+// === Botones ===
 export const pillInput = {
   width: "100%",
   padding: "10px 12px",

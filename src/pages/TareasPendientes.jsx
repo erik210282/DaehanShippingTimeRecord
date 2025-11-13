@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from "../supabase/client";
-import Select from "react-select";
 import Modal from "react-modal";
 import { useLocation } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
@@ -9,94 +8,21 @@ import { useTranslation } from "react-i18next";
 import {
   DSInput,
   DSSelect,
+  DSNativeSelect,
   BtnPrimary,
   BtnSecondary,
   BtnEditDark,
+  BtnTinyRound,
   BtnDanger,
   DSDate,
+  PillInput,
+  PillInputNumber,
+  TextAreaStyle,
 } from "../components/controls";
 
 Modal.setAppElement("#root");
 
 let canalTareas = null;
-
-// ---------- Estilos rápidos reutilizables ----------
-const pillInput = {
-  width: "100%",
-  padding: "10px 12px",
-  borderRadius: "10px",
-  border: "1px solid #cfd4dc",
-  outline: "none",
-  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
-};
-const pillInputNumber = {
-  width: "55px",
-  height: "34px",
-  textAlign: "center",
-  fontSize: "15px",
-  borderRadius: "8px",
-  border: "1px solid #cfd4dc",
-  outline: "none",
-  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-  padding: "2px 6px",
-  margin: 0,
-};
-const textAreaStyle = {
-  ...pillInput,
-  resize: "vertical",
-};
-const primaryBtn = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "none",
-  background: "linear-gradient(180deg,#3b82f6,#1d4ed8)",
-  color: "#fff",
-  cursor: "pointer",
-  boxShadow: "0 4px 10px rgba(6, 26, 136, 0.25)",
-};
-
-const secondaryBtn = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "1px solid #111",
-  background: "#111",
-  color: "#fff",
-  cursor: "pointer",
-};
-
-const editBtnDark = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "1px solid #111",
-  background: "#111",
-  color: "#fff",
-  cursor: "pointer",
-};
-
-const dangerBtn = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "1px solid #111",
-  background: "#111",
-  color: "#fd2b1cff",
-  cursor: "pointer",
-};
-
-const tinyRoundBtn = {
-  width: 34,
-  height: 34,
-  borderRadius: "9999px",
-  border: "1px solid #111",
-  background: "#111",
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  userSelect: "none",
-  padding: 0,
-  margin: 0,
-  transform: "translateY(1px)", // pequeño ajuste visual
-};
 
 export default function TareasPendientes() {
   const location = useLocation();
@@ -481,9 +407,9 @@ export default function TareasPendientes() {
       <div className="card">
         <h2>{t("pending_tasks")}</h2>
 
-        <button onClick={() => abrirModal()} style={{ ...primaryBtn, marginBottom: 10 }}>
+        <BtnPrimary onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
           ➕ {t("add_task")}
-        </button>
+        </BtnPrimary>
 
         <div className="table-wrap">
           <table className="table">
@@ -519,7 +445,7 @@ export default function TareasPendientes() {
                   {/* Prioridad editable + botones estéticos */}
                   <td style={{ whiteSpace: "nowrap", textAlign: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, height: "34px" }}>
-                      <input
+                      <PillInputNumber
                         type="number"
                         min={1}
                         value={tarea.prioridad ?? ""}
@@ -532,11 +458,10 @@ export default function TareasPendientes() {
                           if (error) toast.error(t("error_updating_priority"));
                           else toast.success(t("priority_updated"));
                         }}
-                        style={pillInputNumber}
                         title={t("edit_priority")}
                       />
 
-                      <button
+                      <BtnTinyRound
                         title={t("move_up")}
                         onClick={async () => {
                           const idx = tareas.findIndex((t) => t.id === tarea.id);
@@ -545,16 +470,15 @@ export default function TareasPendientes() {
                           await supabase.from("tareas_pendientes").update({ prioridad: arriba.prioridad }).eq("id", tarea.id);
                           await supabase.from("tareas_pendientes").update({ prioridad: tarea.prioridad }).eq("id", arriba.id);
                         }}
-                        style={tinyRoundBtn}
                         aria-label={t("move_up")}
                       >
                         {/* Ícono chevron up blanco */}
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                           <path d="M7 14l5-5 5 5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                      </button>
+                      </BtnTinyRound>
 
-                      <button
+                      <BtnTinyRound
                         title={t("move_down")}
                         onClick={async () => {
                           const idx = tareas.findIndex((t) => t.id === tarea.id);
@@ -563,14 +487,13 @@ export default function TareasPendientes() {
                           await supabase.from("tareas_pendientes").update({ prioridad: abajo.prioridad }).eq("id", tarea.id);
                           await supabase.from("tareas_pendientes").update({ prioridad: tarea.prioridad }).eq("id", abajo.id);
                         }}
-                        style={tinyRoundBtn}
                         aria-label={t("move_down")}
                       >
                         {/* Ícono chevron down blanco */}
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                           <path d="M7 10l5 5 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                      </button>
+                      </BtnTinyRound>
                     </div>
                   </td>
 
@@ -617,12 +540,12 @@ export default function TareasPendientes() {
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                      <button onClick={() => abrirModal(tarea)} style={editBtnDark}>
+                      <BtnEditDark onClick={() => abrirModal(tarea)}>
                         {t("edit")}
-                      </button>
-                      <button onClick={() => setTareaAEliminar(tarea)} style={dangerBtn}>
+                      </BtnEditDark>
+                      <BtnDanger onClick={() => setTareaAEliminar(tarea)}>
                         {t("delete")}
-                      </button>
+                      </BtnDanger>
                     </div>
                   </td>
                 </tr>
@@ -636,15 +559,15 @@ export default function TareasPendientes() {
 
           {tareaActual && (
             <>
-              <input
+              <PillInput
                 type="text"
                 placeholder={t("idx")}
                 value={tareaActual?.idx || ""}
                 onChange={(e) => tareaActual && setTareaActual({ ...tareaActual, idx: e.target.value })}
-                style={{ ...pillInput, marginTop: 10, marginBottom: 10 }}
+                style={{ marginTop: 10, marginBottom: 10 }}
               />
 
-              <Select
+              <DSSelect
                 options={Object.entries(actividades).map(([id, nombre]) => ({ value: id, label: nombre }))}
                 value={
                   tareaActual.actividad
@@ -657,7 +580,7 @@ export default function TareasPendientes() {
 
               {tareaActual.productos.map((p, index) => (
                 <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                  <Select
+                  <DSSelect
                     options={Object.entries(productos).map(([id, nombre]) => ({ value: id, label: nombre }))}
                     value={
                       p.producto && productos[p.producto] ? { value: p.producto, label: productos[p.producto] } : null
@@ -670,7 +593,7 @@ export default function TareasPendientes() {
                     placeholder={t("select_product")}
                     styles={{ container: (base) => ({ ...base, flex: 1 }) }}
                   />
-                  <input
+                  <PillInput
                     type="number"
                     placeholder={t("amount")}
                     value={p.cantidad ?? ""}
@@ -679,36 +602,35 @@ export default function TareasPendientes() {
                       nuevos[index].cantidad = e.target.value;
                       setTareaActual({ ...tareaActual, productos: nuevos });
                     }}
-                    style={{ ...pillInput, width: "220px" }}
+                    style={{ width: "220px" }}
                   />
                   {index > 0 && (
-                    <button
+                    <BtnDanger
                       onClick={() => {
                         const nuevos = tareaActual.productos.filter((_, i) => i !== index);
                         setTareaActual({ ...tareaActual, productos: nuevos });
                       }}
-                      style={dangerBtn}
                     >
                       ✖
-                    </button>
+                    </BtnDanger>
                   )}
                 </div>
               ))}
 
-              <button
+              <BtnSecondary
                 onClick={() =>
                   setTareaActual({
                     ...tareaActual,
                     productos: [...tareaActual.productos, { producto: "", cantidad: "" }],
                   })
                 }
-                style={{ ...secondaryBtn, marginTop: "10px" }}
+                style={{ marginTop: "10px" }}
               >
                 ➕ {t("add_product")}
-              </button>
+              </BtnSecondary>
 
               <div style={{ marginTop: 10 }}>
-                <Select
+                <DSSelect
                   isMulti
                   options={operadorOpciones}
                   value={
@@ -727,21 +649,21 @@ export default function TareasPendientes() {
                 />
               </div>
 
-              <textarea
+              <TextAreaStyle
                 placeholder={t("notes")}
                 value={tareaActual.notas}
                 onChange={(e) => setTareaActual({ ...tareaActual, notas: e.target.value })}
                 rows={3}
-                style={{ ...textAreaStyle, width: "100%", marginTop: "10px" }}
+                style={{ width: "100%", marginTop: "10px" }}
               />
 
               <div style={{ display: "flex", gap: "10px", marginTop: "14px", marginBottom: "10px" }}>
-                <button onClick={guardarTarea} style={primaryBtn}>
+                <BtnPrimary onClick={guardarTarea}>
                   {t("save")}
-                </button>
-                <button onClick={() => setModalAbierto(false)} style={secondaryBtn}>
+                </BtnPrimary>
+                <BtnSecondary onClick={() => setModalAbierto(false)}>
                   {t("cancel")}
-                </button>
+                </BtnSecondary>
               </div>
             </>
           )}
@@ -757,11 +679,10 @@ export default function TareasPendientes() {
             <h2>{t("confirm_delete_title")}</h2>
             <p>{t("confirm_delete_text")}</p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-              <button className="btn btn-secondary" onClick={() => setTareaAEliminar(null)} style={secondaryBtn}>
+              <BtnSecondary onClick={() => setTareaAEliminar(null)}>
                 {t("cancel")}
-              </button>
-              <button
-                className="btn btn-danger"
+              </BtnSecondary>
+              <BtnDanger
                 onClick={async () => {
                   try {
                     if (!tareaAEliminar?.id) throw new Error("ID inválido");
@@ -781,10 +702,9 @@ export default function TareasPendientes() {
                   }
                   setTareaAEliminar(null);
                 }}
-                style={dangerBtn}
               >
                 {t("confirm")}
-              </button>
+              </BtnDanger>
             </div>
           </Modal>
         )}

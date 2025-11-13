@@ -10,7 +10,22 @@ import {
   editBtnDark,
   dangerBtn,
   tinyRoundBtn,
+  pillInput,
+  pillInputNumber,
+  textAreaStyle,
 } from "./styles";
+
+export const PillInput = ({ style, ...props }) => (
+  <input {...props} style={{ ...pillInput, ...style }} />
+);
+
+export const PillInputNumber = ({ style, ...props }) => (
+  <input {...props} style={{ ...pillInputNumber, ...style }} />
+);
+
+export const TextAreaStyle = ({ style, ...props }) => (
+  <input {...props} style={{ ...textAreaStyle, ...style }} />
+);
 
 export const DSInput = ({ style, ...props }) => (
   <input {...props} style={{ ...inputStyle, ...style }} />
