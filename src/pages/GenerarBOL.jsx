@@ -565,7 +565,7 @@ export default function GenerarBOL() {
 
     // Línea separadora y continuar...
     doc.setLineWidth(0.95);
-    doc.line(M, y + 6, W - M, y + 6);
+    doc.line(M, y + 8, W - M, y + 8);
     y += 12;
 
     // ===== 2 columnas con líneas: etiqueta (izq) + valor (izq) =====
@@ -886,10 +886,10 @@ export default function GenerarBOL() {
       try { doc.addImage(DA_LOGO, "PNG", M, 10, 30, 12); } catch {}
       
       // QR del Shipment en la esquina superior derecha (no mueve nada del layout)
-      const QR_SIZE_BOL = 25;
+      const QR_SIZE_BOL = 24;
       if (qrShipmentImg) {
         const qrX = W - M - QR_SIZE_BOL +2; // pegado al margen derecho
-        const qrY = 2;                   // arriba pero sin tocar el título
+        const qrY = 1;                   // arriba pero sin tocar el título
         try {
           doc.addImage(qrShipmentImg, "PNG", qrX, qrY, QR_SIZE_BOL, QR_SIZE_BOL);
         } catch (err) {
