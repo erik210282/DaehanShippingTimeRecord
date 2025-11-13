@@ -741,7 +741,7 @@ useEffect(() => {
               style={{ maxWidth: 120 }}
             />
           <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-            <BtnPrimary type="button" onClick={guardarRegistro} style={primaryBtn}>{t("save")}</BtnPrimary>
+            <BtnPrimary type="button" onClick={guardarRegistro}>{t("save")}</BtnPrimary>
             <BtnSecondary type="button" onClick={() => setModalAbierto(false)} style={secondaryBtn}>{t("cancel")}</BtnSecondary>
           </div>
         </Modal>  
