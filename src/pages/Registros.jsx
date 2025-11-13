@@ -8,6 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { supabase } from "../supabase/client";
 import {
   DSInput,
+  DSSelect,
   BtnPrimary,
   BtnSecondary,
   BtnEditDark,
