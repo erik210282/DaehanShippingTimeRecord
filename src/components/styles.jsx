@@ -5,7 +5,8 @@ export const FIELD_FONT =
 
 export const inputStyle = {
   width: "100%",
-  height: FIELD_HEIGHT,
+  height: "auto",
+  minHeight: FIELD_HEIGHT,
   lineHeight: `${FIELD_HEIGHT}px`,
   padding: "8 14px",
   backgroundColor: "#333",
@@ -29,7 +30,7 @@ export const RS_COMMON_STYLES = {
     borderColor: state.isFocused ? "#007BFF" : "#333",
     boxShadow: "none",
     minHeight: FIELD_HEIGHT,
-    height: FIELD_HEIGHT,
+    height: "auto",
     borderRadius: 10,
     cursor: "pointer",
     fontFamily: FIELD_FONT,
