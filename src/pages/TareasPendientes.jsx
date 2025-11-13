@@ -650,8 +650,8 @@ export default function TareasPendientes() {
                 placeholder={t("notes")}
                 value={tareaActual.notas}
                 onChange={(e) => setTareaActual({ ...tareaActual, notas: e.target.value })}
-                rows={3}
-                style={{ maxWidth: 600, marginTop: "10px" }}
+                rows={4}
+                style={{ maxWidth: 3000, marginTop: "10px" }}
               />
 
               <div style={{ display: "flex", gap: "10px", marginTop: "14px", marginBottom: "10px" }}>
