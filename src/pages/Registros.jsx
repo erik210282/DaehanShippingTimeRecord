@@ -49,9 +49,6 @@ export default function Registros() {
   const [selectProductos, setSelectProductos] = useState([]);
   const [selectOperadores, setSelectOperadores] = useState([]);
 
-  const [pestañaActiva, setPestañaActiva] = useState("paginado");
-  const [modoAgrupacion, setModoAgrupacion] = useState("operador");
-
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
 
   const parseFecha = (fecha) => {
@@ -462,65 +459,12 @@ useEffect(() => {
   toast.success(t("export_success") || "CSV exportado correctamente");
 };
 
-  const registrosAgrupados = () => {
-  const grupos = {};
-
-  filtrados.forEach((r) => {
-    let key = "";
-
-    if (modoAgrupacion === "operador") {
-      key = Array.isArray(r.operadores)
-        ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ")
-        : `ID: ${r.operadores}`;
-    } else if (modoAgrupacion === "producto") {
-      const productos = Array.isArray(r.productos) ? r.productos : [{ producto: r.producto }];
-      const nombres = productos.map((p) =>
-        mapaProductos[p.producto] || `ID: ${p.producto}`
-      );
-      key = nombres.length === 1 ? nombres[0] : t("multi_product");
-    } else if (modoAgrupacion === "actividad") {
-      key = mapaActividades[r.actividad] || `ID: ${r.actividad}`;
-    } else if (modoAgrupacion === "starttime") {
-      const fecha = new Date(r.horaInicio);
-      key = format(fecha, "yyyy-MM-dd"); 
-    }
-
-    if (!grupos[key]) grupos[key] = [];
-    grupos[key].push(r);
-  });
-
-  const gruposOrdenados = {};
-    if (modoAgrupacion === "starttime") {
-      // Si estamos agrupando por fecha, ordenar los grupos por fecha de lo más reciente a lo más antiguo
-      Object.keys(grupos)
-        .sort((a, b) => new Date(b) - new Date(a)) // Ordenar fechas (más nuevo primero)
-        .forEach((key) => {
-          gruposOrdenados[key] = grupos[key];
-        });
-    } else {
-      // Si no estamos agrupando por fecha, mantener el orden alfabético o por otro criterio
-      Object.keys(grupos)
-        .sort((a, b) => a.localeCompare(b))
-        .forEach((key) => {
-          gruposOrdenados[key] = grupos[key];
-        });
-    }
-
-    return gruposOrdenados;
-  };
-
   return (
     <div className="page-container page-container--fluid">
       <div className="card">
       <h2>{t("records")}</h2>
-      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        <BtnSecondary onClick={() => setPestañaActiva("paginado")} disabled={pestañaActiva === "paginado"}>
-          📊 {t("records_title")}
-        </BtnSecondary>
-      </div>
 
-      {pestañaActiva === "paginado" ? (
-        <div>
+      <div>
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
             <DSInput placeholder={t("search")} value={busquedaTexto} onChange={(e) => setBusquedaTexto(e.target.value)} />
             {errorBusqueda && <p style={{ color: "red" }}>{errorBusqueda}</p>}
@@ -606,70 +550,7 @@ useEffect(() => {
             </table>
           </div>
         </div>
-      ) : (
-        <div>
-          <label>{t("group_by")}: </label>
-          <DSNativeSelect value={modoAgrupacion} onChange={(e) => setModoAgrupacion(e.target.value)} style={{ maxWidth: 220 }}>
-            <option value="operador">{t("operator")}</option>
-            <option value="producto">{t("product")}</option>
-            <option value="actividad">{t("activity")}</option>
-            <option value="starttime">{t("fecha")}</option>
-          </DSNativeSelect>
-
-          {Object.entries(registrosAgrupados()).map(([grupo, lista]) => (
-            <div key={grupo} style={{ marginBottom: "20px" }}>
-              <h4>{grupo}</h4>
-              <div className="table-wrap">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>{t("idx")}</th>
-                      <th>{t("activity")}</th>
-                      <th>{t("operator")}</th>
-                      <th>{t("product")}</th>
-                      <th>{t("amount")}</th>
-                      <th>{t("start_time")}</th>
-                      <th>{t("end_time")}</th>
-                      <th>{t("duration_min")}</th>
-                      <th>{t("notes")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lista.map((r) => {
-                      return (
-                        <tr key={r.id}>
-                          <td>{r.idx || "N/A"}</td>
-                          <td>{mapaActividades[r.actividad] || `ID: ${r.actividad}`}</td>
-                          <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
-                          <td>
-                            {Array.isArray(r.productos)
-                              ? r.productos.map((p, i) => (
-                                  <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
-                                ))
-                              : mapaProductos[r.producto]}
-                          </td>
-                          <td>
-                            {Array.isArray(r.productos)
-                              ? r.productos.map((p, i) => (
-                                  <div key={i}>{p.cantidad}</div>
-                                ))
-                              : r.cantidad}
-                          </td>
-                          <td>{new Date(r.horaInicio).toLocaleString()}</td>
-                          <td>{new Date(r.horaFin).toLocaleString()}</td>
-                          <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
-                          <td>{r.notas || "N/A"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      
+    
         <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
           <h3>{esNuevo ? t("add") : t("edit")}</h3>
 
