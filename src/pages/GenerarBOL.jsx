@@ -565,8 +565,8 @@ export default function GenerarBOL() {
 
     // Línea separadora y continuar...
     doc.setLineWidth(0.95);
-    doc.line(M, y + 8, W - M, y + 8);
-    y += 12;
+    doc.line(M, y + 10, W - M, y + 10);
+    y += 14;
 
     // ===== 2 columnas con líneas: etiqueta (izq) + valor (izq) =====
     // Datos
