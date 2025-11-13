@@ -257,6 +257,7 @@ button {
   font-size: clamp(12px, 1.5vw, 14px);
   align-items: center;
   text-align: center;
+  vertical-align: middle;
 }
 
 /* Ajusta densidad en pantallas chicas */
@@ -268,6 +269,8 @@ button {
     padding: 10px;                        /* filas más compactas */
     font-size: 14px;
     align-items: center;
+    text-align: center;
+    vertical-align: middle;
   }
 
   /* Barra de scroll cómoda */
@@ -292,11 +295,15 @@ button {
   padding: clamp(8px, 1.2vw, 12px);
   text-align: left;
   border-bottom: 1px solid #ddd;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .table th {
   background-color: #f0f0f0;
   font-weight: bold;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .table tr:nth-child(even) {
