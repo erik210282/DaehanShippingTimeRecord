@@ -886,10 +886,10 @@ export default function GenerarBOL() {
       try { doc.addImage(DA_LOGO, "PNG", M, 10, 30, 12); } catch {}
       
       // QR del Shipment en la esquina superior derecha (no mueve nada del layout)
-      const QR_SIZE_BOL = 28;
+      const QR_SIZE_BOL = 25;
       if (qrShipmentImg) {
-        const qrX = W - M - QR_SIZE_BOL; // pegado al margen derecho
-        const qrY = 4;                   // arriba pero sin tocar el título
+        const qrX = W - M - QR_SIZE_BOL +2; // pegado al margen derecho
+        const qrY = 2;                   // arriba pero sin tocar el título
         try {
           doc.addImage(qrShipmentImg, "PNG", qrX, qrY, QR_SIZE_BOL, QR_SIZE_BOL);
         } catch (err) {
