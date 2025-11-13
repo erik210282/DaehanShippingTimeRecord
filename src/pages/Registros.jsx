@@ -521,13 +521,14 @@ useEffect(() => {
       </div>
 
       {pestañaActiva === "paginado" ? (
-        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-          <DSInput placeholder={t("search")} value={busquedaTexto} onChange={(e) => setBusquedaTexto(e.target.value)} />
-          {errorBusqueda && <p style={{ color: "red" }}>{errorBusqueda}</p>}
-
-          <DSDate value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
-          <DSDate value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
-          {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
+        <div>
+          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+            <DSInput placeholder={t("search")} value={busquedaTexto} onChange={(e) => setBusquedaTexto(e.target.value)} />
+            {errorBusqueda && <p style={{ color: "red" }}>{errorBusqueda}</p>}
+            <DSDate value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+            <DSDate value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+            {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
+          </div>
 
           <DSSelect isMulti options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
           <DSSelect isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
