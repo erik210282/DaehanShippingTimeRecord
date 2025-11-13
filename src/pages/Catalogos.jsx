@@ -6,6 +6,13 @@ import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../App.css";
+import {
+  DSInput,
+  BtnPrimary,
+  BtnSecondary,
+  BtnEditDark,
+  BtnDanger,
+} from "../components/controls";
 
 // === Helpers email/phone ===
 const onlyDigits = (v) => (v ?? "").replace(/\D+/g, "");
@@ -428,25 +435,23 @@ async function save() {
     <div className="page-container page-container--fluid">
       <div className="card">
         <h2>{t("catalogs")}</h2>
-
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 8 }}>
-          <button className="primary" onClick={() => setTab("productos")}>{t("products")}</button>
-          <button className="primary" onClick={() => setTab("pos")}>{t("po")}</button>
-          <button className="primary" onClick={() => setTab("shipper")}>{t("shipper")}</button>
-          <button className="primary" onClick={() => setTab("actividades")}>{t("activities")}</button>
-          <button className="primary" onClick={() => setTab("operadores")}>{t("operators")}</button>
+          <BtnSecondary onClick={() => setTab("productos")}>{t("products")}</BtnSecondary>
+          <BtnSecondary onClick={() => setTab("pos")}>{t("po")}</BtnSecondary>
+          <BtnSecondary onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
+          <BtnSecondary onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
+          <BtnSecondary onClick={() => setTab("operadores")}>{t("operators")}</BtnSecondary>
 
-          <input
+          <DSInput
             placeholder={t("search")}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            style={{ minWidth: 220 }}
+            style={{ minWidth: 220, maxWidth: 260 }}
           />
-          <button onClick={() => setFilter("")}>{t("clear_filters")}</button>
-          <button onClick={openNew}>➕ {t("add")}</button>
-          <button onClick={exportCSV}>{t("export_csv")}</button>
+          <BtnSecondary onClick={() => setFilter("")}>{t("clear_filters")}</BtnSecondary>
+          <BtnSecondary onClick={exportCSV}>{t("export_csv")}</BtnSecondary>
+          <BtnPrimary onClick={openNew}>➕ {t("add")}</BtnPrimary>
         </div>
-
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -521,8 +526,12 @@ async function save() {
                         <td>{r.cantidad_por_caja_expendable}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
-                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
+                          <BtnEditDark onClick={() => { setEdit(r); setIsNew(false); }}>
+                            {t("edit")}
+                          </BtnEditDark>
+                          <BtnDanger onClick={() => remove(r)}>
+                            {t("delete")}
+                          </BtnDanger>
                         </td>
                       </>
                     )}
@@ -538,7 +547,7 @@ async function save() {
                         <td>{[r.freight_class, r.freight_charges].filter(Boolean).join(" / ")}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <button
+                          <BtnEditDark
                             onClick={() => {
                               setEdit({
                                 ...r,
@@ -549,8 +558,8 @@ async function save() {
                             }}
                           >
                             {t("edit")}
-                          </button>
-                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
+                          </BtnEditDark>
+                          <BtnDanger onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
                     )}
@@ -563,7 +572,7 @@ async function save() {
                         <td>{r.shipper_zip}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <button
+                          <BtnEditDark
                             onClick={() => {
                               setEdit({
                                 ...r,
@@ -573,8 +582,8 @@ async function save() {
                             }}
                           >
                             {t("edit")}
-                          </button>
-                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
+                          </BtnEditDark>
+                          <BtnDanger onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
                     )}
@@ -583,8 +592,10 @@ async function save() {
                         <td>{r.nombre}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <button onClick={() => { setEdit(r); setIsNew(false); }}>{t("edit")}</button>
-                          <button className="delete-btn" onClick={() => remove(r)}>{t("delete")}</button>
+                          <BtnEditDark onClick={() => { setEdit(r); setIsNew(false); }}>
+                            {t("edit")}
+                          </BtnEditDark>
+                          <BtnDanger onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
                     )}
@@ -604,17 +615,17 @@ async function save() {
 
             {tab === "productos" && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
-                <input placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
-                <input placeholder={t("part_number")} value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
-                <input placeholder={t("description")} value={edit?.descripcion || ""} onChange={e => setEdit({ ...edit, descripcion: e.target.value })} />
-                <input type="number" placeholder={t("weight_piece")} value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
-                <input placeholder={t("bin_type")} value={edit?.bin_type || ""} onChange={e => setEdit({ ...edit, bin_type: e.target.value })} />
-                <input placeholder={t("returnablebox")} value={edit?.tipo_empaque_retornable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_retornable: e.target.value })} />
-                <input placeholder={t("expendablebox")} value={edit?.tipo_empaque_expendable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_expendable: e.target.value })} />
-                <input type="number" placeholder={t("returnablebw")} value={edit?.peso_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_retornable: e.target.value })} />
-                <input type="number" placeholder={t("expendablebw")} value={edit?.peso_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_expendable: e.target.value })} />
-                <input type="number" placeholder={t("units_returnable")} value={edit?.cantidad_por_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_retornable: e.target.value })} />
-                <input type="number" placeholder={t("units_expendable")} value={edit?.cantidad_por_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_expendable: e.target.value })} />
+                <DSInput placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
+                <DSInput placeholder={t("part_number")} value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
+                <DSInput placeholder={t("description")} value={edit?.descripcion || ""} onChange={e => setEdit({ ...edit, descripcion: e.target.value })} />
+                <DSInput type="number" placeholder={t("weight_piece")} value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
+                <DSInput placeholder={t("bin_type")} value={edit?.bin_type || ""} onChange={e => setEdit({ ...edit, bin_type: e.target.value })} />
+                <DSInput placeholder={t("returnablebox")} value={edit?.tipo_empaque_retornable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_retornable: e.target.value })} />
+                <DSInput placeholder={t("expendablebox")} value={edit?.tipo_empaque_expendable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_expendable: e.target.value })} />
+                <DSInput type="number" placeholder={t("returnablebw")} value={edit?.peso_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_retornable: e.target.value })} />
+                <DSInput type="number" placeholder={t("expendablebw")} value={edit?.peso_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_expendable: e.target.value })} />
+                <DSInput type="number" placeholder={t("units_returnable")} value={edit?.cantidad_por_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_retornable: e.target.value })} />
+                <DSInput type="number" placeholder={t("units_expendable")} value={edit?.cantidad_por_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_expendable: e.target.value })} />
                 <label style={{ gridColumn: "1 / -1" }}>
                   <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
                 </label>
@@ -629,65 +640,65 @@ async function save() {
                   gap: 8,
                 }}
               >
-                <input
+                <DSInput
                   placeholder={t("po", "PO")}
                   value={edit?.po || ""}
                   onChange={(e) => setEdit({ ...edit, po: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={t("consignee", "Consignee")}
                   value={edit?.consignee_name || ""}
                   onChange={(e) => setEdit({ ...edit, consignee_name: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={`${t("address", "Address")} 1`}
                   value={edit?.consignee_address1 || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, consignee_address1: e.target.value })
                   }
                 />
-                <input
+                <DSInput
                   placeholder={`${t("address", "Address")} 2`}
                   value={edit?.consignee_address2 || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, consignee_address2: e.target.value })
                   }
                 />
-                <input
+                <DSInput
                   placeholder={t("city", "City")}
                   value={edit?.consignee_city || ""}
                   onChange={(e) => setEdit({ ...edit, consignee_city: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={t("state", "State")}
                   value={edit?.consignee_state || ""}
                   onChange={(e) => setEdit({ ...edit, consignee_state: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={t("zip", "ZIP")}
                   value={edit?.consignee_zip || ""}
                   onChange={(e) => setEdit({ ...edit, consignee_zip: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={t("country", "Country")}
                   value={edit?.consignee_country || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, consignee_country: e.target.value })
                   }
                 />
-                <input
+                <DSInput
                   placeholder={t("contact_name", "Contact Name")}
                   value={edit?.consignee_contact_name || ""}
                   onChange={(e) => setEdit({ ...edit, consignee_contact_name: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={t("contact_email", "Contact Email")}
                   value={edit?.consignee_contact_email || ""}
                   onChange={(e) =>
                     setEdit((prev) => ({ ...prev, consignee_contact_email: e.target.value }))
                   }
                 />
-                <input
+                <DSInput
                   placeholder={t("contact_phone", "Contact Phone")}
                   value={edit?.consignee_contact_phone || ""}
                   onChange={(e) =>
@@ -700,17 +711,17 @@ async function save() {
                     }))
                   }
                 />
-                <input
+                <DSInput
                   placeholder={t("freight_class", "Freight Class")}
                   value={edit?.freight_class || ""}
                   onChange={(e) => setEdit({ ...edit, freight_class: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={t("freight_charges", "Freight Charges")}
                   value={edit?.freight_charges || ""}
                   onChange={(e) => setEdit({ ...edit, freight_charges: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={t("carrier", "Carrier")}
                   value={edit?.carrier_name || ""}
                   onChange={(e) => setEdit({ ...edit, carrier_name: e.target.value })}
@@ -725,37 +736,37 @@ async function save() {
                 </label>
                 <hr style={{ gridColumn: "1 / -1", margin: "8px 0" }} />
                 <strong style={{ gridColumn: "1 / -1" }}>Bill Charges To</strong>
-                <input
+                <DSInput
                   placeholder="Name"
                   value={billTo.bill_to_name || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_name: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder="Address 1"
                   value={billTo.bill_to_address1 || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_address1: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder="Address 2"
                   value={billTo.bill_to_address2 || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_address2: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder="City"
                   value={billTo.bill_to_city || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_city: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder="State"
                   value={billTo.bill_to_state || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_state: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder="ZIP"
                   value={billTo.bill_to_zip || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_zip: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder="Country"
                   value={billTo.bill_to_country || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_country: e.target.value })}
@@ -771,31 +782,31 @@ async function save() {
                   gap: 8,
                 }}
               >
-                <input
+                <DSInput
                   placeholder={t("shipper", "Shipper")}
                   value={edit?.shipper_name || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_name: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={`${t("address", "Address")} 1`}
                   value={edit?.shipper_address1 || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, shipper_address1: e.target.value })
                   }
                 />
-                <input
+                <DSInput
                   placeholder={`${t("address", "Address")} 2`}
                   value={edit?.shipper_address2 || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, shipper_address2: e.target.value })
                   }
                 />
-                <input
+                <DSInput
                   placeholder={t("city", "City")}
                   value={edit?.shipper_city || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_city: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={t("state", "State")}
                   value={edit?.shipper_state || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_state: e.target.value })}
@@ -805,26 +816,26 @@ async function save() {
                   value={edit?.shipper_zip || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_zip: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={t("country", "Country")}
                   value={edit?.shipper_country || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, shipper_country: e.target.value })
                   }
                 />
-                <input
+                <DSInput
                   placeholder={t("contact_name", "Contact Name")}
                   value={edit?.shipper_contact_name || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_contact_name: e.target.value })}
                 />
-                <input
+                <DSInput
                   placeholder={t("contact_email", "Contact Email")}
                   value={edit?.shipper_contact_email || ""}
                   onChange={(e) =>
                     setEdit((prev) => ({ ...prev, shipper_contact_email: e.target.value }))
                   }
                 />
-                <input
+                <DSInput
                   placeholder={t("contact_phone", "Contact Phone")}
                   value={edit?.shipper_contact_phone || ""}
                   onChange={(e) =>
@@ -850,7 +861,7 @@ async function save() {
 
             {isSimple && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
-                <input placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
+                <DSInput placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
                 <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
                 </label>
@@ -858,8 +869,10 @@ async function save() {
             )}
 
             <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-              <button className="primary" onClick={save}>{t("save")}</button>
-              <button className="secondary" onClick={() => { setEdit(null); setIsNew(false); }}>{t("cancel")}</button>
+              <BtnPrimary onClick={save}>{t("save")}</BtnPrimary>
+              <BtnSecondary onClick={() => { setEdit(null); setIsNew(false); }}>
+                {t("cancel")}
+              </BtnSecondary>
             </div>
           </div>
         </Modal>
