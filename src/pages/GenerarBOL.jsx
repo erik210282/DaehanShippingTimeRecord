@@ -523,7 +523,7 @@ export default function GenerarBOL() {
       try {
         doc.addImage(qrTrailerImg, "PNG", QR2_X, QR2_Y, QR_SIZE_COVER, QR_SIZE_COVER);
         doc.setFontSize(10);
-        doc.text("Trailer Number.", QR2_X + QR_SIZE_COVER / 2, QR2_Y + QR_SIZE_COVER + 2, {
+        doc.text("Trailer Number", QR2_X + QR_SIZE_COVER / 2, QR2_Y + QR_SIZE_COVER + 2, {
           align: "center"
         });
       } catch (err) {
@@ -566,7 +566,7 @@ export default function GenerarBOL() {
     // Línea separadora y continuar...
     doc.setLineWidth(0.95);
     doc.line(M, y + 3, W - M, y + 3);
-    y += 13;
+    y += 18;
 
     // ===== 2 columnas con líneas: etiqueta (izq) + valor (izq) =====
     // Datos
@@ -886,10 +886,10 @@ export default function GenerarBOL() {
       try { doc.addImage(DA_LOGO, "PNG", M, 10, 30, 12); } catch {}
       
       // QR del Shipment en la esquina superior derecha (no mueve nada del layout)
-      const QR_SIZE_BOL = 30; // mm aprox, similar al ejemplo Tesla
+      const QR_SIZE_BOL = 28;
       if (qrShipmentImg) {
         const qrX = W - M - QR_SIZE_BOL; // pegado al margen derecho
-        const qrY = 8;                   // arriba pero sin tocar el título
+        const qrY = 4;                   // arriba pero sin tocar el título
         try {
           doc.addImage(qrShipmentImg, "PNG", qrX, qrY, QR_SIZE_BOL, QR_SIZE_BOL);
         } catch (err) {
