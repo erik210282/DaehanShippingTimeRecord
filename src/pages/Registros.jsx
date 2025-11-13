@@ -530,9 +530,11 @@ useEffect(() => {
             {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
           </div>
 
-          <DSSelect isMulti options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
-          <DSSelect isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
-          <DSSelect isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
+          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+            <DSSelect isMulti options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
+            <DSSelect isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
+            <DSSelect isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
+          </div>
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
             <BtnSecondary onClick={() => {
