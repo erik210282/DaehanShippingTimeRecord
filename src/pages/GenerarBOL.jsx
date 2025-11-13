@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { jsPDF } from "jspdf";
+import QRCode from "qrcode";
 import "../App.css";
 import DA_LOGO from "../assets/Daehan.png"; 
 import {
@@ -461,14 +462,30 @@ export default function GenerarBOL() {
   }
 
   // ======================= Cover Sheet (Hoja 2) =======================
+  async function generateQRDataURL(text) {
+    if (!text) return null;
+    try {
+      return await QRCode.toDataURL(String(text), {
+        errorCorrectionLevel: "M", // mismo nivel que usa Tesla (buena calidad)
+        type: "image/png",
+        margin: 2,                 // margen pequeño pero visible
+        scale: 8,                  // alta resolución (cerca de 300 dpi en la impresión)
+      });
+    } catch (err) {
+      console.warn("Error generando QR:", err);
+      return null;
+    }
+  }
   async function drawCoverSheet(doc, data) {
     // Formato carta en mm
     const W = 215.9, H = 279.4, M = 12;
 
     const {
-      SH, PO, poNumbers,
+      SH, PO,
       shipmentNo, trailerNo, packingSlip, dockNo,
-      bolDateFormatted, rows
+      bolDateFormatted, rows,
+      qrShipmentImg,
+      qrTrailerImg,
     } = data;
 
     const C = PO || {};
@@ -481,6 +498,30 @@ export default function GenerarBOL() {
     try {
       doc.addImage(DA_LOGO, "PNG", LOGO_X, LOGO_Y, LOGO_W, LOGO_H);
     } catch {}
+
+    // --- QRs en el Cover Sheet ---
+    //  - QR de Shipment debajo del logo (izquierda)
+    //  - QR de Trailer a la misma altura (derecha)
+    const QR_SIZE_COVER = 28;
+    if (qrShipmentImg) {
+      const QR1_X = LOGO_X;                     // alineado con el logo
+      const QR1_Y = LOGO_Y + LOGO_H + 2;        // justo debajo del logo
+      try {
+        doc.addImage(qrShipmentImg, "PNG", QR1_X, QR1_Y, QR_SIZE_COVER, QR_SIZE_COVER);
+      } catch (err) {
+        console.warn("Error agregando QR Shipment en Cover:", err);
+      }
+    }
+
+    if (qrTrailerImg) {
+      const QR2_X = W - M - QR_SIZE_COVER;      // pegado a la derecha
+      const QR2_Y = LOGO_Y + LOGO_H + 2;        // misma altura que el QR izquierdo
+      try {
+        doc.addImage(qrTrailerImg, "PNG", QR2_X, QR2_Y, QR_SIZE_COVER, QR_SIZE_COVER);
+      } catch (err) {
+        console.warn("Error agregando QR Trailer en Cover:", err);
+      }
+    }
 
     // ===== Encabezado: Consignee (título) + Dirección completa =====
     const centerX = W / 2;
@@ -521,12 +562,6 @@ export default function GenerarBOL() {
 
     // ===== 2 columnas con líneas: etiqueta (izq) + valor (izq) =====
     // Datos
-    const partNumbers = (rows || [])
-      .map(r => (String(r.desc || "").trim().split(/\s+/)[0] || ""))
-      .filter(Boolean)
-      .slice(0, 15)
-      .join(", ");
-
     const carrierName  = C.carrier_name || "";
     const supplierName = SH?.name || "";
 
@@ -577,8 +612,6 @@ export default function GenerarBOL() {
         + Math.max(0, (valueBlockH - (wrapped.length * VALUE_STEP)) / 2);
 
       // --- Label (1ª columna) alineado con el inicio del valor ---
-      // Lo alineamos a la DERECHA exactamente donde empieza la 2ª columna (menos un acolchado)
-      // y centramos verticalmente el label respecto al bloque del valor.
       doc.setFont("helvetica", "bold").setFontSize(LABEL_SIZE);
       const labelBaseline = startVy + ((wrapped.length - 1) * VALUE_STEP) / 2; // centro del bloque
       const labelX = VALUE_X - LABEL_RIGHT_PAD;
@@ -601,8 +634,6 @@ export default function GenerarBOL() {
       // --- Avanza Y al siguiente renglón (controla el espaciado entre filas) ---
       y = lineY + GAP_AFTER_LINE;
     };
-
-
     // Pinta todos los pares en una sola lista
     fields.forEach(([lbl, val]) => drawPair(lbl, val));
   }
@@ -833,11 +864,30 @@ export default function GenerarBOL() {
 
       const pageH = Number.isFinite(contentH) ? Math.max(279.4, contentH) : 279.4;
 
+      // --------- 3.5) Generar QRs (Shipment y Trailer) ---------
+      const qrShipmentText = shipmentNo || primaryPO?.shipment_number || "";
+      const qrTrailerText  = trailerNo  || primaryPO?.trailer_number  || "";
+
+      const qrShipmentImg = await generateQRDataURL(qrShipmentText);
+      const qrTrailerImg  = await generateQRDataURL(qrTrailerText);
+
       // --------- 4) Crear documento con alto dinámico y dibujar ---------
       const doc = new jsPDF({ unit: "mm", format: [W, pageH] });
 
       // Logo
       try { doc.addImage(DA_LOGO, "PNG", M, 10, 30, 12); } catch {}
+      
+      // QR del Shipment en la esquina superior derecha (no mueve nada del layout)
+      const QR_SIZE_BOL = 30; // mm aprox, similar al ejemplo Tesla
+      if (qrShipmentImg) {
+        const qrX = W - M - QR_SIZE_BOL; // pegado al margen derecho
+        const qrY = 8;                   // arriba pero sin tocar el título
+        try {
+          doc.addImage(qrShipmentImg, "PNG", qrX, qrY, QR_SIZE_BOL, QR_SIZE_BOL);
+        } catch (err) {
+          console.warn("Error agregando QR en BOL:", err);
+        }
+      }
 
       // helpers
       const text = (label, value, x, y, opts = {}) => {
@@ -1356,7 +1406,9 @@ export default function GenerarBOL() {
         poNumbers,
         shipmentNo, trailerNo, packingSlip, dockNo, sealNo,
         bolDateFormatted,
-        rows
+        rows,
+        qrShipmentImg,
+        qrTrailerImg,
       });
 
       // Guardar
