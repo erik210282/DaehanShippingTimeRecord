@@ -1480,6 +1480,7 @@ export default function GenerarBOL() {
           {/* PO (multi-select: SOLO misma dirección de Consignee) */}
           <DSSelect
             isMulti
+            closeMenuOnSelect={false}
             options={filteredPoOptions}
             noOptionsMessage={() => t("no_results_found", "No hay resultados")}
             menuPortalTarget={document.body}

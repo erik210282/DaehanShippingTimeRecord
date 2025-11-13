@@ -533,9 +533,9 @@ useEffect(() => {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(150px, 1fr))", gap: "10px", marginBottom: "10px"}}>
-            <DSSelect isMulti options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
-            <DSSelect isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
-            <DSSelect isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
+            <DSSelect isMulti closeMenuOnSelect={false} options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
+            <DSSelect isMulti closeMenuOnSelect={false} options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
+            <DSSelect isMulti closeMenuOnSelect={false} options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
           </div>
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
@@ -727,7 +727,7 @@ useEffect(() => {
           >
             ➕ {t("add_product")}
           </BtnSecondary>
-          <DSSelect isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
+          <DSSelect isMulti closeMenuOnSelect={false} options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ marginTop: 10 }} />
           <DSDate type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} style={{ marginTop: 10 }}/>
           <DSDate type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} style={{ marginTop: 10 }}/>

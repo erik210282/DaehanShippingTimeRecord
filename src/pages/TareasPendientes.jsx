@@ -629,6 +629,7 @@ export default function TareasPendientes() {
               <div style={{ marginTop: 10 }}>
                 <DSSelect
                   isMulti
+                  closeMenuOnSelect={false}
                   options={operadorOpciones}
                   value={
                     tareaActual?.operadores?.map((opId) => ({

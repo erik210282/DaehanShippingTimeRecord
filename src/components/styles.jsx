@@ -5,7 +5,7 @@ export const FIELD_FONT =
 
 export const inputStyle = {
   width: "100%",
-  height: "auto",
+  height: FIELD_HEIGHT,
   minHeight: FIELD_HEIGHT,
   lineHeight: `${FIELD_HEIGHT}px`,
   padding: "8 14px",
@@ -24,24 +24,38 @@ export const nativeSelectStyle = {
 };
 
 export const RS_COMMON_STYLES = {
-  control: (base, state) => ({
-    ...base,
-    backgroundColor: "#333",
-    borderColor: state.isFocused ? "#007BFF" : "#333",
-    boxShadow: "none",
-    minHeight: FIELD_HEIGHT,
-    height: "auto",
-    borderRadius: 10,
-    cursor: "pointer",
-    fontFamily: FIELD_FONT,
-    fontSize: 14,
-  }),
-  valueContainer: (base) => ({
-    ...base,
-    height: FIELD_HEIGHT,
-    padding: "8 14px",
-    alignItems: "center",
-  }),
+  control: (base, state) => {
+    const isMulti = state.isMulti ?? state.selectProps?.isMulti;
+
+    return {
+      ...base,
+      backgroundColor: "#333",
+      borderColor: state.isFocused ? "#007BFF" : "#333",
+      boxShadow: "none",
+      minHeight: FIELD_HEIGHT,
+      // 👉 los single siguen fijos, los multi crecen
+      height: isMulti ? "auto" : FIELD_HEIGHT,
+      borderRadius: 10,
+      cursor: "pointer",
+      fontFamily: FIELD_FONT,
+      fontSize: 14,
+    };
+  },
+
+  valueContainer: (base, state) => {
+    const isMulti = state.isMulti ?? state.selectProps?.isMulti;
+
+    return {
+      ...base,
+      // 👉 que pueda crecer si es multi
+      height: isMulti ? "auto" : FIELD_HEIGHT,
+      padding: "8px 14px",
+      alignItems: isMulti ? "flex-start" : "center",
+      // 👉 las pills se acomodan en varias filas
+      flexWrap: isMulti ? "wrap" : "nowrap",
+    };
+  },
+
   placeholder: (base) => ({ ...base, color: "#bbb" }),
   singleValue: (base) => ({ ...base, color: "#fff" }),
   input: (base) => ({ ...base, color: "#fff" }),
@@ -51,10 +65,19 @@ export const RS_COMMON_STYLES = {
   menu: (base) => ({ ...base, backgroundColor: "#333", zIndex: 9999 }),
   option: (base, state) => ({
     ...base,
-    backgroundColor: state.isSelected ? "#007BFF" : state.isFocused ? "#555" : "#333",
+    backgroundColor: state.isSelected
+      ? "#007BFF"
+      : state.isFocused
+      ? "#555"
+      : "#333",
     color: "#fff",
   }),
-  multiValue: (base) => ({ ...base, backgroundColor: "#007BFF", color: "#fff", borderRadius: 4 }),
+  multiValue: (base) => ({
+    ...base,
+    backgroundColor: "#007BFF",
+    color: "#fff",
+    borderRadius: 4,
+  }),
   multiValueLabel: (base) => ({ ...base, color: "#fff", fontWeight: "bold" }),
   multiValueRemove: (base) => ({
     ...base,
