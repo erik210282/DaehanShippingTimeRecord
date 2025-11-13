@@ -650,9 +650,14 @@ export default function TareasPendientes() {
               <TextAreaStyle
                 placeholder={t("notes")}
                 value={tareaActual.notas}
-                onChange={(e) => setTareaActual({ ...tareaActual, notas: e.target.value })}
-                rows={3}
-                style={{ marginTop: "10px" }}
+                onChange={(e) =>
+                  setTareaActual({ ...tareaActual, notas: e.target.value })
+                }
+                style={{
+                  marginTop: "10px",
+                  minHeight: "120px",  
+                  resize: "vertical",
+                }}
               />
 
               <div style={{ display: "flex", gap: "10px", marginTop: "14px", marginBottom: "10px" }}>
