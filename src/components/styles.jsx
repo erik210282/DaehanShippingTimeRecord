@@ -103,6 +103,7 @@ export const secondaryBtn = {
   cursor: "pointer",
 };
 export const editBtnDark = { ...secondaryBtn };
+
 export const dangerBtn = {
   padding: "8px 14px",
   borderRadius: "10px",

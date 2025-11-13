@@ -6,15 +6,12 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useTranslation } from "react-i18next";
 import {
-  DSInput,
   DSSelect,
-  DSNativeSelect,
   BtnPrimary,
   BtnSecondary,
   BtnEditDark,
   BtnTinyRound,
   BtnDanger,
-  DSDate,
   PillInput,
   PillInputNumber,
   TextAreaStyle,
@@ -654,7 +651,7 @@ export default function TareasPendientes() {
                 value={tareaActual.notas}
                 onChange={(e) => setTareaActual({ ...tareaActual, notas: e.target.value })}
                 rows={3}
-                style={{ width: "100%", marginTop: "10px" }}
+                style={{ width: "300%", marginTop: "10px" }}
               />
 
               <div style={{ display: "flex", gap: "10px", marginTop: "14px", marginBottom: "10px" }}>
