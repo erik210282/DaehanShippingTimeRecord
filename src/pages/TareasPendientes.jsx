@@ -551,7 +551,17 @@ export default function TareasPendientes() {
           </table>
         </div>
 
-        <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
+        <Modal
+          isOpen={modalAbierto}
+          onRequestClose={() => setModalAbierto(false)}
+          style={{
+            content: {
+              width: "70%",         
+              maxWidth: "100%",    
+              margin: "0 auto",
+            }
+          }}
+        >
           <h3>{tareaActual?.id ? t("edit_task") : t("new_task")}</h3>
 
           {tareaActual && (
