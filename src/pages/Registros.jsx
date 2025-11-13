@@ -538,9 +538,7 @@ useEffect(() => {
               setActividadFiltro([]); setProductoFiltro([]); setOperadorFiltro([]);
               setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
             }}>{t("clear_filters")}</BtnSecondary>
-
             <BtnSecondary onClick={exportarCSV}>{t("export_csv")}</BtnSecondary>
-
             <BtnPrimary  onClick={() => abrirModal()}>
               ➕ {t("add_record")}
             </BtnPrimary>        
