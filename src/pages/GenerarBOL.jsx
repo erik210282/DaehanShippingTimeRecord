@@ -505,7 +505,7 @@ export default function GenerarBOL() {
     const QR_SIZE_COVER = 28;
     if (qrShipmentImg) {
       const QR1_X = LOGO_X;                     // alineado con el logo
-      const QR1_Y = LOGO_Y + LOGO_H + 4;        // justo debajo del logo
+      const QR1_Y = LOGO_Y + LOGO_H + 6;        // justo debajo del logo
       try {
         doc.addImage(qrShipmentImg, "PNG", QR1_X, QR1_Y, QR_SIZE_COVER, QR_SIZE_COVER);
         doc.setFontSize(10);
@@ -519,7 +519,7 @@ export default function GenerarBOL() {
 
     if (qrTrailerImg) {
       const QR2_X = W - M - QR_SIZE_COVER;      // pegado a la derecha
-      const QR2_Y = LOGO_Y + LOGO_H + 4;        // misma altura que el QR izquierdo
+      const QR2_Y = LOGO_Y + LOGO_H + 6;        // misma altura que el QR izquierdo
       try {
         doc.addImage(qrTrailerImg, "PNG", QR2_X, QR2_Y, QR_SIZE_COVER, QR_SIZE_COVER);
         doc.setFontSize(10);
@@ -566,7 +566,7 @@ export default function GenerarBOL() {
     // Línea separadora y continuar...
     doc.setLineWidth(0.95);
     doc.line(M, y + 3, W - M, y + 3);
-    y += 10;
+    y += 13;
 
     // ===== 2 columnas con líneas: etiqueta (izq) + valor (izq) =====
     // Datos
