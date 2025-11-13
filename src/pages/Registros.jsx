@@ -521,7 +521,7 @@ useEffect(() => {
       </div>
 
       {pestañaActiva === "paginado" ? (
-        <div>
+        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
           <DSInput placeholder={t("search")} value={busquedaTexto} onChange={(e) => setBusquedaTexto(e.target.value)} />
           {errorBusqueda && <p style={{ color: "red" }}>{errorBusqueda}</p>}
 
