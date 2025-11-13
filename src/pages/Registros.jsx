@@ -530,7 +530,7 @@ useEffect(() => {
             {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(200px, 1fr))", gap: 10, marginBottom: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(150px, 1fr))", gap: "10px", marginBottom: "10px"}}>
             <DSSelect isMulti options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
             <DSSelect isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
             <DSSelect isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
