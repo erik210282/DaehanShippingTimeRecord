@@ -515,10 +515,7 @@ useEffect(() => {
       <h2>{t("records")}</h2>
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
         <BtnSecondary onClick={() => setPestañaActiva("paginado")} disabled={pestañaActiva === "paginado"}>
-          📄 {t("records_title")}
-        </BtnSecondary>
-        <BtnSecondary onClick={() => setPestañaActiva("agrupado")} disabled={pestañaActiva === "agrupado"}>
-          📊 {t("grouped_records")}
+          📊 {t("records_title")}
         </BtnSecondary>
       </div>
 
