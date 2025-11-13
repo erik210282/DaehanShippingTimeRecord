@@ -44,15 +44,17 @@ export const RS_COMMON_STYLES = {
 
   valueContainer: (base, state) => {
     const isMulti = state.isMulti ?? state.selectProps?.isMulti;
+    const hasValues = Array.isArray(state.getValue()) && state.getValue().length > 0;
 
     return {
       ...base,
-      // 👉 que pueda crecer si es multi
-      height: isMulti ? "auto" : FIELD_HEIGHT,
+      // 👉 Si es multi y NO tiene valores → altura normal
+      height: isMulti && !hasValues ? FIELD_HEIGHT : "auto",
       padding: "8px 14px",
-      alignItems: isMulti ? "flex-start" : "center",
-      // 👉 las pills se acomodan en varias filas
-      flexWrap: isMulti ? "wrap" : "nowrap",
+      // 👉 Alinear arriba solo SI hay pills
+      alignItems: isMulti && hasValues ? "flex-start" : "center",
+      // 👉 Wrap hasta que aparezcan pills
+      flexWrap: isMulti && hasValues ? "wrap" : "nowrap",
     };
   },
 
