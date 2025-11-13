@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import Select from "react-select";
 import Modal from "react-modal";
 import Papa from "papaparse";
 import { useTranslation } from "react-i18next";
@@ -7,87 +6,18 @@ import { isAfter, isBefore, format } from "date-fns";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { supabase } from "../supabase/client";
+import {
+  DSInput,
+  BtnPrimary,
+  BtnSecondary,
+  BtnEditDark,
+  BtnDanger,
+  DSDate,
+} from "../components/controls";
+
 
 
 Modal.setAppElement("#root");
-
-// ---------- Estilos rápidos reutilizables ----------
-const pillInput = {
-  width: "100%",
-  padding: "10px 12px",
-  borderRadius: "10px",
-  border: "1px solid #cfd4dc",
-  outline: "none",
-  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
-};
-const pillInputNumber = {
-  width: "55px",
-  height: "34px",
-  textAlign: "center",
-  fontSize: "15px",
-  borderRadius: "8px",
-  border: "1px solid #cfd4dc",
-  outline: "none",
-  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-  padding: "2px 6px",
-  margin: 0,
-};
-const textAreaStyle = {
-  ...pillInput,
-  resize: "vertical",
-};
-const primaryBtn = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "none",
-  background: "linear-gradient(180deg,#3b82f6,#1d4ed8)",
-  color: "#fff",
-  cursor: "pointer",
-  boxShadow: "0 4px 10px rgba(6, 26, 136, 0.25)",
-};
-
-const secondaryBtn = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "1px solid #111",
-  background: "#111",
-  color: "#fff",
-  cursor: "pointer",
-};
-
-const editBtnDark = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "1px solid #111",
-  background: "#111",
-  color: "#fff",
-  cursor: "pointer",
-};
-
-const dangerBtn = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "1px solid #111",
-  background: "#111",
-  color: "#fd2b1cff",
-  cursor: "pointer",
-};
-
-const tinyRoundBtn = {
-  width: 34,
-  height: 34,
-  borderRadius: "9999px",
-  border: "1px solid #111",
-  background: "#111",
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  userSelect: "none",
-  padding: 0,
-  margin: 0,
-  transform: "translateY(1px)", // pequeño ajuste visual
-};
 
 export default function Registros() {
   const { t, i18n } = useTranslation();
@@ -361,7 +291,7 @@ useEffect(() => {
       cantidad: "",
       horaInicio: "",
       horaFin: "",
-      duracion: "", // <-- corregido aquí
+      duracion: "", 
       notas: "",
     });
     setEsNuevo(true);
@@ -581,38 +511,38 @@ useEffect(() => {
       <div className="card">
       <h2>{t("records")}</h2>
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        <button onClick={() => setPestañaActiva("paginado")} disabled={pestañaActiva === "paginado"}>
+        <BtnSecondary onClick={() => setPestañaActiva("paginado")} disabled={pestañaActiva === "paginado"}>
           📄 {t("records_title")}
-        </button>
-        <button onClick={() => setPestañaActiva("agrupado")} disabled={pestañaActiva === "agrupado"}>
+        </BtnSecondary>
+        <BtnSecondary onClick={() => setPestañaActiva("agrupado")} disabled={pestañaActiva === "agrupado"}>
           📊 {t("grouped_records")}
-        </button>
+        </BtnSecondary>
       </div>
 
       {pestañaActiva === "paginado" ? (
         <div>
-          <input placeholder={t("search")} value={busquedaTexto} onChange={(e) => setBusquedaTexto(e.target.value)} />
+          <DSInput placeholder={t("search")} value={busquedaTexto} onChange={(e) => setBusquedaTexto(e.target.value)} />
           {errorBusqueda && <p style={{ color: "red" }}>{errorBusqueda}</p>}
 
-          <input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
-          <input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+          <DSDate value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+          <DSDate value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
           {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
 
-          <Select isMulti options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
-          <Select isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
-          <Select isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
+          <DSSelect isMulti options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
+          <DSSelect isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
+          <DSSelect isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <button onClick={() => {
+            <BtnSecondary onClick={() => {
               setActividadFiltro([]); setProductoFiltro([]); setOperadorFiltro([]);
               setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
-            }}>{t("clear_filters")}</button>
+            }}>{t("clear_filters")}</BtnSecondary>
 
-            <button onClick={exportarCSV}>{t("export_csv")}</button>
+            <BtnSecondary onClick={exportarCSV}>{t("export_csv")}</BtnSecondary>
 
-            <button onClick={() => abrirModal()}>
+            <BtnPrimary  onClick={() => abrirModal()}>
               ➕ {t("add_record")}
-            </button>        
+            </BtnPrimary>        
           </div>  
 
           <div className="table-wrap">
@@ -660,13 +590,12 @@ useEffect(() => {
                       <td>{r.notas || "-"}</td>
                       <td>
                         <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                          <button onClick={() => abrirModal(r)}>{t("edit")}</button>
-                          <button
+                          <BtnEditDark onClick={() => abrirModal(r)}>{t("edit")}</BtnEditDark>
+                          <BtnDanger 
                             onClick={() => setRegistroAEliminar(r)}
-                            className="btn btn-danger"
                           >
                             {t("delete")}
-                          </button>
+                          </BtnDanger >
                         </div>
                       </td>
                     </tr>
@@ -679,12 +608,12 @@ useEffect(() => {
       ) : (
         <div>
           <label>{t("group_by")}: </label>
-          <select value={modoAgrupacion} onChange={(e) => setModoAgrupacion(e.target.value)}>
+          <DSNativeSelect value={modoAgrupacion} onChange={(e) => setModoAgrupacion(e.target.value)} style={{ maxWidth: 220 }}>
             <option value="operador">{t("operator")}</option>
             <option value="producto">{t("product")}</option>
             <option value="actividad">{t("activity")}</option>
             <option value="starttime">{t("fecha")}</option>
-          </select>
+          </DSNativeSelect>
 
           {Object.entries(registrosAgrupados()).map(([grupo, lista]) => (
             <div key={grupo} style={{ marginBottom: "20px" }}>
@@ -743,7 +672,7 @@ useEffect(() => {
         <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
           <h3>{esNuevo ? t("add") : t("edit")}</h3>
 
-          <input
+          <DSInput
             type="text"
             placeholder={t("idx")}
             value={registroActual?.idx}
@@ -751,11 +680,11 @@ useEffect(() => {
             style={{ width: "400px" }}
           />
 
-          <Select options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
+          <DSSelect options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
 
           {registroActual?.productos?.map((p, index) => (
             <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-              <Select
+              <DSSelect
                 options={selectProductos}
                 value={selectProductos.find((opt) => opt.value === p.producto) || null}
                 onChange={(e) => {
@@ -766,7 +695,7 @@ useEffect(() => {
                 placeholder={t("select_product")}
                 styles={{ container: (base) => ({ ...base, flex: 1 }) }}
               />
-              <input
+              <DSInput
                 type="number"
                 placeholder={t("amount")}
                 value={p.cantidad}
@@ -775,44 +704,44 @@ useEffect(() => {
                   nuevos[index].cantidad = e.target.value;
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}
-                style={{ width: "400px" }}
+                style={{ maxWidth: 160 }}
               />
               {index > 0 && (
-                <button type="button" onClick={() => {
+                <BtnTinyRound type="button" onClick={() => {
                   const nuevos = registroActual.productos.filter((_, i) => i !== index);
                   setRegistroActual({ ...registroActual, productos: nuevos });
                 }}
-                style={dangerBtn}
-                >✖</button>
+                >✖</BtnTinyRound>
               )}
             </div>
           ))}
-          <button type="button" 
+          <BtnSecondary type="button"
             onClick={() => setRegistroActual({
               ...registroActual,
               productos: [...registroActual.productos, { producto: "", cantidad: "" }],
             })}
-            style={{ ...secondaryBtn, marginTop: "10px" }}
+            style={{ marginTop: "10px" }}
           >
             ➕ {t("add_product")}
-          </button>
-          <Select isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
+          </BtnSecondary>
+          <DSSelect isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ width: "100%", marginTop: 10 }} />
-          <input type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} />
-          <input type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} />
+          <DSDate type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} style={{ maxWidth: 260, marginTop: 10 }}/>
+          <DSDate type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} style={{ maxWidth: 260, marginTop: 10 }}/>
 
-          <label>{t("duration_min")}</label>
-            <input
+          <label style={{ marginTop: 10 }}>{t("duration_min")}</label>
+            <DSInput
               type="number"
               className="form-control"
               value={registroActual?.duracion || ""}
               onChange={(e) =>
                 setRegistroActual({ ...registroActual, duracion: Number(e.target.value) })
               }
+              style={{ maxWidth: 120 }}
             />
-          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <button type="button" onClick={guardarRegistro} style={primaryBtn}>{t("save")}</button>
-            <button type="button" onClick={() => setModalAbierto(false)} style={secondaryBtn}>{t("cancel")}</button>
+          <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+            <BtnPrimary type="button" onClick={guardarRegistro} style={primaryBtn}>{t("save")}</BtnPrimary>
+            <BtnSecondary type="button" onClick={() => setModalAbierto(false)} style={secondaryBtn}>{t("cancel")}</BtnSecondary>
           </div>
         </Modal>  
 
@@ -827,15 +756,13 @@ useEffect(() => {
             <p>{t("confirm_delete_text")}</p>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-              <button
-                className="secondaryBtn"
+              <BtnSecondary
                 onClick={() => setRegistroAEliminar(null)}
               >
                 {t("cancel")}
-              </button>
+              </BtnSecondary>
 
-              <button
-                className="dangerBtn"
+              <BtnDanger
                 onClick={async () => {
                   try {
                     console.log("[Registros] Eliminar Registros 8:", registroAEliminar.id);
@@ -860,7 +787,7 @@ useEffect(() => {
                 }}
               >
                 {t("confirm")}
-              </button>
+              </BtnDanger>
             </div>
           </Modal>
         )}
