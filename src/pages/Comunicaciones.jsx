@@ -12,6 +12,9 @@ import {
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const API_URL = "https://daehanshippingbackend.onrender.com";
+const API_KEY = "clave-super-secreta-$hipping*2025*";
+
 export default function Comunicaciones() {
   const { t, i18n } = useTranslation();
 
@@ -46,12 +49,16 @@ export default function Comunicaciones() {
     if (!isoString) return "";
     return new Date(isoString).toLocaleString();
   };
-
-  const getUserName = (userId) => {
+    const getUserName = (userId) => {
     if (!userId) return "";
     if (userId === currentUserId) return t("you");
-    const op = operadores.find((o) => o.id === userId);
-    if (op) return op.nombre;
+    // "operadores" ahora es la lista de usuarios del backend
+    const u = operadores.find(
+      (u) => u.uid === userId || u.id === userId
+    );
+    if (u) {
+      return u.displayName || u.display_name || u.email;
+    }
     return userId.slice(0, 8);
   };
 
@@ -70,32 +77,42 @@ export default function Comunicaciones() {
     cargarUsuario();
   }, []);
 
-  // =========================
-  // Cargar operadores (destinatarios)
-  // =========================
-  const cargarOperadores = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("operadores")
-      .select("id, nombre, activo")
-      .order("nombre", { ascending: true });
+    // =========================
+    // Cargar usuarios (destinatarios)
+    // =========================
+    const cargarOperadores = useCallback(async () => {
+      try {
+        const res = await fetch(`${API_URL}/list-users`, {
+          headers: { "x-api-key": API_KEY },
+        });
 
-    if (error) {
-      console.error("Error cargando operadores:", error);
-      toast.error(t("error_loading") || "Error cargando operadores");
-      return;
-    }
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Error al cargar usuarios");
+        }
 
-    const activos =
-      data?.filter((op) => op.activo !== false) ?? [];
+        // Lista de usuarios activos
+        const lista =
+          (data.users || []).filter((u) => u.is_active ?? true) || [];
 
-    setOperadores(activos);
+        // Guardamos la lista completa para usar luego en getUserName
+        setOperadores(lista);
 
-    const opts = activos.map((op) => ({
-      value: op.id,
-      label: op.nombre,
-    }));
-    setOperadoresOptions(opts);
-  }, [t]);
+        // Opciones para el select (uid = id de usuario)
+        const opts = lista.map((u) => ({
+          value: u.uid,
+          label: u.displayName || u.display_name || u.email,
+        }));
+        setOperadoresOptions(opts);
+      } catch (error) {
+        console.error("Error cargando usuarios para comunicaciones:", error);
+        toast.error(
+          error.message ||
+            t("error_loading") ||
+            "Error cargando usuarios"
+        );
+      }
+    }, [t]);
 
   // =========================
   // Cargar threads
@@ -244,7 +261,7 @@ export default function Comunicaciones() {
       );
 
       if (sendToAll) {
-        destinatariosIds = operadores.map((op) => op.id);
+        destinatariosIds = operadores.map((op) => u.uid);
       }
 
       // Limpieza: quitar duplicados y eliminar tu propio id (lo agregamos aparte)

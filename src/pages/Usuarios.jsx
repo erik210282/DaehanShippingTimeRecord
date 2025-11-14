@@ -238,7 +238,7 @@ export default function Usuarios() {
                 <tbody>
                   {usuarios.map((u) => (
                     <tr key={u.uid}>
-                      <td>{displayName}</td>
+                      <td>{u.displayName || u.display_name || ""}</td>
                       <td>{u.email}</td>
                       <td>
                         <DSNativeSelect
