@@ -8,6 +8,7 @@ import {
   BtnPrimary,
   BtnSecondary,
   TextAreaStyle,
+  BtnDanger,
 } from "../components/controls";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
