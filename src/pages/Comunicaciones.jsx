@@ -491,7 +491,9 @@ export default function Comunicaciones() {
                             flex: 1,
                             borderWidth: urgencia === "normal" ? 2 : 1,
                             borderColor:
-                              urgencia === "normal" ? "#000" : "#ccc",
+                              urgencia === "normal" ? "#b71c1c" : "#ccc",
+                              backgroundColor:
+                              urgencia === "normal" ? "#415024ff" : undefined,
                           }}
                         >
                           {t("normal")}
@@ -505,7 +507,7 @@ export default function Comunicaciones() {
                             borderColor:
                               urgencia === "urgent" ? "#b71c1c" : "#ccc",
                             backgroundColor:
-                              urgencia === "urgent" ? "#ffebee" : undefined,
+                              urgencia === "urgent" ? "#415024ff" : undefined,
                           }}
                         >
                           {t("urgent")}
