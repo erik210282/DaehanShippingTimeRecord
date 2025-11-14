@@ -157,6 +157,7 @@
   "select_first_group": "첫 번째 그룹을 선택하세요",
   "select_second_group": "두 번째 그룹 선택",
   "select_shipper": "송하인 선택",
+  "select_pack": "포장 유형 선택",
   "select_shipper_first": "송하인을 선택하세요",
   "shipment_number": "출하 번호",
   "shipper": "송하인",

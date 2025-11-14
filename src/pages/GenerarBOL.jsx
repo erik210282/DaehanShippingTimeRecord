@@ -62,8 +62,7 @@ export default function GenerarBOL() {
     setDockNo("");
     setSealNo("");
     setPackingSlip("");
-
-    setPackType("returnable");
+    setPackType("");
 
     // limpiar previews/datos auxiliares
     setLineasIdx([]);
@@ -93,7 +92,7 @@ export default function GenerarBOL() {
   });
 
   // "returnable" | "expendable"
-  const [packType, setPackType] = React.useState("returnable");
+  const [packType, setPackType] = React.useState("");
 
   // datos para construir el PDF
   const [lineasIdx, setLineasIdx] = React.useState([]);
@@ -1533,7 +1532,8 @@ export default function GenerarBOL() {
           )}
 
           {/* Packaging type */}
-          <DSNativeSelect value={packType} onChange={(e) => setPackType(e.target.value)}>
+          <DSNativeSelect value={packType} onChange={(e) => setPackType(e.target.value)} disabled={packType.length === 0}>
+            <option value="">{t("select_pack")}</option>
             <option value="expendable">{t("expendable", "Expendable")}</option>
             <option value="returnable">{t("returnable", "Retornable")}</option>
           </DSNativeSelect>
