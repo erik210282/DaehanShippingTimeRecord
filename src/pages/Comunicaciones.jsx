@@ -372,7 +372,7 @@ export default function Comunicaciones() {
 
   return (
     <div className="page-container page-container--fluid">
-      <div className="card">
+      <div className="card" style={{ maxWidth: 1200, margin: "0 auto" }}>
         <h2>{t("communications")}</h2>
 
         {/* ================= NUEVO MENSAJE ================= */}
@@ -383,8 +383,10 @@ export default function Comunicaciones() {
             padding: 12,
             marginBottom: 16,
             display: "grid",
-            gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.2fr)",
-            gap: 12,
+            gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1.1fr)",
+            columnGap: 12,
+            rowGap: 8,
+            alignItems: "flex-start",
           }}
         >
           {/* Columna izquierda: título + contenido */}
