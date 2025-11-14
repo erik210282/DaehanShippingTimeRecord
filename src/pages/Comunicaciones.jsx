@@ -493,7 +493,7 @@ export default function Comunicaciones() {
                             borderColor:
                               urgencia === "normal" ? "#b71c1c" : "#ccc",
                             backgroundColor:
-                              urgencia === "normal" ? "#415024ff" : undefined,
+                              urgencia === "normal" ? "#2a2cb9ff" : undefined,
                           }}
                         >
                           {t("normal")}
@@ -507,7 +507,7 @@ export default function Comunicaciones() {
                             borderColor:
                               urgencia === "urgent" ? "#b71c1c" : "#ccc",
                             backgroundColor:
-                              urgencia === "urgent" ? "#415024ff" : undefined,
+                              urgencia === "urgent" ? "#2a2cb9ff" : undefined,
                           }}
                         >
                           {t("urgent")}
