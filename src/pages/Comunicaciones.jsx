@@ -205,15 +205,47 @@ export default function Comunicaciones() {
         { event: "INSERT", schema: "public", table: "chat_messages" },
         (payload) => {
           const nuevo = payload.new;
-          // Si es del thread seleccionado, lo agregamos
+
+          // 1) Si es del hilo seleccionado, lo agregamos al chat
           setMessages((prev) => {
             if (!selectedThread || nuevo.thread_id !== selectedThread.id) {
               return prev;
             }
-            // Evitar duplicados
             if (prev.some((m) => m.id === nuevo.id)) return prev;
             return [...prev, nuevo];
           });
+
+          // 2) Si el mensaje viene de otro usuario, verificamos si el hilo es urgente
+          if (nuevo.sender_id === currentUserId) return;
+
+          (async () => {
+            const { data: thread, error } = await supabase
+              .from("chat_threads")
+              .select("id, titulo, es_urgente")
+              .eq("id", nuevo.thread_id)
+              .single();
+
+            if (error || !thread) return;
+            if (!thread.es_urgente) return;
+
+            // Toast invasivo para mensajes urgentes
+            toast.error(
+              t("urgent_message_arrived", {
+                title: thread.titulo || "",
+              }) ||
+                "Nuevo mensaje URGENTE",
+              {
+                position: "top-center",
+                autoClose: false, // 👈 no se cierra solo
+                closeOnClick: true,
+                onClick: () => {
+                  // Al hacer clic, seleccionamos ese hilo
+                  setSelectedThread(thread);
+                  cargarMensajesThread(thread.id);
+                },
+              }
+            );
+          })();
         }
       )
       .subscribe((status) => {
@@ -341,6 +373,77 @@ export default function Comunicaciones() {
     }
   };
 
+    // =========================
+    // Eliminar conversación completa
+    // =========================
+    const handleDeleteThread = async () => {
+      if (!selectedThread?.id) return;
+
+      const ok = window.confirm(
+        t("confirm_delete_thread") ||
+          "¿Eliminar la conversación completa y todos sus mensajes?"
+      );
+      if (!ok) return;
+
+      const threadId = selectedThread.id;
+
+      try {
+        // 1) Obtener ids de mensajes del hilo
+        const { data: mensajes, error: msgSelError } = await supabase
+          .from("chat_messages")
+          .select("id")
+          .eq("thread_id", threadId);
+
+        if (msgSelError) throw msgSelError;
+
+        const messageIds = (mensajes || []).map((m) => m.id);
+
+        // 2) Eliminar estados de lectura
+        if (messageIds.length > 0) {
+          const { error: rsError } = await supabase
+            .from("chat_message_read_status")
+            .delete()
+            .in("message_id", messageIds);
+          if (rsError) throw rsError;
+        }
+
+        // 3) Eliminar mensajes
+        const { error: delMsgError } = await supabase
+          .from("chat_messages")
+          .delete()
+          .eq("thread_id", threadId);
+        if (delMsgError) throw delMsgError;
+
+        // 4) Eliminar participantes
+        const { error: partError } = await supabase
+          .from("chat_thread_participants")
+          .delete()
+          .eq("thread_id", threadId);
+        if (partError) throw partError;
+
+        // 5) Eliminar hilo
+        const { error: threadError } = await supabase
+          .from("chat_threads")
+          .delete()
+          .eq("id", threadId);
+        if (threadError) throw threadError;
+
+        // Actualizar UI
+        setThreads((prev) => prev.filter((th) => th.id !== threadId));
+        setSelectedThread(null);
+        setMessages([]);
+
+        toast.success(
+          t("thread_deleted") || "Conversación eliminada correctamente"
+        );
+      } catch (err) {
+        console.error("Error eliminando conversación:", err);
+        toast.error(
+          err.message || "Error eliminando la conversación"
+        );
+      }
+    };
+
   // =========================
   // Enviar respuesta en thread actual
   // =========================
@@ -446,7 +549,7 @@ export default function Comunicaciones() {
                     <div>
                       <label
                         style={{
-                          fontSize: 15,
+                          fontSize: 18,
                           fontWeight: 600,
                           display: "block",
                           marginBottom: 4,
@@ -459,9 +562,10 @@ export default function Comunicaciones() {
                         <label
                           style={{
                             fontSize: 14,
-                            display: "flex",
-                            alignItems: "left",
+                            display: "inline-flex",
+                            alignItems: "center",
                             gap: 6,
+                            whiteSpace: "nowrap",
                           }}
                         >
                           <input
@@ -496,7 +600,8 @@ export default function Comunicaciones() {
                     <div>
                       <label
                         style={{
-                          fontSize: 13,
+                          fontStyle: "bold",
+                          fontSize: 18,
                           fontWeight: 600,
                           display: "block",
                           marginBottom: 4,
@@ -748,9 +853,7 @@ export default function Comunicaciones() {
                 <TextAreaStyle
                   placeholder={t("type_message")}
                   value={replyText}
-                  onChange={(e) =>
-                    setReplyText(e.target.value)
-                  }
+                  onChange={(e) => setReplyText(e.target.value)}
                   rows={2}
                   style={{
                     minHeight: 60,
@@ -760,9 +863,19 @@ export default function Comunicaciones() {
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "flex-end",
+                    justifyContent: "space-between",
+                    gap: 8,
                   }}
                 >
+                  {/* Botón eliminar conversación */}
+                  <BtnSecondary
+                    type="button"
+                    onClick={handleDeleteThread}
+                  >
+                    {t("delete_conversation") || "Eliminar conversación"}
+                  </BtnSecondary>
+
+                  {/* Botón responder */}
                   <BtnPrimary onClick={handleSendReply}>
                     {t("send_to_all_in_thread")}
                   </BtnPrimary>

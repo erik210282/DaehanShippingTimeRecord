@@ -245,5 +245,9 @@
   "unread": "Sin leer",
   "you": "Tú",
   "from_supervisor": "Supervisor",
-  "from_operator": "Operador"
+  "from_operator": "Operador",
+  "confirm_delete_thread": "¿Eliminar la conversación completa y todos sus mensajes?",
+  "thread_deleted": "Conversación eliminada correctamente",
+  "delete_conversation": "Eliminar conversación",
+  "urgent_message_arrived": "Nuevo mensaje URGENTE: {{title}}"
 }

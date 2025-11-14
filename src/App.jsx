@@ -21,6 +21,45 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      const { data, error } = await supabase.rpc(
+        "count_unread_messages_for_user"
+      );
+      if (!error && typeof data === "number") {
+        setUnreadCount(data);
+      } else if (error) {
+        console.warn("Error contando mensajes no leídos:", error.message);
+      }
+    };
+
+    fetchUnread();
+
+    const channel = supabase
+      .channel("navbar_unread_chat")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chat_messages" },
+        () => fetchUnread()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_message_read_status",
+        },
+        () => fetchUnread()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
 
   useEffect(() => {
     const obtenerSesion = async () => {
@@ -56,7 +95,26 @@ const Navbar = () => {
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
         <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
         <button onClick={() => navigate("/generarbol")}>{t("generate_bol")}</button>
-        <button onClick={() => navigate("/comunicaciones")}>{t("communications")}</button>
+        <button onClick={() => navigate("/comunicaciones")}>
+          {t("communications")}
+          {unreadCount > 0 && (
+            <span
+              style={{
+                marginLeft: 6,
+                background: "#e53935",
+                color: "#fff",
+                borderRadius: 999,
+                padding: "0 6px",
+                fontSize: 11,
+                minWidth: 16,
+                textAlign: "center",
+                display: "inline-block",
+              }}
+            >
+              {unreadCount}
+            </span>
+          )}
+        </button>
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
         <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
