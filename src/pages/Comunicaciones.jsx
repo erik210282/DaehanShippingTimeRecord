@@ -443,7 +443,7 @@ export default function Comunicaciones() {
                             gap: 6,
                           }}
                         >
-                          <label
+                          <input
                             type="checkbox"
                             checked={sendToAll}
                             onChange={(e) => setSendToAll(e.target.checked)}
