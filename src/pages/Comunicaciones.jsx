@@ -460,7 +460,7 @@ export default function Comunicaciones() {
                           style={{
                             fontSize: 14,
                             display: "flex",
-                            alignItems: "center",
+                            alignItems: "left",
                             gap: 6,
                           }}
                         >
