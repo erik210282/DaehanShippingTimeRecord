@@ -375,153 +375,152 @@ export default function Comunicaciones() {
       <div className="card" style={{ maxWidth: 1200, margin: "0 auto" }}>
         <h2>{t("communications")}</h2>
 
-        {/* ================= NUEVO MENSAJE ================= */}
-        <div
-          style={{
-            border: "1px solid #ddd",
-            borderRadius: 12,
-            padding: 12,
-            marginBottom: 16,
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1.1fr)",
-            columnGap: 12,
-            rowGap: 8,
-            alignItems: "flex-start",
-          }}
-        >
-          {/* Columna izquierda: título + contenido */}
-          <div>
-            <h3 style={{ marginTop: 0, marginBottom: 8 }}>
-              {t("new_message")}
-            </h3>
-            <DSInput
-              placeholder={t("message_title")}
-              value={tituloNuevo}
-              onChange={(e) => setTituloNuevo(e.target.value)}
-              style={{ marginBottom: 8 }}
-            />
-            <TextAreaStyle
-              placeholder={t("message_body")}
-              value={contenidoNuevo}
-              onChange={(e) => setContenidoNuevo(e.target.value)}
-              rows={4}
-              style={{
-                minHeight: 90,
-              }}
-            />
-          </div>
-
-          {/* Columna derecha: destinatarios + urgencia + botón enviar */}
-          <div>
-            {/* Destinatarios */}
-            <div style={{ marginBottom: 10 }}>
-              <label
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  display: "block",
-                  marginBottom: 4,
-                }}
-              >
-                {t("recipients")}
-              </label>
-
-              <div style={{ marginBottom: 4 }}>
-                <label
+                {/* ================= NUEVO MENSAJE ================= */}
+                <div
                   style={{
-                    fontSize: 12,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
+                    border: "1px solid #ddd",
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 16,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={sendToAll}
-                    onChange={(e) => setSendToAll(e.target.checked)}
+                  <h3 style={{ marginTop: 0, marginBottom: 4 }}>
+                    {t("new_message")}
+                  </h3>
+
+                  {/* Título */}
+                  <DSInput
+                    placeholder={t("message_title")}
+                    value={tituloNuevo}
+                    onChange={(e) => setTituloNuevo(e.target.value)}
+                    style={{ marginBottom: 4 }}
                   />
-                  {t("all_users")}
-                </label>
-              </div>
 
-              {!sendToAll && (
-                <DSSelect
-                  isMulti
-                  options={operadoresOptions}
-                  value={destinatariosSeleccionados}
-                  onChange={(vals) =>
-                    setDestinatariosSeleccionados(vals || [])
-                  }
-                  placeholder={t("recipients")}
-                  styles={{
-                    container: (base) => ({
-                      ...base,
-                      width: "100%",
-                    }),
-                  }}
-                />
-              )}
-            </div>
+                  {/* Contenido */}
+                  <TextAreaStyle
+                    placeholder={t("message_body")}
+                    value={contenidoNuevo}
+                    onChange={(e) => setContenidoNuevo(e.target.value)}
+                    rows={4}
+                    style={{
+                      minHeight: 90,
+                      marginBottom: 4,
+                    }}
+                  />
 
-            {/* Urgencia */}
-            <div style={{ marginBottom: 10 }}>
-              <label
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  display: "block",
-                  marginBottom: 4,
-                }}
-              >
-                {t("urgent_level")}
-              </label>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => setUrgencia("normal")}
-                  style={{
-                    flex: 1,
-                    padding: "6px 10px",
-                    borderRadius: 8,
-                    border:
-                      urgencia === "normal"
-                        ? "2px solid #111"
-                        : "1px solid #ccc",
-                    backgroundColor:
-                      urgencia === "normal" ? "#f4f4f4" : "#fff",
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  {t("normal")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUrgencia("urgent")}
-                  style={{
-                    flex: 1,
-                    padding: "6px 10px",
-                    borderRadius: 8,
-                    border:
-                      urgencia === "urgent"
-                        ? "2px solid #b71c1c"
-                        : "1px solid #ccc",
-                    backgroundColor:
-                      urgencia === "urgent" ? "#ffebee" : "#fff",
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  {t("urgent")}
-                </button>
-              </div>
-            </div>
+                  {/* Fila inferior: destinatarios + urgencia + botón */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.4fr) auto",
+                      columnGap: 12,
+                      rowGap: 8,
+                      alignItems: "flex-end",
+                    }}
+                  >
+                    {/* Destinatarios */}
+                    <div>
+                      <label
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          display: "block",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {t("recipients")}
+                      </label>
 
-            <BtnPrimary onClick={handleCreateThread}>
-              {t("send")}
-            </BtnPrimary>
-          </div>
-        </div>
+                      <div style={{ marginBottom: 4 }}>
+                        <label
+                          style={{
+                            fontSize: 12,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={sendToAll}
+                            onChange={(e) => setSendToAll(e.target.checked)}
+                          />
+                          {t("all_users")}
+                        </label>
+                      </div>
+
+                      {!sendToAll && (
+                        <DSSelect
+                          isMulti
+                          options={operadoresOptions}
+                          value={destinatariosSeleccionados}
+                          onChange={(vals) =>
+                            setDestinatariosSeleccionados(vals || [])
+                          }
+                          placeholder={t("recipients")}
+                          styles={{
+                            container: (base) => ({
+                              ...base,
+                              width: "100%",
+                            }),
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Urgencia */}
+                    <div>
+                      <label
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          display: "block",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {t("urgent_level")}
+                      </label>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <BtnSecondary
+                          type="button"
+                          onClick={() => setUrgencia("normal")}
+                          style={{
+                            flex: 1,
+                            borderWidth: urgencia === "normal" ? 2 : 1,
+                            borderColor:
+                              urgencia === "normal" ? "#000" : "#ccc",
+                          }}
+                        >
+                          {t("normal")}
+                        </BtnSecondary>
+                        <BtnSecondary
+                          type="button"
+                          onClick={() => setUrgencia("urgent")}
+                          style={{
+                            flex: 1,
+                            borderWidth: urgencia === "urgent" ? 2 : 1,
+                            borderColor:
+                              urgencia === "urgent" ? "#b71c1c" : "#ccc",
+                            backgroundColor:
+                              urgencia === "urgent" ? "#ffebee" : undefined,
+                          }}
+                        >
+                          {t("urgent")}
+                        </BtnSecondary>
+                      </div>
+                    </div>
+
+                    {/* Botón enviar */}
+                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <BtnPrimary onClick={handleCreateThread}>
+                        {t("send")}
+                      </BtnPrimary>
+                    </div>
+                  </div>
+                </div>
 
         {/* ================= LISTA DE THREADS + CHAT ================= */}
         <div
