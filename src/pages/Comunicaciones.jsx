@@ -195,31 +195,31 @@ export default function Comunicaciones() {
     }
   }, [selectedThread, cargarMensajesThread]);
 
-  // =========================
-  // Realtime: mensajes nuevos
-  // =========================
-  useEffect(() => {
-    const canalMensajes = supabase
-      .channel("canal_chat_mensajes_web")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages" },
-        (payload) => {
-          const nuevo = payload.new;
+    // =========================
+    // Realtime: mensajes nuevos
+    // =========================
+    useEffect(() => {
+      const canalMensajes = supabase
+        .channel("canal_chat_mensajes_web")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages" },
+          async (payload) => {
+            const nuevo = payload.new;
 
-          // 1) Si es del hilo seleccionado, lo agregamos al chat
-          setMessages((prev) => {
-            if (!selectedThread || nuevo.thread_id !== selectedThread.id) {
-              return prev;
+            // 1) Siempre refrescamos la lista de conversaciones
+            //    (por si es un hilo nuevo o cambió orden)
+            cargarThreads();
+
+            // 2) Si estoy viendo ese hilo, recargo mensajes desde BD
+            if (selectedThread?.id === nuevo.thread_id) {
+              await cargarMensajesThread(nuevo.thread_id);
             }
-            if (prev.some((m) => m.id === nuevo.id)) return prev;
-            return [...prev, nuevo];
-          });
 
-          // 2) Si el mensaje viene de otro usuario, verificamos si el hilo es urgente
-          if (nuevo.sender_id === currentUserId) return;
+            // 3) Si el mensaje viene de otro usuario y el hilo es urgente,
+            //    mostramos el toast invasivo
+            if (nuevo.sender_id === currentUserId) return;
 
-          (async () => {
             const { data: thread, error } = await supabase
               .from("chat_threads")
               .select("id, titulo, es_urgente")
@@ -229,52 +229,51 @@ export default function Comunicaciones() {
             if (error || !thread) return;
             if (!thread.es_urgente) return;
 
-            // Toast invasivo para mensajes urgentes
             toast.error(
               t("urgent_message_arrived", {
                 title: thread.titulo || "",
-              }) ||
-                "Nuevo mensaje URGENTE",
+              }) || "Nuevo mensaje URGENTE",
               {
                 position: "top-center",
-                autoClose: false, // 👈 no se cierra solo
+                autoClose: false,
                 closeOnClick: true,
                 onClick: () => {
-                  // Al hacer clic, seleccionamos ese hilo
                   setSelectedThread(thread);
                   cargarMensajesThread(thread.id);
                 },
               }
             );
-          })();
-        }
-      )
-      .subscribe((status) => {
-        console.log("📶 Estado canal chat_mensajes_web:", status);
-      });
+          }
+        )
+        .subscribe((status) => {
+          console.log("📶 Estado canal chat_mensajes_web:", status);
+        });
 
-    const canalThreads = supabase
-      .channel("canal_chat_threads_web")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_threads" },
-        (payload) => {
-          const nuevoThread = payload.new;
-          setThreads((prev) => {
-            if (prev.some((t) => t.id === nuevoThread.id)) return prev;
-            return [nuevoThread, ...prev];
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log("📶 Estado canal chat_threads_web:", status);
-      });
+      const canalThreads = supabase
+        .channel("canal_chat_threads_web")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_threads" },
+          () => {
+            // Cuando se crea un hilo nuevo desde otro usuario, recargamos
+            cargarThreads();
+          }
+        )
+        .subscribe((status) => {
+          console.log("📶 Estado canal chat_threads_web:", status);
+        });
 
-    return () => {
-      supabase.removeChannel(canalMensajes);
-      supabase.removeChannel(canalThreads);
-    };
-  }, [selectedThread]);
+      return () => {
+        supabase.removeChannel(canalMensajes);
+        supabase.removeChannel(canalThreads);
+      };
+    }, [
+      selectedThread?.id,
+      currentUserId,
+      cargarMensajesThread,
+      cargarThreads,
+      t,
+    ]);
 
   // =========================
   // Crear nuevo thread + primer mensaje
@@ -640,7 +639,13 @@ export default function Comunicaciones() {
 
                     {/* Botón enviar */}
                     <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                      <BtnPrimary onClick={handleCreateThread}>
+                      <BtnPrimary
+                        onClick={handleCreateThread}
+                        style={{
+                          minWidth: 150,
+                          justifyContent: "center",
+                        }}
+                      >
                         {t("send")}
                       </BtnPrimary>
                     </div>
@@ -872,12 +877,22 @@ export default function Comunicaciones() {
                   <BtnDanger
                     type="button"
                     onClick={handleDeleteThread}
+                     style={{
+                      minWidth: 170,
+                      justifyContent: "center",
+                    }}
                   >
                     {t("delete_conversation") || "Eliminar conversación"}
                   </BtnDanger>
 
                   {/* Botón responder */}
-                  <BtnPrimary onClick={handleSendReply}>
+                  <BtnPrimary
+                    onClick={handleSendReply}
+                    style={{
+                      minWidth: 170,
+                      justifyContent: "center",
+                    }}
+                  >
                     {t("send_to_all_in_thread")}
                   </BtnPrimary>
                 </div>
