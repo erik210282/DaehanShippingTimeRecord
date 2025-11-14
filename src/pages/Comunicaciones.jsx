@@ -512,9 +512,7 @@ export default function Comunicaciones() {
                             flex: 1,
                             borderWidth: urgencia === "normal" ? 2 : 1,
                             borderColor:
-                              urgencia === "normal" ? "#b71c1c" : "#ccc",
-                            backgroundColor:
-                              urgencia === "normal" ? "#2a2cb9ff" : undefined,
+                              urgencia === "normal" ? "#099414ff" : "#ccc",
                           }}
                         >
                           {t("normal")}
@@ -526,9 +524,7 @@ export default function Comunicaciones() {
                             flex: 1,
                             borderWidth: urgencia === "urgent" ? 2 : 1,
                             borderColor:
-                              urgencia === "urgent" ? "#b71c1c" : "#ccc",
-                            backgroundColor:
-                              urgencia === "urgent" ? "#2a2cb9ff" : undefined,
+                              urgencia === "urgent" ? "#c00000ff" : "#ccc",
                           }}
                         >
                           {t("urgent")}
