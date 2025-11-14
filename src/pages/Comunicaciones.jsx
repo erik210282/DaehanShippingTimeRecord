@@ -435,7 +435,7 @@ export default function Comunicaciones() {
                       </label>
 
                       <div style={{ marginBottom: 4 }}>
-                        <DSInput
+                        <text
                           style={{
                             fontSize: 12,
                             display: "inline-flex",
@@ -443,13 +443,13 @@ export default function Comunicaciones() {
                             gap: 6,
                           }}
                         >
-                          <DSInput
+                          <text
                             type="checkbox"
                             checked={sendToAll}
                             onChange={(e) => setSendToAll(e.target.checked)}
                           />
                           {t("all_users")}
-                        </DSInput>
+                        </text>
                       </div>
 
                       {!sendToAll && (
@@ -492,7 +492,7 @@ export default function Comunicaciones() {
                             borderWidth: urgencia === "normal" ? 2 : 1,
                             borderColor:
                               urgencia === "normal" ? "#b71c1c" : "#ccc",
-                              backgroundColor:
+                            backgroundColor:
                               urgencia === "normal" ? "#415024ff" : undefined,
                           }}
                         >
