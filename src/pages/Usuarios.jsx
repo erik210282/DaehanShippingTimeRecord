@@ -34,7 +34,7 @@ export default function Usuarios() {
   ]), [t]);
 
   const crearUsuario = async () => {
-    if (!email || !password || !role) {
+    if (!email || !displayName || !password || !role) {
       setMensajeKey("error_user_creation");
       setMensajeExtra("");
       return;
@@ -50,7 +50,7 @@ export default function Usuarios() {
         body: JSON.stringify({
           email,
           password,
-          display_name: displayName,
+          displayName,
           role,
           is_active: isActive,
         }),
@@ -62,6 +62,7 @@ export default function Usuarios() {
       setMensajeKey("success_user_created");
       setMensajeExtra("");
       setEmail("");
+      setDisplayName("");
       setPassword("");
       if (mostrarUsuarios) cargarUsuarios();
     } catch (error) {
@@ -293,7 +294,7 @@ export default function Usuarios() {
                           }}
                         />
                       </td>
-                      <td>{u.uid}</td>
+                    <td>{u.uid}</td>
                     </tr>
                   ))}
                 </tbody>
