@@ -435,7 +435,7 @@ export default function Comunicaciones() {
                       </label>
 
                       <div style={{ marginBottom: 4 }}>
-                        <text
+                        <label
                           style={{
                             fontSize: 12,
                             display: "inline-flex",
@@ -443,13 +443,13 @@ export default function Comunicaciones() {
                             gap: 6,
                           }}
                         >
-                          <text
+                          <label
                             type="checkbox"
                             checked={sendToAll}
                             onChange={(e) => setSendToAll(e.target.checked)}
                           />
                           {t("all_users")}
-                        </text>
+                        </label>
                       </div>
 
                       {!sendToAll && (
