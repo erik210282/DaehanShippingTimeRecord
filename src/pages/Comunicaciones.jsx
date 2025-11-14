@@ -160,11 +160,13 @@ export default function Comunicaciones() {
         setMessages(data || []);
 
         // Marcar como leído usando RPC
-        await supabase
-          .rpc("mark_thread_as_read", { p_thread_id: threadId })
-          .catch((err) =>
-            console.warn("mark_thread_as_read error:", err.message)
-          );
+        const { error: readError } = await supabase.rpc(
+          "mark_thread_as_read",
+          { p_thread_id: threadId }
+        );
+        if (readError) {
+          console.warn("mark_thread_as_read error:", readError.message);
+        }
       } catch (err) {
         console.error("Error cargando mensajes:", err);
         toast.error(t("error_loading") || "Error cargando mensajes");
@@ -261,7 +263,7 @@ export default function Comunicaciones() {
       );
 
       if (sendToAll) {
-        destinatariosIds = operadores.map((op) => u.uid);
+        destinatariosIds = operadores.map((u) => u.uid);
       }
 
       // Limpieza: quitar duplicados y eliminar tu propio id (lo agregamos aparte)
@@ -367,16 +369,18 @@ export default function Comunicaciones() {
       setMessages((prev) => [...prev, data]);
       setReplyText("");
 
-      // Marcamos como leído de nuevo (para este mensaje también)
-      await supabase
-        .rpc("mark_thread_as_read", {
-          p_thread_id: selectedThread.id,
-        })
-        .catch(() => {});
-    } catch (err) {
-      console.error("Error enviando mensaje:", err);
-      toast.error(err.message || "Error enviando mensaje");
-    }
+            // Marcamos como leído de nuevo (para este mensaje también)
+            const { error: readError2 } = await supabase.rpc(
+              "mark_thread_as_read",
+              { p_thread_id: selectedThread.id }
+            );
+            if (readError2) {
+              console.warn("mark_thread_as_read error:", readError2.message);
+            }
+          } catch (err) {
+            console.error("Error enviando mensaje:", err);
+            toast.error(err.message || "Error enviando mensaje");
+          }
   };
 
   // =========================
