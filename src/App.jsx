@@ -6,6 +6,7 @@ import Usuarios from "./pages/Usuarios";
 import Login from "./pages/Login";
 import Resumen from "./pages/Resumen";
 import GenerarBOL from "./pages/GenerarBOL";
+import Comunicaciones from "./pages/Comunicaciones";
 import TareasPendientes from "./pages/TareasPendientes";
 import ConfiguracionTareas from "./pages/ConfiguracionTareas";
 import { useTranslation } from "react-i18next";
@@ -55,6 +56,7 @@ const Navbar = () => {
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
         <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
         <button onClick={() => navigate("/generarbol")}>{t("generate_bol")}</button>
+        <button onClick={() => navigate("/comunicaciones")}>{t("communications")}</button>
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
         <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
@@ -81,6 +83,9 @@ const PrivateArea = () => (
           } />
           <Route path="/generarbol" element={
             <ProtectedRoute><GenerarBOL /></ProtectedRoute>
+          } />
+          <Route path="/comunicaciones" element={
+            <ProtectedRoute><Comunicaciones /></ProtectedRoute>
           } />
           <Route path="/registros" element={
             <ProtectedRoute><Registros /></ProtectedRoute>
