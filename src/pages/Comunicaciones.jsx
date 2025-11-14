@@ -458,8 +458,8 @@ export default function Comunicaciones() {
                       <div style={{ marginBottom: 4 }}>
                         <label
                           style={{
-                            fontSize: 12,
-                            display: "inline-flex",
+                            fontSize: 14,
+                            display: "flex",
                             alignItems: "center",
                             gap: 6,
                           }}
