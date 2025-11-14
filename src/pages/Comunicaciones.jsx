@@ -378,11 +378,7 @@ export default function Comunicaciones() {
     // =========================
     const handleDeleteThread = async () => {
       if (!selectedThread?.id) return;
-
-      const ok = window.confirm(
-        t("confirm_delete_thread") ||
-          "¿Eliminar la conversación completa y todos sus mensajes?"
-      );
+      const ok = window.confirm(t("confirm_delete_thread") || "¿Eliminar la conversación completa y todos sus mensajes?");
       if (!ok) return;
 
       const threadId = selectedThread.id;
@@ -642,7 +638,7 @@ export default function Comunicaciones() {
                       <BtnPrimary
                         onClick={handleCreateThread}
                         style={{
-                          minWidth: 150,
+                          minWidth: 170,
                           justifyContent: "center",
                         }}
                       >

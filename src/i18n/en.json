@@ -246,7 +246,7 @@
   "you": "You",
   "from_supervisor": "Supervisor",
   "from_operator": "Operator",
-  "confirm delete thread": "Delete the entire conversation and all its messages?", 
+  "confirm_delete_thread": "Delete the entire conversation and all its messages?", 
   "thread_deleted": "Conversation successfully deleted", 
   "delete_conversation": "Delete conversation",
   "urgent_message_arrived": "New URGENT message: {{title}}"
