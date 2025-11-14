@@ -238,7 +238,7 @@ export default function Usuarios() {
                       <td>{u.email}</td>
                       <td>
                         <DSNativeSelect
-                          value={u.role || ''}
+                          value={u.role}
                           onChange={async (e) => {
                             await fetch(`${API_URL}/update-user-role`, {
                               method: 'POST',
