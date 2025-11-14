@@ -177,6 +177,7 @@ export default function Usuarios() {
 
           <DSInput
             type="text"
+            name="displayName"
             placeholder={t("display_name") || "Nombre para mostrar"}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
@@ -237,7 +238,7 @@ export default function Usuarios() {
                 <tbody>
                   {usuarios.map((u) => (
                     <tr key={u.uid}>
-                      <td>{u.displayName}</td>
+                      <td>{displayName}</td>
                       <td>{u.email}</td>
                       <td>
                         <DSNativeSelect
