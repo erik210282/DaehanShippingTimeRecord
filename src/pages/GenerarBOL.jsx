@@ -1532,7 +1532,7 @@ export default function GenerarBOL() {
           )}
 
           {/* Packaging type */}
-          <DSNativeSelect value={packType} onChange={(e) => setPackType(e.target.value)} disabled={packType.length === 0}>
+          <DSNativeSelect value={packType} onChange={(e) => setPackType(e.target.value)}>
             <option value="">{t("select_pack")}</option>
             <option value="expendable">{t("expendable", "Expendable")}</option>
             <option value="returnable">{t("returnable", "Retornable")}</option>
