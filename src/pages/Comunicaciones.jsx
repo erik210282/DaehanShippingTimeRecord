@@ -425,7 +425,7 @@ export default function Comunicaciones() {
                     <div>
                       <label
                         style={{
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: 600,
                           display: "block",
                           marginBottom: 4,
@@ -435,7 +435,7 @@ export default function Comunicaciones() {
                       </label>
 
                       <div style={{ marginBottom: 4 }}>
-                        <label
+                        <DSInput
                           style={{
                             fontSize: 12,
                             display: "inline-flex",
@@ -443,13 +443,13 @@ export default function Comunicaciones() {
                             gap: 6,
                           }}
                         >
-                          <input
+                          <DSInput
                             type="checkbox"
                             checked={sendToAll}
                             onChange={(e) => setSendToAll(e.target.checked)}
                           />
                           {t("all_users")}
-                        </label>
+                        </DSInput>
                       </div>
 
                       {!sendToAll && (
