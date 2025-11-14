@@ -224,6 +224,7 @@ export default function Usuarios() {
             <table className="table">
                 <thead>
                   <tr>
+                    <th>{t("display_name")}</th>
                     <th>{t("email")}</th>
                     <th>{t("rol")}</th>                    
                     <th>{t("new_password")}</th>
@@ -235,6 +236,7 @@ export default function Usuarios() {
                 <tbody>
                   {usuarios.map((u) => (
                     <tr key={u.uid}>
+                      <td>{u.displayName}</td>
                       <td>{u.email}</td>
                       <td>
                         <DSNativeSelect
