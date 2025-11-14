@@ -186,7 +186,7 @@ export default function Usuarios() {
             value={role}
             onChange={(e) => setRole(e.target.value)}
           >
-            <option value="" disabled>{t('select_role_placeholder')}</option>
+            <option value="">{t('select_role_placeholder')}</option>
             {ROLE_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
