@@ -246,8 +246,8 @@
   "you": "당신", 
   "from_supervisor": "관리자",
   "from_operator": "운영자",
-  "confirm delete thread": "전체 대화와 모든 메시지를 삭제하시겠습니까?", 
-  "thread deleted": "대화가 성공적으로 삭제되었습니다", 
+  "confirm_delete_thread": "전체 대화와 모든 메시지를 삭제하시겠습니까?", 
+  "thread_deleted": "대화가 성공적으로 삭제되었습니다", 
   "delete_conversation": "대화를 삭제하세요",
   "urgent_message_arrived": "새로운 긴급 메시지: {{title}}"
 }

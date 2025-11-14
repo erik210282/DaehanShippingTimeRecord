@@ -868,12 +868,12 @@ export default function Comunicaciones() {
                   }}
                 >
                   {/* Botón eliminar conversación */}
-                  <BtnSecondary
+                  <BtnDanger
                     type="button"
                     onClick={handleDeleteThread}
                   >
                     {t("delete_conversation") || "Eliminar conversación"}
-                  </BtnSecondary>
+                  </BtnDanger>
 
                   {/* Botón responder */}
                   <BtnPrimary onClick={handleSendReply}>
