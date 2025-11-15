@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
 import { DSInput, DSNativeSelect, BtnPrimary, BtnSecondary, BtnEditDark, BtnDanger } from "../components/controls";
+import { supabase } from "../supabase/client";
 
 const API_URL = "https://daehanshippingbackend.onrender.com";
 const API_KEY = "clave-super-secreta-$hipping*2025*";
@@ -74,15 +75,15 @@ export default function Usuarios() {
   const cargarUsuarios = async () => {
     setCargando(true);
     try {
-      const res = await fetch(`${API_URL}/list-users`, {
-        headers: { "x-api-key": API_KEY },
-      });
+      const { data, error } = await supabase
+        .from("operadores")
+        // Ajusta nombres si en tu tabla son distintos
+        .select("id, uid, nombre, email, rol, activo")
+        .order("nombre", { ascending: true });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (error) throw error;
 
-      const lista = data.users || [];
-
+      const lista = data || [];
       setUsuarios(lista);
     } catch (error) {
       setMensajeKey("network_error");
@@ -238,11 +239,11 @@ export default function Usuarios() {
                 <tbody>
                   {usuarios.map((u) => (
                     <tr key={u.uid}>
-                      <td>{u.displayName || u.display_name || ""}</td>
+                      <td>{u.nombre || ""}</td>
                       <td>{u.email}</td>
                       <td>
                         <DSNativeSelect
-                          value={u.role}
+                          value={u.rol || ""}
                           onChange={async (e) => {
                             await fetch(`${API_URL}/update-user-role`, {
                               method: 'POST',
@@ -284,7 +285,7 @@ export default function Usuarios() {
                       <td>
                         <input
                           type="checkbox"
-                          checked={u.is_active ?? true}
+                          checked={u.activo ?? true}
                           onChange={async (e) => {
                             await fetch(`${API_URL}/update-user-role`, {
                               method: 'POST',

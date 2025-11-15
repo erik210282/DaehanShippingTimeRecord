@@ -50,19 +50,18 @@ export default function Comunicaciones() {
     if (!isoString) return "";
     return new Date(isoString).toLocaleString();
   };
-    const getUserName = (userId) => {
+
+  const getUserName = (userId) => {
     if (!userId) return "";
     if (userId === currentUserId) return t("you");
-    // "operadores" ahora es la lista de usuarios del backend
-    const u = operadores.find(
-      (u) => u.uid === userId || u.id === userId
-    );
+    const u = operadores.find((op) => op.uid === userId);
     if (u) {
-      return u.displayName || u.display_name || u.email;
+      return u.nombre || u.email || userId.slice(0, 8);
     }
+
     return userId.slice(0, 8);
   };
-
+  
   // =========================
   // Cargar usuario actual
   // =========================
@@ -78,39 +77,38 @@ export default function Comunicaciones() {
     cargarUsuario();
   }, []);
 
-      // =========================
-    // Cargar usuarios (destinatarios)
-    // =========================
-    const cargarOperadores = useCallback(async () => {
-      try {
-        const res = await fetch(`${API_URL}/list-users`, {
-          headers: { "x-api-key": API_KEY },
-        });
+        // =========================
+        // Cargar usuarios (destinatarios) desde tabla operadores
+        // =========================
+        const cargarOperadores = useCallback(async () => {
+          try {
+            const { data, error } = await supabase
+              .from("operadores")
+              // Ajusta los campos si tus nombres son distintos
+              .select("id, uid, nombre, email, activo, rol")
+              .eq("activo", true)
+              .not("uid", "is", null)
+              .order("nombre", { ascending: true });
 
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || "Error al cargar usuarios");
-        }
+            if (error) throw error;
 
-        // Solo usuarios activos
-        const lista = (data.users || []).filter(
-          (u) => u.is_active ?? true
-        );
+            const lista = data || [];
+            setOperadores(lista);
 
-        setOperadores(lista);
-
-        const opts = lista.map((u) => ({
-          value: u.uid,
-          label: u.displayName || u.display_name || u.email,
-        }));
-        setOperadoresOptions(opts);
-      } catch (error) {
-        console.error("Error cargando usuarios para comunicaciones:", error);
-        toast.error(
-          error.message || t("error_loading") || "Error cargando usuarios"
-        );
-      }
-    }, [t]);
+            const opts = lista.map((u) => ({
+              value: u.uid,
+              label: u.nombre || u.email,
+            }));
+            setOperadoresOptions(opts);
+          } catch (error) {
+            console.error("Error cargando usuarios para comunicaciones:", error);
+            toast.error(
+              error.message ||
+                t("error_loading") ||
+                "Error cargando usuarios"
+            );
+          }
+        }, [t]);
 
   // =========================
   // Cargar threads
