@@ -273,6 +273,23 @@ export default function Comunicaciones() {
         t,
       ]);
 
+        // =========================
+        // Refresco periódico (por si Realtime falla)
+        // =========================
+        useEffect(() => {
+          const interval = setInterval(() => {
+            // Refrescar lista de conversaciones
+            cargarThreads();
+
+            // Si hay un hilo seleccionado, refrescar sus mensajes
+            if (selectedThread?.id) {
+              cargarMensajesThread(selectedThread.id);
+            }
+          }, 5000); // cada 5 segundos
+
+          return () => clearInterval(interval);
+        }, [selectedThread?.id, cargarThreads, cargarMensajesThread]);
+
   // =========================
   // Crear nuevo thread + primer mensaje
   // =========================
