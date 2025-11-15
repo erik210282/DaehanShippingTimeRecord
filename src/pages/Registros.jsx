@@ -9,7 +9,6 @@ import { supabase } from "../supabase/client";
 import {
   DSInput,
   DSSelect,
-  DSNativeSelect,
   BtnPrimary,
   BtnSecondary,
   BtnEditDark,
@@ -474,9 +473,9 @@ useEffect(() => {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(150px, 1fr))", gap: "10px", marginBottom: "10px"}}>
-            <DSSelect isMulti closeMenuOnSelect={false} options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
-            <DSSelect isMulti closeMenuOnSelect={false} options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
-            <DSSelect isMulti closeMenuOnSelect={false} options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
+            <DSSelect isMulti closeMenuOnSelect={true} options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
+            <DSSelect isMulti closeMenuOnSelect={true} options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
+            <DSSelect isMulti closeMenuOnSelect={true} options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
           </div>
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>

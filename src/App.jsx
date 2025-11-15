@@ -94,6 +94,7 @@ const Navbar = () => {
       <div className="navbar-center">
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
         <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
+        <button onClick={() => navigate("/registros")}>{t("records")}</button>
         <button onClick={() => navigate("/generarbol")}>{t("generate_bol")}</button>
         <button onClick={() => navigate("/comunicaciones")}>
           {t("communications")}
@@ -115,7 +116,6 @@ const Navbar = () => {
             </span>
           )}
         </button>
-        <button onClick={() => navigate("/registros")}>{t("records")}</button>
         <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
         <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
@@ -139,14 +139,14 @@ const PrivateArea = () => (
           <Route path="/resumen" element={
             <ProtectedRoute><Resumen /></ProtectedRoute>
           } />
+          <Route path="/registros" element={
+            <ProtectedRoute><Registros /></ProtectedRoute>
+          } />
           <Route path="/generarbol" element={
             <ProtectedRoute><GenerarBOL /></ProtectedRoute>
           } />
           <Route path="/comunicaciones" element={
             <ProtectedRoute><Comunicaciones /></ProtectedRoute>
-          } />
-          <Route path="/registros" element={
-            <ProtectedRoute><Registros /></ProtectedRoute>
           } />
           <Route path="/productividad" element={
             <ProtectedRoute><Productividad /></ProtectedRoute>
