@@ -80,6 +80,7 @@ export const DSSelect = ({
   return (
     <Select
       {...rest}
+      isMulti={isMulti}  
       closeMenuOnSelect={effectiveClose} 
       styles={{ ...RS_COMMON_STYLES, ...(styles || {}) }}
       components={{
