@@ -639,7 +639,7 @@ export default function TareasPendientes() {
               <div style={{ marginTop: 10 }}>
                 <DSSelect
                   isMulti
-                  closeMenuOnSelect={false}
+                  closeMenuOnSelect={true}
                   options={operadorOpciones}
                   value={
                     tareaActual?.operadores?.map((opId) => ({
