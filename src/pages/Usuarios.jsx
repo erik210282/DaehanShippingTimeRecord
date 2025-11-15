@@ -78,7 +78,7 @@ export default function Usuarios() {
         // 1) Perfiles: info principal del usuario
         const { data: perfiles, error: errPerfiles } = await supabase
           .from("profiles")
-          .select("user_id, display_name, role, is_active")
+          .select("id, display_name, role, is_active")
           .order("display_name", { ascending: true });
 
         if (errPerfiles) throw errPerfiles;
@@ -93,12 +93,13 @@ export default function Usuarios() {
         // 3) Unimos la info para que tenga EXACTAMENTE
         //    la misma forma que devolvía /list-users
         const lista = (perfiles || []).map((p) => {
-          const op = (ops || []).find((o) => o.uid === p.user_id) || {};
+          const op = (ops || []).find((o) => o.uid === p.id) || {};
           return {
-            uid: p.user_id,
-            email: op.email || "",     // mostrada en la tabla
-            role: p.role,              // usado en el select de rol
-            is_active: p.is_active,    // usado en el checkbox
+            uid: p.id,                  // lo que usan tus endpoints de backend
+            nombre: p.display_name,     // para la primera columna
+            email: op.email || "",
+            rol: p.role,                // la tabla usa u.rol
+            activo: p.is_active,        // la tabla usa u.activo
           };
         });
 

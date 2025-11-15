@@ -82,7 +82,7 @@ export default function Comunicaciones() {
       // 1) Perfiles: quién es cada usuario, su rol y si está activo
       const { data: perfiles, error: errPerfiles } = await supabase
         .from("profiles")
-        .select("user_id, display_name, role, is_active")
+        .select("id, display_name, role, is_active")
         .eq("is_active", true)
         .order("display_name", { ascending: true });
 
@@ -97,10 +97,11 @@ export default function Comunicaciones() {
 
       // 3) Unimos perfiles + operadores en un solo arreglo
       const lista = (perfiles || []).map((p) => {
-        const op = (ops || []).find((o) => o.uid === p.user_id) || {};
+        const op = (ops || []).find((o) => o.uid === p.id) || {};
         return {
-          uid: p.user_id,
+          uid: p.id,
           displayName: p.display_name,
+          nombre: p.display_name,
           email: op.email || "",
           role: p.role,
           is_active: p.is_active,
