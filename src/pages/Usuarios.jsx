@@ -72,26 +72,47 @@ export default function Usuarios() {
     }
   };
 
-  const cargarUsuarios = async () => {
-    setCargando(true);
-    try {
-      const { data, error } = await supabase
-        .from("operadores")
-        // Ajusta nombres si en tu tabla son distintos
-        .select("id, uid, nombre, email, rol, activo")
-        .order("nombre", { ascending: true });
+    const cargarUsuarios = async () => {
+      setCargando(true);
+      try {
+        // 1) Perfiles: info principal del usuario
+        const { data: perfiles, error: errPerfiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name, role, is_active")
+          .order("display_name", { ascending: true });
 
-      if (error) throw error;
+        if (errPerfiles) throw errPerfiles;
 
-      const lista = data || [];
-      setUsuarios(lista);
-    } catch (error) {
-      setMensajeKey("network_error");
-      setMensajeExtra("");
-    } finally {
-      setCargando(false);
-    }
-  };
+        // 2) Operadores: aquí guardamos opcionalmente el email
+        const { data: ops, error: errOps } = await supabase
+          .from("operadores")
+          .select("uid, email");
+
+        if (errOps) throw errOps;
+
+        // 3) Unimos la info para que tenga EXACTAMENTE
+        //    la misma forma que devolvía /list-users
+        const lista = (perfiles || []).map((p) => {
+          const op = (ops || []).find((o) => o.uid === p.user_id) || {};
+          return {
+            uid: p.user_id,
+            email: op.email || "",     // mostrada en la tabla
+            role: p.role,              // usado en el select de rol
+            is_active: p.is_active,    // usado en el checkbox
+          };
+        });
+
+        setUsuarios(lista);
+        setMensajeKey("");
+        setMensajeExtra("");
+      } catch (error) {
+        console.error("Error cargando usuarios:", error);
+        setMensajeKey("network_error");
+        setMensajeExtra(error.message || "");
+      } finally {
+        setCargando(false);
+      }
+    };
 
   const actualizarPassword = async (uid) => {
     const nuevoPassword = nuevosPasswords[uid] || "";

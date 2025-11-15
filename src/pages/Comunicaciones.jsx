@@ -13,9 +13,6 @@ import {
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const API_URL = "https://daehanshippingbackend.onrender.com";
-const API_KEY = "clave-super-secreta-$hipping*2025*";
-
 export default function Comunicaciones() {
   const { t, i18n } = useTranslation();
 
@@ -77,38 +74,57 @@ export default function Comunicaciones() {
     cargarUsuario();
   }, []);
 
-        // =========================
-        // Cargar usuarios (destinatarios) desde tabla operadores
-        // =========================
-        const cargarOperadores = useCallback(async () => {
-          try {
-            const { data, error } = await supabase
-              .from("operadores")
-              // Ajusta los campos si tus nombres son distintos
-              .select("id, uid, nombre, email, activo, rol")
-              .eq("activo", true)
-              .not("uid", "is", null)
-              .order("nombre", { ascending: true });
+  // =========================
+  // Cargar usuarios (destinatarios) desde Supabase
+  // =========================
+  const cargarOperadores = useCallback(async () => {
+    try {
+      // 1) Perfiles: quién es cada usuario, su rol y si está activo
+      const { data: perfiles, error: errPerfiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, role, is_active")
+        .eq("is_active", true)
+        .order("display_name", { ascending: true });
 
-            if (error) throw error;
+      if (errPerfiles) throw errPerfiles;
 
-            const lista = data || [];
-            setOperadores(lista);
+      // 2) Operadores: aquí podemos guardar opcionalmente el email
+      const { data: ops, error: errOps } = await supabase
+        .from("operadores")
+        .select("uid, email");
 
-            const opts = lista.map((u) => ({
-              value: u.uid,
-              label: u.nombre || u.email,
-            }));
-            setOperadoresOptions(opts);
-          } catch (error) {
-            console.error("Error cargando usuarios para comunicaciones:", error);
-            toast.error(
-              error.message ||
-                t("error_loading") ||
-                "Error cargando usuarios"
-            );
-          }
-        }, [t]);
+      if (errOps) throw errOps;
+
+      // 3) Unimos perfiles + operadores en un solo arreglo
+      const lista = (perfiles || []).map((p) => {
+        const op = (ops || []).find((o) => o.uid === p.user_id) || {};
+        return {
+          uid: p.user_id,
+          displayName: p.display_name,
+          email: op.email || "",
+          role: p.role,
+          is_active: p.is_active,
+        };
+      });
+
+      // Guardamos lista completa para getUserName, replies, etc.
+      setOperadores(lista);
+
+      // Opciones para el DSSelect (igual que antes: value = uid)
+      const opts = lista.map((u) => ({
+        value: u.uid,
+        label: u.displayName || u.email || u.uid.slice(0, 8),
+      }));
+      setOperadoresOptions(opts);
+    } catch (error) {
+      console.error("Error cargando usuarios para comunicaciones:", error);
+      toast.error(
+        error.message ||
+          t("error_loading") ||
+          "Error cargando usuarios"
+      );
+    }
+  }, [t]);
 
   // =========================
   // Cargar threads
