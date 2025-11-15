@@ -68,20 +68,30 @@ export const DSSelect = ({
   components: customComponents,
   menuPortalTarget,
   menuPosition = "fixed",
+  isMulti,
+  closeMenuOnSelect,
   ...rest
-}) => (
-  <Select
-    {...rest}
-    styles={{ ...RS_COMMON_STYLES, ...(styles || {}) }}
-    components={{
-      ...customComponents,
-      DropdownIndicator: DropdownArrow,
-      IndicatorSeparator: () => null,
-    }}
-    menuPortalTarget={menuPortalTarget ?? document.body}
-    menuPosition={menuPosition}
-  />
-);
+}) => {
+  const effectiveClose =
+    typeof closeMenuOnSelect === "boolean"
+      ? closeMenuOnSelect
+      : true;
+
+  return (
+    <Select
+      {...rest}
+      closeMenuOnSelect={effectiveClose} 
+      styles={{ ...RS_COMMON_STYLES, ...(styles || {}) }}
+      components={{
+        ...customComponents,
+        DropdownIndicator: DropdownArrow,
+        IndicatorSeparator: () => null,
+      }}
+      menuPortalTarget={menuPortalTarget ?? document.body}
+      menuPosition={menuPosition}
+    />
+  );
+};
 
 // --------- Botones ----------
 export const BtnPrimary = ({ children, style, ...p }) => (

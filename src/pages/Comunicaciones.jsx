@@ -78,7 +78,7 @@ export default function Comunicaciones() {
     cargarUsuario();
   }, []);
 
-    // =========================
+      // =========================
     // Cargar usuarios (destinatarios)
     // =========================
     const cargarOperadores = useCallback(async () => {
@@ -92,14 +92,13 @@ export default function Comunicaciones() {
           throw new Error(data.error || "Error al cargar usuarios");
         }
 
-        // Lista de usuarios activos
-        const lista =
-          (data.users || []).filter((u) => u.is_active ?? true) || [];
+        // Solo usuarios activos
+        const lista = (data.users || []).filter(
+          (u) => u.is_active ?? true
+        );
 
-        // Guardamos la lista completa para usar luego en getUserName
         setOperadores(lista);
 
-        // Opciones para el select (uid = id de usuario)
         const opts = lista.map((u) => ({
           value: u.uid,
           label: u.displayName || u.display_name || u.email,
@@ -108,9 +107,7 @@ export default function Comunicaciones() {
       } catch (error) {
         console.error("Error cargando usuarios para comunicaciones:", error);
         toast.error(
-          error.message ||
-            t("error_loading") ||
-            "Error cargando usuarios"
+          error.message || t("error_loading") || "Error cargando usuarios"
         );
       }
     }, [t]);
