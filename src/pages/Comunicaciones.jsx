@@ -171,15 +171,6 @@ export default function Comunicaciones() {
           if (error) throw error;
 
           setMessages(data || []);
-
-          // Marcar como leído usando RPC
-          const { error: readError } = await supabase.rpc(
-            "mark_thread_as_read",
-            { p_thread_id: threadId }
-          );
-          if (readError) {
-            console.warn("mark_thread_as_read error:", readError.message);
-          }
         } catch (err) {
           console.error("Error cargando mensajes:", err);
           toast.error(t("error_loading") || "Error cargando mensajes");
@@ -189,7 +180,6 @@ export default function Comunicaciones() {
       },
       [t]
     );
-
 
   // =========================
   // Inicialización: operadores + threads
@@ -478,14 +468,7 @@ export default function Comunicaciones() {
       setMessages((prev) => [...prev, data]);
       setReplyText("");
 
-            // Marcamos como leído de nuevo (para este mensaje también)
-            const { error: readError2 } = await supabase.rpc(
-              "mark_thread_as_read",
-              { p_thread_id: selectedThread.id }
-            );
-            if (readError2) {
-              console.warn("mark_thread_as_read error:", readError2.message);
-            }
+        
           } catch (err) {
             console.error("Error enviando mensaje:", err);
             toast.error(err.message || "Error enviando mensaje");
