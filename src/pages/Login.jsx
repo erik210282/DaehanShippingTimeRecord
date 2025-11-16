@@ -48,9 +48,9 @@ export default function Login() {
       }
 
       // Validación de perfil como en móvil (opcional)
-      const { data: profile, error: pErr } = await supabase
-        .from("profiles")
-        .select("role, is_active, display_name")
+      const { data: operadores, error: pErr } = await supabase
+        .from("operadores")
+        .select("role, is_active, nombre")
         .eq("id", data.user.id)
         .maybeSingle();
 
@@ -58,20 +58,20 @@ export default function Login() {
         toast.error(t("error") || "Ocurrió un error");
         return;
       }
-      if (profile && profile.is_active === false) {
+      if (operadores && operadores.is_active === false) {
         toast.error(t("notActive") || "Tu usuario no está activo");
         await supabase.auth.signOut();
         return;
       }
       const allowedRoles = ["operador", "supervisor"];
-      if (profile && !allowedRoles.includes(profile.role)) {
+      if (operadores && !allowedRoles.includes(operadores.role)) {
         toast.error(t("wrongRole") || "No tienes permisos para entrar");
         await supabase.auth.signOut();
         return;
       }
 
       localStorage.setItem("usuario", JSON.stringify(data.user));
-      toast.success(t("welcome_user", { name: profile?.display_name ?? "" }) || "¡Bienvenido!");
+      toast.success(t("welcome_user", { name: operadores?.nombre ?? "" }) || "¡Bienvenido!");
       navigate("/tareas-pendientes");
     } catch (err) {
       console.error(err);
