@@ -27,7 +27,7 @@ export default function RequireSupervisor({ children }) {
           return;
         }
 
-        const { data: operadores, error } = await supabase
+        const { data: profile, error } = await supabase
           .from("operadores")
           .select("role, is_active")
           .eq("id", user.id)
@@ -42,7 +42,7 @@ export default function RequireSupervisor({ children }) {
           return;
         }
 
-        const isSupervisor = operadores?.role === "supervisor" && operadores?.is_active === true;
+        const isSupervisor = profile?.role === "supervisor" && profile?.is_active === true;
 
         if (mounted) {
           setAllowed(!!isSupervisor);
