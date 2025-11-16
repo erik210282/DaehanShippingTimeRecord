@@ -78,6 +78,7 @@ export default function Usuarios() {
           const { data: ops, error } = await supabase
             .from("operadores")
             .select("uid, nombre, email, role, activo")
+            .order("activo", { ascending: false })
             .order("nombre", { ascending: true });
 
           if (error) throw error;

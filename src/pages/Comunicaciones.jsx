@@ -74,58 +74,44 @@ export default function Comunicaciones() {
     cargarUsuario();
   }, []);
 
-  // =========================
-  // Cargar usuarios (destinatarios) desde Supabase
-  // =========================
-  const cargarOperadores = useCallback(async () => {
-    try {
-      // 1) Perfiles: quién es cada usuario, su rol y si está activo
-      const { data: perfiles, error: errPerfiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, role, is_active")
-        .eq("is_active", true)
-        .order("display_name", { ascending: true });
+    // =========================
+    // Cargar usuarios (destinatarios) desde Supabase
+    // =========================
+    const cargarOperadores = useCallback(async () => {
+      try {
+        // Cargar directamente desde la tabla operadores
+        const { data: ops, error } = await supabase
+          .from("operadores")
+          .select("uid, nombre, email, role, activo")
+          .eq("activo", true)
+          .order("nombre", { ascending: true });
 
-      if (errPerfiles) throw errPerfiles;
+        if (error) throw error;
 
-      // 2) Operadores: aquí podemos guardar opcionalmente el email
-      const { data: ops, error: errOps } = await supabase
-        .from("operadores")
-        .select("uid, email");
-
-      if (errOps) throw errOps;
-
-      // 3) Unimos perfiles + operadores en un solo arreglo
-      const lista = (perfiles || []).map((p) => {
-        const op = (ops || []).find((o) => o.uid === p.id) || {};
-        return {
-          uid: p.id,
-          displayName: p.display_name,
-          nombre: p.display_name,
+        const lista = (ops || []).map((op) => ({
+          uid: op.uid,
+          nombre: op.nombre,
           email: op.email || "",
-          role: p.role,
-          is_active: p.is_active,
-        };
-      });
+          role: op.role,
+          is_active: op.activo,
+        }));
 
-      // Guardamos lista completa para getUserName, replies, etc.
-      setOperadores(lista);
+        // Guardamos lista completa para getUserName, replies, etc.
+        setOperadores(lista);
 
-      // Opciones para el DSSelect (igual que antes: value = uid)
-      const opts = lista.map((u) => ({
-        value: u.uid,
-        label: u.displayName || u.email || u.uid.slice(0, 8),
-      }));
-      setOperadoresOptions(opts);
-    } catch (error) {
-      console.error("Error cargando usuarios para comunicaciones:", error);
-      toast.error(
-        error.message ||
-          t("error_loading") ||
-          "Error cargando usuarios"
-      );
-    }
-  }, [t]);
+        // Opciones para el DSSelect (value = uid, label = nombre/email/uid)
+        const opts = lista.map((u) => ({
+          value: u.uid,
+          label: u.nombre || u.email || u.uid.slice(0, 8),
+        }));
+        setOperadoresOptions(opts);
+      } catch (error) {
+        console.error("Error cargando usuarios para comunicaciones:", error);
+        toast.error(
+          error.message || t("error_loading") || "Error cargando usuarios"
+        );
+      }
+    }, [t]);
 
   // =========================
   // Cargar threads
