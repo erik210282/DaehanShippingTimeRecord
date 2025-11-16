@@ -11,7 +11,7 @@ export default function Usuarios() {
   const { t, i18n } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState('');
+  const [nombre, setNombre] = useState('');
   const [role, setRole] = useState(""); 
   const [isActive, setIsActive] = useState(true);
   const [usuarios, setUsuarios] = useState([]);
@@ -35,7 +35,7 @@ export default function Usuarios() {
   ]), [t]);
 
   const crearUsuario = async () => {
-    if (!email || !displayName || !password || !role) {
+    if (!email || !nombre || !password || !role) {
       setMensajeKey("error_user_creation");
       setMensajeExtra("");
       return;
@@ -51,7 +51,7 @@ export default function Usuarios() {
         body: JSON.stringify({
           email,
           password,
-          displayName,
+          nombre,
           role,
           is_active: isActive,
         }),
@@ -63,7 +63,7 @@ export default function Usuarios() {
       setMensajeKey("success_user_created");
       setMensajeExtra("");
       setEmail("");
-      setDisplayName("");
+      setNombre("");
       setPassword("");
       if (mostrarUsuarios) cargarUsuarios();
     } catch (error) {
@@ -72,48 +72,35 @@ export default function Usuarios() {
     }
   };
 
-    const cargarUsuarios = async () => {
-      setCargando(true);
-      try {
-        // 1) Perfiles: info principal del usuario
-        const { data: perfiles, error: errPerfiles } = await supabase
-          .from("profiles")
-          .select("id, display_name, role, is_active")
-          .order("display_name", { ascending: true });
+      const cargarUsuarios = async () => {
+        setCargando(true);
+        try {
+          const { data: ops, error } = await supabase
+            .from("operadores")
+            .select("uid, nombre, email, role, activo")
+            .order("nombre", { ascending: true });
 
-        if (errPerfiles) throw errPerfiles;
+          if (error) throw error;
 
-        // 2) Operadores: aquí guardamos opcionalmente el email
-        const { data: ops, error: errOps } = await supabase
-          .from("operadores")
-          .select("uid, email");
-
-        if (errOps) throw errOps;
-
-        // 3) Unimos la info para que tenga EXACTAMENTE
-        //    la misma forma que devolvía /list-users
-        const lista = (perfiles || []).map((p) => {
-          const op = (ops || []).find((o) => o.uid === p.id) || {};
-          return {
-            uid: p.id,                  // lo que usan tus endpoints de backend
-            nombre: p.display_name,     // para la primera columna
+          const lista = (ops || []).map((op) => ({
+            uid: op.uid,
+            nombre: op.nombre,
             email: op.email || "",
-            rol: p.role,                // la tabla usa u.rol
-            activo: p.is_active,        // la tabla usa u.activo
-          };
-        });
+            rol: op.role || "",
+            activo: op.activo ?? true,
+          }));
 
-        setUsuarios(lista);
-        setMensajeKey("");
-        setMensajeExtra("");
-      } catch (error) {
-        console.error("Error cargando usuarios:", error);
-        setMensajeKey("network_error");
-        setMensajeExtra(error.message || "");
-      } finally {
-        setCargando(false);
-      }
-    };
+          setUsuarios(lista);
+          setMensajeKey("");
+          setMensajeExtra("");
+        } catch (error) {
+          console.error("Error cargando operadores:", error);
+          setMensajeKey("network_error");
+          setMensajeExtra(error.message || "");
+        } finally {
+          setCargando(false);
+        }
+      };
 
   const actualizarPassword = async (uid) => {
     const nuevoPassword = nuevosPasswords[uid] || "";
@@ -200,10 +187,10 @@ export default function Usuarios() {
 
           <DSInput
             type="text"
-            name="displayName"
+            name="nombre"
             placeholder={t("display_name") || "Nombre para mostrar"}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
             autoComplete="off"
           />
 
@@ -267,17 +254,24 @@ export default function Usuarios() {
                         <DSNativeSelect
                           value={u.rol || ""}
                           onChange={async (e) => {
-                            await fetch(`${API_URL}/update-user-role`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-                              body: JSON.stringify({ uid: u.uid, role: e.target.value }),
-                            });
+                            const nuevoRol = e.target.value;
+                            const { error } = await supabase
+                              .from("operadores")
+                              .update({ role: nuevoRol })
+                              .eq("uid", u.uid);
+
+                            if (error) {
+                              console.error("Error actualizando rol:", error);
+                            }
+
                             cargarUsuarios();
                           }}
                         >
                           <option value="" disabled>{t('select_role_placeholder')}</option>
-                          {ROLE_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          {ROLE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
                           ))}
                         </DSNativeSelect>
                       </td>
@@ -309,11 +303,14 @@ export default function Usuarios() {
                           type="checkbox"
                           checked={u.activo ?? true}
                           onChange={async (e) => {
-                            await fetch(`${API_URL}/update-user-role`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-                              body: JSON.stringify({ uid: u.uid, is_active: e.target.checked }),
-                            });
+                            const nuevoActivo = e.target.checked;
+                            const { error } = await supabase
+                              .from("operadores")
+                              .update({ activo: nuevoActivo })
+                              .eq("uid", u.uid);
+                            if (error) {
+                              console.error("Error actualizando activo:", error);
+                            }
                             cargarUsuarios();
                           }}
                         />
