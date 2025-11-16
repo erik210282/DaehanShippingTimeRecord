@@ -51,12 +51,18 @@ export default function Login() {
       const { data: profile, error: pErr } = await supabase
         .from("operadores")
         .select("role, activo, nombre")
-        .eq("uid", data.user.id)   // uid coincide con auth.user.id
+        .eq("uid", data.user.id)   // uid en operadores = id en auth.users
         .maybeSingle();
 
       if (pErr) {
         console.error("Error cargando perfil operador:", pErr);
         toast.error(t("error") || "Ocurrió un error");
+        return;
+      }
+
+      if (profile && profile.activo === false) {
+        toast.error(t("notActive") || "Tu usuario no está activo");
+        await supabase.auth.signOut();
         return;
       }
 

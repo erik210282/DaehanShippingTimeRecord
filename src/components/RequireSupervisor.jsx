@@ -27,10 +27,10 @@ export default function RequireSupervisor({ children }) {
           return;
         }
 
-        const { data: profile, error } = await supabase
+                const { data: profile, error } = await supabase
           .from("operadores")
-          .select("role, is_active")
-          .eq("id", user.id)
+          .select("role, activo")
+          .eq("uid", user.id)
           .maybeSingle();
 
         if (error) {
@@ -42,8 +42,9 @@ export default function RequireSupervisor({ children }) {
           return;
         }
 
-        const isSupervisor = profile?.role === "supervisor" && profile?.activo === true;
-
+        const isSupervisor =
+          profile?.role === "supervisor" && profile?.activo === true;
+          
         if (mounted) {
           setAllowed(!!isSupervisor);
           setChecking(false);
