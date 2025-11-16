@@ -50,15 +50,18 @@ export default function Login() {
       // Validación de perfil como en móvil (opcional)
       const { data: profile, error: pErr } = await supabase
         .from("operadores")
-        .select("role, is_active, nombre")
-        .eq("id", data.user.id)
+        .select("role, activo, nombre")
+        .eq("uid", data.user.id)   // uid coincide con auth.user.id
         .maybeSingle();
 
       if (pErr) {
+        console.error("Error cargando perfil operador:", pErr);
         toast.error(t("error") || "Ocurrió un error");
         return;
       }
-      if (profile && profile.is_active === false) {
+
+      // Si existe registro y está inactivo, bloquear
+      if (profile && profile.activo === false) {
         toast.error(t("notActive") || "Tu usuario no está activo");
         await supabase.auth.signOut();
         return;

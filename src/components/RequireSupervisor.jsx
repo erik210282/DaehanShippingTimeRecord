@@ -42,7 +42,7 @@ export default function RequireSupervisor({ children }) {
           return;
         }
 
-        const isSupervisor = profile?.role === "supervisor" && profile?.is_active === true;
+        const isSupervisor = profile?.role === "supervisor" && profile?.activo === true;
 
         if (mounted) {
           setAllowed(!!isSupervisor);
