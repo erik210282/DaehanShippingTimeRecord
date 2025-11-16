@@ -102,7 +102,7 @@ export default function Usuarios() {
           setCargando(false);
         }
       };
-
+ 
   const actualizarPassword = async (uid) => {
     const nuevoPassword = nuevosPasswords[uid] || "";
     if (!nuevoPassword) {
