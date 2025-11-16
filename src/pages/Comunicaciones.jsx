@@ -113,36 +113,36 @@ export default function Comunicaciones() {
       }
     }, [t]);
 
-  // =========================
-  // Cargar threads
-  // =========================
-  const cargarThreads = useCallback(async () => {
-    try {
-      setLoadingThreads(true);
-      // RLS hará que solo veas los threads donde eres participante
-      const { data, error } = await supabase
-        .from("chat_threads")
-        .select("id, tipo, titulo, es_urgente, creado_en")
-        .order("creado_en", { ascending: false });
+    // =========================
+    // Cargar threads
+    // =========================
+    const cargarThreads = useCallback(async () => {
+      try {
+        setLoadingThreads(true);
+        // RLS hará que solo veas los threads donde eres participante
+        const { data, error } = await supabase
+          .from("chat_threads")
+          .select("id, tipo, titulo, es_urgente, created_at")
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setThreads(data || []);
+        setThreads(data || []);
 
-      if (!selectedThread && data && data.length > 0) {
-        setSelectedThread(data[0]);
+        if (!selectedThread && data && data.length > 0) {
+          setSelectedThread(data[0]);
+        }
+      } catch (err) {
+        console.error("Error cargando threads:", err);
+        toast.error((t("error_loading") || "Error cargando hilos") + ": " + (err.message || ""));
+      } finally {
+        setLoadingThreads(false);
       }
-    } catch (err) {
-      console.error("Error cargando threads:", err);
-      toast.error(t("error_loading") || "Error cargando hilos");
-    } finally {
-      setLoadingThreads(false);
-    }
-  }, [selectedThread, t]);
+    }, [selectedThread, t]);
 
-  // =========================
-  // Cargar mensajes de un thread
-  // =========================
+    // =========================
+    // Cargar mensajes de un thread
+    // =========================
     const cargarMensajesThread = useCallback(
       async (threadId) => {
         if (!threadId) return;
@@ -150,9 +150,9 @@ export default function Comunicaciones() {
           setLoadingMessages(true);
           const { data, error } = await supabase
             .from("chat_messages")
-            .select("id, thread_id, sender_id, contenido, tipo, creado_en")
+            .select("id, thread_id, sender_id, contenido, tipo, created_at")
             .eq("thread_id", threadId)
-            .order("creado_en", { ascending: true });
+            .order("created_at", { ascending: true });
 
           if (error) throw error;
 
@@ -168,7 +168,7 @@ export default function Comunicaciones() {
           }
         } catch (err) {
           console.error("Error cargando mensajes:", err);
-          toast.error(t("error_loading") || "Error cargando mensajes");
+          toast.error((t("error_loading") || "Error cargando mensajes") + ": " + (err.message || ""));
         } finally {
           setLoadingMessages(false);
         }
@@ -713,7 +713,7 @@ export default function Comunicaciones() {
                         color: "#777",
                       }}
                     >
-                      {th.tipo} · {formatDateTime(th.creado_en)}
+                      {th.tipo} · {formatDateTime(th.created_at)}
                     </div>
                     {th.es_urgente && (
                       <div
@@ -816,7 +816,7 @@ export default function Comunicaciones() {
                             opacity: 0.7,
                           }}
                         >
-                          {formatDateTime(m.creado_en)}
+                          {formatDateTime(m.created_at)}
                         </div>
                       </div>
                     </div>
