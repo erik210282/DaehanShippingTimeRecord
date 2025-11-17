@@ -64,7 +64,7 @@ export default function Comunicaciones() {
   };
   
   // Notificar al Navbar que cambió el número de mensajes no leídos
-  const notificarUnreadNavbar = async () => {
+  const notificarUnreadNavbar = useCallback(async () => {
     const { data, error } = await supabase.rpc(
       "count_unread_messages_for_user"
     );
@@ -73,8 +73,8 @@ export default function Comunicaciones() {
         new CustomEvent("unread-chat-updated", { detail: data })
       );
     }
-  };
-  
+  }, []);
+
   // =========================
   // Cargar usuario actual
   // =========================
