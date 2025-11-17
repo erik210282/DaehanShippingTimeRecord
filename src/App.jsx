@@ -23,6 +23,7 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // 1) Contar no leídos y escuchar Realtime de Supabase
   useEffect(() => {
     const fetchUnread = async () => {
       const { data, error } = await supabase.rpc(
@@ -60,20 +61,39 @@ const Navbar = () => {
     };
   }, []);
 
+  // 2) Sesión / usuario actual
   useEffect(() => {
     const obtenerSesion = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setUser(session?.user);
     };
 
     obtenerSesion();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user);
-    });
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user);
+      }
+    );
 
     return () => {
-      authListener?.subscription?.unsubscribe?.(); // ✅ limpiar correctamente
+      authListener?.subscription?.unsubscribe?.();
+    };
+  }, []);
+
+   // 3) ESCUCHAR el evento global que mandamos desde Comunicaciones
+  useEffect(() => {
+    const handler = (ev) => {
+      if (typeof ev.detail === "number") {
+        setUnreadCount(ev.detail);
+      }
+    };
+
+    window.addEventListener("unread-chat-updated", handler);
+    return () => {
+      window.removeEventListener("unread-chat-updated", handler);
     };
   }, []);
 
