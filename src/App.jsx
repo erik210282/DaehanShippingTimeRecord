@@ -60,21 +60,6 @@ const Navbar = () => {
     };
   }, []);
 
-    useEffect(() => {
-    const handler = (ev) => {
-      if (typeof ev.detail === "number") {
-        setUnreadCount(ev.detail);
-      }
-    };
-
-    window.addEventListener("unread-chat-updated", handler);
-    return () => {
-      window.removeEventListener("unread-chat-updated", handler);
-    };
-  }, []);
-
-
-
   useEffect(() => {
     const obtenerSesion = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -102,7 +87,7 @@ const Navbar = () => {
     await supabase.auth.signOut();  // Cerrar sesión con Supabase
     navigate("/");
   };
-
+  
   return (
     <div className="navbar">
       <div className="navbar-center">
