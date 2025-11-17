@@ -165,15 +165,23 @@ export default function Comunicaciones() {
           );
           if (readError) {
             console.warn("mark_thread_as_read error:", readError.message);
+          } else {
+            // ✅ Después de marcar como leído, refrescar lista de conversaciones
+            //    para que se actualicen contadores / estilos en la UI
+            await cargarThreads();
           }
         } catch (err) {
           console.error("Error cargando mensajes:", err);
-          toast.error((t("error_loading") || "Error cargando mensajes") + ": " + (err.message || ""));
+          toast.error(
+            (t("error_loading") || "Error cargando mensajes") +
+              ": " +
+              (err.message || "")
+          );
         } finally {
           setLoadingMessages(false);
         }
       },
-      [t]
+      [t, cargarThreads]
     );
 
   // =========================
@@ -212,9 +220,6 @@ export default function Comunicaciones() {
               if (selectedThread?.id === nuevo.thread_id) {
                 await cargarMensajesThread(nuevo.thread_id);
               }
-
-              // 3) Si el mensaje viene de otro usuario y es URGENTE, toast invasivo
-              if (nuevo.sender_id === currentUserId) return;
 
               const { data: thread, error } = await supabase
                 .from("chat_threads")
