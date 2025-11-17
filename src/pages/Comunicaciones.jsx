@@ -39,6 +39,10 @@ export default function Comunicaciones() {
   const [loadingThreads, setLoadingThreads] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
+  // Hilos que tienen mensajes nuevos sin leer (solo para indicador visual)
+  // { [threadId]: true/false }
+  const [threadUnread, setThreadUnread] = useState({});
+
   // =========================
   // Helpers
   // =========================
@@ -57,6 +61,18 @@ export default function Comunicaciones() {
     }
 
     return userId.slice(0, 8);
+  };
+  
+  // Notificar al Navbar que cambió el número de mensajes no leídos
+  const notificarUnreadNavbar = async () => {
+    const { data, error } = await supabase.rpc(
+      "count_unread_messages_for_user"
+    );
+    if (!error && typeof data === "number") {
+      window.dispatchEvent(
+        new CustomEvent("unread-chat-updated", { detail: data })
+      );
+    }
   };
   
   // =========================
@@ -158,7 +174,7 @@ export default function Comunicaciones() {
 
           setMessages(data || []);
 
-          // Marcar como leído usando RPC
+          // Marcar como leído en BD
           const { error: readError } = await supabase.rpc(
             "mark_thread_as_read",
             { p_thread_id: threadId }
@@ -166,9 +182,14 @@ export default function Comunicaciones() {
           if (readError) {
             console.warn("mark_thread_as_read error:", readError.message);
           } else {
-            // ✅ Después de marcar como leído, refrescar lista de conversaciones
-            //    para que se actualicen contadores / estilos en la UI
-            await cargarThreads();
+            // ✅ Quitar indicador de "nuevo" en este hilo
+            setThreadUnread((prev) => ({
+              ...prev,
+              [threadId]: false,
+            }));
+
+            // ✅ Actualizar badge del navbar sin F5
+            await notificarUnreadNavbar();
           }
         } catch (err) {
           console.error("Error cargando mensajes:", err);
@@ -181,7 +202,7 @@ export default function Comunicaciones() {
           setLoadingMessages(false);
         }
       },
-      [t, cargarThreads]
+      [t, notificarUnreadNavbar]
     );
 
   // =========================
@@ -201,79 +222,85 @@ export default function Comunicaciones() {
     }
   }, [selectedThread, cargarMensajesThread]);
 
-      // =========================
-      // Realtime: mensajes nuevos
-      // =========================
-      useEffect(() => {
-        const canalMensajes = supabase
-          .channel("canal_chat_mensajes_web")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "chat_messages" },
-            async (payload) => {
-              const nuevo = payload.new;
+    // =========================
+    // Realtime: mensajes nuevos / nuevos hilos
+    // =========================
+    useEffect(() => {
+      const canalMensajes = supabase
+        .channel("canal_chat_mensajes_web")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages" },
+          async (payload) => {
+            const nuevo = payload.new;
 
-              // 1) Siempre refrescamos lista de conversaciones
-              await cargarThreads();
+            // 1) Siempre refrescamos lista de conversaciones
+            await cargarThreads();
 
-              // 2) Si estoy viendo ese hilo, recargar mensajes completos
-              if (selectedThread?.id === nuevo.thread_id) {
-                await cargarMensajesThread(nuevo.thread_id);
+            // 2) Si estoy viendo ese hilo, recargar mensajes completos
+            if (selectedThread?.id === nuevo.thread_id) {
+              await cargarMensajesThread(nuevo.thread_id);
+            } else {
+              // ✅ Si es otro hilo, marcarlo como "tiene nuevos mensajes"
+              setThreadUnread((prev) => ({
+                ...prev,
+                [nuevo.thread_id]: true,
+              }));
+            }
+
+            // 3) Toast URGENTE (ahora SIN filtrar por sender_id)
+            const { data: thread, error } = await supabase
+              .from("chat_threads")
+              .select("id, titulo, es_urgente")
+              .eq("id", nuevo.thread_id)
+              .single();
+
+            if (error || !thread || !thread.es_urgente) return;
+
+            toast.error(
+              t("urgent_message_arrived", {
+                title: thread.titulo || "",
+              }) || "Nuevo mensaje URGENTE",
+              {
+                position: "top-center",
+                autoClose: false,
+                closeOnClick: true,
+                onClick: () => {
+                  setSelectedThread(thread);
+                  cargarMensajesThread(thread.id);
+                },
               }
+            );
+          }
+        )
+        .subscribe((status) => {
+          console.log("📶 Estado canal chat_mensajes_web:", status);
+        });
 
-              const { data: thread, error } = await supabase
-                .from("chat_threads")
-                .select("id, titulo, es_urgente")
-                .eq("id", nuevo.thread_id)
-                .single();
+      const canalThreads = supabase
+        .channel("canal_chat_threads_web")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_threads" },
+          () => {
+            // Nuevo hilo creado desde otro cliente
+            cargarThreads();
+          }
+        )
+        .subscribe((status) => {
+          console.log("📶 Estado canal chat_threads_web:", status);
+        });
 
-              if (error || !thread || !thread.es_urgente) return;
-
-              toast.error(
-                t("urgent_message_arrived", {
-                  title: thread.titulo || "",
-                }) || "Nuevo mensaje URGENTE",
-                {
-                  position: "top-center",
-                  autoClose: false,
-                  closeOnClick: true,
-                  onClick: () => {
-                    setSelectedThread(thread);
-                    cargarMensajesThread(thread.id);
-                  },
-                }
-              );
-            }
-          )
-          .subscribe((status) => {
-            console.log("📶 Estado canal chat_mensajes_web:", status);
-          });
-
-        const canalThreads = supabase
-          .channel("canal_chat_threads_web")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "chat_threads" },
-            () => {
-              // Nuevo hilo creado desde otro cliente
-              cargarThreads();
-            }
-          )
-          .subscribe((status) => {
-            console.log("📶 Estado canal chat_threads_web:", status);
-          });
-
-        return () => {
-          supabase.removeChannel(canalMensajes);
-          supabase.removeChannel(canalThreads);
-        };
-      }, [
-        selectedThread?.id,
-        currentUserId,
-        cargarMensajesThread,
-        cargarThreads,
-        t,
-      ]);
+      return () => {
+        supabase.removeChannel(canalMensajes);
+        supabase.removeChannel(canalThreads);
+      };
+    }, [
+      selectedThread?.id,
+      cargarMensajesThread,
+      cargarThreads,
+      t,
+    ]);
 
   // =========================
   // Crear nuevo thread + primer mensaje
@@ -686,6 +713,8 @@ export default function Comunicaciones() {
             >
               {threads.map((th) => {
                 const selected = selectedThread?.id === th.id;
+                const hasNew = threadUnread[th.id];
+
                 return (
                   <li
                     key={th.id}
@@ -705,13 +734,33 @@ export default function Comunicaciones() {
                   >
                     <div
                       style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        marginBottom: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
                       }}
                     >
-                      {th.titulo || "(sin título)"}
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          marginBottom: 2,
+                        }}
+                      >
+                        {th.titulo || "(sin título)"}
+                      </div>
+
+                      {hasNew && (
+                        <span
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            backgroundColor: "#d32f2f",
+                          }}
+                        />
+                      )}
                     </div>
+
                     <div
                       style={{
                         fontSize: 11,
@@ -720,6 +769,7 @@ export default function Comunicaciones() {
                     >
                       {th.tipo} · {formatDateTime(th.created_at)}
                     </div>
+
                     {th.es_urgente && (
                       <div
                         style={{

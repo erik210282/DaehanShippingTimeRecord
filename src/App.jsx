@@ -89,6 +89,19 @@ const Navbar = () => {
     navigate("/");
   };
 
+  useEffect(() => {
+    const handler = (ev) => {
+      if (typeof ev.detail === "number") {
+        setUnreadCount(ev.detail);
+      }
+    };
+
+    window.addEventListener("unread-chat-updated", handler);
+    return () => {
+      window.removeEventListener("unread-chat-updated", handler);
+    };
+  }, []);
+
   return (
     <div className="navbar">
       <div className="navbar-center">
