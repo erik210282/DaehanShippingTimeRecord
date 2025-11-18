@@ -441,6 +441,7 @@ useEffect(() => {
       [t("start_time")]: inicio.toLocaleString(),
       [t("end_time")]: fin.toLocaleString(),
       [t("duration_min")]: d.duracion ? Math.round(d.duracion) : "-",
+      [t("pausas")]: typeof d.pausa_total === "number" ? Math.round(d.pausa_total) : "-",
       [t("notes")]: d.notas || "N/A",
     }));
   });
@@ -531,8 +532,10 @@ useEffect(() => {
                       <td>{inicio.toLocaleString()}</td>
                       <td>{fin.toLocaleString()}</td>
                       <td>
-                        {r.duracion ? Math.round(r.duracion) : "-"} min /
-                        {r.pausa_total ? Math.round(r.pausa_total) : 0} min
+                        {r.duracion ? Math.round(r.duracion) : "-"} min /{" "}
+                        {typeof r.pausa_total === "number"
+                          ? Math.round(r.pausa_total)
+                          : "-"} min
                       </td>
                       <td>{r.notas || "-"}</td>
                       <td>
