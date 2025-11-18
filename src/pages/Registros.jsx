@@ -532,10 +532,16 @@ useEffect(() => {
                       <td>{inicio.toLocaleString()}</td>
                       <td>{fin.toLocaleString()}</td>
                       <td>
-                        {r.duracion ? Math.round(r.duracion) : "-"} min /{" "}
-                        {typeof r.pausa_total === "number"
-                          ? Math.round(r.pausa_total)
-                          : "-"} min
+                        {r.duracion ? Math.round(r.duracion) : "-"} min /{" "}                        
+                        {r.pausa_total === null || r.pausa_total === undefined ? (
+                          <span style={{ color: "red", fontWeight: "bold" }}>*</span> 
+                        ) : typeof r.pausa_total === "number" &&
+                          Math.round(r.pausa_total) >= 1 ? (
+                          Math.round(r.pausa_total)     
+                        ) : (
+                          "-"     
+                        )}
+                        {" "}min
                       </td>
                       <td>{r.notas || "-"}</td>
                       <td>
