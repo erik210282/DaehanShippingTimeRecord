@@ -500,7 +500,7 @@ useEffect(() => {
                   <th>{t("operator")}</th>
                   <th>{t("start_time")}</th>
                   <th>{t("end_time")}</th>
-                  <th>{t("duration_min")}</th>
+                  <th>{t("duration_min")} / {t("pausas")}</th>
                   <th>{t("notes")}</th>
                   <th>{t("actions")}</th>
                 </tr>
@@ -530,7 +530,10 @@ useEffect(() => {
                       <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
                       <td>{inicio.toLocaleString()}</td>
                       <td>{fin.toLocaleString()}</td>
-                      <td>{r.duracion ? `${Math.round(r.duracion)} min` : "-"}</td>
+                      <td>
+                        {r.duracion ? Math.round(r.duracion) : "-"} min /
+                        {r.pausa_total ? Math.round(r.pausa_total) : 0} min
+                      </td>
                       <td>{r.notas || "-"}</td>
                       <td>
                         <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
