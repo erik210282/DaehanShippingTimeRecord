@@ -112,6 +112,26 @@ const Navbar = () => {
     };
   }, []);
 
+  // 3) Cargar conteo inicial de mensajes no leídos
+  useEffect(() => {
+    const cargarUnreadInicial = async () => {
+      try {
+        const { data, error } = await supabase.rpc(
+          "count_unread_messages_for_user"
+        );
+        if (!error && typeof data === "number") {
+          setUnreadCount(data);
+        } else if (error) {
+          console.error("Error cargando unread inicial:", error.message);
+        }
+      } catch (err) {
+        console.error("Error inesperado en unread inicial:", err);
+      }
+    };
+
+  cargarUnreadInicial();
+}, []);
+
    // 3) ESCUCHAR el evento global que mandamos desde Comunicaciones
   useEffect(() => {
     const handler = (ev) => {

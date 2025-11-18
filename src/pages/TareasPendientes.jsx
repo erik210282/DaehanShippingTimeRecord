@@ -197,6 +197,9 @@ export default function TareasPendientes() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
 
       supabase.removeChannel(canalTareas);
+      supabase.removeChannel(canalActividades);
+      supabase.removeChannel(canalProductos);
+      supabase.removeChannel(canalOperadores);
       canalTareas = null;
 
       const socket = supabase.getChannels()[0]?.socket;
