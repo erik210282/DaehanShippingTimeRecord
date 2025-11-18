@@ -195,20 +195,13 @@ export default function TareasPendientes() {
     return () => {
       console.log("🧹 Limpiando canales al salir de tareas-pendientes");
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-
-      supabase.removeChannel(canalTareas);
+      if (canalTareas) {
+        supabase.removeChannel(canalTareas);
+        canalTareas = null;
+      }
       supabase.removeChannel(canalActividades);
       supabase.removeChannel(canalProductos);
       supabase.removeChannel(canalOperadores);
-      canalTareas = null;
-
-      const socket = supabase.getChannels()[0]?.socket;
-      if (socket?.conn?.readyState === 3) {
-        console.warn("🔌 WebSocket estaba cerrado. Reconectando...");
-        socket.disconnect(() => {
-          socket.connect();
-        });
-      }
     };
   }, [location.pathname]);
 
