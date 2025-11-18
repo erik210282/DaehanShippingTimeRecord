@@ -1,5 +1,5 @@
 // src/pages/Comunicaciones.jsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../supabase/client";
 import {
@@ -35,6 +35,7 @@ export default function Comunicaciones() {
   const [threads, setThreads] = useState([]);
   const [selectedThread, setSelectedThread] = useState(null);
   const [messages, setMessages] = useState([]);
+  const selectedThreadIdRef = useRef(null);
   const [replyText, setReplyText] = useState("");
   const [loadingThreads, setLoadingThreads] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -132,29 +133,31 @@ export default function Comunicaciones() {
     // =========================
     // Cargar threads
     // =========================
-    const cargarThreads = useCallback(async () => {
-      try {
-        setLoadingThreads(true);
-        // RLS hará que solo veas los threads donde eres participante
-        const { data, error } = await supabase
-          .from("chat_threads")
-          .select("id, tipo, titulo, es_urgente, created_at")
-          .order("created_at", { ascending: false });
+      const cargarThreads = useCallback(async () => {
+        try {
+          setLoadingThreads(true);
+          const { data, error } = await supabase
+            .from("chat_threads")
+            .select("id, tipo, titulo, es_urgente, created_at")
+            .order("created_at", { ascending: false });
 
-        if (error) throw error;
+          if (error) throw error;
 
-        setThreads(data || []);
+          setThreads(data || []);
 
-        if (!selectedThread && data && data.length > 0) {
-          setSelectedThread(data[0]);
+          // Si no hay hilo seleccionado aún, seleccionamos el primero
+          if (!selectedThreadIdRef.current && data && data.length > 0) {
+            setSelectedThread(data[0]);
+          }
+        } catch (err) {
+          console.error("Error cargando threads:", err);
+          toast.error(
+            (t("error_loading") || "Error cargando hilos") + ": " + (err.message || "")
+          );
+        } finally {
+          setLoadingThreads(false);
         }
-      } catch (err) {
-        console.error("Error cargando threads:", err);
-        toast.error((t("error_loading") || "Error cargando hilos") + ": " + (err.message || ""));
-      } finally {
-        setLoadingThreads(false);
-      }
-    }, [selectedThread, t]);
+      }, [t]);
 
     // =========================
     // Cargar mensajes de un thread
@@ -205,102 +208,100 @@ export default function Comunicaciones() {
       [t, notificarUnreadNavbar]
     );
 
-  // =========================
-  // Inicialización: operadores + threads
-  // =========================
-  useEffect(() => {
-    cargarOperadores();
-    cargarThreads();
-  }, [cargarOperadores, cargarThreads]);
+    // =========================
+    // Inicialización: operadores + threads
+    // =========================
+    useEffect(() => {
+      cargarOperadores();
+      cargarThreads();
+    }, [cargarOperadores, cargarThreads]);
 
-  // Cargar mensajes cuando cambie el thread seleccionado
-  useEffect(() => {
-    if (selectedThread?.id) {
-      cargarMensajesThread(selectedThread.id);
-    } else {
-      setMessages([]);
-    }
-  }, [selectedThread, cargarMensajesThread]);
+    // Cargar mensajes cuando cambie el thread seleccionado
+    useEffect(() => {
+      if (selectedThread?.id) {
+        cargarMensajesThread(selectedThread.id);
+      } else {
+        setMessages([]);
+      }
+    }, [selectedThread, cargarMensajesThread]);
+
+    useEffect(() => {
+      selectedThreadIdRef.current = selectedThread?.id || null;
+    }, [selectedThread]);
 
     // =========================
     // Realtime: mensajes nuevos / nuevos hilos
     // =========================
-    useEffect(() => {
-      const canalMensajes = supabase
-        .channel("canal_chat_mensajes_web")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "chat_messages" },
-          async (payload) => {
-            const nuevo = payload.new;
+      useEffect(() => {
+        const canalMensajes = supabase
+          .channel("canal_chat_mensajes_web")
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "chat_messages" },
+            async (payload) => {
+              const nuevo = payload.new;
 
-            // 1) Siempre refrescamos lista de conversaciones
-            await cargarThreads();
+              // 1) Siempre refrescamos la lista de threads
+              await cargarThreads();
 
-            // 2) Si estoy viendo ese hilo, recargar mensajes completos
-            if (selectedThread?.id === nuevo.thread_id) {
-              await cargarMensajesThread(nuevo.thread_id);
-            } else {
-              // ✅ Si es otro hilo, marcarlo como "tiene nuevos mensajes"
-              setThreadUnread((prev) => ({
-                ...prev,
-                [nuevo.thread_id]: true,
-              }));
-            }
-
-            // 3) Toast URGENTE (ahora SIN filtrar por sender_id)
-            const { data: thread, error } = await supabase
-              .from("chat_threads")
-              .select("id, titulo, es_urgente")
-              .eq("id", nuevo.thread_id)
-              .single();
-
-            if (error || !thread || !thread.es_urgente) return;
-
-            toast.error(
-              t("urgent_message_arrived", {
-                title: thread.titulo || "",
-              }) || "Nuevo mensaje URGENTE",
-              {
-                position: "top-center",
-                autoClose: false,
-                closeOnClick: true,
-                onClick: () => {
-                  setSelectedThread(thread);
-                  cargarMensajesThread(thread.id);
-                },
+              // 2) Si el hilo abierto es el mismo, recargamos mensajes
+              if (selectedThreadIdRef.current === nuevo.thread_id) {
+                await cargarMensajesThread(nuevo.thread_id);
+              } else {
+                // Si es otro hilo, marcamos "tiene nuevos"
+                setThreadUnread((prev) => ({
+                  ...prev,
+                  [nuevo.thread_id]: true,
+                }));
               }
-            );
-          }
-        )
-        .subscribe((status) => {
-          console.log("📶 Estado canal chat_mensajes_web:", status);
-        });
 
-      const canalThreads = supabase
-        .channel("canal_chat_threads_web")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "chat_threads" },
-          () => {
-            // Nuevo hilo creado desde otro cliente
-            cargarThreads();
-          }
-        )
-        .subscribe((status) => {
-          console.log("📶 Estado canal chat_threads_web:", status);
-        });
+              // 3) Toast URGENTE (sin filtrar por remitente)
+              const { data: thread, error } = await supabase
+                .from("chat_threads")
+                .select("id, titulo, es_urgente")
+                .eq("id", nuevo.thread_id)
+                .single();
 
-      return () => {
-        supabase.removeChannel(canalMensajes);
-        supabase.removeChannel(canalThreads);
-      };
-    }, [
-      selectedThread?.id,
-      cargarMensajesThread,
-      cargarThreads,
-      t,
-    ]);
+              if (error || !thread || !thread.es_urgente) return;
+
+              toast.error(
+                t("urgent_message_arrived", {
+                  title: thread.titulo || "",
+                }) || "Nuevo mensaje URGENTE",
+                {
+                  position: "top-center",
+                  autoClose: false,
+                  closeOnClick: true,
+                  onClick: () => {
+                    setSelectedThread(thread);
+                    cargarMensajesThread(thread.id);
+                  },
+                }
+              );
+            }
+          )
+          .subscribe((status) => {
+            console.log("📶 Estado canal chat_mensajes_web:", status);
+          });
+
+        const canalThreads = supabase
+          .channel("canal_chat_threads_web")
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "chat_threads" },
+            () => {
+              cargarThreads();
+            }
+          )
+          .subscribe((status) => {
+            console.log("📶 Estado canal chat_threads_web:", status);
+          });
+
+        return () => {
+          supabase.removeChannel(canalMensajes);
+          supabase.removeChannel(canalThreads);
+        };
+      }, [cargarMensajesThread, cargarThreads, t]);
 
   // =========================
   // Crear nuevo thread + primer mensaje
