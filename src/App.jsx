@@ -12,10 +12,11 @@ import ConfiguracionTareas from "./pages/ConfiguracionTareas";
 import { useTranslation } from "react-i18next";
 import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
 import LanguageBar from "./components/LanguageBar";
+import { toast } from "react-toastify";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -23,41 +24,69 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // 1) Contar no leídos y escuchar Realtime de Supabase
+  const canalChatGlobalRef = useRef(null);
+
   useEffect(() => {
-    const fetchUnread = async () => {
-      const { data, error } = await supabase.rpc(
-        "count_unread_messages_for_user"
-      );
-      if (!error && typeof data === "number") {
-        setUnreadCount(data);
-      } else if (error) {
-        console.warn("Error contando mensajes no leídos:", error.message);
-      }
-    };
+    // Evitar duplicados si por alguna razón se intenta crear dos veces
+    if (canalChatGlobalRef.current) return;
 
-    fetchUnread();
+    console.log("Creando canal global de chat...");
 
-    const channel = supabase
-      .channel("navbar_unread_chat")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "chat_messages" },
-        () => fetchUnread()
-      )
+    const canal = supabase
+      .channel("chat_global_web")
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
-          table: "chat_message_read_status",
+          table: "chat_messages",
         },
-        () => fetchUnread()
-      )
-      .subscribe();
+        async (payload) => {
+          try {
+            console.log("Nuevo mensaje (global):", payload);
 
+            // 1) Recalcular mensajes no leídos para el badge del navbar
+            const { data, error } = await supabase.rpc(
+              "count_unread_messages_for_user"
+            );
+
+            if (!error && typeof data === "number") {
+              setUnreadCount(data);
+            } else if (error) {
+              console.error("Error contando mensajes no leídos:", error);
+            }
+
+            // 2) Si el hilo es urgente, mostrar toast invasivo
+            const threadId = payload.new.thread_id;
+            const { data: thread, error: threadError } = await supabase
+              .from("chat_threads")
+              .select("titulo, es_urgente")
+              .eq("id", threadId)
+              .single();
+
+            if (!threadError && thread?.es_urgente) {
+              toast.error(`New URGENT message: ${thread.titulo}`, {
+                autoClose: false,
+              });
+            }
+          } catch (err) {
+            console.error("Error en listener global de chat:", err);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("Estado canal chat_global_web:", status);
+      });
+
+    canalChatGlobalRef.current = canal;
+
+    // 👇 Este cleanup solo se ejecuta cuando se desmonta TODA la App (logout / cerrar SPA)
     return () => {
-      supabase.removeChannel(channel);
+      if (canalChatGlobalRef.current) {
+        console.log("Limpiando canal global de chat...");
+        supabase.removeChannel(canalChatGlobalRef.current);
+        canalChatGlobalRef.current = null;
+      }
     };
   }, []);
 
