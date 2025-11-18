@@ -441,7 +441,6 @@ async function save() {
           <BtnSecondary onClick={() => setTab("pos")}>{t("po")}</BtnSecondary>
           <BtnSecondary onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
           <BtnSecondary onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
-          <BtnSecondary onClick={() => setTab("operadores")}>{t("operators")}</BtnSecondary>
           <BtnSecondary onClick={() => setFilter("")}>{t("clear_filters")}</BtnSecondary>
           <BtnSecondary onClick={exportCSV}>{t("export_csv")}</BtnSecondary>
           <BtnPrimary onClick={openNew}>➕ {t("add")}</BtnPrimary>
