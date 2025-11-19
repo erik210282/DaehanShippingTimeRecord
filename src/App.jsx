@@ -37,19 +37,14 @@ const Navbar = () => {
       .channel("chat_global_web")
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "chat_messages",
-        },
+        { event: "INSERT", schema: "public", table: "chat_messages" },
         async (payload) => {
           try {
             console.log("Nuevo mensaje (global):", payload);
 
-            const senderId = payload.new?.sender_id;
-            const esMio =
-              senderId && currentUserIdRef.current &&
-              senderId === currentUserIdRef.current;
+            const nuevo = payload.new;
+            const senderId = nuevo?.sender_id || null;
+            const esMio = senderId && senderId === currentUserIdRef.current;
 
             // 1) Recalcular mensajes no leídos para el badge del navbar
             const { data, error } = await supabase.rpc(
@@ -62,8 +57,8 @@ const Navbar = () => {
               console.error("Error contando mensajes no leídos:", error);
             }
 
-            // 2) Si el hilo es urgente y NO soy yo, mostramos toast
-            const threadId = payload.new.thread_id;
+            // 2) Toast URGENTE solo si NO es mi mensaje
+            const threadId = nuevo.thread_id;
             const { data: thread, error: threadError } = await supabase
               .from("chat_threads")
               .select("titulo, es_urgente")
@@ -71,10 +66,11 @@ const Navbar = () => {
               .single();
 
             if (!threadError && thread?.es_urgente && !esMio) {
-              toast.error(`New URGENT message: ${thread.titulo}`, {
-                autoClose: 8000,      // 🔸 se cierra solo ~8s
+              toast.error(`New URGENT message: ${thread.titulo || ""}`, {
+                autoClose: 8000,
                 closeOnClick: true,
                 pauseOnHover: true,
+                position: "top-center",
               });
             }
           } catch (err) {
@@ -87,7 +83,7 @@ const Navbar = () => {
       });
 
     canalChatGlobalRef.current = canal;
-
+    
     // 👇 Este cleanup solo se ejecuta cuando se desmonta TODA la App (logout / cerrar SPA)
     return () => {
       if (canalChatGlobalRef.current) {

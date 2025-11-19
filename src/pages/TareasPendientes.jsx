@@ -129,7 +129,7 @@ export default function TareasPendientes() {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        console.log("👁️ Volvió a la pestaña: actualizando tareas...");
+        console.log("👁️ Volvió a la pestaña: actualizando tareas.");
         fetchTareas();
       }
     };
@@ -140,31 +140,23 @@ export default function TareasPendientes() {
     fetchOperadores();
     fetchTareas();
 
-    const socket = supabase.getChannels()[0]?.socket;
-    if (socket?.conn?.readyState === 3) {
-      console.warn("🔌 WebSocket estaba cerrado. Reconectando...");
-      socket.disconnect(() => {
-        socket.connect();
-      });
-    }
-
+    // Canal principal para tareas_pendientes (se reutiliza si ya existe)
     if (!canalTareas) {
-      setTimeout(() => {
-        canalTareas = supabase
-          .channel("canal_tareas")
-          .on(
-            "postgres_changes",
-            { event: "*", schema: "public", table: "tareas_pendientes" },
-            fetchTareas
-          )
-          .subscribe((status) => {
-            console.log("📶 Estado del canal tareas_pendientes:", status);
-          });
-      }, 100);
+      canalTareas = supabase
+        .channel("canal_tareas")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "tareas_pendientes" },
+          fetchTareas
+        )
+        .subscribe((status) => {
+          console.log("📶 Estado del canal tareas_pendientes:", status);
+        });
     } else {
       console.log("♻️ Reutilizando canal tareas_pendientes");
     }
 
+    // Canales locales para catálogos
     const canalActividades = supabase
       .channel("canal_actividades")
       .on(
@@ -195,10 +187,12 @@ export default function TareasPendientes() {
     return () => {
       console.log("🧹 Limpiando canales al salir de tareas-pendientes");
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+
       if (canalTareas) {
         supabase.removeChannel(canalTareas);
         canalTareas = null;
       }
+
       supabase.removeChannel(canalActividades);
       supabase.removeChannel(canalProductos);
       supabase.removeChannel(canalOperadores);
