@@ -26,7 +26,7 @@ export default function Comunicaciones() {
   const [tituloNuevo, setTituloNuevo] = useState("");
   const [contenidoNuevo, setContenidoNuevo] = useState("");
   const [urgencia, setUrgencia] = useState("normal"); // "normal" | "urgent"
-  const [sendToAll, setSendToAll] = useState(true);
+  const [sendToAll, setSendToAll] = useState(false);
   const [destinatariosSeleccionados, setDestinatariosSeleccionados] = useState(
     []
   );
@@ -393,7 +393,7 @@ export default function Comunicaciones() {
       setTituloNuevo("");
       setContenidoNuevo("");
       setUrgencia("normal");
-      setSendToAll(true);
+      setSendToAll(false);
       setDestinatariosSeleccionados([]);
 
       toast.success(t("send"));
@@ -635,27 +635,24 @@ export default function Comunicaciones() {
                       >
                         {t("urgent_level")}
                       </label>
+
                       <div style={{ display: "flex", gap: 8 }}>
                         <BtnSecondary
                           type="button"
-                          onClick={() => setUrgencia("normal")}
+                          onClick={() =>
+                            setUrgencia((prev) =>
+                              prev === "urgent" ? "normal" : "urgent"
+                            )
+                          }
                           style={{
                             flex: 1,
-                            borderWidth: urgencia === "normal" ? 2 : 1,
-                            borderColor:
-                              urgencia === "normal" ? "#099414ff" : "#ccc",
-                          }}
-                        >
-                          {t("normal")}
-                        </BtnSecondary>
-                        <BtnSecondary
-                          type="button"
-                          onClick={() => setUrgencia("urgent")}
-                          style={{
-                            flex: 1,
-                            borderWidth: urgencia === "urgent" ? 2 : 1,
-                            borderColor:
-                              urgencia === "urgent" ? "#c00000ff" : "#ccc",
+                            borderStyle: "solid",
+                            borderWidth: urgencia === "urgent" ? 4 : 2,   // ← GROSOR DEL BORDE
+                            borderColor: urgencia === "urgent" ? "#c00000ff" : "#ffffff",
+                            boxShadow:
+                              urgencia === "urgent"
+                                ? "0 0 0 2px rgba(192,0,0,0.5)"           // ← MARCO EXTERNO OPCIONAL
+                                : "none",
                           }}
                         >
                           {t("urgent")}
