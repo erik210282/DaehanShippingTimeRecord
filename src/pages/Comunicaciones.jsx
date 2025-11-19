@@ -37,13 +37,6 @@ export default function Comunicaciones() {
   const [replyText, setReplyText] = useState("");
   const [loadingThreads, setLoadingThreads] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const canalesRef = useRef({
-    mensajes: null,
-    threads: null,
-    retryMensajes: null,
-    retryThreads: null,
-  });
-
 
   // Hilos que tienen mensajes nuevos sin leer (solo para indicador visual)
   // { [threadId]: true/false }
@@ -235,163 +228,62 @@ export default function Comunicaciones() {
     }, [selectedThread]);
 
     // =========================
-    // Realtime: mensajes nuevos / nuevos hilos (con auto–reconexión correcta)
+    // Realtime: mensajes nuevos / nuevos hilos (versión simple)
     // =========================
     useEffect(() => {
-      // --- Helpers para crear canales NUEVOS ---
-      const crearCanalMensajes = () => {
-        console.log("🧩 Creando canal mensajes (web)...");
-        const canal = supabase
-          .channel("canal_chat_mensajes_web")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "chat_messages" },
-            async (payload) => {
-              const nuevo = payload.new;
-              const esMio = nuevo.sender_id === currentUserId;
+      console.log("🔗 Suscribiendo a realtime de Comunicaciones...");
 
-              // 1) Siempre refrescamos la lista de threads
-              await cargarThreads();
+      const canalMensajes = supabase
+        .channel("canal_chat_mensajes_web")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages" },
+          async (payload) => {
+            const nuevo = payload.new;
+            const esMio = nuevo.sender_id === currentUserId;
 
-              // 2) Si el hilo abierto es el mismo, recargamos mensajes
-              if (selectedThreadIdRef.current === nuevo.thread_id) {
-                await cargarMensajesThread(nuevo.thread_id);
-              } else {
-                // Si es otro hilo, marcamos "tiene nuevos"
-                setThreadUnread((prev) => ({
-                  ...prev,
-                  [nuevo.thread_id]: true,
-                }));
-              }
+            // 1) Siempre refrescamos la lista de threads
+            await cargarThreads();
 
-              // 3) Toast URGENTE solo si NO es mío
-              const { data: thread, error } = await supabase
-                .from("chat_threads")
-                .select("id, titulo, es_urgente")
-                .eq("id", nuevo.thread_id)
-                .single();
-
-              if (error || !thread || !thread.es_urgente || esMio) return;
-              
-              // Obtener nombre del remitente
-              const { data: remitente, error: senderError } = await supabase
-                .from("operadores")
-                .select("nombre")
-                .eq("uid", nuevo.sender_id)
-                .single();
-
-              const nombreRemitente = remitente?.nombre || "Unknown user";
-              
-              toast.error(
-                `🔥 ${t("urgent_message_arrived_from", { name: nombreRemitente })}`,
-                {
-                  position: "top-center",
-                  autoClose: 6000,
-                  closeOnClick: true,
-                  pauseOnHover: true,
-                  onClick: () => {
-                    setSelectedThread(thread);
-                    cargarMensajesThread(thread.id);
-                  },
-                }
-              );
+            // 2) Si el hilo abierto es el mismo, recargamos mensajes
+            if (selectedThreadIdRef.current === nuevo.thread_id) {
+              await cargarMensajesThread(nuevo.thread_id);
+            } else {
+              // Si es otro hilo, marcamos "tiene nuevos"
+              setThreadUnread((prev) => ({
+                ...prev,
+                [nuevo.thread_id]: true,
+              }));
             }
-          )
-          .subscribe((status) => {
-            console.log("📶 Estado canal chat_mensajes_web:", status);
 
-            if (
-              status === "CHANNEL_ERROR" ||
-              status === "TIMED_OUT" ||
-              status === "CLOSED"
-            ) {
-              console.warn("⚠️ canal_chat_mensajes_web en estado crítico:", status);
+            // 3) Aquí YA NO mostramos toast.
+            //    El toast URGENTE global lo maneja el Navbar en App.jsx.
+          }
+        )
+        .subscribe((status) => {
+          console.log("📶 Estado canal chat_mensajes_web:", status);
+        });
 
-              // Limpiar reintento anterior
-              if (canalesRef.current.retryMensajes) {
-                clearTimeout(canalesRef.current.retryMensajes);
-              }
+      const canalThreads = supabase
+        .channel("canal_chat_threads_web")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_threads" },
+          () => {
+            cargarThreads();
+          }
+        )
+        .subscribe((status) => {
+          console.log("📶 Estado canal chat_threads_web:", status);
+        });
 
-              canalesRef.current.retryMensajes = setTimeout(() => {
-                console.log("🔄 Re–creando canal_chat_mensajes_web...");
-                // Cerramos canal viejo (por si sigue vivo)
-                if (canalesRef.current.mensajes) {
-                  supabase.removeChannel(canalesRef.current.mensajes);
-                  canalesRef.current.mensajes = null;
-                }
-                // Creamos uno nuevo
-                crearCanalMensajes();
-              }, 3000);
-            }
-          });
-
-        canalesRef.current.mensajes = canal;
-      };
-
-      const crearCanalThreads = () => {
-        console.log("🧩 Creando canal threads (web)...");
-        const canal = supabase
-          .channel("canal_chat_threads_web")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "chat_threads" },
-            () => {
-              cargarThreads();
-            }
-          )
-          .subscribe((status) => {
-            console.log("📶 Estado canal chat_threads_web:", status);
-
-            if (
-              status === "CHANNEL_ERROR" ||
-              status === "TIMED_OUT" ||
-              status === "CLOSED"
-            ) {
-              console.warn("⚠️ canal_chat_threads_web en estado crítico:", status);
-
-              if (canalesRef.current.retryThreads) {
-                clearTimeout(canalesRef.current.retryThreads);
-              }
-
-              canalesRef.current.retryThreads = setTimeout(() => {
-                console.log("🔄 Re–creando canal_chat_threads_web...");
-                if (canalesRef.current.threads) {
-                  supabase.removeChannel(canalesRef.current.threads);
-                  canalesRef.current.threads = null;
-                }
-                crearCanalThreads();
-              }, 3000);
-            }
-          });
-
-        canalesRef.current.threads = canal;
-      };
-
-      // --- Crear canales al montar ---
-      crearCanalMensajes();
-      crearCanalThreads();
-
-      // --- Cleanup al salir de la página ---
+      // Cleanup al salir de la página
       return () => {
-        console.log("🧹 Cleanup Comunicaciones: canales y timers");
-        if (canalesRef.current.retryMensajes) {
-          clearTimeout(canalesRef.current.retryMensajes);
-          canalesRef.current.retryMensajes = null;
-        }
-        if (canalesRef.current.retryThreads) {
-          clearTimeout(canalesRef.current.retryThreads);
-          canalesRef.current.retryThreads = null;
-        }
-        if (canalesRef.current.mensajes) {
-          supabase.removeChannel(canalesRef.current.mensajes);
-          canalesRef.current.mensajes = null;
-        }
-        if (canalesRef.current.threads) {
-          supabase.removeChannel(canalesRef.current.threads);
-          canalesRef.current.threads = null;
-        }
+        console.log("🧹 Cleanup Comunicaciones: desuscribiendo canales");
+        supabase.removeChannel(canalMensajes);
+        supabase.removeChannel(canalThreads);
       };
-    }, [cargarMensajesThread, cargarThreads, t, currentUserId]);
+    }, [cargarMensajesThread, cargarThreads, currentUserId]);
 
   // =========================
   // Crear nuevo thread + primer mensaje
