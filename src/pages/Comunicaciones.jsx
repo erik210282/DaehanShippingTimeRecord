@@ -240,6 +240,7 @@ export default function Comunicaciones() {
             { event: "INSERT", schema: "public", table: "chat_messages" },
             async (payload) => {
               const nuevo = payload.new;
+              const esMio = nuevo.sender_id === currentUserId;   // 🔸 NUEVO
 
               // 1) Siempre refrescamos la lista de threads
               await cargarThreads();
@@ -255,14 +256,14 @@ export default function Comunicaciones() {
                 }));
               }
 
-              // 3) Toast URGENTE (sin filtrar por remitente)
+              // 3) Toast URGENTE solo si NO es mío
               const { data: thread, error } = await supabase
                 .from("chat_threads")
                 .select("id, titulo, es_urgente")
                 .eq("id", nuevo.thread_id)
                 .single();
 
-              if (error || !thread || !thread.es_urgente) return;
+              if (error || !thread || !thread.es_urgente || esMio) return;
 
               toast.error(
                 t("urgent_message_arrived", {
@@ -270,8 +271,9 @@ export default function Comunicaciones() {
                 }) || "Nuevo mensaje URGENTE",
                 {
                   position: "top-center",
-                  autoClose: false,
+                  autoClose: 8000,      // 🔸 se cierra solo
                   closeOnClick: true,
+                  pauseOnHover: true,
                   onClick: () => {
                     setSelectedThread(thread);
                     cargarMensajesThread(thread.id);
@@ -301,7 +303,7 @@ export default function Comunicaciones() {
           supabase.removeChannel(canalMensajes);
           supabase.removeChannel(canalThreads);
         };
-      }, [cargarMensajesThread, cargarThreads, t]);
+      }, [cargarMensajesThread, cargarThreads, t, currentUserId]);  // 🔸 agrega currentUserId aquí
 
   // =========================
   // Crear nuevo thread + primer mensaje

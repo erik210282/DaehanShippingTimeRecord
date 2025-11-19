@@ -25,6 +25,7 @@ const Navbar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const canalChatGlobalRef = useRef(null);
+  const currentUserIdRef = useRef(null);
 
   useEffect(() => {
     // Evitar duplicados si por alguna razón se intenta crear dos veces
@@ -45,6 +46,11 @@ const Navbar = () => {
           try {
             console.log("Nuevo mensaje (global):", payload);
 
+            const senderId = payload.new?.sender_id;
+            const esMio =
+              senderId && currentUserIdRef.current &&
+              senderId === currentUserIdRef.current;
+
             // 1) Recalcular mensajes no leídos para el badge del navbar
             const { data, error } = await supabase.rpc(
               "count_unread_messages_for_user"
@@ -56,7 +62,7 @@ const Navbar = () => {
               console.error("Error contando mensajes no leídos:", error);
             }
 
-            // 2) Si el hilo es urgente, mostrar toast invasivo
+            // 2) Si el hilo es urgente y NO soy yo, mostramos toast
             const threadId = payload.new.thread_id;
             const { data: thread, error: threadError } = await supabase
               .from("chat_threads")
@@ -64,9 +70,11 @@ const Navbar = () => {
               .eq("id", threadId)
               .single();
 
-            if (!threadError && thread?.es_urgente) {
+            if (!threadError && thread?.es_urgente && !esMio) {
               toast.error(`New URGENT message: ${thread.titulo}`, {
-                autoClose: false,
+                autoClose: 8000,      // 🔸 se cierra solo ~8s
+                closeOnClick: true,
+                pauseOnHover: true,
               });
             }
           } catch (err) {
@@ -97,6 +105,7 @@ const Navbar = () => {
         data: { session },
       } = await supabase.auth.getSession();
       setUser(session?.user);
+      currentUserIdRef.current = session?.user?.id || null; 
     };
 
     obtenerSesion();
@@ -104,9 +113,9 @@ const Navbar = () => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user);
+        currentUserIdRef.current = session?.user?.id || null; 
       }
     );
-
     return () => {
       authListener?.subscription?.unsubscribe?.();
     };
