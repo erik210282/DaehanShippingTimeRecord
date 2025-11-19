@@ -228,10 +228,10 @@ export default function Comunicaciones() {
     }, [selectedThread]);
 
     // =========================
-    // Realtime: mensajes nuevos / nuevos hilos (versión simple)
+    // Realtime: mensajes nuevos / nuevos hilos (versión simple, SIN cleanup)
     // =========================
     useEffect(() => {
-      console.log("🔗 Suscribiendo a realtime de Comunicaciones...");
+      console.log("🔗 Suscribiendo a realtime de Comunicaciones (una sola vez)...");
 
       const canalMensajes = supabase
         .channel("canal_chat_mensajes_web")
@@ -276,112 +276,105 @@ export default function Comunicaciones() {
         .subscribe((status) => {
           console.log("📶 Estado canal chat_threads_web:", status);
         });
+    }, []);
 
-      // Cleanup al salir de la página
-      return () => {
-        console.log("🧹 Cleanup Comunicaciones: desuscribiendo canales");
-        supabase.removeChannel(canalMensajes);
-        supabase.removeChannel(canalThreads);
-      };
-    }, [cargarMensajesThread, cargarThreads, currentUserId]);
-
-  // =========================
-  // Crear nuevo thread + primer mensaje
-  // =========================
-  const handleCreateThread = async () => {
-    if (!contenidoNuevo.trim()) {
-      toast.error(t("fill_all_fields"));
-      return;
-    }
-    if (!currentUserId) {
-      toast.error("Usuario no autenticado");
-      return;
-    }
-
-    try {
-      // Destinatarios
-      let destinatariosIds = destinatariosSeleccionados.map(
-        (opt) => opt.value
-      );
-
-      if (sendToAll) {
-        destinatariosIds = operadores.map((u) => u.uid);
+    // =========================
+    // Crear nuevo thread + primer mensaje
+    // =========================
+    const handleCreateThread = async () => {
+      if (!contenidoNuevo.trim()) {
+        toast.error(t("fill_all_fields"));
+        return;
       }
-
-      // Limpieza: quitar duplicados y eliminar tu propio id (lo agregamos aparte)
-      destinatariosIds = Array.from(new Set(destinatariosIds)).filter(
-        (id) => !!id
-      );
-
-      if (destinatariosIds.length === 0) {
-        toast.error(t("recipients") + ": " + t("fill_all_fields"));
+      if (!currentUserId) {
+        toast.error("Usuario no autenticado");
         return;
       }
 
-      // Tipo de thread: direct si solo hay 1 destinatario, si no broadcast
-      const tipo =
-        destinatariosIds.length === 1 ? "direct" : "broadcast";
+      try {
+        // Destinatarios
+        let destinatariosIds = destinatariosSeleccionados.map(
+          (opt) => opt.value
+        );
 
-      // 1) Crear thread
-      const { data: thread, error: threadError } = await supabase
-        .from("chat_threads")
-        .insert({
-          tipo,
-          titulo: tituloNuevo?.trim() || null,
-          es_urgente: urgencia === "urgent",
-          creado_por: currentUserId,
-        })
-        .select()
-        .single();
+        if (sendToAll) {
+          destinatariosIds = operadores.map((u) => u.uid);
+        }
 
-      if (threadError) throw threadError;
+        // Limpieza: quitar duplicados y eliminar tu propio id (lo agregamos aparte)
+        destinatariosIds = Array.from(new Set(destinatariosIds)).filter(
+          (id) => !!id
+        );
 
-      // 2) Insertar participantes (destinatarios + remitente)
-      const participantes = Array.from(
-        new Set([...destinatariosIds, currentUserId])
-      ).map((uid) => ({
-        thread_id: thread.id,
-        user_id: uid,
-      }));
+        if (destinatariosIds.length === 0) {
+          toast.error(t("recipients") + ": " + t("fill_all_fields"));
+          return;
+        }
 
-      const { error: partError } = await supabase
-        .from("chat_thread_participants")
-        .insert(participantes);
+        // Tipo de thread: direct si solo hay 1 destinatario, si no broadcast
+        const tipo =
+          destinatariosIds.length === 1 ? "direct" : "broadcast";
 
-      if (partError) throw partError;
+        // 1) Crear thread
+        const { data: thread, error: threadError } = await supabase
+          .from("chat_threads")
+          .insert({
+            tipo,
+            titulo: tituloNuevo?.trim() || null,
+            es_urgente: urgencia === "urgent",
+            creado_por: currentUserId,
+          })
+          .select()
+          .single();
 
-      // 3) Crear primer mensaje
-      const { data: mensaje, error: msgError } = await supabase
-        .from("chat_messages")
-        .insert({
+        if (threadError) throw threadError;
+
+        // 2) Insertar participantes (destinatarios + remitente)
+        const participantes = Array.from(
+          new Set([...destinatariosIds, currentUserId])
+        ).map((uid) => ({
           thread_id: thread.id,
-          sender_id: currentUserId,
-          contenido: contenidoNuevo.trim(),
-          tipo: "texto",
-        })
-        .select()
-        .single();
+          user_id: uid,
+        }));
 
-      if (msgError) throw msgError;
+        const { error: partError } = await supabase
+          .from("chat_thread_participants")
+          .insert(participantes);
 
-      // Actualizar UI
-      setThreads((prev) => [thread, ...prev]);
-      setSelectedThread(thread);
-      setMessages([mensaje]);
+        if (partError) throw partError;
 
-      // Limpiar formulario
-      setTituloNuevo("");
-      setContenidoNuevo("");
-      setUrgencia("normal");
-      setSendToAll(false);
-      setDestinatariosSeleccionados([]);
+        // 3) Crear primer mensaje
+        const { data: mensaje, error: msgError } = await supabase
+          .from("chat_messages")
+          .insert({
+            thread_id: thread.id,
+            sender_id: currentUserId,
+            contenido: contenidoNuevo.trim(),
+            tipo: "texto",
+          })
+          .select()
+          .single();
 
-      toast.success(t("send"));
-    } catch (err) {
-      console.error("Error creando conversación:", err);
-      toast.error(err.message || "Error creando conversación");
-    }
-  };
+        if (msgError) throw msgError;
+
+        // Actualizar UI
+        setThreads((prev) => [thread, ...prev]);
+        setSelectedThread(thread);
+        setMessages([mensaje]);
+
+        // Limpiar formulario
+        setTituloNuevo("");
+        setContenidoNuevo("");
+        setUrgencia("normal");
+        setSendToAll(false);
+        setDestinatariosSeleccionados([]);
+
+        toast.success(t("send"));
+      } catch (err) {
+        console.error("Error creando conversación:", err);
+        toast.error(err.message || "Error creando conversación");
+      }
+    };
 
     // =========================
     // Eliminar conversación completa
