@@ -65,8 +65,16 @@ const Navbar = () => {
                   .single();
 
                 if (!threadError && thread?.es_urgente && !esMio) {
-                  toast.error(`New URGENT message: ${thread.titulo || ""}`, {
-                    autoClose: 8000,
+                  // Obtener nombre del remitente
+                  const { data: remitente, error: senderError } = await supabase
+                    .from("operadores")
+                    .select("nombre")
+                    .eq("uid", nuevo.sender_id)
+                    .single();
+                  const nombreRemitente = remitente?.nombre || "Unknown user";
+                  toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombreRemitente })}`,
+                  {
+                    autoClose: 6000,
                     closeOnClick: true,
                     pauseOnHover: true,
                     position: "top-center",
