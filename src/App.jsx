@@ -28,97 +28,99 @@ const Navbar = () => {
   const currentUserIdRef = useRef(null);
   const retryGlobalRef = useRef(null); 
 
-  useEffect(() => {
-    // Evitar duplicados si por alguna razón se intenta crear dos veces
-    if (canalChatGlobalRef.current) return;
+    useEffect(() => {
+      const crearCanalGlobal = () => {
+        console.log("🌐 Creando canal global de chat...");
 
-    console.log("Creando canal global de chat...");
+        const canal = supabase
+          .channel("chat_global_web")
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "chat_messages" },
+            async (payload) => {
+              try {
+                console.log("Nuevo mensaje (global):", payload);
 
-    const canal = supabase
-      .channel("chat_global_web")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages" },
-        async (payload) => {
-          try {
-            console.log("Nuevo mensaje (global):", payload);
+                const nuevo = payload.new;
+                const senderId = nuevo?.sender_id || null;
+                const esMio = senderId && senderId === currentUserIdRef.current;
 
-            const nuevo = payload.new;
-            const senderId = nuevo?.sender_id || null;
-            const esMio = senderId && senderId === currentUserIdRef.current;
+                // 1) Recalcular mensajes no leídos para el badge del navbar
+                const { data, error } = await supabase.rpc(
+                  "count_unread_messages_for_user"
+                );
 
-            // 1) Recalcular mensajes no leídos para el badge del navbar
-            const { data, error } = await supabase.rpc(
-              "count_unread_messages_for_user"
-            );
+                if (!error && typeof data === "number") {
+                  setUnreadCount(data);
+                } else if (error) {
+                  console.error("Error contando mensajes no leídos:", error);
+                }
 
-            if (!error && typeof data === "number") {
-              setUnreadCount(data);
-            } else if (error) {
-              console.error("Error contando mensajes no leídos:", error);
+                // 2) Toast URGENTE solo si NO es mi mensaje
+                const threadId = nuevo.thread_id;
+                const { data: thread, error: threadError } = await supabase
+                  .from("chat_threads")
+                  .select("titulo, es_urgente")
+                  .eq("id", threadId)
+                  .single();
+
+                if (!threadError && thread?.es_urgente && !esMio) {
+                  toast.error(`New URGENT message: ${thread.titulo || ""}`, {
+                    autoClose: 8000,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    position: "top-center",
+                  });
+                }
+              } catch (err) {
+                console.error("Error en listener global de chat:", err);
+              }
             }
+          )
+          .subscribe((status) => {
+            console.log("Estado canal chat_global_web:", status);
 
-            // 2) Toast URGENTE solo si NO es mi mensaje
-            const threadId = nuevo.thread_id;
-            const { data: thread, error: threadError } = await supabase
-              .from("chat_threads")
-              .select("titulo, es_urgente")
-              .eq("id", threadId)
-              .single();
+            if (
+              status === "CHANNEL_ERROR" ||
+              status === "TIMED_OUT" ||
+              status === "CLOSED"
+            ) {
+              console.warn("⚠️ Canal global en estado crítico:", status);
 
-            if (!threadError && thread?.es_urgente && !esMio) {
-              toast.error(`New URGENT message: ${thread.titulo || ""}`, {
-                autoClose: 8000,
-                closeOnClick: true,
-                pauseOnHover: true,
-                position: "top-center",
-              });
+              if (retryGlobalRef.current) {
+                clearTimeout(retryGlobalRef.current);
+              }
+
+              retryGlobalRef.current = setTimeout(() => {
+                console.log("🔄 Re–creando canal_global...");
+                if (canalChatGlobalRef.current) {
+                  supabase.removeChannel(canalChatGlobalRef.current);
+                  canalChatGlobalRef.current = null;
+                }
+                crearCanalGlobal();
+              }, 3000);
             }
-          } catch (err) {
-            console.error("Error en listener global de chat:", err);
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log("Estado canal chat_global_web:", status);
+          });
 
-        // 🔁 Auto–reconexión si el canal entra en estado crítico
-        if (
-          status === "CHANNEL_ERROR" ||
-          status === "TIMED_OUT" ||
-          status === "CLOSED"
-        ) {
-          console.warn("Canal global en estado crítico:", status);
+        canalChatGlobalRef.current = canal;
+      };
 
-          if (retryGlobalRef.current) {
-            clearTimeout(retryGlobalRef.current);
-          }
-
-          retryGlobalRef.current = setTimeout(() => {
-            if (!canalChatGlobalRef.current) return;
-            console.log("Reintentando suscripción canal global...");
-            canalChatGlobalRef.current.subscribe((st) => {
-              console.log("Estado re-suscripción canal global:", st);
-            });
-          }, 3000);
-        }
-      });
-
-    canalChatGlobalRef.current = canal;
-
-    // 👇 Este cleanup solo se ejecuta cuando se desmonta TODA la App (logout / cerrar SPA)
-    return () => {
-      if (retryGlobalRef.current) {
-        clearTimeout(retryGlobalRef.current);
-        retryGlobalRef.current = null;
+      if (!canalChatGlobalRef.current) {
+        crearCanalGlobal();
       }
-      if (canalChatGlobalRef.current) {
-        console.log("Limpiando canal global de chat...");
-        supabase.removeChannel(canalChatGlobalRef.current);
-        canalChatGlobalRef.current = null;
-      }
-    };
-  }, []);
+
+      return () => {
+        console.log("🧹 Cleanup Navbar: canal global");
+        if (retryGlobalRef.current) {
+          clearTimeout(retryGlobalRef.current);
+          retryGlobalRef.current = null;
+        }
+        if (canalChatGlobalRef.current) {
+          supabase.removeChannel(canalChatGlobalRef.current);
+          canalChatGlobalRef.current = null;
+        }
+      };
+    }, []);
 
   // 2) Sesión / usuario actual
   useEffect(() => {

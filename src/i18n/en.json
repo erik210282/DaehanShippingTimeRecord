@@ -132,6 +132,7 @@
   "pause": "Pause",
   "paused": "Paused",
   "pausas": "Time Paused",
+  "urgent_message_arrived_from": "URGENT message from {{name}}",
   "pending": "Pending",
   "pending_tasks": "Pending Tasks",
   "pie_chart": "Pie chart",

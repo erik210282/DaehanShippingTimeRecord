@@ -119,6 +119,7 @@
   "packing_slip_number": "패킹 슬립 #",
   "password": "비밀번호",
   "password_placeholder": "비밀번호를 입력하세요",
+  "urgent_message_arrived_from": "{{name}} 님이 보내신 긴급 메시지",
   "pause": "일시정지",
   "paused": "일시정지됨",
   "pausas": "시간 일시 정지",

@@ -125,6 +125,7 @@
   "packing_slip_number": "Packing Slip #",
   "password": "Contraseña",
   "password_placeholder": "Escribe tu contraseña",
+  "urgent_message_arrived_from": "Mensaje URGENTE de {{name}}",
   "pause": "Pausa",
   "paused": "Pausada",
   "pausas": "Tiempo Pausado",
