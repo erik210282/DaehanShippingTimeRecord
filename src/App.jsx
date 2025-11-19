@@ -26,6 +26,7 @@ const Navbar = () => {
 
   const canalChatGlobalRef = useRef(null);
   const currentUserIdRef = useRef(null);
+  const retryGlobalRef = useRef(null); 
 
   useEffect(() => {
     // Evitar duplicados si por alguna razón se intenta crear dos veces
@@ -80,12 +81,37 @@ const Navbar = () => {
       )
       .subscribe((status) => {
         console.log("Estado canal chat_global_web:", status);
+
+        // 🔁 Auto–reconexión si el canal entra en estado crítico
+        if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          console.warn("Canal global en estado crítico:", status);
+
+          if (retryGlobalRef.current) {
+            clearTimeout(retryGlobalRef.current);
+          }
+
+          retryGlobalRef.current = setTimeout(() => {
+            if (!canalChatGlobalRef.current) return;
+            console.log("Reintentando suscripción canal global...");
+            canalChatGlobalRef.current.subscribe((st) => {
+              console.log("Estado re-suscripción canal global:", st);
+            });
+          }, 3000);
+        }
       });
 
     canalChatGlobalRef.current = canal;
-    
+
     // 👇 Este cleanup solo se ejecuta cuando se desmonta TODA la App (logout / cerrar SPA)
     return () => {
+      if (retryGlobalRef.current) {
+        clearTimeout(retryGlobalRef.current);
+        retryGlobalRef.current = null;
+      }
       if (canalChatGlobalRef.current) {
         console.log("Limpiando canal global de chat...");
         supabase.removeChannel(canalChatGlobalRef.current);

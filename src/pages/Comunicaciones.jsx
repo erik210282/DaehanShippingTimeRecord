@@ -27,9 +27,7 @@ export default function Comunicaciones() {
   const [contenidoNuevo, setContenidoNuevo] = useState("");
   const [urgencia, setUrgencia] = useState("normal"); // "normal" | "urgent"
   const [sendToAll, setSendToAll] = useState(false);
-  const [destinatariosSeleccionados, setDestinatariosSeleccionados] = useState(
-    []
-  );
+  const [destinatariosSeleccionados, setDestinatariosSeleccionados] = useState([]);
 
   // Hilos y mensajes
   const [threads, setThreads] = useState([]);
@@ -39,6 +37,13 @@ export default function Comunicaciones() {
   const [replyText, setReplyText] = useState("");
   const [loadingThreads, setLoadingThreads] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const canalesRef = useRef({
+    mensajes: null,
+    threads: null,
+    retryMensajes: null,
+    retryThreads: null,
+  });
+
 
   // Hilos que tienen mensajes nuevos sin leer (solo para indicador visual)
   // { [threadId]: true/false }
@@ -230,80 +235,155 @@ export default function Comunicaciones() {
     }, [selectedThread]);
 
     // =========================
-    // Realtime: mensajes nuevos / nuevos hilos
+    // Realtime: mensajes nuevos / nuevos hilos (con auto–reconexión)
     // =========================
-      useEffect(() => {
-        const canalMensajes = supabase
-          .channel("canal_chat_mensajes_web")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "chat_messages" },
-            async (payload) => {
-              const nuevo = payload.new;
-              const esMio = nuevo.sender_id === currentUserId;   // 🔸 NUEVO
+    useEffect(() => {
+      // Limpiar timers de reintento previos (por si el effect se vuelve a montar)
+      if (canalesRef.current.retryMensajes) {
+        clearTimeout(canalesRef.current.retryMensajes);
+        canalesRef.current.retryMensajes = null;
+      }
+      if (canalesRef.current.retryThreads) {
+        clearTimeout(canalesRef.current.retryThreads);
+        canalesRef.current.retryThreads = null;
+      }
 
-              // 1) Siempre refrescamos la lista de threads
-              await cargarThreads();
+      const canalMensajes = supabase
+        .channel("canal_chat_mensajes_web")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages" },
+          async (payload) => {
+            const nuevo = payload.new;
+            const esMio = nuevo.sender_id === currentUserId;
 
-              // 2) Si el hilo abierto es el mismo, recargamos mensajes
-              if (selectedThreadIdRef.current === nuevo.thread_id) {
-                await cargarMensajesThread(nuevo.thread_id);
-              } else {
-                // Si es otro hilo, marcamos "tiene nuevos"
-                setThreadUnread((prev) => ({
-                  ...prev,
-                  [nuevo.thread_id]: true,
-                }));
+            // 1) Siempre refrescamos la lista de threads
+            await cargarThreads();
+
+            // 2) Si el hilo abierto es el mismo, recargamos mensajes
+            if (selectedThreadIdRef.current === nuevo.thread_id) {
+              await cargarMensajesThread(nuevo.thread_id);
+            } else {
+              // Si es otro hilo, marcamos "tiene nuevos"
+              setThreadUnread((prev) => ({
+                ...prev,
+                [nuevo.thread_id]: true,
+              }));
+            }
+
+            // 3) Toast URGENTE solo si NO es mío
+            const { data: thread, error } = await supabase
+              .from("chat_threads")
+              .select("id, titulo, es_urgente")
+              .eq("id", nuevo.thread_id)
+              .single();
+
+            if (error || !thread || !thread.es_urgente || esMio) return;
+
+            toast.error(
+              t("urgent_message_arrived", {
+                title: thread.titulo || "",
+              }) || "Nuevo mensaje URGENTE",
+              {
+                position: "top-center",
+                autoClose: 8000,
+                closeOnClick: true,
+                pauseOnHover: true,
+                onClick: () => {
+                  setSelectedThread(thread);
+                  cargarMensajesThread(thread.id);
+                },
               }
+            );
+          }
+        )
+        .subscribe((status) => {
+          console.log("📶 Estado canal chat_mensajes_web:", status);
 
-              // 3) Toast URGENTE solo si NO es mío
-              const { data: thread, error } = await supabase
-                .from("chat_threads")
-                .select("id, titulo, es_urgente")
-                .eq("id", nuevo.thread_id)
-                .single();
+          if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            console.warn("Canal chat_mensajes_web en estado crítico:", status);
 
-              if (error || !thread || !thread.es_urgente || esMio) return;
-
-              toast.error(
-                t("urgent_message_arrived", {
-                  title: thread.titulo || "",
-                }) || "Nuevo mensaje URGENTE",
-                {
-                  position: "top-center",
-                  autoClose: 8000,      // 🔸 se cierra solo
-                  closeOnClick: true,
-                  pauseOnHover: true,
-                  onClick: () => {
-                    setSelectedThread(thread);
-                    cargarMensajesThread(thread.id);
-                  },
-                }
-              );
+            if (canalesRef.current.retryMensajes) {
+              clearTimeout(canalesRef.current.retryMensajes);
             }
-          )
-          .subscribe((status) => {
-            console.log("📶 Estado canal chat_mensajes_web:", status);
-          });
 
-        const canalThreads = supabase
-          .channel("canal_chat_threads_web")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "chat_threads" },
-            () => {
-              cargarThreads();
+            canalesRef.current.retryMensajes = setTimeout(() => {
+              if (!canalesRef.current.mensajes) return;
+              console.log("Reintentando suscripción canal_chat_mensajes_web...");
+              canalesRef.current.mensajes.subscribe((st) => {
+                console.log(
+                  "Estado re-suscripción canal_chat_mensajes_web:",
+                  st
+                );
+              });
+            }, 3000);
+          }
+        });
+
+      const canalThreads = supabase
+        .channel("canal_chat_threads_web")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_threads" },
+          () => {
+            cargarThreads();
+          }
+        )
+        .subscribe((status) => {
+          console.log("📶 Estado canal chat_threads_web:", status);
+
+          if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            console.warn("Canal chat_threads_web en estado crítico:", status);
+
+            if (canalesRef.current.retryThreads) {
+              clearTimeout(canalesRef.current.retryThreads);
             }
-          )
-          .subscribe((status) => {
-            console.log("📶 Estado canal chat_threads_web:", status);
-          });
 
-        return () => {
-          supabase.removeChannel(canalMensajes);
-          supabase.removeChannel(canalThreads);
-        };
-      }, [cargarMensajesThread, cargarThreads, t, currentUserId]);  // 🔸 agrega currentUserId aquí
+            canalesRef.current.retryThreads = setTimeout(() => {
+              if (!canalesRef.current.threads) return;
+              console.log("Reintentando suscripción canal_chat_threads_web...");
+              canalesRef.current.threads.subscribe((st) => {
+                console.log(
+                  "Estado re-suscripción canal_chat_threads_web:",
+                  st
+                );
+              });
+            }, 3000);
+          }
+        });
+
+      // Guardar refs para reintentos y cleanup
+      canalesRef.current.mensajes = canalMensajes;
+      canalesRef.current.threads = canalThreads;
+
+      return () => {
+        // Limpiar timers y canales al salir de la página
+        if (canalesRef.current.retryMensajes) {
+          clearTimeout(canalesRef.current.retryMensajes);
+          canalesRef.current.retryMensajes = null;
+        }
+        if (canalesRef.current.retryThreads) {
+          clearTimeout(canalesRef.current.retryThreads);
+          canalesRef.current.retryThreads = null;
+        }
+        if (canalesRef.current.mensajes) {
+          supabase.removeChannel(canalesRef.current.mensajes);
+          canalesRef.current.mensajes = null;
+        }
+        if (canalesRef.current.threads) {
+          supabase.removeChannel(canalesRef.current.threads);
+          canalesRef.current.threads = null;
+        }
+      };
+    }, [cargarMensajesThread, cargarThreads, t, currentUserId]);
 
   // =========================
   // Crear nuevo thread + primer mensaje
