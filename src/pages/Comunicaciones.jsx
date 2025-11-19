@@ -283,7 +283,7 @@ export default function Comunicaciones() {
               const nombreRemitente = remitente?.nombre || "Unknown user";
               
               toast.error(
-                t("urgent_message_arrived_from", { name: nombreRemitente }),
+                `🔥 ${t("urgent_message_arrived_from", { name: nombreRemitente })}`,
                 {
                   position: "top-center",
                   autoClose: 6000,
