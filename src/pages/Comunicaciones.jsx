@@ -277,9 +277,14 @@ export default function Comunicaciones() {
 
               // Si estoy viendo este hilo, agrego el mensaje a la lista abierta
               if (threadId === selectedThreadIdRef.current) {
-                setMessages((prev) => [...prev, nuevo]);
+                setMessages((prev) => {
+                  // Si ya existe un mensaje con ese id, no lo volvemos a agregar
+                  if (prev.some((m) => m.id === nuevo.id)) {
+                    return prev;
+                  }
+                  return [...prev, nuevo];
+                });
               }
-
               // Avisar al navbar que cambió el número de mensajes no leídos
               await notificarUnreadNavbar();
             } catch (err) {
@@ -519,8 +524,6 @@ export default function Comunicaciones() {
         .single();
 
       if (error) throw error;
-
-      setMessages((prev) => [...prev, data]);
       setReplyText("");
 
             // Marcamos como leído de nuevo (para este mensaje también)
