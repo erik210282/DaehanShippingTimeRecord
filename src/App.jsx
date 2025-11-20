@@ -27,25 +27,28 @@ const Navbar = () => {
   const currentUserIdRef = useRef(null);
   const retryGlobalRef = useRef(null);
 
-    // Canal global de chat: se crea UNA sola vez cuando hay usuario
-    useEffect(() => {
-      if (!user) {
-        // Si no hay usuario (todavía o después de logout), limpiamos el canal si existiera
-        console.log("🧹 Navbar: no hay usuario, limpiando canal global");
-        if (canalChatGlobalRef.current) {
-          supabase.removeChannel(canalChatGlobalRef.current);
-          canalChatGlobalRef.current = null;
-        }
-        return;
+  // Canal global de chat: se crea SOLO cuando hay usuario,
+  // y NO se destruye por cambiar de página.
+  useEffect(() => {
+    if (!user) {
+      // Si ya no hay usuario (logout), limpiamos canal y timers
+      console.log("🧹 Navbar: limpiando canal global porque no hay usuario");
+      if (retryGlobalRef.current) {
+        clearTimeout(retryGlobalRef.current);
+        retryGlobalRef.current = null;
       }
-
-      // Si el canal ya existe, no lo volvemos a crear
       if (canalChatGlobalRef.current) {
-        console.log("✅ Navbar: canal chat_global_web ya existe, no se crea otro");
-        return;
+        supabase.removeChannel(canalChatGlobalRef.current);
+        canalChatGlobalRef.current = null;
       }
+      return;
+    }
 
-      console.log("🌐 Navbar: creando canal global chat_global_web...");
+    // Si ya existe canal, no creamos otro
+    if (canalChatGlobalRef.current) return;
+
+    const crearCanalGlobal = () => {
+      console.log("🌐 Creando canal global de chat...");
 
       const canal = supabase
         .channel("chat_global_web")
@@ -64,6 +67,7 @@ const Navbar = () => {
               const { data, error } = await supabase.rpc(
                 "count_unread_messages_for_user"
               );
+
               if (!error && typeof data === "number") {
                 setUnreadCount(data);
               } else if (error) {
@@ -79,12 +83,12 @@ const Navbar = () => {
                 .single();
 
               if (!threadError && thread?.es_urgente && !esMio) {
+                // Obtener nombre del remitente
                 const { data: remitente, error: senderError } = await supabase
                   .from("operadores")
                   .select("nombre")
                   .eq("uid", nuevo.sender_id)
                   .single();
-
                 const nombreRemitente = remitente?.nombre || "Unknown user";
 
                 toast.error(
@@ -92,7 +96,7 @@ const Navbar = () => {
                     name: nombreRemitente,
                   })}`,
                   {
-                    autoClose: 3000,
+                    autoClose: 6000,
                     closeOnClick: true,
                     pauseOnHover: true,
                     position: "top-center",
@@ -106,20 +110,35 @@ const Navbar = () => {
         )
         .subscribe((status) => {
           console.log("Estado canal chat_global_web:", status);
-          // ❗ ya NO hacemos reconexión manual aquí
+
+          if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            console.warn("⚠️ Canal global en estado crítico:", status);
+
+            if (retryGlobalRef.current) {
+              clearTimeout(retryGlobalRef.current);
+            }
+
+            retryGlobalRef.current = setTimeout(() => {
+              console.log("🔄 Re–creando canal_global...");
+              if (canalChatGlobalRef.current) {
+                supabase.removeChannel(canalChatGlobalRef.current);
+                canalChatGlobalRef.current = null;
+              }
+              crearCanalGlobal();
+            }, 3000);
+          }
         });
 
       canalChatGlobalRef.current = canal;
+    };
 
-      // Cleanup SOLO si se desmonta completamente el Navbar (raro en tu app)
-      return () => {
-        console.log("🧹 Cleanup Navbar: removiendo canal chat_global_web");
-        if (canalChatGlobalRef.current) {
-          supabase.removeChannel(canalChatGlobalRef.current);
-          canalChatGlobalRef.current = null;
-        }
-      };
-    }, [user, t]);
+    crearCanalGlobal();
+  }, [user, t]);
+
   // 2) Sesión / usuario actual
   useEffect(() => {
     const obtenerSesion = async () => {
