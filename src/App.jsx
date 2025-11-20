@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import Registros from "./pages/Registros";
 import Productividad from "./pages/Productividad";
 import Catalogos from "./pages/Catalogos";
@@ -20,7 +20,6 @@ import { toast } from "react-toastify";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -28,10 +27,10 @@ const Navbar = () => {
   const currentUserIdRef = useRef(null);
   const retryGlobalRef = useRef(null);
 
-    // Canal global de chat: se recrea en cada cambio de ruta
+    // Canal global de chat: se crea UNA sola vez cuando hay usuario
     useEffect(() => {
-      // Si no hay usuario, cerramos el canal si existiera
       if (!user) {
+        // Si no hay usuario (todavía o después de logout), limpiamos el canal si existiera
         console.log("🧹 Navbar: no hay usuario, limpiando canal global");
         if (canalChatGlobalRef.current) {
           supabase.removeChannel(canalChatGlobalRef.current);
@@ -107,13 +106,12 @@ const Navbar = () => {
         )
         .subscribe((status) => {
           console.log("Estado canal chat_global_web:", status);
-          // 👀 IMPORTANTE: YA NO hacemos nada especial en CLOSED/TIMED_OUT
-          // para evitar bucles y reconexiones locas.
+          // ❗ ya NO hacemos reconexión manual aquí
         });
 
       canalChatGlobalRef.current = canal;
 
-      // Cleanup SOLO si se desmonta el Navbar (raro en tu app)
+      // Cleanup SOLO si se desmonta completamente el Navbar (raro en tu app)
       return () => {
         console.log("🧹 Cleanup Navbar: removiendo canal chat_global_web");
         if (canalChatGlobalRef.current) {
@@ -122,7 +120,6 @@ const Navbar = () => {
         }
       };
     }, [user, t]);
-
   // 2) Sesión / usuario actual
   useEffect(() => {
     const obtenerSesion = async () => {
