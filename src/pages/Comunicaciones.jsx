@@ -309,8 +309,6 @@ export default function Comunicaciones() {
       // NO usamos removeAllChannels, ni tocamos otros canales (como el global del Navbar).
       return () => {
         console.log("🧹 Cleanup Comunicaciones: removiendo SOLO canales locales");
-        supabase.removeChannel(canalMensajes);
-        supabase.removeChannel(canalThreads);
       };
     }, [currentUserId, cargarThreads, notificarUnreadNavbar]);
 
