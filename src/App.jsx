@@ -204,10 +204,20 @@ const Navbar = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();  // Cerrar sesión con Supabase
+    // Limpiar canal global y timers ANTES de salir
+    if (retryGlobalRef.current) {
+      clearTimeout(retryGlobalRef.current);
+      retryGlobalRef.current = null;
+    }
+    if (canalChatGlobalRef.current) {
+      supabase.removeChannel(canalChatGlobalRef.current);
+      canalChatGlobalRef.current = null;
+    }
+
+    await supabase.auth.signOut();
     navigate("/");
   };
-  
+
   return (
     <div className="navbar">
       <div className="navbar-center">

@@ -239,6 +239,12 @@ export default function Comunicaciones() {
     useEffect(() => {
       if (!currentUserId) return;
 
+      // Si ya existen canales, no volvemos a crearlos
+      if (canalMensajesRef.current || canalThreadsRef.current) {
+        console.log("⚠️ Canales de Comunicaciones ya existen, no se crean de nuevo");
+        return;
+      }
+
       console.log("🔔 Registrando listeners realtime PARA Comunicaciones (solo locales)");
 
       // Canal para mensajes
@@ -267,12 +273,13 @@ export default function Comunicaciones() {
               setThreadUnread((prev) => ({
                 ...prev,
                 [threadId]: threadId === selectedThreadIdRef.current ? false : true,
-              }
-              ));
+              }));
+
               // Si estoy viendo este hilo, agrego el mensaje a la lista abierta
               if (threadId === selectedThreadIdRef.current) {
                 setMessages((prev) => [...prev, nuevo]);
               }
+
               // Avisar al navbar que cambió el número de mensajes no leídos
               await notificarUnreadNavbar();
             } catch (err) {
@@ -304,11 +311,22 @@ export default function Comunicaciones() {
           console.log("Estado canal comms_chat_threads_web:", status);
         });
 
-      // 🔹 MUY IMPORTANTE:
-      // Solo quitamos LOS DOS canales locales de Comunicaciones.
-      // NO usamos removeAllChannels, ni tocamos otros canales (como el global del Navbar).
+      // Guardamos referencias para poder limpiar después
+      canalMensajesRef.current = canalMensajes;
+      canalThreadsRef.current = canalThreads;
+
+      // 🔹 Limpieza: SOLO quitamos los canales locales
       return () => {
         console.log("🧹 Cleanup Comunicaciones: removiendo SOLO canales locales");
+
+        if (canalMensajesRef.current) {
+          supabase.removeChannel(canalMensajesRef.current);
+          canalMensajesRef.current = null;
+        }
+        if (canalThreadsRef.current) {
+          supabase.removeChannel(canalThreadsRef.current);
+          canalThreadsRef.current = null;
+        }
       };
     }, [currentUserId, cargarThreads, notificarUnreadNavbar]);
 
