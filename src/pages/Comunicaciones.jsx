@@ -417,7 +417,6 @@ export default function Comunicaciones() {
         // Actualizar UI
         setThreads((prev) => [thread, ...prev]);
         setSelectedThread(thread);
-        setMessages([mensaje]);
 
         // Limpiar formulario
         setTituloNuevo("");
