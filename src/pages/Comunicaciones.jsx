@@ -234,96 +234,121 @@ export default function Comunicaciones() {
     }, [selectedThread]);
 
     // =========================
-    // Realtime local de Comunicaciones
+    // Realtime: mensajes nuevos / nuevos hilos (con reconexión)
     // =========================
     useEffect(() => {
-      if (!currentUserId) return;
+      console.log("🔗 Realtime Comunicaciones — creando canales...");
 
-      // Si ya existen canales, no volvemos a crearlos
-      if (canalMensajesRef.current || canalThreadsRef.current) {
-        console.log("⚠️ Canales de Comunicaciones ya existen, no se crean de nuevo");
-        return;
-      }
+      const crearCanalMensajes = () => {
+        // Si ya había un canal, lo removemos antes de crear otro
+        if (canalMensajesRef.current) {
+          supabase.removeChannel(canalMensajesRef.current);
+          canalMensajesRef.current = null;
+        }
 
-      console.log("🔔 Registrando listeners realtime PARA Comunicaciones (solo locales)");
-
-      // Canal para mensajes
-      const canalMensajes = supabase
-        .channel("comms_chat_mensajes_web")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "chat_messages" },
-          async (payload) => {
-            try {
+        const canal = supabase
+          .channel("comms_chat_mensajes") // 👈 nombre único para esta página
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "chat_messages" },
+            async (payload) => {
               const nuevo = payload.new;
-              if (!nuevo) return;
 
-              const threadId = nuevo.thread_id;
-
-              // Actualizar lista de threads (último mensaje)
-              setThreads((prev) =>
-                prev.map((th) =>
-                  th.id === threadId
-                    ? { ...th, last_message_at: nuevo.created_at }
-                    : th
-                )
-              );
-
-              // Marcar hilo como "con mensaje nuevo" si NO es el que tengo abierto
-              setThreadUnread((prev) => ({
-                ...prev,
-                [threadId]: threadId === selectedThreadIdRef.current ? false : true,
-              }));
-
-              // Si estoy viendo este hilo, agrego el mensaje a la lista abierta
-              if (threadId === selectedThreadIdRef.current) {
-                setMessages((prev) => {
-                  // Si ya existe un mensaje con ese id, no lo volvemos a agregar
-                  if (prev.some((m) => m.id === nuevo.id)) {
-                    return prev;
-                  }
-                  return [...prev, nuevo];
-                });
-              }
-              // Avisar al navbar que cambió el número de mensajes no leídos
-              await notificarUnreadNavbar();
-            } catch (err) {
-              console.error("Error en listener de mensajes (Comunicaciones):", err);
-            }
-          }
-        )
-        .subscribe((status) => {
-          console.log("Estado canal comms_chat_mensajes_web:", status);
-        });
-
-      // Canal para cambios en hilos
-      const canalThreads = supabase
-        .channel("comms_chat_threads_web")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "chat_threads" },
-          async (payload) => {
-            try {
-              console.log("Cambio en chat_threads (Comunicaciones):", payload);
+              // 1) Siempre refrescamos la lista de threads
               await cargarThreads();
-              await notificarUnreadNavbar();
-            } catch (err) {
-              console.error("Error en listener de threads (Comunicaciones):", err);
+
+              // 2) Si el hilo abierto es el mismo, recargamos mensajes
+              if (selectedThreadIdRef.current === nuevo.thread_id) {
+                await cargarMensajesThread(nuevo.thread_id);
+              } else {
+                // Si es otro hilo, marcamos "tiene nuevos"
+                setThreadUnread((prev) => ({
+                  ...prev,
+                  [nuevo.thread_id]: true,
+                }));
+              }
+
+              // 👉 El toast URGENTE ya lo maneja el Navbar (App.jsx)
             }
-          }
-        )
-        .subscribe((status) => {
-          console.log("Estado canal comms_chat_threads_web:", status);
-        });
+          )
+          .subscribe((status) => {
+            console.log("📶 Estado canal comms_chat_mensajes:", status);
 
-      // Guardamos referencias para poder limpiar después
-      canalMensajesRef.current = canalMensajes;
-      canalThreadsRef.current = canalThreads;
+            if (
+              status === "CHANNEL_ERROR" ||
+              status === "TIMED_OUT" ||
+              status === "CLOSED"
+            ) {
+              console.warn("⚠️ comms_chat_mensajes en estado crítico:", status);
 
-      // 🔹 Limpieza: SOLO quitamos los canales locales
+              if (retryMensajesRef.current) {
+                clearTimeout(retryMensajesRef.current);
+              }
+
+              retryMensajesRef.current = setTimeout(() => {
+                console.log("🔄 Re–creando canal comms_chat_mensajes...");
+                crearCanalMensajes();
+              }, 3000);
+            }
+          });
+
+        canalMensajesRef.current = canal;
+      };
+
+      const crearCanalThreads = () => {
+        if (canalThreadsRef.current) {
+          supabase.removeChannel(canalThreadsRef.current);
+          canalThreadsRef.current = null;
+        }
+
+        const canal = supabase
+          .channel("comms_chat_threads") // 👈 nombre único para esta página
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "chat_threads" },
+            () => {
+              cargarThreads();
+            }
+          )
+          .subscribe((status) => {
+            console.log("📶 Estado canal comms_chat_threads:", status);
+
+            if (
+              status === "CHANNEL_ERROR" ||
+              status === "TIMED_OUT" ||
+              status === "CLOSED"
+            ) {
+              console.warn("⚠️ comms_chat_threads en estado crítico:", status);
+
+              if (retryThreadsRef.current) {
+                clearTimeout(retryThreadsRef.current);
+              }
+
+              retryThreadsRef.current = setTimeout(() => {
+                console.log("🔄 Re–creando canal comms_chat_threads...");
+                crearCanalThreads();
+              }, 3000);
+            }
+          });
+
+        canalThreadsRef.current = canal;
+      };
+
+      // Crear canales al montar
+      crearCanalMensajes();
+      crearCanalThreads();
+
+      // Cleanup SOLO al salir de la página
       return () => {
-        console.log("🧹 Cleanup Comunicaciones: removiendo SOLO canales locales");
-
+        console.log("🧹 Cleanup Comunicaciones: removiendo canales y timers");
+        if (retryMensajesRef.current) {
+          clearTimeout(retryMensajesRef.current);
+          retryMensajesRef.current = null;
+        }
+        if (retryThreadsRef.current) {
+          clearTimeout(retryThreadsRef.current);
+          retryThreadsRef.current = null;
+        }
         if (canalMensajesRef.current) {
           supabase.removeChannel(canalMensajesRef.current);
           canalMensajesRef.current = null;
@@ -333,7 +358,7 @@ export default function Comunicaciones() {
           canalThreadsRef.current = null;
         }
       };
-    }, [currentUserId, cargarThreads, notificarUnreadNavbar]);
+    }, [cargarThreads, cargarMensajesThread, setThreadUnread]);
 
     // =========================
     // Crear nuevo thread + primer mensaje
