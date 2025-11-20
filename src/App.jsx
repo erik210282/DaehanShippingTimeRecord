@@ -25,18 +25,11 @@ const Navbar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const canalChatGlobalRef = useRef(null);
   const currentUserIdRef = useRef(null);
-  const retryGlobalRef = useRef(null);
 
-  // Canal global de chat: se crea SOLO cuando hay usuario,
-  // y NO se destruye por cambiar de página.
   useEffect(() => {
     if (!user) {
-      // Si ya no hay usuario (logout), limpiamos canal y timers
+      // Si ya no hay usuario (logout), limpiamos canal
       console.log("🧹 Navbar: limpiando canal global porque no hay usuario");
-      if (retryGlobalRef.current) {
-        clearTimeout(retryGlobalRef.current);
-        retryGlobalRef.current = null;
-      }
       if (canalChatGlobalRef.current) {
         supabase.removeChannel(canalChatGlobalRef.current);
         canalChatGlobalRef.current = null;
@@ -110,27 +103,6 @@ const Navbar = () => {
         )
         .subscribe((status) => {
           console.log("Estado canal chat_global_web:", status);
-
-          if (
-            status === "CHANNEL_ERROR" ||
-            status === "TIMED_OUT" ||
-            status === "CLOSED"
-          ) {
-            console.warn("⚠️ Canal global en estado crítico:", status);
-
-            if (retryGlobalRef.current) {
-              clearTimeout(retryGlobalRef.current);
-            }
-
-            retryGlobalRef.current = setTimeout(() => {
-              console.log("🔄 Re–creando canal_global...");
-              if (canalChatGlobalRef.current) {
-                supabase.removeChannel(canalChatGlobalRef.current);
-                canalChatGlobalRef.current = null;
-              }
-              crearCanalGlobal();
-            }, 3000);
-          }
         });
 
       canalChatGlobalRef.current = canal;
@@ -203,11 +175,7 @@ const Navbar = () => {
   };
 
   const handleLogout = async () => {
-    // Limpiar canal global y timers ANTES de salir
-    if (retryGlobalRef.current) {
-      clearTimeout(retryGlobalRef.current);
-      retryGlobalRef.current = null;
-    }
+    // Limpiar canal global ANTES de salir
     if (canalChatGlobalRef.current) {
       supabase.removeChannel(canalChatGlobalRef.current);
       canalChatGlobalRef.current = null;

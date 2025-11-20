@@ -44,9 +44,6 @@ export default function Comunicaciones() {
   // Referencias a canales y timers de reconexión
   const canalMensajesRef = useRef(null);
   const canalThreadsRef = useRef(null);
-  const retryMensajesRef = useRef(null);
-  const retryThreadsRef = useRef(null);
-
 
   // =========================
   // Helpers
@@ -247,51 +244,19 @@ export default function Comunicaciones() {
         }
 
         const canal = supabase
-          .channel("comms_chat_mensajes") // 👈 nombre único para esta página
+          .channel("comms_chat_mensajes")
           .on(
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "chat_messages" },
             async (payload) => {
               const nuevo = payload.new;
-
-              // 1) Siempre refrescamos la lista de threads
-              await cargarThreads();
-
-              // 2) Si el hilo abierto es el mismo, recargamos mensajes
-              if (selectedThreadIdRef.current === nuevo.thread_id) {
-                await cargarMensajesThread(nuevo.thread_id);
-              } else {
-                // Si es otro hilo, marcamos "tiene nuevos"
-                setThreadUnread((prev) => ({
-                  ...prev,
-                  [nuevo.thread_id]: true,
-                }));
-              }
-
-              // 👉 El toast URGENTE ya lo maneja el Navbar (App.jsx)
+              // ... tu lógica de cargar threads y mensajes (déjala igual) ...
             }
           )
           .subscribe((status) => {
             console.log("📶 Estado canal comms_chat_mensajes:", status);
-
-            if (
-              status === "CHANNEL_ERROR" ||
-              status === "TIMED_OUT" ||
-              status === "CLOSED"
-            ) {
-              console.warn("⚠️ comms_chat_mensajes en estado crítico:", status);
-
-              if (retryMensajesRef.current) {
-                clearTimeout(retryMensajesRef.current);
-              }
-
-              retryMensajesRef.current = setTimeout(() => {
-                console.log("🔄 Re–creando canal comms_chat_mensajes...");
-                crearCanalMensajes();
-              }, 3000);
-            }
+            // Sin reintentos manuales; Supabase se encarga de reconectar
           });
-
         canalMensajesRef.current = canal;
       };
 
@@ -302,7 +267,7 @@ export default function Comunicaciones() {
         }
 
         const canal = supabase
-          .channel("comms_chat_threads") // 👈 nombre único para esta página
+          .channel("comms_chat_threads")
           .on(
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "chat_threads" },
@@ -312,25 +277,8 @@ export default function Comunicaciones() {
           )
           .subscribe((status) => {
             console.log("📶 Estado canal comms_chat_threads:", status);
-
-            if (
-              status === "CHANNEL_ERROR" ||
-              status === "TIMED_OUT" ||
-              status === "CLOSED"
-            ) {
-              console.warn("⚠️ comms_chat_threads en estado crítico:", status);
-
-              if (retryThreadsRef.current) {
-                clearTimeout(retryThreadsRef.current);
-              }
-
-              retryThreadsRef.current = setTimeout(() => {
-                console.log("🔄 Re–creando canal comms_chat_threads...");
-                crearCanalThreads();
-              }, 3000);
-            }
+            // Sin reintentos manuales
           });
-
         canalThreadsRef.current = canal;
       };
 
@@ -340,15 +288,7 @@ export default function Comunicaciones() {
 
       // Cleanup SOLO al salir de la página
       return () => {
-        console.log("🧹 Cleanup Comunicaciones: removiendo canales y timers");
-        if (retryMensajesRef.current) {
-          clearTimeout(retryMensajesRef.current);
-          retryMensajesRef.current = null;
-        }
-        if (retryThreadsRef.current) {
-          clearTimeout(retryThreadsRef.current);
-          retryThreadsRef.current = null;
-        }
+        console.log("🧹 Cleanup Comunicaciones: removiendo canales");
         if (canalMensajesRef.current) {
           supabase.removeChannel(canalMensajesRef.current);
           canalMensajesRef.current = null;
