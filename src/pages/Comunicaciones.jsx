@@ -234,7 +234,7 @@ export default function Comunicaciones() {
       console.log("🔗 Suscribiendo a realtime de Comunicaciones (una sola vez)...");
 
       const canalMensajes = supabase
-        .channel("canal_chat_mensajes_web")
+        .channel("comms_chat_mensajes")
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "chat_messages" },
@@ -255,17 +255,14 @@ export default function Comunicaciones() {
                 [nuevo.thread_id]: true,
               }));
             }
-
-            // 3) Aquí YA NO mostramos toast.
-            //    El toast URGENTE global lo maneja el Navbar en App.jsx.
           }
         )
         .subscribe((status) => {
-          console.log("📶 Estado canal chat_mensajes_web:", status);
+          console.log("📶 Estado canal comms_chat_mensajes:", status);
         });
 
       const canalThreads = supabase
-        .channel("canal_chat_threads_web")
+        .channel("comms_chat_threads")
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "chat_threads" },
@@ -274,7 +271,7 @@ export default function Comunicaciones() {
           }
         )
         .subscribe((status) => {
-          console.log("📶 Estado canal chat_threads_web:", status);
+          console.log("📶 Estado canal comms_chat_threads:", status);
         });
     }, []);
 
