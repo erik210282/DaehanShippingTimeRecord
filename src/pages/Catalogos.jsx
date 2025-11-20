@@ -116,7 +116,6 @@ export default function Catalogos() {
       .eq("po", poNumber)
       .maybeSingle();
     if (error) {
-      console.error(error);
       setBillTo({ ...billToDefaults });
       return;
     }

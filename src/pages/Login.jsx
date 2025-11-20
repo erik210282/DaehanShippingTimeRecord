@@ -55,7 +55,6 @@ export default function Login() {
         .maybeSingle();
 
       if (pErr) {
-        console.error("Error cargando perfil operador:", pErr);
         toast.error(t("error") || "Ocurrió un error");
         return;
       }
@@ -83,7 +82,6 @@ export default function Login() {
       toast.success(t("welcome_user", { name: profile?.nombre ?? "" }) || "¡Bienvenido!");
       navigate("/tareas-pendientes");
     } catch (err) {
-      console.error(err);
       toast.error(t("error") || "Ocurrió un error");
     } finally {
       setBusy(false);

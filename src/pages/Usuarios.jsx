@@ -23,7 +23,6 @@ export default function Usuarios() {
 
   const debugT = (key) => {
     const translated = t(key);
-    console.log("[Usuarios.jsx] i18n lang:", i18n.language, "key:", key, "=>", translated);
     return translated;
   };
 
@@ -95,7 +94,6 @@ export default function Usuarios() {
           setMensajeKey("");
           setMensajeExtra("");
         } catch (error) {
-          console.error("Error cargando operadores:", error);
           setMensajeKey("network_error");
           setMensajeExtra(error.message || "");
         } finally {
@@ -262,7 +260,6 @@ export default function Usuarios() {
                               .eq("uid", u.uid);
 
                             if (error) {
-                              console.error("Error actualizando rol:", error);
                             }
 
                             cargarUsuarios();
@@ -310,7 +307,6 @@ export default function Usuarios() {
                               .update({ activo: nuevoActivo })
                               .eq("uid", u.uid);
                             if (error) {
-                              console.error("Error actualizando activo:", error);
                             }
                             cargarUsuarios();
                           }}

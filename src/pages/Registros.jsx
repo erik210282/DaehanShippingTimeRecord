@@ -105,7 +105,6 @@ const cargarCatalogos = async () => {
         .sort((a, b) => a.label.localeCompare(b.label)) || []
     );
   } catch (e) {
-    console.error("Error general en cargarCatalogos:", e);
   }
 };
 
@@ -122,7 +121,6 @@ const actualizarRegistros = async () => {
       .range(from, from + PAGE - 1);
 
     if (error) {
-      console.error("Error cargando registros:", error);
       return;
     }
     if (!chunk || chunk.length === 0) break;
@@ -166,7 +164,6 @@ const actualizarRegistros = async () => {
         table: "actividades_realizadas",
       },
       () => {
-        console.log("[Registros] Cambio detectado en actividades_realizadas");
         actualizarRegistros(); // recarga en tiempo real
       }
     )
@@ -306,14 +303,11 @@ useEffect(() => {
       .eq("id", id);
 
     // Reemplazo de trackedDeleteDoc (puedes adaptarlo a tu sistema si lo tienes en Supabase)
-    console.log("[Registros] Eliminar Actividades Realizadas 5", id);
-
     if (error) throw error;
 
     setRegistros(registros.filter((r) => r.id !== id));
     toast.success(t("delete_success"));
   } catch (e) {
-    console.error("Error eliminando registro:", e);
     toast.error(t("error_deleting"));
   }
 };
@@ -404,23 +398,18 @@ useEffect(() => {
       const { error } = await supabase
         .from("actividades_realizadas")
         .insert([data]);
-
-      console.log("[Registros] Agrega Actividades Realizadas 6", data);
       if (error) throw error;
     } else {
       const { error } = await supabase
         .from("actividades_realizadas")
         .update(data)
         .eq("id", registroActual.id);
-
-      console.log("[Registros] Actualiza Actividades Realizadas 7", data);
       if (error) throw error;
     }
 
     toast.success(t("save_success"));
     setModalAbierto(false);
   } catch (error) {
-    console.error("Error guardando registro:", error);
     toast.error(t("error_saving"));
   }
 };
@@ -656,8 +645,6 @@ useEffect(() => {
               <BtnDanger
                 onClick={async () => {
                   try {
-                    console.log("[Registros] Eliminar Registros 8:", registroAEliminar.id);
-
                     const { error } = await supabase
                       .from("actividades_realizadas")
                       .delete()
@@ -670,7 +657,6 @@ useEffect(() => {
                     );
                     toast.success(t("delete_success"));
                   } catch (error) {
-                    console.error("Error eliminando:", error);
                     toast.error(t("delete_error"));
                   } finally {
                     setRegistroAEliminar(null);

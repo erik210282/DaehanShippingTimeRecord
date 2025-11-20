@@ -63,7 +63,6 @@ export default function TareasPendientes() {
       .order("createdAt", { ascending: true });
 
     if (error) {
-      console.error("Error cargando tareas:", error);
       return;
     }
     if (data) setTareas(data);
@@ -124,12 +123,8 @@ export default function TareasPendientes() {
 
   useEffect(() => {
     if (location.pathname !== "/tareas-pendientes") return;
-
-    console.log("✅ Montando canales de Supabase para /tareas-pendientes");
-
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        console.log("👁️ Volvió a la pestaña: actualizando tareas.");
         fetchTareas();
       }
     };
@@ -150,10 +145,8 @@ export default function TareasPendientes() {
           fetchTareas
         )
         .subscribe((status) => {
-          console.log("📶 Estado del canal tareas_pendientes:", status);
         });
     } else {
-      console.log("♻️ Reutilizando canal tareas_pendientes");
     }
 
     // Canales locales para catálogos
@@ -185,7 +178,6 @@ export default function TareasPendientes() {
       .subscribe();
 
     return () => {
-      console.log("🧹 Limpiando canales al salir de tareas-pendientes");
       document.removeEventListener("visibilitychange", handleVisibilityChange);
 
       if (canalTareas) {
@@ -292,7 +284,6 @@ export default function TareasPendientes() {
       setModalAbierto(false);
       fetchTareas();
     } catch (error) {
-      console.error("Error guardando tarea:", error);
       toast.error(t("error_saving"));
     }
   };
@@ -347,7 +338,6 @@ export default function TareasPendientes() {
       await persistirPrioridadesSecuenciales(nuevas);
       toast.success(t("priority_updated"));
     } catch (err) {
-      console.error("Error actualizando prioridades:", err);
       toast.error(t("error_updating_priority"));
       fetchTareas(); // fallback
     }
@@ -694,13 +684,9 @@ export default function TareasPendientes() {
                       .from("tareas_pendientes")
                       .delete()
                       .eq("id", tareaAEliminar.id);
-
-                    console.log("[Tareas Pendientes] Eliminar Tareas Pendientes 7", tareaAEliminar.id);
-
                     if (error) throw error;
                     toast.success(t("task_deleted"));
                   } catch (error) {
-                    console.error("Error eliminando:", error);
                     toast.error(t("error_deleting"));
                   }
                   setTareaAEliminar(null);

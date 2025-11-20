@@ -39,7 +39,6 @@ export default function Resumen() {
         .select("id, nombre");
 
       if (errorActividades) {
-        console.error("❌ Error cargando actividades:", errorActividades);
         return;
       }
 
@@ -47,7 +46,6 @@ export default function Resumen() {
       actividades?.forEach((a) => {
         actDict[a.id] = a.nombre?.toLowerCase().trim();
       });
-      console.log("🔁 Actividades cargadas:", actDict);
       setActividadesDict(actDict);
 
       // 2. Cargar productos y operadores
@@ -58,7 +56,6 @@ export default function Resumen() {
         ]);
 
       if (errorProductos || errorOperadores) {
-        console.error("❌ Error cargando catálogos", { errorProductos, errorOperadores });
         return;
       }
 
@@ -71,10 +68,6 @@ export default function Resumen() {
       operadores?.forEach((op) => {
         opDict[op.id] = op.nombre;
       });
-
-      console.log("📦 Productos cargados:", prodDict);
-      console.log("👤 Operadores cargados:", opDict);
-
       setProductosDict(prodDict);
       setOperadoresDict(opDict);
     };
@@ -98,7 +91,6 @@ export default function Resumen() {
           .range(from, from + PAGE - 1);
 
         if (error) {
-          console.error("❌ Error cargando actividades:", error);
           return;
         }
         if (!chunk || chunk.length === 0) break;
@@ -113,11 +105,7 @@ export default function Resumen() {
 
       // Trabajaremos con 'data' como antes
       const data = todo;
-      console.log("🧾 Actividades obtenidas (paginadas):", data);
       if (!data.length) return;
-
-      console.log("🧾 Actividades obtenidas:", data);
-
       const agrupadas = {};
 
       data.forEach((act) => {
@@ -142,8 +130,6 @@ export default function Resumen() {
           };
         }
 
-        console.log("🧩 Verificando productos de actividad:", act);
-
         if (Array.isArray(act.productos)) {
           act.productos.forEach((item) => {
             const nombreProducto = productosDict?.[item.producto];
@@ -153,10 +139,7 @@ export default function Resumen() {
             }
           });
         }
-
         const nombreActividad = actividadesDict[act.actividad]?.toLowerCase().trim() || "";
-        console.log("🔍 Actividad detectada:", act.actividad, "→", nombreActividad);
-
         let operadorNombre = "-";
         if (Array.isArray(act.operadores)) {
           operadorNombre = act.operadores.map((id) => operadoresDict[id] || `ID:${id}`).join(", ");
@@ -177,7 +160,6 @@ export default function Resumen() {
           if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
             agrupadas[key][nombreActividad] = registro;
           } else {
-            console.warn("⚠️ Actividad no reconocida aún:", act.actividad);
           }
         } else {
           // Muestra igual aunque el nombre aún no esté en actividadesDict
@@ -207,9 +189,6 @@ export default function Resumen() {
       const filtrado = filtroIdx
         ? resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase()))
         : resultado;
-
-      console.log("📊 Resumen final:", filtrado);
-
       // 💾 Actualizar estado
       setResumenData(filtrado);
     };

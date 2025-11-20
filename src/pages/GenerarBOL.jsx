@@ -157,7 +157,6 @@ export default function GenerarBOL() {
       setIdxOptions(onlyIdx);
       setSelectedIdx(prev => (prev && !onlyIdx.includes(prev) ? "" : prev));
     } catch (e) {
-      console.warn("cargarIdxOptions:", e?.message || e);
       setIdxOptions([]);
       setSelectedIdx("");
     }
@@ -174,7 +173,6 @@ export default function GenerarBOL() {
       if (error) throw error;
       setPoOptions(data || []);
     } catch (e) {
-      console.warn("cargarPoOptions:", e?.message || e);
       setPoOptions([]);
     }
   }, []);
@@ -190,7 +188,6 @@ export default function GenerarBOL() {
       if (error) throw error;
       setShipperOptions(data || []);
     } catch (e) {
-      console.warn("cargarShipperOptions:", e?.message || e);
       setShipperOptions([]);
     }
   }, []);
@@ -471,7 +468,6 @@ export default function GenerarBOL() {
         scale: 8,                  // alta resolución (cerca de 300 dpi en la impresión)
       });
     } catch (err) {
-      console.warn("Error generando QR:", err);
       return null;
     }
   }
@@ -512,7 +508,6 @@ export default function GenerarBOL() {
           align: "center"
         });
       } catch (err) {
-        console.warn("Error agregando QR Shipment en Cover:", err);
       }
     }
 
@@ -526,7 +521,6 @@ export default function GenerarBOL() {
           align: "center"
         });
       } catch (err) {
-        console.warn("Error agregando QR Trailer en Cover:", err);
       }
     }
 
@@ -892,7 +886,6 @@ export default function GenerarBOL() {
         try {
           doc.addImage(qrShipmentImg, "PNG", qrX, qrY, QR_SIZE_BOL, QR_SIZE_BOL);
         } catch (err) {
-          console.warn("Error agregando QR en BOL:", err);
         }
       }
 
@@ -1425,7 +1418,6 @@ export default function GenerarBOL() {
       toast.success(t("generated_ok", "BOL generado correctamente"));
       resetForm();
     } catch (e) {
-      console.error(e);
       toast.error(t("error_generating", "Error al generar el BOL"));
     } finally {
       setIsGenerating(false);

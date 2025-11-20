@@ -118,7 +118,6 @@ export default function Productividad() {
         const chunk = await q.range(from, from + PAGE - 1);
 
         if (chunk.error) {
-          console.error("Error al cargar registros:", chunk.error);
           toast.error(t("no_data"));
           break;
         }
