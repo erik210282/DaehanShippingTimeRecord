@@ -20,11 +20,10 @@ import { toast } from "react-toastify";
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const location = useLocation();
-
   const canalChatGlobalRef = useRef(null);
   const currentUserIdRef = useRef(null);
   const retryGlobalRef = useRef(null);
@@ -45,7 +44,7 @@ const Navbar = () => {
         return;
       }
 
-      // Siempre que cambie de página, destruyo y vuelvo a crear el canal
+      // Cada vez que cambie la ruta, destruimos y recreamos el canal global
       console.log("🔄 Navbar: recreando canal chat_global_web por cambio de ruta:", location.pathname);
 
       if (retryGlobalRef.current) {
@@ -77,7 +76,6 @@ const Navbar = () => {
                 const { data, error } = await supabase.rpc(
                   "count_unread_messages_for_user"
                 );
-
                 if (!error && typeof data === "number") {
                   setUnreadCount(data);
                 } else if (error) {
@@ -106,7 +104,7 @@ const Navbar = () => {
                       name: nombreRemitente,
                     })}`,
                     {
-                      autoClose: 6000,
+                      autoClose: 3000,
                       closeOnClick: true,
                       pauseOnHover: true,
                       position: "top-center",
@@ -148,7 +146,7 @@ const Navbar = () => {
 
       crearCanalGlobal();
 
-      // Cleanup del efecto (por si se desmonta Navbar)
+      // Cleanup del efecto (por si se desmonta Navbar completo)
       return () => {
         console.log("🧹 Cleanup Navbar useEffect (ruta):", location.pathname);
         if (retryGlobalRef.current) {
