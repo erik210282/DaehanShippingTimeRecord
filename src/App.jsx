@@ -30,13 +30,9 @@ const Navbar = () => {
 
     // Canal global de chat: se recrea en cada cambio de ruta
     useEffect(() => {
+      // Si no hay usuario, cerramos el canal si existiera
       if (!user) {
-        // Si no hay usuario, limpiamos canal y timers
         console.log("🧹 Navbar: no hay usuario, limpiando canal global");
-        if (retryGlobalRef.current) {
-          clearTimeout(retryGlobalRef.current);
-          retryGlobalRef.current = null;
-        }
         if (canalChatGlobalRef.current) {
           supabase.removeChannel(canalChatGlobalRef.current);
           canalChatGlobalRef.current = null;
@@ -44,121 +40,88 @@ const Navbar = () => {
         return;
       }
 
-      // Cada vez que cambie la ruta, destruimos y recreamos el canal global
-      console.log("🔄 Navbar: recreando canal chat_global_web por cambio de ruta:", location.pathname);
-
-      if (retryGlobalRef.current) {
-        clearTimeout(retryGlobalRef.current);
-        retryGlobalRef.current = null;
-      }
+      // Si el canal ya existe, no lo volvemos a crear
       if (canalChatGlobalRef.current) {
-        supabase.removeChannel(canalChatGlobalRef.current);
-        canalChatGlobalRef.current = null;
+        console.log("✅ Navbar: canal chat_global_web ya existe, no se crea otro");
+        return;
       }
 
-      const crearCanalGlobal = () => {
-        console.log("🌐 Creando canal global de chat...");
+      console.log("🌐 Navbar: creando canal global chat_global_web...");
 
-        const canal = supabase
-          .channel("chat_global_web")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "chat_messages" },
-            async (payload) => {
-              try {
-                console.log("Nuevo mensaje (global):", payload);
+      const canal = supabase
+        .channel("chat_global_web")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages" },
+          async (payload) => {
+            try {
+              console.log("Nuevo mensaje (global):", payload);
 
-                const nuevo = payload.new;
-                const senderId = nuevo?.sender_id || null;
-                const esMio = senderId && senderId === currentUserIdRef.current;
+              const nuevo = payload.new;
+              const senderId = nuevo?.sender_id || null;
+              const esMio = senderId && senderId === currentUserIdRef.current;
 
-                // 1) Recalcular mensajes no leídos para el badge del navbar
-                const { data, error } = await supabase.rpc(
-                  "count_unread_messages_for_user"
-                );
-                if (!error && typeof data === "number") {
-                  setUnreadCount(data);
-                } else if (error) {
-                  console.error("Error contando mensajes no leídos:", error);
-                }
+              // 1) Recalcular mensajes no leídos para el badge del navbar
+              const { data, error } = await supabase.rpc(
+                "count_unread_messages_for_user"
+              );
+              if (!error && typeof data === "number") {
+                setUnreadCount(data);
+              } else if (error) {
+                console.error("Error contando mensajes no leídos:", error);
+              }
 
-                // 2) Toast URGENTE solo si NO es mi mensaje
-                const threadId = nuevo.thread_id;
-                const { data: thread, error: threadError } = await supabase
-                  .from("chat_threads")
-                  .select("titulo, es_urgente")
-                  .eq("id", threadId)
+              // 2) Toast URGENTE solo si NO es mi mensaje
+              const threadId = nuevo.thread_id;
+              const { data: thread, error: threadError } = await supabase
+                .from("chat_threads")
+                .select("titulo, es_urgente")
+                .eq("id", threadId)
+                .single();
+
+              if (!threadError && thread?.es_urgente && !esMio) {
+                const { data: remitente, error: senderError } = await supabase
+                  .from("operadores")
+                  .select("nombre")
+                  .eq("uid", nuevo.sender_id)
                   .single();
 
-                if (!threadError && thread?.es_urgente && !esMio) {
-                  const { data: remitente, error: senderError } = await supabase
-                    .from("operadores")
-                    .select("nombre")
-                    .eq("uid", nuevo.sender_id)
-                    .single();
+                const nombreRemitente = remitente?.nombre || "Unknown user";
 
-                  const nombreRemitente = remitente?.nombre || "Unknown user";
-
-                  toast.error(
-                    `🔥 ${t("urgent_message_arrived_from", {
-                      name: nombreRemitente,
-                    })}`,
-                    {
-                      autoClose: 3000,
-                      closeOnClick: true,
-                      pauseOnHover: true,
-                      position: "top-center",
-                    }
-                  );
-                }
-              } catch (err) {
-                console.error("Error en listener global de chat:", err);
+                toast.error(
+                  `🔥 ${t("urgent_message_arrived_from", {
+                    name: nombreRemitente,
+                  })}`,
+                  {
+                    autoClose: 3000,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    position: "top-center",
+                  }
+                );
               }
+            } catch (err) {
+              console.error("Error en listener global de chat:", err);
             }
-          )
-          .subscribe((status) => {
-            console.log("Estado canal chat_global_web:", status);
+          }
+        )
+        .subscribe((status) => {
+          console.log("Estado canal chat_global_web:", status);
+          // 👀 IMPORTANTE: YA NO hacemos nada especial en CLOSED/TIMED_OUT
+          // para evitar bucles y reconexiones locas.
+        });
 
-            if (
-              status === "CHANNEL_ERROR" ||
-              status === "TIMED_OUT" ||
-              status === "CLOSED"
-            ) {
-              console.warn("⚠️ Canal global en estado crítico:", status);
+      canalChatGlobalRef.current = canal;
 
-              if (retryGlobalRef.current) {
-                clearTimeout(retryGlobalRef.current);
-              }
-
-              retryGlobalRef.current = setTimeout(() => {
-                console.log("🔄 Re–creando canal_global por error...");
-                if (canalChatGlobalRef.current) {
-                  supabase.removeChannel(canalChatGlobalRef.current);
-                  canalChatGlobalRef.current = null;
-                }
-                crearCanalGlobal();
-              }, 3000);
-            }
-          });
-
-        canalChatGlobalRef.current = canal;
-      };
-
-      crearCanalGlobal();
-
-      // Cleanup del efecto (por si se desmonta Navbar completo)
+      // Cleanup SOLO si se desmonta el Navbar (raro en tu app)
       return () => {
-        console.log("🧹 Cleanup Navbar useEffect (ruta):", location.pathname);
-        if (retryGlobalRef.current) {
-          clearTimeout(retryGlobalRef.current);
-          retryGlobalRef.current = null;
-        }
+        console.log("🧹 Cleanup Navbar: removiendo canal chat_global_web");
         if (canalChatGlobalRef.current) {
           supabase.removeChannel(canalChatGlobalRef.current);
           canalChatGlobalRef.current = null;
         }
       };
-    }, [user, t, location.pathname]);
+    }, [user, t]);
 
   // 2) Sesión / usuario actual
   useEffect(() => {
