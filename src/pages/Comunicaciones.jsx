@@ -380,8 +380,8 @@ export default function Comunicaciones() {
         if (msgError) throw msgError;
 
         // Actualizar UI
-        setThreads((prev) => [thread, ...prev]);
         setSelectedThread(thread);
+        await cargarThreads();
 
         // Limpiar formulario
         setTituloNuevo("");
