@@ -100,6 +100,11 @@ const Navbar = () => {
 
     // Cleanup SOLO cuando el Navbar se desmonta (logout / salir del área privada)
     return () => {
+      console.log("🧹 Navbar: removiendo canal global");
+      if (canalChatGlobalRef.current) {
+        supabase.removeChannel(canalChatGlobalRef.current);
+        canalChatGlobalRef.current = null;
+      }
     };
   }, [t]); // no depende de `user`, solo de la función de traducción
 
