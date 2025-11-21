@@ -119,7 +119,7 @@ const GlobalChatListener = () => {
       console.log("🧹 GlobalChatListener: removiendo canal global");
       supabase.removeChannel(canal);
     };
-  }, [t]);
+  }, []);
 
   return null;
 };
