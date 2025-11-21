@@ -18,19 +18,36 @@ import RequireSupervisor from "./components/RequireSupervisor";
 import LanguageBar from "./components/LanguageBar";
 import { toast } from "react-toastify";
 
-const Navbar = () => {
-  const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
-  const [user, setUser] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // Referencias para el canal global y el id del usuario actual
-  const canalChatGlobalRef = useRef(null);
+// Escucha global de chat para toda la app
+const GlobalChatListener = () => {
+  const { t } = useTranslation();
   const currentUserIdRef = useRef(null);
 
-  // 🔹 1) Canal global: se crea UNA SOLA VEZ mientras exista el Navbar
+  // Mantener actualizado el uid del usuario actual
   useEffect(() => {
-    console.log("🌐 Navbar: creando canal global de chat...");
+    const obtenerSesion = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      currentUserIdRef.current = session?.user?.id || null;
+    };
+
+    obtenerSesion();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        currentUserIdRef.current = session?.user?.id || null;
+      }
+    );
+
+    return () => {
+      authListener?.subscription?.unsubscribe?.();
+    };
+  }, []);
+
+  // Canal global: solo aquí, independiente del Navbar
+  useEffect(() => {
+    console.log("🌐 GlobalChatListener: creando canal global de chat...");
 
     const canal = supabase
       .channel("chat_global_web")
@@ -43,20 +60,23 @@ const Navbar = () => {
 
             const nuevo = payload.new;
             const senderId = nuevo?.sender_id || null;
-            const esMio = senderId && senderId === currentUserIdRef.current;
+            const esMio =
+              senderId && senderId === currentUserIdRef.current;
 
-            // 1) Recalcular mensajes no leídos para el badge del navbar
+            // 1) Recalcular mensajes no leídos y avisar al Navbar
             const { data, error } = await supabase.rpc(
               "count_unread_messages_for_user"
             );
 
             if (!error && typeof data === "number") {
-              setUnreadCount(data);
+              window.dispatchEvent(
+                new CustomEvent("unread-chat-updated", { detail: data })
+              );
             } else if (error) {
               console.error("Error contando mensajes no leídos:", error);
             }
 
-            // 2) Toast URGENTE solo si NO es mi mensaje
+            // 2) Toast urgente (solo si no es mi mensaje)
             const threadId = nuevo.thread_id;
             const { data: thread, error: threadError } = await supabase
               .from("chat_threads")
@@ -79,7 +99,7 @@ const Navbar = () => {
                   name: nombreRemitente,
                 })}`,
                 {
-                  autoClose: 6000,
+                  autoClose: 2500,
                   closeOnClick: true,
                   pauseOnHover: true,
                   position: "top-center",
@@ -92,21 +112,23 @@ const Navbar = () => {
         }
       )
       .subscribe((status) => {
-        console.log("Estado canal chat_global_web:", status);
-        // 👆 SIN reintentos manuales; dejamos que Supabase maneje la reconexión
+        console.log("Estado canal chat_global_web (global):", status);
       });
 
-    canalChatGlobalRef.current = canal;
-
-    // Cleanup SOLO cuando el Navbar se desmonta (logout / salir del área privada)
     return () => {
-      console.log("🧹 Navbar: removiendo canal global");
-      if (canalChatGlobalRef.current) {
-        supabase.removeChannel(canalChatGlobalRef.current);
-        canalChatGlobalRef.current = null;
-      }
+      console.log("🧹 GlobalChatListener: removiendo canal global");
+      supabase.removeChannel(canal);
     };
-  }, [t]); // no depende de `user`, solo de la función de traducción
+  }, [t]);
+
+  return null;
+};
+
+const Navbar = () => {
+  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const [user, setUser] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // 🔹 2) Sesión / usuario actual: mantiene currentUserIdRef actualizado
   useEffect(() => {
@@ -115,7 +137,6 @@ const Navbar = () => {
         data: { session },
       } = await supabase.auth.getSession();
       setUser(session?.user || null);
-      currentUserIdRef.current = session?.user?.id || null;
     };
 
     obtenerSesion();
@@ -123,7 +144,6 @@ const Navbar = () => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user || null);
-        currentUserIdRef.current = session?.user?.id || null;
       }
     );
 
@@ -173,12 +193,6 @@ const Navbar = () => {
   };
 
   const handleLogout = async () => {
-    // Limpiar canal global ANTES de salir
-    if (canalChatGlobalRef.current) {
-      supabase.removeChannel(canalChatGlobalRef.current);
-      canalChatGlobalRef.current = null;
-    }
-
     await supabase.auth.signOut();
     navigate("/");
   };
@@ -213,7 +227,7 @@ const Navbar = () => {
                 textAlign: "center",
                 display: "inline-block",
               }}
-            >
+            > 
               {unreadCount}
             </span>
           )}
@@ -234,7 +248,6 @@ const Navbar = () => {
   );
 };
 
-// 1) Área privada protegida por rol supervisor
 const PrivateArea = () => (
   <RequireSupervisor>
     <div className="app-container">
@@ -274,14 +287,13 @@ const PrivateArea = () => (
   </RequireSupervisor>
 );
 
-// 2) Contenedor de rutas públicas/privadas
 const AppContent = () => (
   <div className="app-root">
+    <GlobalChatListener />
     <Routes>
-      {/* Login público: NO va dentro de RequireSupervisor */}
+      {/* Login público */}
       <Route path="/" element={<Login />} />
-
-      {/* Todo lo demás cae en el área privada protegida */}
+      {/* Área privada */}
       <Route path="/*" element={<PrivateArea />} />
     </Routes>
   </div>
