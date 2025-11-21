@@ -218,3 +218,5 @@ const Navbar = () => {
 };
 
 
+
+export default App;
