@@ -218,11 +218,3 @@ const Navbar = () => {
 };
 
 
-
-const App = () => (
-  <Router>
-    <AppContent />
-  </Router>
-);
-
-export default App;
