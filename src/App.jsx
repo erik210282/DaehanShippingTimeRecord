@@ -46,81 +46,128 @@ const GlobalChatListener = () => {
   }, []);
 
   // Canal global: solo aquí, independiente del Navbar
+  const channelRef = useRef(null);
+  const retryRef = useRef(null);
+
   useEffect(() => {
-    console.log("🌐 GlobalChatListener: creando canal global de chat...");
+    const suscribirse = () => {
+      console.log("🌐 [Global] creando canal chat_global_web...");
 
-    const canal = supabase
-      .channel("chat_global_web")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages" },
-        async (payload) => {
-          try {
-            console.log("Nuevo mensaje (global):", payload);
+      // Por seguridad, si ya había un canal, lo removemos antes
+      if (channelRef.current) {
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch (e) {
+          console.error("Error removiendo canal previo:", e);
+        }
+        channelRef.current = null;
+      }
 
-            const nuevo = payload.new;
-            const senderId = nuevo?.sender_id || null;
-            const esMio =
-              senderId && senderId === currentUserIdRef.current;
+      const canal = supabase
+        .channel("chat_global_web")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages" },
+          async (payload) => {
+            try {
+              console.log("Nuevo mensaje (global):", payload);
 
-            // 1) Recalcular mensajes no leídos y avisar al Navbar
-            const { data, error } = await supabase.rpc(
-              "count_unread_messages_for_user"
-            );
+              const nuevo = payload.new;
+              const senderId = nuevo?.sender_id || null;
+              const esMio =
+                senderId && senderId === currentUserIdRef.current;
 
-            if (!error && typeof data === "number") {
-              window.dispatchEvent(
-                new CustomEvent("unread-chat-updated", { detail: data })
+              // 1) Recalcular mensajes no leídos y avisar al Navbar
+              const { data, error } = await supabase.rpc(
+                "count_unread_messages_for_user"
               );
-            } else if (error) {
-              console.error("Error contando mensajes no leídos:", error);
-            }
 
-            // 2) Toast urgente (solo si no es mi mensaje)
-            const threadId = nuevo.thread_id;
-            const { data: thread, error: threadError } = await supabase
-              .from("chat_threads")
-              .select("titulo, es_urgente")
-              .eq("id", threadId)
-              .single();
+              if (!error && typeof data === "number") {
+                window.dispatchEvent(
+                  new CustomEvent("unread-chat-updated", { detail: data })
+                );
+              } else if (error) {
+                console.error("Error contando mensajes no leídos:", error);
+              }
 
-            if (!threadError && thread?.es_urgente && !esMio) {
-              const { data: remitente } = await supabase
-                .from("operadores")
-                .select("nombre")
-                .eq("uid", nuevo.sender_id)
+              // 2) Toast urgente (solo si NO es mi mensaje)
+              const threadId = nuevo.thread_id;
+              const { data: thread, error: threadError } = await supabase
+                .from("chat_threads")
+                .select("titulo, es_urgente")
+                .eq("id", threadId)
                 .single();
 
-              const nombreRemitente =
-                remitente?.nombre || "Unknown user";
+              if (!threadError && thread?.es_urgente && !esMio) {
+                const { data: remitente } = await supabase
+                  .from("operadores")
+                  .select("nombre")
+                  .eq("uid", nuevo.sender_id)
+                  .single();
 
-              toast.error(
-                `🔥 ${t("urgent_message_arrived_from", {
-                  name: nombreRemitente,
-                })}`,
-                {
-                  autoClose: 2500,
-                  closeOnClick: true,
-                  pauseOnHover: true,
-                  position: "top-center",
-                }
-              );
+                const nombreRemitente =
+                  remitente?.nombre || "Unknown user";
+
+                toast.error(
+                  `🔥 ${t("urgent_message_arrived_from", {
+                    name: nombreRemitente,
+                  })}`,
+                  {
+                    autoClose: 2500,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    position: "top-center",
+                  }
+                );
+              }
+            } catch (err) {
+              console.error("Error en listener global de chat:", err);
             }
-          } catch (err) {
-            console.error("Error en listener global de chat:", err);
           }
-        }
-      )
-      .subscribe((status) => {
-        console.log("Estado canal chat_global_web (global):", status);
-      });
+        )
+        .subscribe((status) => {
+          console.log("Estado canal chat_global_web (global):", status);
 
-    return () => {
-      console.log("🧹 GlobalChatListener: removiendo canal global");
-      supabase.removeChannel(canal);
+          if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            console.warn("⚠️ [Global] estado crítico:", status);
+
+            // Programar reintento si no hay ya uno en curso
+            if (!retryRef.current) {
+              retryRef.current = setTimeout(() => {
+                retryRef.current = null;
+                suscribirse();
+              }, 3000);
+            }
+          }
+        });
+
+      channelRef.current = canal;
     };
-  }, []);
 
+    // Suscribir una vez al montar el listener global
+    suscribirse();
+
+    // Cleanup solo al cerrar/recargar la pestaña
+    return () => {
+      console.log("🧹 GlobalChatListener: limpiando canal global y timer");
+      if (retryRef.current) {
+        clearTimeout(retryRef.current);
+        retryRef.current = null;
+      }
+      if (channelRef.current) {
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch (e) {
+          console.error("Error removiendo canal en cleanup:", e);
+        }
+        channelRef.current = null;
+      }
+    };
+  }, []); // 👈 SIN dependencias (no se recrea por idioma ni por rutas)
   return null;
 };
 
