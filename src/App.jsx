@@ -77,7 +77,7 @@ const Navbar = () => {
                     name: nombreRemitente,
                   })}`,
                   {
-                    autoClose: 6000,
+                    autoClose: 2500,
                     closeOnClick: true,
                     pauseOnHover: true,
                     position: "top-center",
