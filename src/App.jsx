@@ -23,113 +23,116 @@ const Navbar = () => {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Referencias para el canal global y el id del usuario actual
   const canalChatGlobalRef = useRef(null);
   const currentUserIdRef = useRef(null);
 
-    // Canal global de chat: se crea UNA sola vez mientras exista el Navbar.
-    useEffect(() => {
-      console.log("🌐 Navbar: creando canal global de chat...");
+  // 🔹 1) Canal global: se crea UNA SOLA VEZ mientras exista el Navbar
+  useEffect(() => {
+    console.log("🌐 Navbar: creando canal global de chat...");
 
-      const canal = supabase
-        .channel("chat_global_web")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "chat_messages" },
-          async (payload) => {
-            try {
-              console.log("Nuevo mensaje (global):", payload);
+    const canal = supabase
+      .channel("chat_global_web")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        async (payload) => {
+          try {
+            console.log("Nuevo mensaje (global):", payload);
 
-              const nuevo = payload.new;
-              const senderId = nuevo?.sender_id || null;
-              const esMio = senderId && senderId === currentUserIdRef.current;
+            const nuevo = payload.new;
+            const senderId = nuevo?.sender_id || null;
+            const esMio = senderId && senderId === currentUserIdRef.current;
 
-              // 1) Recalcular mensajes no leídos para el badge del navbar
-              const { data, error } = await supabase.rpc(
-                "count_unread_messages_for_user"
-              );
+            // 1) Recalcular mensajes no leídos para el badge del navbar
+            const { data, error } = await supabase.rpc(
+              "count_unread_messages_for_user"
+            );
 
-              if (!error && typeof data === "number") {
-                setUnreadCount(data);
-              } else if (error) {
-                console.error("Error contando mensajes no leídos:", error);
-              }
+            if (!error && typeof data === "number") {
+              setUnreadCount(data);
+            } else if (error) {
+              console.error("Error contando mensajes no leídos:", error);
+            }
 
-              // 2) Toast URGENTE solo si NO es mi mensaje
-              const threadId = nuevo.thread_id;
-              const { data: thread, error: threadError } = await supabase
-                .from("chat_threads")
-                .select("titulo, es_urgente")
-                .eq("id", threadId)
+            // 2) Toast URGENTE solo si NO es mi mensaje
+            const threadId = nuevo.thread_id;
+            const { data: thread, error: threadError } = await supabase
+              .from("chat_threads")
+              .select("titulo, es_urgente")
+              .eq("id", threadId)
+              .single();
+
+            if (!threadError && thread?.es_urgente && !esMio) {
+              const { data: remitente } = await supabase
+                .from("operadores")
+                .select("nombre")
+                .eq("uid", nuevo.sender_id)
                 .single();
 
-              if (!threadError && thread?.es_urgente && !esMio) {
-                const { data: remitente } = await supabase
-                  .from("operadores")
-                  .select("nombre")
-                  .eq("uid", nuevo.sender_id)
-                  .single();
+              const nombreRemitente =
+                remitente?.nombre || "Unknown user";
 
-                const nombreRemitente =
-                  remitente?.nombre || "Unknown user";
-
-                toast.error(
-                  `🔥 ${t("urgent_message_arrived_from", {
-                    name: nombreRemitente,
-                  })}`,
-                  {
-                    autoClose: 2500,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    position: "top-center",
-                  }
-                );
-              }
-            } catch (err) {
-              console.error("Error en listener global de chat:", err);
+              toast.error(
+                `🔥 ${t("urgent_message_arrived_from", {
+                  name: nombreRemitente,
+                })}`,
+                {
+                  autoClose: 6000,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  position: "top-center",
+                }
+              );
             }
+          } catch (err) {
+            console.error("Error en listener global de chat:", err);
           }
-        )
-        .subscribe((status) => {
-          console.log("Estado canal chat_global_web:", status);
-          // ❌ Sin reintentos manuales: dejamos que Supabase maneje la reconexión
-        });
-
-      canalChatGlobalRef.current = canal;
-
-      // Cleanup SOLO cuando el Navbar se desmonte (logout / salir del área privada)
-      return () => {
-        console.log("🧹 Navbar: removiendo canal global");
-        if (canalChatGlobalRef.current) {
-          supabase.removeChannel(canalChatGlobalRef.current);
-          canalChatGlobalRef.current = null;
         }
-      };
-    }, []); // 👈 sin dependencias, no se recrea al cambiar de página
+      )
+      .subscribe((status) => {
+        console.log("Estado canal chat_global_web:", status);
+        // 👆 SIN reintentos manuales; dejamos que Supabase maneje la reconexión
+      });
 
-  // 2) Sesión / usuario actual
+    canalChatGlobalRef.current = canal;
+
+    // Cleanup SOLO cuando el Navbar se desmonta (logout / salir del área privada)
+    return () => {
+      console.log("🧹 Navbar: removiendo canal global");
+      if (canalChatGlobalRef.current) {
+        supabase.removeChannel(canalChatGlobalRef.current);
+        canalChatGlobalRef.current = null;
+      }
+    };
+  }, [t]); // no depende de `user`, solo de la función de traducción
+
+  // 🔹 2) Sesión / usuario actual: mantiene currentUserIdRef actualizado
   useEffect(() => {
     const obtenerSesion = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      setUser(session?.user);
-      currentUserIdRef.current = session?.user?.id || null; 
+      setUser(session?.user || null);
+      currentUserIdRef.current = session?.user?.id || null;
     };
 
     obtenerSesion();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setUser(session?.user);
-        currentUserIdRef.current = session?.user?.id || null; 
+        setUser(session?.user || null);
+        currentUserIdRef.current = session?.user?.id || null;
       }
     );
+
     return () => {
       authListener?.subscription?.unsubscribe?.();
     };
   }, []);
 
-  // 3) Cargar conteo inicial de mensajes no leídos
+  // 🔹 3) Cargar conteo inicial de mensajes no leídos
   useEffect(() => {
     const cargarUnreadInicial = async () => {
       try {
@@ -146,10 +149,10 @@ const Navbar = () => {
       }
     };
 
-  cargarUnreadInicial();
-}, []);
+    cargarUnreadInicial();
+  }, []);
 
-   // 3) ESCUCHAR el evento global que mandamos desde Comunicaciones
+  // 🔹 4) Escuchar evento global desde Comunicaciones
   useEffect(() => {
     const handler = (ev) => {
       if (typeof ev.detail === "number") {
@@ -183,10 +186,18 @@ const Navbar = () => {
   return (
     <div className="navbar">
       <div className="navbar-center">
-        <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
-        <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
-        <button onClick={() => navigate("/registros")}>{t("records")}</button>
-        <button onClick={() => navigate("/generarbol")}>{t("generate_bol")}</button>
+        <button onClick={() => navigate("/tareas-pendientes")}>
+          {t("pending_tasks")}
+        </button>
+        <button onClick={() => navigate("/resumen")}>
+          {t("summary")}
+        </button>
+        <button onClick={() => navigate("/registros")}>
+          {t("records")}
+        </button>
+        <button onClick={() => navigate("/generarbol")}>
+          {t("generate_bol")}
+        </button>
         <button onClick={() => navigate("/comunicaciones")}>
           {t("communications")}
           {unreadCount > 0 && (
@@ -207,9 +218,15 @@ const Navbar = () => {
             </span>
           )}
         </button>
-        <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
-        <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
-        <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
+        <button onClick={() => navigate("/productividad")}>
+          {t("productivity")}
+        </button>
+        <button onClick={() => navigate("/catalogos")}>
+          {t("catalogs")}
+        </button>
+        <button onClick={() => navigate("/usuarios")}>
+          {t("users")}
+        </button>
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
       <LanguageBar />
