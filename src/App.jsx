@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate,useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import Registros from "./pages/Registros";
 import Productividad from "./pages/Productividad";
 import Catalogos from "./pages/Catalogos";
@@ -16,23 +16,20 @@ import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
 import LanguageBar from "./components/LanguageBar";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Escucha global de chat para toda la app
 const GlobalChatListener = () => {
   const { t } = useTranslation();
-  const location = useLocation();
   const currentUserIdRef = useRef(null);
 
   // Mantener actualizado el uid del usuario actual
   useEffect(() => {
     const obtenerSesion = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       currentUserIdRef.current = session?.user?.id || null;
     };
-
     obtenerSesion();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -40,135 +37,68 @@ const GlobalChatListener = () => {
         currentUserIdRef.current = session?.user?.id || null;
       }
     );
-
-    return () => {
-      authListener?.subscription?.unsubscribe?.();
-    };
+    return () => { authListener?.subscription?.unsubscribe?.(); };
   }, []);
 
-  // Canal global: solo aquí, independiente del Navbar
-  const channelRef = useRef(null);
-  const retryRef = useRef(null);
-
   useEffect(() => {
-    const suscribirse = () => {
-      console.log("🌐 [Global] creando canal chat_global_web...");
+    let canal = null;
 
-      // Por seguridad, si ya había un canal, lo removemos antes
-      if (channelRef.current) {
-        try {
-          supabase.removeChannel(channelRef.current);
-        } catch (e) {
-          console.error("Error removiendo canal previo:", e);
-        }
-        channelRef.current = null;
-      }
+    const iniciarCanal = () => {
+      // Evitamos duplicados limpiando antes si existe
+      if (canal) supabase.removeChannel(canal);
 
-      const canal = supabase
-        .channel("chat_global_web")
+      canal = supabase
+        .channel("chat_global_app_listener") // Nombre único para no chocar con Comunicaciones
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "chat_messages" },
           async (payload) => {
-            try {
-              console.log("Nuevo mensaje (global):", payload);
+            const nuevo = payload.new;
+            const esMio = nuevo?.sender_id === currentUserIdRef.current;
 
-              const nuevo = payload.new;
-              const senderId = nuevo?.sender_id || null;
-              const esMio =
-                senderId && senderId === currentUserIdRef.current;
+            // 1) Actualizar badge (contador)
+            const { data, error } = await supabase.rpc("count_unread_messages_for_user");
+            if (!error && typeof data === "number") {
+              window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
+            }
 
-              // 1) Recalcular mensajes no leídos y avisar al Navbar
-              const { data, error } = await supabase.rpc(
-                "count_unread_messages_for_user"
-              );
-
-              if (!error && typeof data === "number") {
-                window.dispatchEvent(
-                  new CustomEvent("unread-chat-updated", { detail: data })
-                );
-              } else if (error) {
-                console.error("Error contando mensajes no leídos:", error);
-              }
-
-              // 2) Toast urgente (solo si NO es mi mensaje)
-              const threadId = nuevo.thread_id;
-              const { data: thread, error: threadError } = await supabase
+            // 2) Toast urgente (Solo si NO es mi mensaje y es urgente)
+            if (!esMio) {
+              const { data: thread } = await supabase
                 .from("chat_threads")
-                .select("titulo, es_urgente")
-                .eq("id", threadId)
+                .select("es_urgente")
+                .eq("id", nuevo.thread_id)
                 .single();
 
-              if (!threadError && thread?.es_urgente && !esMio) {
+              if (thread?.es_urgente) {
                 const { data: remitente } = await supabase
                   .from("operadores")
                   .select("nombre")
                   .eq("uid", nuevo.sender_id)
                   .single();
-
-                const nombreRemitente =
-                  remitente?.nombre || "Unknown user";
-
-                toast.error(
-                  `🔥 ${t("urgent_message_arrived_from", {
-                    name: nombreRemitente,
-                  })}`,
-                  {
-                    autoClose: 2000,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    position: "top-center",
-                  }
-                );
+                
+                const nombre = remitente?.nombre || "Usuario";
+                
+                // Disparamos el toast (ahora funcionará porque agregaremos el Container global)
+                toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
+                  autoClose: 4000,
+                  position: "top-center",
+                });
               }
-            } catch (err) {
-              console.error("Error en listener global de chat:", err);
             }
           }
         )
-        .subscribe((status) => {
-          console.log("Estado canal chat_global_web (global):", status);
-
-          if (
-            status === "CHANNEL_ERROR" ||
-            status === "TIMED_OUT" ||
-            status === "CLOSED"
-          ) {
-            console.warn("⚠️ [Global] estado crítico:", status);
-
-            // Programar reintento si no hay ya uno en curso
-            if (!retryRef.current) {
-              retryRef.current = setTimeout(() => {
-                retryRef.current = null;
-                suscribirse();
-              }, 3000);
-            }
-          }
-        });
-
-      channelRef.current = canal;
+        .subscribe();
     };
 
-    // Suscribir una vez al montar el listener global
-    suscribirse();
+    iniciarCanal();
 
-    // Cleanup solo al cerrar/recargar la pestaña
+    // Cleanup: Solo al cerrar la app completa
     return () => {
-      console.log("🧹 GlobalChatListener: limpiando canal global y timer");
-      if (retryRef.current) {
-        clearTimeout(retryRef.current);
-        retryRef.current = null;
-      }
-      if (channelRef.current) {
-        try {
-          supabase.removeChannel(channelRef.current);
-        } catch (e) {
-          console.error("Error removiendo canal en cleanup:", e);
-        }
-        channelRef.current = null;
-      }
+      if (canal) supabase.removeChannel(canal);
     };
-  }, [location.pathname]); // 👈 SIN dependencias (no se recrea por idioma ni por rutas)
+  }, []); // <--- ARRAY VACÍO: Esto evita el bucle infinito. Se ejecuta 1 sola vez.
+
   return null;
 };
 
@@ -338,6 +268,7 @@ const PrivateArea = () => (
 const AppContent = () => (
   <div className="app-root">
     <GlobalChatListener />
+    <ToastContainer position="top-center" autoClose={2000} limit={3} />
     <Routes>
       {/* Login público */}
       <Route path="/" element={<Login />} />
