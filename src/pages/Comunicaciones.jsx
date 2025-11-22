@@ -10,7 +10,7 @@ import {
   TextAreaStyle,
   BtnDanger,
 } from "../components/controls";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function Comunicaciones() {
@@ -938,7 +938,6 @@ export default function Comunicaciones() {
             )}
           </div>
         </div>
-        <ToastContainer position="top-center" autoClose={1500} />
       </div>
     </div>
   );
