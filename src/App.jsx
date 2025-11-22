@@ -16,15 +16,16 @@ import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
 import LanguageBar from "./components/LanguageBar";
+// IMPORTANTE: El ToastContainer y CSS SOLO deben estar aquí en App.jsx
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Escucha global de chat para toda la app
+// --- GLOBAL CHAT LISTENER (VERSIÓN ESTABLE) ---
 const GlobalChatListener = () => {
   const { t } = useTranslation();
   const currentUserIdRef = useRef(null);
 
-  // Mantener actualizado el uid del usuario actual
+  // 1. Mantener ID de usuario actualizado
   useEffect(() => {
     const obtenerSesion = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -40,135 +41,110 @@ const GlobalChatListener = () => {
     return () => { authListener?.subscription?.unsubscribe?.(); };
   }, []);
 
+  // 2. Conexión al socket
   useEffect(() => {
-    let canal = null;
+    // Definimos el canal fuera para poder limpiarlo
+    const canal = supabase
+      .channel("global_alerts_system") // Nombre único
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        async (payload) => {
+          // Lógica de recepción
+          const nuevo = payload.new;
+          const esMio = nuevo?.sender_id === currentUserIdRef.current;
 
-    const iniciarCanal = () => {
-      // Evitamos duplicados limpiando antes si existe
-      if (canal) supabase.removeChannel(canal);
+          // A) Actualizar Badge
+          const { data, error } = await supabase.rpc("count_unread_messages_for_user");
+          if (!error && typeof data === "number") {
+            window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
+          }
 
-      canal = supabase
-        .channel("chat_global_app_listener") // Nombre único para no chocar con Comunicaciones
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "chat_messages" },
-          async (payload) => {
-            const nuevo = payload.new;
-            const esMio = nuevo?.sender_id === currentUserIdRef.current;
+          // B) Mostrar Toast Urgente (Si no es mío)
+          if (!esMio) {
+            // Verificamos si el hilo es urgente
+            const { data: thread } = await supabase
+              .from("chat_threads")
+              .select("es_urgente")
+              .eq("id", nuevo.thread_id)
+              .single();
 
-            // 1) Actualizar badge (contador)
-            const { data, error } = await supabase.rpc("count_unread_messages_for_user");
-            if (!error && typeof data === "number") {
-              window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
-            }
-
-            // 2) Toast urgente (Solo si NO es mi mensaje y es urgente)
-            if (!esMio) {
-              const { data: thread } = await supabase
-                .from("chat_threads")
-                .select("es_urgente")
-                .eq("id", nuevo.thread_id)
+            if (thread?.es_urgente) {
+              // Obtenemos nombre del remitente
+              const { data: remitente } = await supabase
+                .from("operadores")
+                .select("nombre")
+                .eq("uid", nuevo.sender_id)
                 .single();
-
-              if (thread?.es_urgente) {
-                const { data: remitente } = await supabase
-                  .from("operadores")
-                  .select("nombre")
-                  .eq("uid", nuevo.sender_id)
-                  .single();
-                
-                const nombre = remitente?.nombre || "Usuario";
-                
-                // Disparamos el toast (ahora funcionará porque agregaremos el Container global)
-                toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
-                  autoClose: 4000,
-                  position: "top-center",
-                });
-              }
+              
+              const nombre = remitente?.nombre || "Sistema";
+              
+              // Disparamos el toast GLOBAL
+              toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })} - ${nuevo.contenido.substring(0, 30)}...`, {
+                position: "top-center",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: "colored",
+              });
             }
           }
-        )
-        .subscribe();
-    };
+        }
+      )
+      .subscribe((status) => {
+        // Log para depuración
+        console.log(`📡 Estado del Chat Global: ${status}`);
+      });
 
-    iniciarCanal();
-
-    // Cleanup: Solo al cerrar la app completa
+    // Cleanup: Solo se ejecuta al cerrar la app o recargar totalmente la página
     return () => {
-      if (canal) supabase.removeChannel(canal);
+      supabase.removeChannel(canal);
     };
-  }, []); // <--- ARRAY VACÍO: Esto evita el bucle infinito. Se ejecuta 1 sola vez.
+  }, []); // ARRAY VACÍO: Se conecta una vez y se mantiene vivo siempre.
 
   return null;
 };
 
+// --- NAVBAR ---
 const Navbar = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // 🔹 2) Sesión / usuario actual: mantiene currentUserIdRef actualizado
   useEffect(() => {
     const obtenerSesion = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
     };
-
     obtenerSesion();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user || null);
-      }
-    );
-
-    return () => {
-      authListener?.subscription?.unsubscribe?.();
-    };
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+    return () => authListener?.subscription?.unsubscribe?.();
   }, []);
 
-  // 🔹 3) Cargar conteo inicial de mensajes no leídos
   useEffect(() => {
     const cargarUnreadInicial = async () => {
       try {
-        const { data, error } = await supabase.rpc(
-          "count_unread_messages_for_user"
-        );
-        if (!error && typeof data === "number") {
-          setUnreadCount(data);
-        } else if (error) {
-          console.error("Error cargando unread inicial:", error.message);
-        }
-      } catch (err) {
-        console.error("Error inesperado en unread inicial:", err);
-      }
+        const { data } = await supabase.rpc("count_unread_messages_for_user");
+        if (typeof data === "number") setUnreadCount(data);
+      } catch (err) { console.error(err); }
     };
-
     cargarUnreadInicial();
   }, []);
 
-  // 🔹 4) Escuchar evento global desde Comunicaciones
   useEffect(() => {
     const handler = (ev) => {
-      if (typeof ev.detail === "number") {
-        setUnreadCount(ev.detail);
-      }
+      if (typeof ev.detail === "number") setUnreadCount(ev.detail);
     };
-
     window.addEventListener("unread-chat-updated", handler);
-    return () => {
-      window.removeEventListener("unread-chat-updated", handler);
-    };
+    return () => window.removeEventListener("unread-chat-updated", handler);
   }, []);
 
   if (!user) return null;
-
-  const handleLanguageChange = (e) => {
-    i18n.changeLanguage(e.target.value);
-  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -178,47 +154,33 @@ const Navbar = () => {
   return (
     <div className="navbar">
       <div className="navbar-center">
-        <button onClick={() => navigate("/tareas-pendientes")}>
-          {t("pending_tasks")}
-        </button>
-        <button onClick={() => navigate("/resumen")}>
-          {t("summary")}
-        </button>
-        <button onClick={() => navigate("/registros")}>
-          {t("records")}
-        </button>
-        <button onClick={() => navigate("/generarbol")}>
-          {t("generate_bol")}
-        </button>
-        <button onClick={() => navigate("/comunicaciones")}>
+        <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
+        <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
+        <button onClick={() => navigate("/registros")}>{t("records")}</button>
+        <button onClick={() => navigate("/generarbol")}>{t("generate_bol")}</button>
+        
+        <button onClick={() => navigate("/comunicaciones")} style={{position: 'relative'}}>
           {t("communications")}
           {unreadCount > 0 && (
-            <span
-              style={{
-                marginLeft: 6,
-                background: "#e53935",
-                color: "#fff",
-                borderRadius: 999,
-                padding: "0 6px",
-                fontSize: 11,
-                minWidth: 16,
-                textAlign: "center",
-                display: "inline-block",
-              }}
-            > 
+            <span style={{
+              position: 'absolute',
+              top: -5,
+              right: -5,
+              background: "#ff0000",
+              color: "#fff",
+              borderRadius: "50%",
+              padding: "2px 6px",
+              fontSize: "10px",
+              fontWeight: "bold"
+            }}> 
               {unreadCount}
             </span>
           )}
         </button>
-        <button onClick={() => navigate("/productividad")}>
-          {t("productivity")}
-        </button>
-        <button onClick={() => navigate("/catalogos")}>
-          {t("catalogs")}
-        </button>
-        <button onClick={() => navigate("/usuarios")}>
-          {t("users")}
-        </button>
+
+        <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
+        <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
+        <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
       <LanguageBar />
@@ -226,39 +188,22 @@ const Navbar = () => {
   );
 };
 
+// --- CONFIGURACIÓN DE RUTAS ---
 const PrivateArea = () => (
   <RequireSupervisor>
     <div className="app-container">
       <Navbar />
       <div className="content">
         <Routes>
-          <Route path="/tareas-pendientes" element={
-            <ProtectedRoute><TareasPendientes /></ProtectedRoute>
-          } />
-          <Route path="/resumen" element={
-            <ProtectedRoute><Resumen /></ProtectedRoute>
-          } />
-          <Route path="/registros" element={
-            <ProtectedRoute><Registros /></ProtectedRoute>
-          } />
-          <Route path="/generarbol" element={
-            <ProtectedRoute><GenerarBOL /></ProtectedRoute>
-          } />
-          <Route path="/comunicaciones" element={
-            <ProtectedRoute><Comunicaciones /></ProtectedRoute>
-          } />
-          <Route path="/productividad" element={
-            <ProtectedRoute><Productividad /></ProtectedRoute>
-          } />
-          <Route path="/catalogos" element={
-            <ProtectedRoute><Catalogos /></ProtectedRoute>
-          } />
-          <Route path="/usuarios" element={
-            <ProtectedRoute><Usuarios /></ProtectedRoute>
-          } />
-          <Route path="/configuracion-tareas" element={
-            <ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>
-          } />
+          <Route path="/tareas-pendientes" element={<ProtectedRoute><TareasPendientes /></ProtectedRoute>} />
+          <Route path="/resumen" element={<ProtectedRoute><Resumen /></ProtectedRoute>} />
+          <Route path="/registros" element={<ProtectedRoute><Registros /></ProtectedRoute>} />
+          <Route path="/generarbol" element={<ProtectedRoute><GenerarBOL /></ProtectedRoute>} />
+          <Route path="/comunicaciones" element={<ProtectedRoute><Comunicaciones /></ProtectedRoute>} />
+          <Route path="/productividad" element={<ProtectedRoute><Productividad /></ProtectedRoute>} />
+          <Route path="/catalogos" element={<ProtectedRoute><Catalogos /></ProtectedRoute>} />
+          <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
+          <Route path="/configuracion-tareas" element={<ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>} />
         </Routes>
       </div>
     </div>
@@ -267,12 +212,20 @@ const PrivateArea = () => (
 
 const AppContent = () => (
   <div className="app-root">
+    {/* Listener Global INVISIBLE pero siempre activo */}
     <GlobalChatListener />
-    <ToastContainer position="top-center" autoClose={2000} limit={3} />
+    
+    {/* ÚNICO ToastContainer de toda la app */}
+    <ToastContainer 
+      position="top-center" 
+      autoClose={4000} 
+      limit={3} 
+      newestOnTop={true}
+      style={{ zIndex: 99999 }} // Asegura que se vea sobre todo
+    />
+    
     <Routes>
-      {/* Login público */}
       <Route path="/" element={<Login />} />
-      {/* Área privada */}
       <Route path="/*" element={<PrivateArea />} />
     </Routes>
   </div>
