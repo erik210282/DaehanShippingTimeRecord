@@ -64,13 +64,6 @@ const GlobalChatListener = () => {
 
           // B) Toast Urgente (Si no es mío)
           if (!esMio) {
-            // DETALLE IMPORTANTE:
-            // Si el usuario YA está en la página de comunicaciones, quizás no quieras mostrar el Toast
-            // porque ya está viendo el chat. Si quieres que salga SIEMPRE, borra estas 3 líneas siguientes:
-            if (window.location.pathname.includes("/comunicaciones")) {
-               console.log("🔕 Silenciando toast porque estás en Comunicaciones");
-               return; 
-            }
 
             const { data: thread } = await supabase
               .from("chat_threads")
