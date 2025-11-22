@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate,useLocation } from "react-router-dom";
 import Registros from "./pages/Registros";
 import Productividad from "./pages/Productividad";
 import Catalogos from "./pages/Catalogos";
@@ -21,6 +21,7 @@ import { toast } from "react-toastify";
 // Escucha global de chat para toda la app
 const GlobalChatListener = () => {
   const { t } = useTranslation();
+  const location = useLocation();
   const currentUserIdRef = useRef(null);
 
   // Mantener actualizado el uid del usuario actual
@@ -113,7 +114,7 @@ const GlobalChatListener = () => {
                     name: nombreRemitente,
                   })}`,
                   {
-                    autoClose: 2500,
+                    autoClose: 2000,
                     closeOnClick: true,
                     pauseOnHover: true,
                     position: "top-center",
@@ -167,7 +168,7 @@ const GlobalChatListener = () => {
         channelRef.current = null;
       }
     };
-  }, []); // 👈 SIN dependencias (no se recrea por idioma ni por rutas)
+  }, [location.pathname]); // 👈 SIN dependencias (no se recrea por idioma ni por rutas)
   return null;
 };
 
