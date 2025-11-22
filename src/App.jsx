@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Registros from "./pages/Registros";
 import Productividad from "./pages/Productividad";
 import Catalogos from "./pages/Catalogos";
@@ -20,9 +20,11 @@ import LanguageBar from "./components/LanguageBar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// --- GLOBAL CHAT LISTENER (VERSIÓN ESTABLE) ---
+// --- GLOBAL CHAT LISTENER (VERSIÓN RECONEXIÓN SEGURA) ---
 const GlobalChatListener = () => {
   const { t } = useTranslation();
+  const location = useLocation(); // Detectamos cambio de página
+  const channelRef = useRef(null);
   const currentUserIdRef = useRef(null);
 
   // 1. Mantener ID de usuario actualizado
@@ -41,16 +43,14 @@ const GlobalChatListener = () => {
     return () => { authListener?.subscription?.unsubscribe?.(); };
   }, []);
 
-  // 2. Conexión al socket
+  // 2. Crear el canal UNA SOLA VEZ al iniciar la app
   useEffect(() => {
-    // Definimos el canal fuera para poder limpiarlo
     const canal = supabase
-      .channel("global_alerts_system") // Nombre único
+      .channel("global_alerts_system_v2") // Nombre único v2
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages" },
         async (payload) => {
-          // Lógica de recepción
           const nuevo = payload.new;
           const esMio = nuevo?.sender_id === currentUserIdRef.current;
 
@@ -62,7 +62,6 @@ const GlobalChatListener = () => {
 
           // B) Mostrar Toast Urgente (Si no es mío)
           if (!esMio) {
-            // Verificamos si el hilo es urgente
             const { data: thread } = await supabase
               .from("chat_threads")
               .select("es_urgente")
@@ -70,7 +69,6 @@ const GlobalChatListener = () => {
               .single();
 
             if (thread?.es_urgente) {
-              // Obtenemos nombre del remitente
               const { data: remitente } = await supabase
                 .from("operadores")
                 .select("nombre")
@@ -79,14 +77,9 @@ const GlobalChatListener = () => {
               
               const nombre = remitente?.nombre || "Sistema";
               
-              // Disparamos el toast GLOBAL
-              toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })} - ${nuevo.contenido.substring(0, 30)}...`, {
+              toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
                 position: "top-center",
                 autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
                 theme: "colored",
               });
             }
@@ -94,15 +87,36 @@ const GlobalChatListener = () => {
         }
       )
       .subscribe((status) => {
-        // Log para depuración
-        console.log(`📡 Estado del Chat Global: ${status}`);
+         console.log(`📡 [Global] Estado: ${status}`);
+         // Si se desconecta por error, intentar reconectar
+         if (status === 'jb_error' || status === 'timed_out' || status === 'closed') {
+             setTimeout(() => canal.subscribe(), 1000);
+         }
       });
 
-    // Cleanup: Solo se ejecuta al cerrar la app o recargar totalmente la página
+    channelRef.current = canal;
+
+    // Cleanup real solo al cerrar la app
     return () => {
       supabase.removeChannel(canal);
     };
-  }, []); // ARRAY VACÍO: Se conecta una vez y se mantiene vivo siempre.
+  }, []);
+
+  // 3. "HEARTBEAT": Al cambiar de página, asegurar que el canal siga vivo
+  useEffect(() => {
+    // Esperamos 1 segundo a que la página anterior termine de desmontarse y limpiar sus cosas
+    const timer = setTimeout(() => {
+      if (channelRef.current) {
+        const estado = channelRef.current.state;
+        // Si el canal no está unido, forzamos la suscripción
+        if (estado !== 'joined') {
+            console.log("🔄 [Global] Refrescando conexión tras navegación...");
+            channelRef.current.subscribe();
+        }
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [location]); // Se ejecuta al navegar, pero NO crea canales nuevos, solo revisa.
 
   return null;
 };
