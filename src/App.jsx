@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Registros from "./pages/Registros";
 import Productividad from "./pages/Productividad";
 import Catalogos from "./pages/Catalogos";
@@ -20,10 +20,12 @@ import LanguageBar from "./components/LanguageBar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// --- GLOBAL CHAT LISTENER (VERSIÓN FINAL LIMPIA) ---
+// --- GLOBAL CHAT LISTENER (VERSIÓN REINICIO SEGURO) ---
 const GlobalChatListener = () => {
   const { t } = useTranslation();
+  const location = useLocation(); // Detectar cambio de página
   const currentUserIdRef = useRef(null);
+  const channelRef = useRef(null);
 
   // 1. Mantener ID de usuario actualizado
   useEffect(() => {
@@ -41,71 +43,80 @@ const GlobalChatListener = () => {
     return () => { authListener?.subscription?.unsubscribe?.(); };
   }, []);
 
-  // 2. Conexión única y robusta
+  // 2. Reiniciar suscripción al cambiar de ruta (con retraso de seguridad)
   useEffect(() => {
-    console.log("🌐 Iniciando Listener Global de Chat...");
-    
-    // Nombramos el canal distinto para evitar choques con Comunicaciones
-    const canal = supabase
-      .channel("sistema_alertas_global_v3") 
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages" },
-        async (payload) => {
-          const nuevo = payload.new;
-          // Verificamos si el mensaje es mío
-          const esMio = nuevo?.sender_id === currentUserIdRef.current;
+    // A) Limpiar canal anterior inmediatamente si existe
+    if (channelRef.current) {
+      console.log("🛑 [Global] Limpiando canal previo por cambio de ruta...");
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
-          // A) Siempre intentamos actualizar el badge
-          const { data, error } = await supabase.rpc("count_unread_messages_for_user");
-          if (!error && typeof data === "number") {
-            window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
-          }
+    // B) Esperar 1 segundo para que la página anterior (ej. Comunicaciones) termine su limpieza
+    const timer = setTimeout(() => {
+      console.log(`🌐 [Global] Iniciando nuevo canal en: ${location.pathname}`);
+      
+      // Usamos un nombre dinámico para evitar colisiones de "channel instance"
+      const channelName = `global_alerts_${Date.now()}`;
+      
+      const canal = supabase
+        .channel(channelName)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages" },
+          async (payload) => {
+            const nuevo = payload.new;
+            const esMio = nuevo?.sender_id === currentUserIdRef.current;
 
-          // B) Si NO es mío, verificamos urgencia para lanzar Toast
-          if (!esMio) {
-            // Consultar si el hilo es urgente
-            const { data: thread } = await supabase
-              .from("chat_threads")
-              .select("es_urgente")
-              .eq("id", nuevo.thread_id)
-              .single();
+            // Actualizar Badge
+            const { data, error } = await supabase.rpc("count_unread_messages_for_user");
+            if (!error && typeof data === "number") {
+              window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
+            }
 
-            if (thread?.es_urgente) {
-              // Obtener nombre del que envió
-              const { data: remitente } = await supabase
-                .from("operadores")
-                .select("nombre")
-                .eq("uid", nuevo.sender_id)
+            // Toast Urgente (Si no es mío)
+            if (!esMio) {
+              const { data: thread } = await supabase
+                .from("chat_threads")
+                .select("es_urgente")
+                .eq("id", nuevo.thread_id)
                 .single();
-              
-              const nombre = remitente?.nombre || "Sistema";
-              
-              // Lanzar alerta visual
-              toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
-                position: "top-center",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                theme: "colored",
-              });
+
+              if (thread?.es_urgente) {
+                const { data: remitente } = await supabase
+                  .from("operadores")
+                  .select("nombre")
+                  .eq("uid", nuevo.sender_id)
+                  .single();
+                
+                const nombre = remitente?.nombre || "Sistema";
+                
+                toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
+                  position: "top-center",
+                  autoClose: 5000,
+                  theme: "colored",
+                });
+              }
             }
           }
-        }
-      )
-      .subscribe((status) => {
-        // Solo logueamos el estado, NO forzamos reconexión manual aquí para evitar el error
-        console.log(`📡 [Global Status]: ${status}`);
-      });
+        )
+        .subscribe((status) => {
+           // Solo log para depuración
+           if (status === 'SUBSCRIBED') console.log("✅ [Global] Conectado y listo.");
+        });
 
-    // Cleanup: Se ejecuta SOLO si desmontas la App completa (F5 o cerrar pestaña)
+      channelRef.current = canal;
+    }, 1000); // <--- RETRASO DE 1 SEGUNDO: CLAVE PARA EVITAR EL CONFLICTO
+
+    // Cleanup del efecto (si cambias de página rápido antes de que pase el segundo)
     return () => {
-      console.log("🛑 Limpiando canal global...");
-      supabase.removeChannel(canal);
+      clearTimeout(timer);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, []); // <--- Array vacío: Se conecta UNA vez y no depende de la navegación.
+  }, [location.pathname]); // Se ejecuta cada vez que cambias de página
 
   return null;
 };
