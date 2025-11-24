@@ -40,6 +40,7 @@ export const RS_COMMON_STYLES = {
       cursor: "pointer",
       fontFamily: FIELD_FONT,
       fontSize: 14,
+      padding: 0,
     };
   },
 
@@ -49,15 +50,11 @@ export const RS_COMMON_STYLES = {
 
     return {
       ...base,
-      // 👉 Si es multi y NO tiene valores → altura normal
-      height: isMulti && !hasValues ? FIELD_HEIGHT : "auto",
-      padding: "8px 14px",
-      // 👉 Alinear arriba solo SI hay pills
+      height: isMulti && hasValues ? "auto" : FIELD_HEIGHT,
+      padding: "0 14px",
       alignItems: isMulti && hasValues ? "flex-start" : "center",
-      // 👉 Wrap hasta que aparezcan pills
       flexWrap: isMulti && hasValues ? "wrap" : "nowrap",
-      display: "flex",     
-      alignItems: "center",  
+      display: "flex",
     };
   },
 

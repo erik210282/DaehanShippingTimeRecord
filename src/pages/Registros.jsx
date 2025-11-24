@@ -15,6 +15,7 @@ import {
   BtnTinyRound,
   BtnDanger,
   DSDate,
+  TextAreaStyle,
 } from "../components/controls";
 
 
@@ -551,7 +552,15 @@ useEffect(() => {
           </div>
         </div>
     
-        <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}>
+        <Modal isOpen={modalAbierto} onRequestClose={() => setModalAbierto(false)}
+          style={{
+            content: {
+              width: "70%",         
+              maxWidth: "100%",    
+              margin: "0 auto",
+            }
+          }}
+          >
           <h3>{esNuevo ? t("add") : t("edit")}</h3>
 
           <DSInput
@@ -605,12 +614,13 @@ useEffect(() => {
           >
             ➕ {t("add_product")}
           </BtnSecondary>
+          <div style={{ marginTop: 12 }}></div>
           <DSSelect isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
-          <textarea value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={2} style={{ marginTop: 10 }} />
-          <DSDate type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })} style={{ marginTop: 10 }}/>
-          <DSDate type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })} style={{ marginTop: 10 }}/>
+          <TextAreaStyle value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={3} style={{ marginTop: 10, minHeight: 90 }} />
+          <DSDate type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })}  style={{ marginTop: 14, marginBottom: 6 }}/>
+          <DSDate type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })}  style={{ marginTop: 10, marginBottom: 10 }}/>
 
-          <label style={{ marginTop: 10 }}>{t("duration_min")}</label>
+          <label style={{ marginTop: 8, marginBottom: 4 }}>{t("duration_min")}</label>
             <DSInput
               type="number"
               className="form-control"
@@ -618,6 +628,7 @@ useEffect(() => {
               onChange={(e) =>
                 setRegistroActual({ ...registroActual, duracion: Number(e.target.value) })
               }
+              style={{ maxWidth: 160, marginBottom: 12 }}
             />
           <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
             <BtnPrimary type="button" onClick={guardarRegistro}>{t("save")}</BtnPrimary>
