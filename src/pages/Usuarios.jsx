@@ -20,6 +20,7 @@ export default function Usuarios() {
   const [mensajeExtra, setMensajeExtra] = useState(""); // por si quieres mostrar detalles del error
   const [nuevosPasswords, setNuevosPasswords] = useState({});
   const [cargando, setCargando] = useState(false);
+  const [creando, setCreando] = useState(false);
 
   const debugT = (key) => {
     const translated = t(key);
@@ -29,11 +30,12 @@ export default function Usuarios() {
   const usuarioLogueado = JSON.parse(localStorage.getItem("usuario"));
 
   const ROLE_OPTIONS = useMemo(() => ([
-    { value: 'operator',   label: t('role_operator') },
+    { value: 'operador',   label: t('role_operator') },
     { value: 'supervisor', label: t('role_supervisor') },
   ]), [t]);
 
   const crearUsuario = async () => {
+    if (creando) return;
     if (!email || !nombre || !password || !role) {
       setMensajeKey("error_user_creation");
       setMensajeExtra("");
@@ -41,6 +43,7 @@ export default function Usuarios() {
     }
 
     try {
+      setCreando(true);   
       const res = await fetch(`${API_URL}/create-user`, {
         method: "POST",
         headers: {
@@ -68,6 +71,8 @@ export default function Usuarios() {
     } catch (error) {
       setMensajeKey("error_user_creation");
       setMensajeExtra(`: ${error.message}`);
+    } finally {
+    setCreando(false); 
     }
   };
 
@@ -120,6 +125,7 @@ export default function Usuarios() {
       });
 
       const data = await res.json();
+      console.log("🔻 Respuesta create-user:", res.status, data);
       if (!res.ok) throw new Error(data.error);
 
       setMensajeKey("success_password_updated");
@@ -213,8 +219,16 @@ export default function Usuarios() {
           </label>
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <BtnPrimary onClick={crearUsuario}>
-              {t("create_user")}
+            <BtnPrimary
+              onClick={crearUsuario}
+              disabled={creando}
+              style={
+                creando
+                  ? { opacity: 0.7, cursor: "wait" }  
+                  : undefined
+              }
+            >
+              {creando ? `${t("create_user")}...` : t("create_user")}
             </BtnPrimary>
             <BtnSecondary onClick={alternarMostrarUsuarios}>
               {mostrarUsuarios ? t("hide_users") : t("show_users")}
