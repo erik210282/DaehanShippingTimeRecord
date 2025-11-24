@@ -20,12 +20,10 @@ import LanguageBar from "./components/LanguageBar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// --- GLOBAL CHAT LISTENER (VERSIÓN REINICIO SEGURO) ---
+// --- GLOBAL CHAT LISTENER (VERSIÓN SIMPLIFICADA Y ROBUSTA) ---
 const GlobalChatListener = () => {
   const { t } = useTranslation();
-  const location = useLocation(); // Detectar cambio de página
   const currentUserIdRef = useRef(null);
-  const channelRef = useRef(null);
 
   // 1. Mantener ID de usuario actualizado
   useEffect(() => {
@@ -43,111 +41,79 @@ const GlobalChatListener = () => {
     return () => { authListener?.subscription?.unsubscribe?.(); };
   }, []);
 
-  // 2. Reiniciar suscripción al cambiar de ruta (con retraso de seguridad)
+  // 2. Suscripción ÚNICA y persistente
   useEffect(() => {
-    // A) Limpiar canal anterior inmediatamente si existe
-    if (channelRef.current) {
-      console.log("🛑 [Global] Limpiando canal previo por cambio de ruta...");
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    console.log("🟢 Iniciando Global Listener...");
+    
+    const canal = supabase
+      .channel("global_chat_alerts") // Nombre fijo para evitar crear miles de canales
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        async (payload) => {
+          const nuevo = payload.new;
+          const myId = currentUserIdRef.current;
 
-    // B) Esperar 1 segundo para que la página anterior (ej. Comunicaciones) termine su limpieza
-    const timer = setTimeout(() => {
-      console.log(`🌐 [Global] Iniciando nuevo canal en: ${location.pathname}`);
-      
-      // Usamos un nombre dinámico para evitar colisiones de "channel instance"
-      const channelName = `global_alerts_${Date.now()}`;
-      
-      const canal = supabase
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "chat_messages" },
-          async (payload) => {
-            const nuevo = payload.new;
-            const myId = currentUserIdRef.current;
-            const esMio = nuevo?.sender_id === myId;
+          // Si el mensaje lo envié yo, no hago nada (ni badge, ni toast)
+          if (nuevo.sender_id === myId) return;
 
-            let esRelevante = false;
+          // A) ACTUALIZAR BADGE:
+          // Llamamos al RPC (ya corregido en SQL) directamente. 
+          // Si el mensaje no es para mí, el RPC devolverá el mismo número y no pasará nada visualmente malo.
+          const { data, error } = await supabase.rpc("count_unread_messages_for_user");
+          if (!error && typeof data === "number") {
+            window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
+          }
 
-            if (esMio) {
-              // Si yo envié el mensaje, normalmente no necesito actualizar mi badge de "no leídos"
-              // (a menos que tu lógica requiera confirmación inmediata, pero usualmente no).
-              esRelevante = false; 
-            } else {
-              // Si NO es mío, verificamos si es para mí.
-              // 1. Si tu tabla tiene 'recipient_id', úsalo:
-              if (nuevo.recipient_id === myId) {
-                esRelevante = true;
-              } 
-              // 2. Si usas hilos (Threads) y no hay recipient_id directo en el mensaje,
-              //    verificamos participación en el hilo:
-              else {
-                 // Hacemos una consulta ligera para ver si pertenezco a este hilo
-                 const { data: participacion } = await supabase
-                   .from('chat_thread_participants') // <--- Asegúrate que esta tabla exista en tu DB
-                   .select('id')
-                   .eq('thread_id', nuevo.thread_id)
-                   .eq('user_id', myId)
-                   .maybeSingle();
-                 
-                 if (participacion) esRelevante = true;
-              }
-            }
+          // B) MOSTRAR TOAST (Solo si es urgente):
+          // Consultamos si el hilo es urgente. Si no pertenezco al hilo, RLS o la lógica bloqueará el acceso, 
+          // pero el try/catch evitará errores en consola.
+          try {
+            // Verificamos si soy parte del hilo antes de mostrar alerta
+            const { data: participacion } = await supabase
+              .from('chat_thread_participants')
+              .select('id')
+              .eq('thread_id', nuevo.thread_id)
+              .eq('user_id', myId)
+              .maybeSingle();
 
-            // SOLO actualizamos el Badge si el mensaje es relevante para mí
-            if (esRelevante) {
-              const { data, error } = await supabase.rpc("count_unread_messages_for_user");
-              if (!error && typeof data === "number") {
-                window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
-              }
-            }
-
-            // Toast Urgente (Si no es mío)
-            if (!esMio) {
-              const { data: thread } = await supabase
+            if (participacion) {
+               // Soy parte del hilo, verificamos urgencia
+               const { data: thread } = await supabase
                 .from("chat_threads")
                 .select("es_urgente")
                 .eq("id", nuevo.thread_id)
                 .single();
 
-              if (thread?.es_urgente) {
-                const { data: remitente } = await supabase
-                  .from("operadores")
-                  .select("nombre")
-                  .eq("uid", nuevo.sender_id)
-                  .single();
-                
-                const nombre = remitente?.nombre || "Sistema";
-                
-                toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
-                  position: "top-center",
-                  autoClose: 2000,
-                  theme: "colored",
-                });
-              }
+               if (thread?.es_urgente) {
+                  const { data: remitente } = await supabase
+                    .from("operadores")
+                    .select("nombre")
+                    .eq("uid", nuevo.sender_id)
+                    .single();
+                  
+                  const nombre = remitente?.nombre || "Sistema";
+                  toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
+                    position: "top-center",
+                    theme: "colored",
+                    autoClose: 1500,
+                  });
+               }
             }
+          } catch (err) {
+            console.error("Error en alerta global:", err);
           }
-        )
-        .subscribe();
+        }
+      )
+      .subscribe();
 
-      channelRef.current = canal;
-    }, 1000); // <--- RETRASO DE 1 SEGUNDO: CLAVE PARA EVITAR EL CONFLICTO
-
-    // Cleanup del efecto (si cambias de página rápido antes de que pase el segundo)
     return () => {
-      clearTimeout(timer);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      supabase.removeChannel(canal);
     };
-  }, [location.pathname]); // Se ejecuta cada vez que cambias de página
+  }, []); // Array vacío: Solo se monta UNA vez al entrar a la App
 
   return null;
 };
-
 // --- NAVBAR ---
 const Navbar = () => {
   const navigate = useNavigate();
