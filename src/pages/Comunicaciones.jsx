@@ -184,6 +184,63 @@ export default function Comunicaciones() {
     );
 
     // =========================
+    // NUEVO: Cargar estado de "No leídos" desde la BD
+    // =========================
+    useEffect(() => {
+      const verificarNoLeidosIniciales = async () => {
+        // Si no hay hilos cargados o no hay usuario, no hacemos nada
+        if (!threads.length || !currentUserId) return;
+
+        try {
+          // 1. Obtener IDs de los hilos que se están mostrando
+          const threadIds = threads.map((t) => t.id);
+
+          // 2. Traer todos los mensajes de esos hilos que NO fueron enviados por mí
+          // (Esto es necesario porque la lógica de "no leído" es: existe mensaje ajeno y no está en mi tabla de leídos)
+          const { data: mensajesEntrantes, error: errorMsg } = await supabase
+            .from("chat_messages")
+            .select("id, thread_id")
+            .in("thread_id", threadIds)
+            .neq("sender_id", currentUserId);
+
+          if (errorMsg) throw errorMsg;
+          if (!mensajesEntrantes || mensajesEntrantes.length === 0) return;
+
+          // 3. Obtener la lista de mensajes que YA he leído (de la tabla chat_message_read_status)
+          const messageIds = mensajesEntrantes.map((m) => m.id);
+          const { data: leidos, error: errorLeidos } = await supabase
+            .from("chat_message_read_status")
+            .select("message_id")
+            .eq("user_id", currentUserId)
+            .in("message_id", messageIds);
+
+          if (errorLeidos) throw errorLeidos;
+
+          // Crear un Set para búsqueda rápida de mensajes leídos
+          const leidosSet = new Set(leidos?.map((l) => l.message_id));
+
+          // 4. Calcular qué hilos tienen al menos un mensaje que NO está en el set de leídos
+          const hilosConNoLeidos = {};
+          mensajesEntrantes.forEach((m) => {
+            if (!leidosSet.has(m.id)) {
+              // Si el mensaje no está en mis leídos, marco el hilo con punto rojo
+              hilosConNoLeidos[m.thread_id] = true;
+            }
+          });
+
+          // 5. Actualizar el estado visual
+          setThreadUnread((prev) => ({ ...prev, ...hilosConNoLeidos }));
+          
+        } catch (err) {
+          console.error("Error verificando no leídos:", err);
+        }
+      };
+
+      verificarNoLeidosIniciales();
+      // Se ejecuta cada vez que 'threads' cambia (ej. carga inicial o llega mensaje nuevo y recarga la lista)
+    }, [threads, currentUserId]);
+
+    // =========================
     // Cargar mensajes de un thread
     // =========================
     const cargarMensajesThread = useCallback(
