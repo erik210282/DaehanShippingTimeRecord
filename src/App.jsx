@@ -66,12 +66,42 @@ const GlobalChatListener = () => {
           { event: "INSERT", schema: "public", table: "chat_messages" },
           async (payload) => {
             const nuevo = payload.new;
-            const esMio = nuevo?.sender_id === currentUserIdRef.current;
+            const myId = currentUserIdRef.current;
+            const esMio = nuevo?.sender_id === myId;
 
-            // Actualizar Badge
-            const { data, error } = await supabase.rpc("count_unread_messages_for_user");
-            if (!error && typeof data === "number") {
-              window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
+            let esRelevante = false;
+
+            if (esMio) {
+              // Si yo envié el mensaje, normalmente no necesito actualizar mi badge de "no leídos"
+              // (a menos que tu lógica requiera confirmación inmediata, pero usualmente no).
+              esRelevante = false; 
+            } else {
+              // Si NO es mío, verificamos si es para mí.
+              // 1. Si tu tabla tiene 'recipient_id', úsalo:
+              if (nuevo.recipient_id === myId) {
+                esRelevante = true;
+              } 
+              // 2. Si usas hilos (Threads) y no hay recipient_id directo en el mensaje,
+              //    verificamos participación en el hilo:
+              else {
+                 // Hacemos una consulta ligera para ver si pertenezco a este hilo
+                 const { data: participacion } = await supabase
+                   .from('chat_thread_participants') // <--- Asegúrate que esta tabla exista en tu DB
+                   .select('id')
+                   .eq('thread_id', nuevo.thread_id)
+                   .eq('user_id', myId)
+                   .maybeSingle();
+                 
+                 if (participacion) esRelevante = true;
+              }
+            }
+
+            // SOLO actualizamos el Badge si el mensaje es relevante para mí
+            if (esRelevante) {
+              const { data, error } = await supabase.rpc("count_unread_messages_for_user");
+              if (!error && typeof data === "number") {
+                window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
+              }
             }
 
             // Toast Urgente (Si no es mío)
@@ -100,10 +130,7 @@ const GlobalChatListener = () => {
             }
           }
         )
-        .subscribe((status) => {
-           // Solo log para depuración
-           if (status === 'SUBSCRIBED') console.log("✅ [Global] Conectado y listo.");
-        });
+        .subscribe();
 
       channelRef.current = canal;
     }, 1000); // <--- RETRASO DE 1 SEGUNDO: CLAVE PARA EVITAR EL CONFLICTO

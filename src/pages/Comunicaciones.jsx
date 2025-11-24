@@ -275,7 +275,33 @@ export default function Comunicaciones() {
             { event: "INSERT", schema: "public", table: "chat_messages" },
             async (payload) => {
               const nuevo = payload.new;
-              // ... tu lógica de cargar threads y mensajes (déjala igual) ...
+              // 1. Determinar si el mensaje es relevante para mostrar punto rojo
+              // Si no lo envié yo Y no tengo ese hilo abierto ahora mismo:
+              const esMio = nuevo.sender_id === currentUserId;
+              const estoyViendoEsteHilo = selectedThreadIdRef.current === nuevo.thread_id;
+
+              if (!esMio && !estoyViendoEsteHilo) {
+                // ACTIVAR EL PUNTO ROJO para este hilo
+                setThreadUnread((prev) => ({
+                  ...prev,
+                  [nuevo.thread_id]: true,
+                }));
+              }
+
+              // 2. Si tengo el hilo abierto, agrego el mensaje en vivo y marco leído
+              if (estoyViendoEsteHilo) {
+                setMessages((prev) => [...prev, nuevo]);
+                
+                // Marcar como leído inmediatamente en BD para que no quede pendiente
+                await supabase.rpc("mark_thread_as_read", { p_thread_id: nuevo.thread_id });
+              }
+
+              // 3. Recargar la lista de threads para actualizar el orden (último mensaje arriba)
+              // Nota: Esto también ayuda a que si es un hilo nuevo, aparezca en la lista.
+              cargarThreads(currentUserId);
+              
+              // 4. Actualizar el contador global del Navbar (opcional, por seguridad)
+              notificarUnreadNavbar();
             }
           )
           .subscribe((status) => {
