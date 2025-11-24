@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import Registros from "./pages/Registros";
 import Productividad from "./pages/Productividad";
 import Catalogos from "./pages/Catalogos";
@@ -20,12 +20,10 @@ import LanguageBar from "./components/LanguageBar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// --- GLOBAL CHAT LISTENER (VERSIÓN REINICIO SEGURO) ---
+// --- GLOBAL CHAT LISTENER (VERSIÓN ESTABLE) ---
 const GlobalChatListener = () => {
   const { t } = useTranslation();
-  const location = useLocation(); // Detectar cambio de página
   const currentUserIdRef = useRef(null);
-  const channelRef = useRef(null);
 
   // 1. Mantener ID de usuario actualizado
   useEffect(() => {
@@ -43,80 +41,68 @@ const GlobalChatListener = () => {
     return () => { authListener?.subscription?.unsubscribe?.(); };
   }, []);
 
-  // 2. Reiniciar suscripción al cambiar de ruta (con retraso de seguridad)
+  // 2. Conexión al socket
   useEffect(() => {
-    // A) Limpiar canal anterior inmediatamente si existe
-    if (channelRef.current) {
-      console.log("🛑 [Global] Limpiando canal previo por cambio de ruta...");
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    // Definimos el canal fuera para poder limpiarlo
+    const canal = supabase
+      .channel("global_alerts_system") // Nombre único
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        async (payload) => {
+          // Lógica de recepción
+          const nuevo = payload.new;
+          const esMio = nuevo?.sender_id === currentUserIdRef.current;
 
-    // B) Esperar 1 segundo para que la página anterior (ej. Comunicaciones) termine su limpieza
-    const timer = setTimeout(() => {
-      console.log(`🌐 [Global] Iniciando nuevo canal en: ${location.pathname}`);
-      
-      // Usamos un nombre dinámico para evitar colisiones de "channel instance"
-      const channelName = `global_alerts_${Date.now()}`;
-      
-      const canal = supabase
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "chat_messages" },
-          async (payload) => {
-            const nuevo = payload.new;
-            const esMio = nuevo?.sender_id === currentUserIdRef.current;
+          // A) Actualizar Badge
+          const { data, error } = await supabase.rpc("count_unread_messages_for_user");
+          if (!error && typeof data === "number") {
+            window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
+          }
 
-            // Actualizar Badge
-            const { data, error } = await supabase.rpc("count_unread_messages_for_user");
-            if (!error && typeof data === "number") {
-              window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
-            }
+          // B) Mostrar Toast Urgente (Si no es mío)
+          if (!esMio) {
+            // Verificamos si el hilo es urgente
+            const { data: thread } = await supabase
+              .from("chat_threads")
+              .select("es_urgente")
+              .eq("id", nuevo.thread_id)
+              .single();
 
-            // Toast Urgente (Si no es mío)
-            if (!esMio) {
-              const { data: thread } = await supabase
-                .from("chat_threads")
-                .select("es_urgente")
-                .eq("id", nuevo.thread_id)
+            if (thread?.es_urgente) {
+              // Obtenemos nombre del remitente
+              const { data: remitente } = await supabase
+                .from("operadores")
+                .select("nombre")
+                .eq("uid", nuevo.sender_id)
                 .single();
-
-              if (thread?.es_urgente) {
-                const { data: remitente } = await supabase
-                  .from("operadores")
-                  .select("nombre")
-                  .eq("uid", nuevo.sender_id)
-                  .single();
-                
-                const nombre = remitente?.nombre || "Sistema";
-                
-                toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
-                  position: "top-center",
-                  autoClose: 5000,
-                  theme: "colored",
-                });
-              }
+              
+              const nombre = remitente?.nombre || "Sistema";
+              
+              // Disparamos el toast GLOBAL
+              toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })} - ${nuevo.contenido.substring(0, 30)}...`, {
+                position: "top-center",
+                autoClose: 2000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: "colored",
+              });
             }
           }
-        )
-        .subscribe((status) => {
-           // Solo log para depuración
-           if (status === 'SUBSCRIBED') console.log("✅ [Global] Conectado y listo.");
-        });
+        }
+      )
+      .subscribe((status) => {
+        // Log para depuración
+        console.log(`📡 Estado del Chat Global: ${status}`);
+      });
 
-      channelRef.current = canal;
-    }, 1000); // <--- RETRASO DE 1 SEGUNDO: CLAVE PARA EVITAR EL CONFLICTO
-
-    // Cleanup del efecto (si cambias de página rápido antes de que pase el segundo)
+    // Cleanup: Solo se ejecuta al cerrar la app o recargar totalmente la página
     return () => {
-      clearTimeout(timer);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      supabase.removeChannel(canal);
     };
-  }, [location.pathname]); // Se ejecuta cada vez que cambias de página
+  }, []); // ARRAY VACÍO: Se conecta una vez y se mantiene vivo siempre.
 
   return null;
 };
@@ -232,7 +218,7 @@ const AppContent = () => (
     {/* ÚNICO ToastContainer de toda la app */}
     <ToastContainer 
       position="top-center" 
-      autoClose={4000} 
+      autoClose={2000} 
       limit={3} 
       newestOnTop={true}
       style={{ zIndex: 99999 }} // Asegura que se vea sobre todo
