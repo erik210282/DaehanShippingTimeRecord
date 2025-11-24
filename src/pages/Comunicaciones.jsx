@@ -238,7 +238,7 @@ export default function Comunicaciones() {
     useEffect(() => {
       if (!currentUserId) return;
       cargarOperadores();
-      cargarThreads();
+      cargarThreads(currentUserId);
     }, [currentUserId, cargarOperadores, cargarThreads]);
 
     // Cargar mensajes cuando cambie el thread seleccionado
