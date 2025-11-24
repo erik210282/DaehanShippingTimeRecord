@@ -66,15 +66,39 @@ const GlobalChatListener = () => {
           { event: "INSERT", schema: "public", table: "chat_messages" },
           async (payload) => {
             const nuevo = payload.new;
-            const esMio = nuevo?.sender_id === currentUserIdRef.current;
+            const userId = currentUserIdRef.current;
+            if (!userId) return;
 
-            // Actualizar Badge
-            const { data, error } = await supabase.rpc("count_unread_messages_for_user");
-            if (!error && typeof data === "number") {
-              window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
+            // 👇 1) Verificar que el usuario actual SEA participante del hilo
+            const { data: participantes, error: partError } = await supabase
+              .from("chat_thread_participants")
+              .select("id")
+              .eq("thread_id", nuevo.thread_id)
+              .eq("user_id", userId);
+
+            if (partError) {
+              console.warn("Error verificando participante chat:", partError.message);
+              return;
             }
 
-            // Toast Urgente (Si no es mío)
+            // Si no soy participante de este thread, ignoro el mensaje
+            if (!participantes || participantes.length === 0) {
+              return;
+            }
+
+            const esMio = nuevo.sender_id === userId;
+
+            // 👇 2) Actualizar badge SOLO para hilos donde sí participo
+            const { data, error } = await supabase.rpc("count_unread_messages_for_user");
+            if (!error && typeof data === "number") {
+              window.dispatchEvent(
+                new CustomEvent("unread-chat-updated", { detail: data })
+              );
+            }
+
+            // 👇 3) Toast urgente SOLO si:
+            //    - el mensaje no es mío
+            //    - y el thread es urgente
             if (!esMio) {
               const { data: thread } = await supabase
                 .from("chat_threads")
@@ -88,14 +112,17 @@ const GlobalChatListener = () => {
                   .select("nombre")
                   .eq("uid", nuevo.sender_id)
                   .single();
-                
+
                 const nombre = remitente?.nombre || "Sistema";
-                
-                toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
-                  position: "top-center",
-                  autoClose: 2000,
-                  theme: "colored",
-                });
+
+                toast.error(
+                  `🔥 ${t("urgent_message_arrived_from", { name: nombre })}`,
+                  {
+                    position: "top-center",
+                    autoClose: 2000,
+                    theme: "colored",
+                  }
+                );
               }
             }
           }
