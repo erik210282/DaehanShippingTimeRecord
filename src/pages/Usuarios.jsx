@@ -29,7 +29,7 @@ export default function Usuarios() {
   const usuarioLogueado = JSON.parse(localStorage.getItem("usuario"));
 
   const ROLE_OPTIONS = useMemo(() => ([
-    { value: 'operador',   label: t('role_operator') },
+    { value: 'operator',   label: t('role_operator') },
     { value: 'supervisor', label: t('role_supervisor') },
   ]), [t]);
 
