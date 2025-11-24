@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
 import { DSInput, DSNativeSelect, BtnPrimary, BtnSecondary, BtnEditDark, BtnDanger } from "../components/controls";
@@ -21,6 +21,16 @@ export default function Usuarios() {
   const [nuevosPasswords, setNuevosPasswords] = useState({});
   const [cargando, setCargando] = useState(false);
   const [creando, setCreando] = useState(false);
+
+  useEffect(() => {
+    // Cambia el cursor de TODO el documento
+    document.body.style.cursor = creando ? "wait" : "default";
+
+    // Limpieza por si se desmonta el componente
+    return () => {
+      document.body.style.cursor = "default";
+    };
+  }, [creando]);
 
   const debugT = (key) => {
     const translated = t(key);
@@ -60,6 +70,7 @@ export default function Usuarios() {
       });
 
       const data = await res.json();
+      console.log("🔻 Respuesta create-user:", res.status, data);
       if (!res.ok) throw new Error(data.error);
 
       setMensajeKey("success_user_created");
@@ -125,7 +136,6 @@ export default function Usuarios() {
       });
 
       const data = await res.json();
-      console.log("🔻 Respuesta create-user:", res.status, data);
       if (!res.ok) throw new Error(data.error);
 
       setMensajeKey("success_password_updated");
@@ -222,11 +232,7 @@ export default function Usuarios() {
             <BtnPrimary
               onClick={crearUsuario}
               disabled={creando}
-              style={
-                creando
-                  ? { opacity: 0.7, cursor: "wait" }  
-                  : undefined
-              }
+              style={creando ? { opacity: 0.7 } : undefined}
             >
               {creando ? `${t("create_user")}...` : t("create_user")}
             </BtnPrimary>
