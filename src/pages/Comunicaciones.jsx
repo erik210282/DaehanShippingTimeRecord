@@ -233,13 +233,12 @@ export default function Comunicaciones() {
     );
 
     // =========================
-    // Inicialización: operadores + threads (cuando ya tengo userId)
+    // Inicialización: operadores + threads
     // =========================
     useEffect(() => {
-      if (!currentUserId) return; // esperamos a tener el usuario
-
+      if (!currentUserId) return;
       cargarOperadores();
-      cargarThreads(currentUserId);
+      cargarThreads();
     }, [currentUserId, cargarOperadores, cargarThreads]);
 
     // Cargar mensajes cuando cambie el thread seleccionado
@@ -283,7 +282,6 @@ export default function Comunicaciones() {
             console.log("📶 Estado canal comms_chat_mensajes:", status);
             // Sin reintentos manuales; Supabase se encarga de reconectar
           });
-
         canalMensajesRef.current = canal;
       };
 
@@ -299,14 +297,13 @@ export default function Comunicaciones() {
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "chat_threads" },
             () => {
-              // Recargamos SOLO los threads del usuario actual
               cargarThreads(currentUserId);
             }
           )
           .subscribe((status) => {
             console.log("📶 Estado canal comms_chat_threads:", status);
+            // Sin reintentos manuales
           });
-          
         canalThreadsRef.current = canal;
       };
 
