@@ -93,7 +93,7 @@ const GlobalChatListener = () => {
                 
                 toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
                   position: "top-center",
-                  autoClose: 5000,
+                  autoClose: 2000,
                   theme: "colored",
                 });
               }
