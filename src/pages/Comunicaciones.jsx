@@ -150,6 +150,7 @@ export default function Comunicaciones() {
                 titulo,
                 es_urgente,
                 created_at,
+                creado_por,
                 chat_thread_participants!inner(user_id)
               `
             )
@@ -158,17 +159,12 @@ export default function Comunicaciones() {
 
           if (error) throw error;
 
-          // Quitamos el array anidado de participantes para dejar solo los campos del thread
           const threadsFiltrados = (data || []).map(
             ({ chat_thread_participants, ...rest }) => rest
           );
 
           setThreads(threadsFiltrados);
 
-          // Si no hay hilo seleccionado aún, seleccionamos el primero
-          if (!selectedThreadIdRef.current && threadsFiltrados.length > 0) {
-            setSelectedThread(threadsFiltrados[0]);
-          }
         } catch (err) {
           console.error("Error cargando threads:", err);
           toast.error(
@@ -498,7 +494,7 @@ export default function Comunicaciones() {
         setSendToAll(false);
         setDestinatariosSeleccionados([]);
 
-        toast.success(t("send"));
+        toast.success(t("sent"));
       } catch (err) {
         console.error("Error creando conversación:", err);
         toast.error(err.message || "Error creando conversación");
@@ -861,6 +857,13 @@ export default function Comunicaciones() {
                       )}
                     </div>
 
+                    {/* --- NUEVO: MOSTRAR REMITENTE --- */}
+                    <div style={{ fontSize: 12, color: "#444", marginBottom: 2 }}>
+                      <span style={{ fontWeight: "bold" }}>De: </span> 
+                      {getUserName(th.creado_por)}
+                    </div>
+                    {/* -------------------------------- */}
+
                     <div
                       style={{
                         fontSize: 11,
@@ -897,6 +900,7 @@ export default function Comunicaciones() {
               display: "flex",
               flexDirection: "column",
               maxHeight: "70vh",
+              backgroundColor: !selectedThread ? "#f9f9f9" : "transparent"
             }}
           >
             <h3 style={{ marginTop: 0, marginBottom: 8 }}>
