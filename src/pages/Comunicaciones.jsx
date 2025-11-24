@@ -132,33 +132,56 @@ export default function Comunicaciones() {
     }, [t]);
 
     // =========================
-    // Cargar threads
+    // Cargar threads SOLO del usuario actual
     // =========================
-      const cargarThreads = useCallback(async () => {
+    const cargarThreads = useCallback(
+      async (userId) => {
+        if (!userId) return; // aún no tenemos el usuario
+
         try {
           setLoadingThreads(true);
+
           const { data, error } = await supabase
             .from("chat_threads")
-            .select("id, tipo, titulo, es_urgente, created_at")
+            .select(
+              `
+                id,
+                tipo,
+                titulo,
+                es_urgente,
+                created_at,
+                chat_thread_participants!inner(user_id)
+              `
+            )
+            .eq("chat_thread_participants.user_id", userId)
             .order("created_at", { ascending: false });
 
           if (error) throw error;
 
-          setThreads(data || []);
+          // Quitamos el array anidado de participantes para dejar solo los campos del thread
+          const threadsFiltrados = (data || []).map(
+            ({ chat_thread_participants, ...rest }) => rest
+          );
+
+          setThreads(threadsFiltrados);
 
           // Si no hay hilo seleccionado aún, seleccionamos el primero
-          if (!selectedThreadIdRef.current && data && data.length > 0) {
-            setSelectedThread(data[0]);
+          if (!selectedThreadIdRef.current && threadsFiltrados.length > 0) {
+            setSelectedThread(threadsFiltrados[0]);
           }
         } catch (err) {
           console.error("Error cargando threads:", err);
           toast.error(
-            (t("error_loading") || "Error cargando hilos") + ": " + (err.message || "")
+            (t("error_loading") || "Error cargando hilos") +
+              ": " +
+              (err.message || "")
           );
         } finally {
           setLoadingThreads(false);
         }
-      }, [t]);
+      },
+      [t]
+    );
 
     // =========================
     // Cargar mensajes de un thread
@@ -210,12 +233,14 @@ export default function Comunicaciones() {
     );
 
     // =========================
-    // Inicialización: operadores + threads
+    // Inicialización: operadores + threads (cuando ya tengo userId)
     // =========================
     useEffect(() => {
+      if (!currentUserId) return; // esperamos a tener el usuario
+
       cargarOperadores();
-      cargarThreads();
-    }, [cargarOperadores, cargarThreads]);
+      cargarThreads(currentUserId);
+    }, [currentUserId, cargarOperadores, cargarThreads]);
 
     // Cargar mensajes cuando cambie el thread seleccionado
     useEffect(() => {
@@ -234,6 +259,7 @@ export default function Comunicaciones() {
     // Realtime: mensajes nuevos / nuevos hilos (con reconexión)
     // =========================
     useEffect(() => {
+      if (!currentUserId) return;
       console.log("🔗 Realtime Comunicaciones — creando canales...");
 
       const crearCanalMensajes = () => {
@@ -257,6 +283,7 @@ export default function Comunicaciones() {
             console.log("📶 Estado canal comms_chat_mensajes:", status);
             // Sin reintentos manuales; Supabase se encarga de reconectar
           });
+
         canalMensajesRef.current = canal;
       };
 
@@ -272,13 +299,14 @@ export default function Comunicaciones() {
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "chat_threads" },
             () => {
-              cargarThreads();
+              // Recargamos SOLO los threads del usuario actual
+              cargarThreads(currentUserId);
             }
           )
           .subscribe((status) => {
             console.log("📶 Estado canal comms_chat_threads:", status);
-            // Sin reintentos manuales
           });
+          
         canalThreadsRef.current = canal;
       };
 
@@ -298,7 +326,7 @@ export default function Comunicaciones() {
           canalThreadsRef.current = null;
         }
       };
-    }, [cargarThreads, cargarMensajesThread, setThreadUnread]);
+    }, [currentUserId, cargarThreads, cargarMensajesThread, setThreadUnread]);
 
     // =========================
     // Crear nuevo thread + primer mensaje
@@ -381,7 +409,7 @@ export default function Comunicaciones() {
 
         // Actualizar UI
         setSelectedThread(thread);
-        await cargarThreads();
+        await cargarThreads(currentUserId);
 
         // Limpiar formulario
         setTituloNuevo("");
