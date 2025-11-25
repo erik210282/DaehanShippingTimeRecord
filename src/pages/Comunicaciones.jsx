@@ -754,7 +754,7 @@ export default function Comunicaciones() {
                             borderStyle: "solid",
                             borderWidth: urgencia === "urgent" ? 4 : 2,
                             borderColor:
-                              urgencia === "urgent" ? "#c00000ff" : "#ffffff",
+                              urgencia === "urgent" ? "#c00000ff" : "#f30c0cff",
                             boxShadow:
                               urgencia === "urgent"
                                 ? "0 0 0 2px rgba(253, 0, 0, 0.9)"
