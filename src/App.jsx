@@ -19,68 +19,76 @@ import LanguageBar from "./components/LanguageBar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// --- GLOBAL CHAT LISTENER (VERSIÓN SIMPLIFICADA Y ROBUSTA) ---
+// --- GLOBAL CHAT LISTENER (VERSIÓN DEFINITIVA Y REACTIVA) ---
 const GlobalChatListener = () => {
   const { t } = useTranslation();
-  const currentUserIdRef = useRef(null);
+  const location = useLocation(); // Hook para detectar cambios de ruta
+  
+  // 🔑 CAMBIO CLAVE 1: Usar useState para que el ID sea reactivo
+  const [currentUserId, setCurrentUserId] = useState(null); 
+  
+  const channelRef = useRef(null); // Para la limpieza segura
 
-  // 1. Mantener ID de usuario actualizado
+  // 1. MÓDULO DE AUTENTICACIÓN (Se ejecuta solo una vez al montar)
+  // Este useEffect se encarga de cargar y mantener el currentUserId
   useEffect(() => {
-    const obtenerSesion = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      currentUserIdRef.current = session?.user?.id || null;
+    // Helper para actualizar el estado
+    const updateUserId = (session) => {
+        setCurrentUserId(session?.user?.id || null);
     };
-    obtenerSesion();
 
+    // a) Obtener sesión inicial de forma asíncrona
+    const fetchSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      updateUserId(session);
+    };
+    fetchSession();
+
+    // b) Escuchar cambios de sesión futuros (ej. login/logout)
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        currentUserIdRef.current = session?.user?.id || null;
+        updateUserId(session);
       }
     );
     return () => { authListener?.subscription?.unsubscribe?.(); };
-  }, []);
+  }, []); // Array vacío: Se ejecuta solo una vez al montar
 
-  // 2. Suscripción ÚNICA y persistente
+  // 2. MÓDULO DE SUSCRIPCIÓN REALTIME 
+  // Se ejecuta si cambia el ID de usuario o la ruta (resiliencia)
   useEffect(() => {
-    console.log("🟢 Iniciando Global Listener...");
+    console.log("🟢 Evaluando suscripción. ID:", currentUserId, "Ruta:", location.pathname);
 
-    // 🔑 CLAVE: Guard Clause (Añadir/Mover esta sección al inicio)
-    const myId = currentUserIdRef.current;
-    if (!myId) {
-        console.log("🚫 Global Listener: User ID no disponible, esperando...");
-        // Si el canal ya existe de una sesión anterior, lo removemos para evitar duplicados
-        // y salimos.
-        if(channelRef.current) {
-             supabase.removeChannel(channelRef.current);
-             channelRef.current = null;
-        }
-        return; 
+    // 🔑 CLAVE 2: Guard Clause usando el estado (EVITA EL ERROR WebSocket is closed)
+    if (!currentUserId) {
+      console.log("🚫 Listener Global: ID no disponible, previniendo conexión WebSocket.");
+      // Limpiamos cualquier canal residual (del intento anónimo fallido)
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      return; 
     }
-    // ----------------------------------------------------
     
+    // Si llegamos aquí, currentUserId es válido. Iniciamos la conexión:
     const canal = supabase
-      .channel("global_chat_alerts") // Nombre fijo para evitar crear miles de canales
+      .channel("global_chat_alerts") 
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages" },
         async (payload) => {
           const nuevo = payload.new;
-          const myId = currentUserIdRef.current;
+          const myId = currentUserId; // Usamos el estado reactivo
 
           // Si el mensaje lo envié yo, no hago nada (ni badge, ni toast)
           if (nuevo.sender_id === myId) return;
 
           // A) ACTUALIZAR BADGE:
-          // Llamamos al RPC (ya corregido en SQL) directamente. 
-          // Si el mensaje no es para mí, el RPC devolverá el mismo número y no pasará nada visualmente malo.
           const { data, error } = await supabase.rpc("count_unread_messages_for_user");
           if (!error && typeof data === "number") {
             window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
           }
 
-          // B) MOSTRAR TOAST (Solo si es urgente):
-          // Consultamos si el hilo es urgente. Si no pertenezco al hilo, RLS o la lógica bloqueará el acceso, 
-          // pero el try/catch evitará errores en consola.
+          // B) MOSTRAR TOAST (Si es urgente):
           try {
             // Verificamos si soy parte del hilo antes de mostrar alerta
             const { data: participacion } = await supabase
@@ -118,15 +126,27 @@ const GlobalChatListener = () => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+         console.log(`📶 Estado Global (ID: ${currentUserId}):`, status);
+      });
+
+    channelRef.current = canal;
 
     return () => {
-      supabase.removeChannel(canal);
+      console.log("🔴 Limpieza Global Listener: Removiendo canal...");
+      // Esto limpia la suscripción ANTES de que se cree la nueva (al cambiar de ruta)
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [currentUserIdRef.current, location.pathname]);
+    
+  // 🔑 CLAVE 3: Dependencia Reactiva (se re-ejecuta al cambiar ID o Ruta)
+  }, [currentUserId, location.pathname]); 
 
   return null;
 };
+
 // --- NAVBAR ---
 const Navbar = () => {
   const navigate = useNavigate();
