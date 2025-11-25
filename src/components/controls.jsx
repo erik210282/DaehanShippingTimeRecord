@@ -159,8 +159,8 @@ export const TablePagination = ({
     padding: "0 10px",
     fontSize: 12,
     minWidth: 28,
-    height: 32,
-    lineHeight: "32px",
+    height: 38,
+    lineHeight: "38px",
   };
 
   // texto un poco más oscuro
@@ -231,12 +231,12 @@ export const TablePagination = ({
           }}
           style={{
             width: 70,
-            height: 32,
-            minHeight: 32,
-            lineHeight: "32px",
+            height: 38,
+            minHeight: 38,
+            lineHeight: "38px",
             fontSize: 12,
             padding: "0 6px",
-            marginTop: 10,
+            marginTop: 12,
           }}
         >
           {pageSizeOptions.map((opt) => (
