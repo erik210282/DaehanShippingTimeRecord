@@ -43,6 +43,20 @@ const GlobalChatListener = () => {
   // 2. Suscripción ÚNICA y persistente
   useEffect(() => {
     console.log("🟢 Iniciando Global Listener...");
+
+    // 🔑 CLAVE: Guard Clause (Añadir/Mover esta sección al inicio)
+    const myId = currentUserIdRef.current;
+    if (!myId) {
+        console.log("🚫 Global Listener: User ID no disponible, esperando...");
+        // Si el canal ya existe de una sesión anterior, lo removemos para evitar duplicados
+        // y salimos.
+        if(channelRef.current) {
+             supabase.removeChannel(channelRef.current);
+             channelRef.current = null;
+        }
+        return; 
+    }
+    // ----------------------------------------------------
     
     const canal = supabase
       .channel("global_chat_alerts") // Nombre fijo para evitar crear miles de canales
@@ -105,6 +119,7 @@ const GlobalChatListener = () => {
         }
       )
       .subscribe();
+      channelRef.current = canal;
 
     return () => {
       supabase.removeChannel(canal);
