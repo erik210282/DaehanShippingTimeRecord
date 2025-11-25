@@ -139,7 +139,7 @@ export const BtnToggleUrgent = ({ active, ...props }) => (
       color: "#fff",
       borderRadius: 6,
       cursor: "pointer",
-      fontSize: 18,
+      fontSize: 14,
       fontWeight: 600,
     }}
   />
