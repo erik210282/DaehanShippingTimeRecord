@@ -86,6 +86,7 @@ export default function Usuarios() {
       setEmail("");
       setNombre("");
       setPassword("");
+      setRole("");
       if (mostrarUsuarios) cargarUsuarios();
     } catch (error) {
       console.error("❌ Error creando usuario:", error);
