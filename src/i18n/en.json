@@ -55,6 +55,7 @@
   "error": "Error",
   "rol": "Role",
   "role_operator": "Operator",
+  "cannot_delete_user_with_records": "This user cannot be deleted because they already have records. Mark them as inactive.",
   "role_supervisor": "Supervisor",
   "select_role_placeholder": "Select Operator type",
   "error_adding_task": "Error adding task",

@@ -205,6 +205,7 @@
   "products": "Productos",
   "rol": "Rol",
   "role_operator": "Operador",
+  "cannot_delete_user_with_records": "No se puede eliminar este usuario porque ya tiene registros. Márcalo como inactivo.",
   "role_supervisor": "Supervisor",
   "select_role_placeholder": "Selecciona tipo de operador",
   "activities": "Actividades",

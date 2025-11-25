@@ -24,6 +24,7 @@
   "confirm": "확인",
   "confirm_delete": "이 기록을 삭제하시겠습니까?",
   "confirm_delete_text": "이 작업은 기록을 삭제합니다.",
+  "cannot_delete_user_with_records": "이 사용자는 이미 관련 기록이 존재하므로 삭제할 수 없습니다. 비활성 상태로 표시해 주세요.",
   "confirm_delete_title": "정말 삭제하시겠습니까?",
   "confirm_delete_user": "이 사용자를 영구적으로 삭제하시겠습니까?",
   "configure_task_order": "작업 순서 구성",
