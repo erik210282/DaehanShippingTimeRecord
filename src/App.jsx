@@ -89,7 +89,7 @@ const GlobalChatListener = () => {
           }
 
           // B) MOSTRAR TOAST (Si es urgente):
-         /* try {
+         try {
             const { data: toastData } = await supabase.rpc("get_toast_data_for_message", {
               p_message_id: nuevo.id, // O nuevo.thread_id si es más fácil
               p_user_id: myId,
@@ -106,7 +106,6 @@ const GlobalChatListener = () => {
           } catch (err) {
             console.error("Error en alerta global unificada:", err);
           }
-            */
         }
       )
       .subscribe((status) => {
