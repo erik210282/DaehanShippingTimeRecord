@@ -618,7 +618,7 @@ export default function Comunicaciones() {
 
   return (
     <div className="page-container page-container--fluid">
-      <div className="card" style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <div className="card">
         <h2>{t("communications")}</h2>
 
                 {/* ================= NUEVO MENSAJE ================= */}
