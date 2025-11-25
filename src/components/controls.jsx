@@ -231,7 +231,7 @@ export const TablePagination = ({
           }}
           style={{
             width: 70,
-            height: 38,
+            height: 32,
             minHeight: 32,
             lineHeight: "32px",
             fontSize: 12,
