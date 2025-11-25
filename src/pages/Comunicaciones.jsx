@@ -668,7 +668,7 @@ export default function Comunicaciones() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.4fr) auto",
+                      gridTemplateColumns: "minmax(0, 2fr) auto auto",
                       columnGap: 12,
                       rowGap: 8,
                       alignItems: "flex-start",
@@ -748,16 +748,16 @@ export default function Comunicaciones() {
                           }
                           style={{
                             flex: 1, 
-                            Width: 170,
+                            width: 170,
                             height: 38,         
                             lineHeight: "38px",
                             borderStyle: "solid",
-                            borderWidth: urgencia === "urgent" ? 4 : 2,
-                            borderColor:
-                              urgencia === "urgent" ? "#c00000ff" : "#f30c0cff",
+                            borderWidth: 2,
+                            backgroundColor: active ? "#dc2626" : "#111",
+                            border: active ? "2px solid #dc2626" : "2px solid #111",
                             boxShadow:
                               urgencia === "urgent"
-                                ? "0 0 0 2px rgba(253, 0, 0, 0.9)"
+                                ? "0 0 0 4px rgba(253, 0, 0, 0.9)"
                                 : "none",
                           }}
                         >
@@ -777,7 +777,7 @@ export default function Comunicaciones() {
                       <BtnPrimary
                         onClick={handleCreateThread}
                         style={{
-                          Width: 170,
+                          width: 170,
                           height: 38,      
                           justifyContent: "center",
                         }}

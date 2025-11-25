@@ -133,7 +133,6 @@ export const BtnToggleUrgent = ({ active, ...props }) => (
       height: 38,
       lineHeight: "38px",
       padding: "0 14px",
-      minWidth: 170,     
       backgroundColor: active ? "#dc2626" : "#111",
       border: active ? "2px solid #dc2626" : "2px solid #111",
       color: "#fff",
