@@ -124,3 +124,164 @@ export const BtnTinyRound = ({ children, style, ...p }) => (
     {children}
   </button>
 );
+
+// ===========================
+// PAGINADO GENERAL
+// ===========================
+export const TablePagination = ({
+  totalRows,
+  page,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [25, 50, 100],
+}) => {
+  const containerStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    gap: 10,
+    fontSize: 12,
+  };
+
+  const pagesContainerStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+  };
+
+  const smallBtnStyle = {
+    padding: "4px 8px",
+    borderRadius: 6,
+    fontSize: 12,
+    minWidth: 28,
+  };
+
+  const textStyle = {
+    fontSize: 12,
+    color: "#ddd",
+  };
+
+  const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+
+  const startRow = totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endRow = Math.min(currentPage * pageSize, totalRows);
+
+  const buildPages = (current, total) => {
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+
+    let pages = [1];
+
+    if (current > 3) pages.push("...");
+
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    for (let p = start; p <= end; p++) pages.push(p);
+
+    if (current < total - 2) pages.push("...");
+
+    pages.push(total);
+
+    return pages;
+  };
+
+  const pages = buildPages(currentPage, totalPages);
+
+  const changePage = (newPage) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    onPageChange(newPage);
+  };
+
+  return (
+    <div style={containerStyle}>
+      {/* info izquierda */}
+      <div style={textStyle}>
+        {totalRows === 0
+          ? "0 registros"
+          : `Mostrando ${startRow}–${endRow} de ${totalRows} registros`}
+      </div>
+
+      {/* controles derecha */}
+      <div style={pagesContainerStyle}>
+        <span style={textStyle}>Rows:</span>
+
+        <DSNativeSelect
+          value={pageSize}
+          onChange={(e) => {
+            const newSize = Number(e.target.value);
+            onPageSizeChange(newSize);
+          }}
+          style={{ width: 70, height: 28, fontSize: 12 }}
+        >
+          {pageSizeOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </DSNativeSelect>
+
+        {/* primera página */}
+        <BtnSecondary
+          style={smallBtnStyle}
+          onClick={() => changePage(1)}
+          disabled={currentPage === 1}
+        >
+          «
+        </BtnSecondary>
+
+        {/* anterior */}
+        <BtnSecondary
+          style={smallBtnStyle}
+          onClick={() => changePage(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          ‹
+        </BtnSecondary>
+
+        {/* números */}
+        {pages.map((p, i) =>
+          p === "..." ? (
+            <span key={i} style={{ ...textStyle, padding: "0 6px" }}>
+              …
+            </span>
+          ) : (
+            <BtnSecondary
+              key={p}
+              style={{
+                ...smallBtnStyle,
+                background: p === currentPage ? "#3b82f6" : "#111",
+                borderColor: p === currentPage ? "#3b82f6" : "#111",
+              }}
+              onClick={() => changePage(p)}
+            >
+              {p}
+            </BtnSecondary>
+          )
+        )}
+
+        {/* siguiente */}
+        <BtnSecondary
+          style={smallBtnStyle}
+          onClick={() => changePage(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          ›
+        </BtnSecondary>
+
+        {/* última */}
+        <BtnSecondary
+          style={smallBtnStyle}
+          onClick={() => changePage(totalPages)}
+          disabled={currentPage === totalPages}
+        >
+          »
+        </BtnSecondary>
+      </div>
+    </div>
+  );
+};

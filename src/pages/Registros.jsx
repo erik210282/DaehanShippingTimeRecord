@@ -16,6 +16,7 @@ import {
   BtnDanger,
   DSDate,
   TextAreaStyle,
+  TablePagination,
 } from "../components/controls";
 
 
@@ -50,6 +51,9 @@ export default function Registros() {
   const [selectOperadores, setSelectOperadores] = useState([]);
 
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   const parseFecha = (fecha) => {
     if (!fecha) return null;
@@ -250,6 +254,7 @@ useEffect(() => {
 
   setFiltrados(resultados);
   setErrorBusqueda(texto && resultados.length === 0 ? t("no_results_found") : "");
+  setPage(1);
 }, [
   actividadFiltro,
   productoFiltro,
@@ -449,6 +454,16 @@ useEffect(() => {
   toast.success(t("export_success") || "CSV exportado correctamente");
 };
 
+  // ==========================
+  // Paginado: cálculo de filas
+  // ==========================
+  const totalRows = filtrados.length;
+  const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const filasPagina = filtrados.slice(startIndex, endIndex);
+
   return (
     <div className="page-container page-container--fluid">
       <div className="card">
@@ -497,7 +512,7 @@ useEffect(() => {
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map((r) => {
+                {filasPagina.map((r) => {
                   const inicio = new Date(r.horaInicio);
                   const fin = new Date(r.horaFin);
                   return (
@@ -549,6 +564,17 @@ useEffect(() => {
                 })}
               </tbody>
             </table>
+            <TablePagination
+              totalRows={totalRows}
+              page={currentPage}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}              
+              pageSizeOptions={[25, 50, 100, 200]}
+            />
           </div>
         </div>
     
