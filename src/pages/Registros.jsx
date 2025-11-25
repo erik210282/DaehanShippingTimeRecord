@@ -19,8 +19,6 @@ import {
   TablePagination,
 } from "../components/controls";
 
-
-
 Modal.setAppElement("#root");
 
 export default function Registros() {
@@ -53,7 +51,7 @@ export default function Registros() {
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(25);
 
   const parseFecha = (fecha) => {
     if (!fecha) return null;

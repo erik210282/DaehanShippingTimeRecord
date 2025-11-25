@@ -154,16 +154,19 @@ export const TablePagination = ({
     gap: 4,
   };
 
+  // usamos la altura parecida a tus botones
   const smallBtnStyle = {
-    padding: "0 8px",
-    borderRadius: 6,
+    padding: "0 10px",
     fontSize: 12,
     minWidth: 28,
+    height: 32,
+    lineHeight: "32px",
   };
 
+  // texto un poco más oscuro
   const textStyle = {
     fontSize: 12,
-    color: "#ddd",
+    color: "#333",
   };
 
   const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize));
@@ -177,14 +180,16 @@ export const TablePagination = ({
       return Array.from({ length: total }, (_, i) => i + 1);
     }
 
-    let pages = [1];
+    const pages = [1];
 
     if (current > 3) pages.push("...");
 
     const start = Math.max(2, current - 1);
     const end = Math.min(total - 1, current + 1);
 
-    for (let p = start; p <= end; p++) pages.push(p);
+    for (let p = start; p <= end; p++) {
+      pages.push(p);
+    }
 
     if (current < total - 2) pages.push("...");
 
@@ -200,7 +205,7 @@ export const TablePagination = ({
     onPageChange(newPage);
   };
 
- return (
+  return (
     <div style={containerStyle}>
       {/* info izquierda */}
       <div style={textStyle}>
@@ -224,7 +229,15 @@ export const TablePagination = ({
             const newSize = Number(e.target.value);
             onPageSizeChange(newSize);
           }}
-          style={{ width: 70, fontSize: 12 }}
+          // mismo alto que los botones de página
+          style={{
+            width: 70,
+            height: 32,
+            minHeight: 32,
+            lineHeight: "32px",
+            fontSize: 12,
+            padding: "0 6px",
+          }}
         >
           {pageSizeOptions.map((opt) => (
             <option key={opt} value={opt}>
@@ -252,14 +265,17 @@ export const TablePagination = ({
         </BtnSecondary>
 
         {/* números */}
-        {pages.map((p, i) =>
+        {pages.map((p, idx) =>
           p === "..." ? (
-            <span key={i} style={{ ...textStyle, padding: "0 6px" }}>
+            <span
+              key={`dots-${idx}`}
+              style={{ ...textStyle, padding: "0 6px" }}
+            >
               …
             </span>
           ) : (
             <BtnSecondary
-              key={p}
+              key={`page-${p}-${idx}`} // clave única
               style={{
                 ...smallBtnStyle,
                 background: p === currentPage ? "#3b82f6" : "#111",
