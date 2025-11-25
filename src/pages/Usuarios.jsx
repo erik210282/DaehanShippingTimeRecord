@@ -299,9 +299,7 @@ export default function Usuarios() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filasPagina.map((usuarios, i) => {
-                    const globalIndex = startIndex + i;
-                    return(
+                  {filasPagina.map((u) => (
                     <tr key={u.uid}>
                       <td>{u.nombre || ""}</td>
                       <td>{u.email}</td>
@@ -370,8 +368,7 @@ export default function Usuarios() {
                       </td>
                     <td>{u.uid}</td>
                     </tr>
-                    );
-                  })}
+                  ))}
                 </tbody>
               </table>
               <TablePagination
