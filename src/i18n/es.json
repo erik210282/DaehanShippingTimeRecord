@@ -253,5 +253,8 @@
   "confirm_delete_thread": "¿Eliminar la conversación completa y todos sus mensajes?",
   "thread_deleted": "Conversación eliminada correctamente",
   "delete_conversation": "Eliminar conversación",
-  "urgent_message_arrived": "Nuevo mensaje URGENTE: {{title}}"
+  "urgent_message_arrived": "Nuevo mensaje URGENTE: {{title}}",
+  "rows": "Filas",
+  "pagination_no_records": "0 registros",
+  "pagination_info": "Mostrando {{start}}–{{end}} de {{total}} registros"
 }

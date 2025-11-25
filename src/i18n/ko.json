@@ -253,5 +253,8 @@
   "confirm_delete_thread": "전체 대화와 모든 메시지를 삭제하시겠습니까?", 
   "thread_deleted": "대화가 성공적으로 삭제되었습니다", 
   "delete_conversation": "대화를 삭제하세요",
-  "urgent_message_arrived": "새로운 긴급 메시지: {{title}}"
+  "urgent_message_arrived": "새로운 긴급 메시지: {{title}}",
+  "rows": "행",
+  "pagination_no_records": "레코드 0개",
+  "pagination_info": "전시 {{total}}개 레코드 중 {{start}}~{{end}}개 레코드"
 }

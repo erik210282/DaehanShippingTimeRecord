@@ -253,5 +253,8 @@
   "confirm_delete_thread": "Delete the entire conversation and all its messages?", 
   "thread_deleted": "Conversation successfully deleted", 
   "delete_conversation": "Delete conversation",
-  "urgent_message_arrived": "New URGENT message: {{title}}"
+  "urgent_message_arrived": "New URGENT message: {{title}}",
+  "rows": "Rows",
+  "pagination_no_records": "0 records",
+  "pagination_info": "Showing {{start}}–{{end}} of {{total}} records"
 }

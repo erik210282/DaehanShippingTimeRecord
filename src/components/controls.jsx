@@ -14,6 +14,7 @@ import {
   pillInputNumber,
   textAreaStyle,
 } from "./styles";
+import { useTranslation } from "react-i18next";
 
 export const PillInput = ({ style, ...props }) => (
   <input {...props} style={{ ...pillInput, ...style }} />
@@ -136,6 +137,8 @@ export const TablePagination = ({
   onPageSizeChange,
   pageSizeOptions = [25, 50, 100],
 }) => {
+  const { t } = useTranslation();
+
   const containerStyle = {
     display: "flex",
     justifyContent: "space-between",
@@ -152,7 +155,7 @@ export const TablePagination = ({
   };
 
   const smallBtnStyle = {
-    padding: "4px 8px",
+    padding: "0 8px",
     borderRadius: 6,
     fontSize: 12,
     minWidth: 28,
@@ -197,18 +200,23 @@ export const TablePagination = ({
     onPageChange(newPage);
   };
 
-  return (
+ return (
     <div style={containerStyle}>
       {/* info izquierda */}
       <div style={textStyle}>
         {totalRows === 0
-          ? "0 registros"
-          : `Mostrando ${startRow}–${endRow} de ${totalRows} registros`}
+          ? t("pagination_no_records", "0 records")
+          : t("pagination_info", {
+              start: startRow,
+              end: endRow,
+              total: totalRows,
+              defaultValue: `Showing ${startRow}–${endRow} of ${totalRows} records`,
+            })}
       </div>
 
       {/* controles derecha */}
       <div style={pagesContainerStyle}>
-        <span style={textStyle}>Rows:</span>
+        <span style={textStyle}>{t("rows", "Rows")}:</span>
 
         <DSNativeSelect
           value={pageSize}
@@ -216,7 +224,7 @@ export const TablePagination = ({
             const newSize = Number(e.target.value);
             onPageSizeChange(newSize);
           }}
-          style={{ width: 70, height: 28, fontSize: 12 }}
+          style={{ width: 70, fontSize: 12 }}
         >
           {pageSizeOptions.map((opt) => (
             <option key={opt} value={opt}>
