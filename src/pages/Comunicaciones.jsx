@@ -161,7 +161,13 @@ export default function Comunicaciones() {
           if (error) throw error;
 
           const threadsFiltrados = (data || []).map(
-            ({ chat_thread_participants, ...rest }) => rest
+            ({ chat_thread_participants, ...rest }) => ({
+              ...rest,
+              // Guardamos los participantes (uids) para poder mostrar "Para:"
+              participantes: (chat_thread_participants || []).map(
+                (p) => p.user_id
+              ),
+            })
           );
 
           setThreads(threadsFiltrados);
@@ -821,7 +827,9 @@ export default function Comunicaciones() {
               {threads.map((th) => {
                 const selected = selectedThread?.id === th.id;
                 const hasNew = threadUnread[th.id];
-
+                const destinatarios = (th.participantes || []).filter(
+                  (uid) => uid !== th.creado_por
+                );
                 return (
                   <li
                     key={th.id}
@@ -853,7 +861,7 @@ export default function Comunicaciones() {
                           marginBottom: 2,
                         }}
                       >
-                        {th.titulo || "(sin título)"}
+                        {th.titulo || t("notitle")}
                       </div>
 
                       {hasNew && (
@@ -868,12 +876,18 @@ export default function Comunicaciones() {
                       )}
                     </div>
 
-                    {/* --- NUEVO: MOSTRAR REMITENTE --- */}
+                    {/* Remitente y destinatarios */}
                     <div style={{ fontSize: 12, color: "#444", marginBottom: 2 }}>
-                      <span style={{ fontWeight: "bold" }}>De: </span> 
+                      <span style={{ fontWeight: "bold" }}>De: </span>
                       {getUserName(th.creado_por)}
                     </div>
-                    {/* -------------------------------- */}
+
+                    <div style={{ fontSize: 12, color: "#444", marginBottom: 2 }}>
+                      <span style={{ fontWeight: "bold" }}>Para: </span>
+                      {destinatarios.length
+                        ? destinatarios.map((uid) => getUserName(uid)).join(", ")
+                        : "—"}
+                    </div>
 
                     <div
                       style={{

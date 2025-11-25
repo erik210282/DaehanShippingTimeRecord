@@ -232,6 +232,7 @@
   "communications": "Communications",
   "new_message": "New message",
   "message_title": "Message title",
+  "notitle": "No Title",
   "message_body": "Message body",
   "recipients": "Recipients",
   "all_users": "All users",

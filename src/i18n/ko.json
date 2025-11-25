@@ -182,6 +182,7 @@
   "task_started": "작업이 시작되었습니다.",
   "task_updated": "작업이 업데이트되었습니다.",
   "title": "로그인",
+  "notitle": "제목 없음",
   "to_date": "종료일",
   "total_shipping_units": "총 배송 단위",
   "total_shipment_weight": "총 배송 중량",
