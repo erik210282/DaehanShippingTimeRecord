@@ -664,14 +664,14 @@ export default function Comunicaciones() {
                     }}
                   />
 
-                                    {/* Fila inferior: destinatarios + prioridad + botón */}
+                  {/* Fila inferior: destinatarios + prioridad + botón */}
                   <div
                     style={{
                       display: "grid",
                       gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.4fr) auto",
                       columnGap: 12,
                       rowGap: 8,
-                      alignItems: "flex-start", // 🔹 etiquetas alineadas arriba
+                      alignItems: "center",
                     }}
                   >
                     {/* Destinatarios */}
@@ -771,7 +771,7 @@ export default function Comunicaciones() {
                       style={{
                         display: "flex",
                         justifyContent: "flex-end",
-                        alignItems: "flex-start",
+                        alignItems: "center",
                       }}
                     >
                       <BtnPrimary
