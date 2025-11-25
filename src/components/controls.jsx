@@ -236,7 +236,7 @@ export const TablePagination = ({
             lineHeight: "32px",
             fontSize: 12,
             padding: "0 6px",
-            marginTop: 6,
+            marginTop: 10,
           }}
         >
           {pageSizeOptions.map((opt) => (
