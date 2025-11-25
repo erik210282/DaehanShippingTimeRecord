@@ -769,9 +769,9 @@ export default function Comunicaciones() {
                     <div
                       style={{
                         display: "flex",
+                        alignItems: "flex-start",
                         justifyContent: "flex-end",
-                        marginTop: 24,
-                        alignItems: "center",
+                        marginTop: 30,
                       }}
                     >
                       <BtnPrimary
