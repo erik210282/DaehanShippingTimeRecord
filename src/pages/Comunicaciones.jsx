@@ -718,7 +718,7 @@ export default function Comunicaciones() {
                           styles={{
                             container: (base) => ({
                               ...base,
-                              width: "100%",
+                              width: "60%",
                             }),
                           }}
                         />
