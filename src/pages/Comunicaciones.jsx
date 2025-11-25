@@ -330,7 +330,7 @@ export default function Comunicaciones() {
               const nuevo = payload.new;
               
               // Evitar procesar mis propios mensajes (ya se agregan localmente al enviar)
-              if (nuevo.sender_id === currentUserId) return;
+              if (nuevo.sender_id === currentUserId) return; // currentUserId es la variable de estado en Comunicaciones.jsx
 
               const estoyViendoEsteHilo = selectedThreadIdRef.current === nuevo.thread_id;
 
@@ -342,9 +342,8 @@ export default function Comunicaciones() {
                 // 2. Marco como leído en la BD inmediatamente
                 await supabase.rpc("mark_thread_as_read", { p_thread_id: nuevo.thread_id });
                 
-                // 3. Fuerzo actualización del Badge global 
-                // (Porque el listener Global habrá subido el contador, y yo necesito bajarlo de nuevo porque ya lo leí)
-                notificarUnreadNavbar();
+                // 3. Fuerzo actualización del Badge global (Solo si lo acabo de leer)
+                notificarUnreadNavbar(); // Esta función llama al RPC que queremos optimizar
               } 
               
               // CASO B: No lo estoy viendo (es de otro hilo)
@@ -354,8 +353,8 @@ export default function Comunicaciones() {
                   ...prev,
                   [nuevo.thread_id]: true,
                 }));
-                // NO llamamos a notificarUnreadNavbar() aquí.
-                // Dejamos que App.jsx (Global) maneje el Badge y el Toast.
+                // NO LLAMAMOS A notificarUnreadNavbar() aquí.
+                // Dejamos que App.jsx (Global) se encargue del badge global.
               }
 
               // COMÚN: Recargar lista para que el hilo suba al primer lugar

@@ -19,49 +19,43 @@ import LanguageBar from "./components/LanguageBar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// --- GLOBAL CHAT LISTENER (VERSIÓN DEFINITIVA Y REACTIVA) ---
+// --- GLOBAL CHAT LISTENER (VERSIÓN ESTABLE Y AISLADA) ---
 const GlobalChatListener = () => {
   const { t } = useTranslation();
   const location = useLocation(); // Hook para detectar cambios de ruta
   
-  // 🔑 CAMBIO CLAVE 1: Usar useState para que el ID sea reactivo
+  // Usar useState para que el ID sea reactivo (soluciona error de WebSocket closed)
   const [currentUserId, setCurrentUserId] = useState(null); 
   
   const channelRef = useRef(null); // Para la limpieza segura
 
   // 1. MÓDULO DE AUTENTICACIÓN (Se ejecuta solo una vez al montar)
-  // Este useEffect se encarga de cargar y mantener el currentUserId
   useEffect(() => {
-    // Helper para actualizar el estado
     const updateUserId = (session) => {
         setCurrentUserId(session?.user?.id || null);
     };
 
-    // a) Obtener sesión inicial de forma asíncrona
     const fetchSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       updateUserId(session);
     };
     fetchSession();
 
-    // b) Escuchar cambios de sesión futuros (ej. login/logout)
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         updateUserId(session);
       }
     );
     return () => { authListener?.subscription?.unsubscribe?.(); };
-  }, []); // Array vacío: Se ejecuta solo una vez al montar
+  }, []); 
 
   // 2. MÓDULO DE SUSCRIPCIÓN REALTIME 
-  // Se ejecuta si cambia el ID de usuario o la ruta (resiliencia)
   useEffect(() => {
     console.log("🟢 Evaluando suscripción. ID:", currentUserId, "Ruta:", location.pathname);
 
-    // 🔑 CLAVE 2: Guard Clause usando el estado (EVITA EL ERROR WebSocket is closed)
+    // Guard Clause: Previene la conexión si el ID aún no ha cargado (evita WebSocket closed)
     if (!currentUserId) {
       console.log("🚫 Listener Global: ID no disponible, previniendo conexión WebSocket.");
-      // Limpiamos cualquier canal residual (del intento anónimo fallido)
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -77,36 +71,68 @@ const GlobalChatListener = () => {
         { event: "INSERT", schema: "public", table: "chat_messages" },
         async (payload) => {
           const nuevo = payload.new;
-          const myId = currentUserId; // Usamos el estado reactivo
+          const myId = currentUserId; 
 
-          // Si el mensaje lo envié yo, no hago nada (ni badge, ni toast)
+          // Si el mensaje lo envié yo, no hago nada
           if (nuevo.sender_id === myId) return;
-/*
-          // A) ACTUALIZAR BADGE:
+          
+          // MOSTRAR CONFIRMACIÓN VISUAL DE QUE EL LISTENER FUNCIONA
+          toast.info("✅ Mensaje Nuevo Recibido. Notificaciones DB Desactivadas Temporalmente.", {
+            position: "top-center",
+            theme: "light",
+            autoClose: 1500,
+          });
+
+          // -----------------------------------------------------------------
+          // 🛑 ZONA DE CÓDIGO CAUSANTE DE TIMEOUT (COMENTADO POR SEGURIDAD) 🛑
+          // -----------------------------------------------------------------
+
+          /*
+          // A) ACTUALIZAR BADGE: RPC DE CONTEO
           const { data, error } = await supabase.rpc("count_unread_messages_for_user");
           if (!error && typeof data === "number") {
             window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
           }
-*/
-          // B) MOSTRAR TOAST (Si es urgente):
-         try {
-            const { data: toastData } = await supabase.rpc("get_toast_data_for_message", {
-              p_message_id: nuevo.id, // O nuevo.thread_id si es más fácil
-              p_user_id: myId,
-            });
 
-            if (toastData?.is_urgent) {
-              const nombre = toastData.sender_name || "Sistema";
-              toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
-                position: "top-center",
-                theme: "colored",
-                autoClose: 1500,
-              });
+          // B) MOSTRAR TOAST (Si es urgente): Múltiples consultas SELECT
+          try {
+            // Verificamos si soy parte del hilo antes de mostrar alerta
+            const { data: participacion } = await supabase
+              .from('chat_thread_participants')
+              .select('id')
+              .eq('thread_id', nuevo.thread_id)
+              .eq('user_id', myId)
+              .maybeSingle();
+
+            if (participacion) {
+               // Soy parte del hilo, verificamos urgencia
+               const { data: thread } = await supabase
+                .from("chat_threads")
+                .select("es_urgente")
+                .eq("id", nuevo.thread_id)
+                .single();
+
+               if (thread?.es_urgente) {
+                  const { data: remitente } = await supabase
+                    .from("operadores")
+                    .select("nombre")
+                    .eq("uid", nuevo.sender_id)
+                    .single();
+                  
+                  const nombre = remitente?.nombre || "Sistema";
+                  toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
+                    position: "top-center",
+                    theme: "colored",
+                    autoClose: 1500,
+                  });
+               }
             }
           } catch (err) {
-            console.error("Error en alerta global unificada:", err);
+            console.error("Error en alerta global:", err);
           }
-        }
+          */
+
+        } // Fin del async (payload)
       )
       .subscribe((status) => {
          console.log(`📶 Estado Global (ID: ${currentUserId}):`, status);
@@ -116,14 +142,13 @@ const GlobalChatListener = () => {
 
     return () => {
       console.log("🔴 Limpieza Global Listener: Removiendo canal...");
-      // Esto limpia la suscripción ANTES de que se cree la nueva (al cambiar de ruta)
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
     
-  // 🔑 CLAVE 3: Dependencia Reactiva (se re-ejecuta al cambiar ID o Ruta)
+  // Dependencia reactiva: se re-ejecuta al cambiar ID o Ruta
   }, [currentUserId, location.pathname]); 
 
   return null;
