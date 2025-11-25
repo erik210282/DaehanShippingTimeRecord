@@ -423,7 +423,7 @@ export default function Productividad() {
         </BtnSecondary>
 
         {/* Tabla */}
-        <div style={{ marginTop: "2rem", overflowX: "auto" }}>
+        <div style={{ marginTop: "2rem", overflowX: "visible" }}>
           <div className="table-wrap">
             <table className="table">
                 <thead>
