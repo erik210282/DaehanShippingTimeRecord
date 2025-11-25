@@ -159,7 +159,6 @@ export default function Usuarios() {
 
   const eliminarUsuario = async (uid) => {
     if (!window.confirm(t("confirm_delete_user"))) return;
-
     try {
       const res = await fetch(`${API_URL}/delete-user`, {
         method: "POST",
@@ -171,12 +170,23 @@ export default function Usuarios() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+
+      if (!res.ok) {
+        // Caso especial: el backend detectó registros asociados
+        if (data?.error === "user_has_linked_records") {
+          setMensajeKey("cannot_delete_user_with_records");
+          setMensajeExtra("");
+          return;
+        }
+
+        throw new Error(data.error || "Error deleting user");
+      }
 
       setMensajeKey("user_deleted");
       setMensajeExtra("");
       cargarUsuarios();
     } catch (error) {
+      console.error("❌ Error al eliminar usuario:", error);
       setMensajeKey("error_deleting_user");
       setMensajeExtra("");
     }
