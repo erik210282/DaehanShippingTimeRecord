@@ -121,6 +121,7 @@ export default function Usuarios() {
           }));
 
           setUsuarios(lista);
+          setPage(1); 
           setMensajeKey("");
           setMensajeExtra("");
         } catch (error) {
