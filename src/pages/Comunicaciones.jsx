@@ -747,7 +747,7 @@ export default function Comunicaciones() {
                             )
                           }
                           style={{
-                            flex: 1,
+                            flex: 1, 
                             Width: 170,
                             height: 38,         
                             lineHeight: "38px",
