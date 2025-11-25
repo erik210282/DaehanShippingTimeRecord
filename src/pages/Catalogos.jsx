@@ -440,12 +440,12 @@ async function save() {
   // ==========================
   // Paginado: cálculo de filas
   // ==========================
-  const totalRows = filtrados.length;
+  const totalRows = filtered.length;
   const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const filasPagina = filtrados.slice(startIndex, endIndex);
+  const filasPagina = filtered.slice(startIndex, endIndex);
 
   return (
     <div className="page-container page-container--fluid">
@@ -620,7 +620,7 @@ async function save() {
             onPageChange={setPage}
             onPageSizeChange={(size) => {
               setPageSize(size);
-              setPage(1); // al cambiar tamaño de página
+              setPage(1); 
             }}
           />
         </div>
