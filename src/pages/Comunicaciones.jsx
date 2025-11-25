@@ -690,7 +690,7 @@ export default function Comunicaciones() {
                       <div style={{ marginBottom: 4 }}>
                         <label
                           style={{
-                            fontSize: 18,
+                            fontSize: 15,
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 6,
@@ -718,7 +718,7 @@ export default function Comunicaciones() {
                           styles={{
                             container: (base) => ({
                               ...base,
-                              width: "60%",
+                              width: "50%",
                             }),
                           }}
                         />
@@ -747,7 +747,7 @@ export default function Comunicaciones() {
                             )
                           }
                           style={{
-                            width: 200,
+                            width: 170,
                             height: 38,         
                             lineHeight: "38px",
                             borderStyle: "solid",
