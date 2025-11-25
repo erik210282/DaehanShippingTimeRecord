@@ -119,7 +119,6 @@ const GlobalChatListener = () => {
         }
       )
       .subscribe();
-      channelRef.current = canal;
 
     return () => {
       supabase.removeChannel(canal);
