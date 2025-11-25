@@ -338,11 +338,13 @@ async function save() {
 
       const { data: ar, error: errAR } = await supabase
         .from("actividades_realizadas")
-        .select("id, actividad, producto, operadores");
+        .select("id, actividad, productos, operadores");
       if (errAR) throw errAR;
 
       const usados = (ar || []).some((d) =>
-        d.actividad === row.id || d.producto === row.id ||
+        d.actividad === row.id ||
+        d.productos === row.id ||               // caso columna simple
+        (Array.isArray(d.productos) && d.productos.includes(row.id)) || // caso array
         (Array.isArray(d.operadores) && d.operadores.includes(row.id))
       );
 
