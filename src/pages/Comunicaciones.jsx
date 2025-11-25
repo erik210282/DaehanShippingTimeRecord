@@ -315,7 +315,7 @@ export default function Comunicaciones() {
       console.log("🔗 Realtime Comunicaciones — creando canales...");
 
       const crearCanalMensajes = () => {
-        // Si ya había un canal, lo removemos antes de crear otro
+        // Limpieza previa
         if (canalMensajesRef.current) {
           supabase.removeChannel(canalMensajesRef.current);
           canalMensajesRef.current = null;
@@ -328,39 +328,44 @@ export default function Comunicaciones() {
             { event: "INSERT", schema: "public", table: "chat_messages" },
             async (payload) => {
               const nuevo = payload.new;
-              // 1. Determinar si el mensaje es relevante para mostrar punto rojo
-              // Si no lo envié yo Y no tengo ese hilo abierto ahora mismo:
-              const esMio = nuevo.sender_id === currentUserId;
+              
+              // Evitar procesar mis propios mensajes (ya se agregan localmente al enviar)
+              if (nuevo.sender_id === currentUserId) return;
+
               const estoyViendoEsteHilo = selectedThreadIdRef.current === nuevo.thread_id;
 
-              if (!esMio && !estoyViendoEsteHilo) {
-                // ACTIVAR EL PUNTO ROJO para este hilo
+              // CASO A: Estoy viendo el hilo en este momento
+              if (estoyViendoEsteHilo) {
+                // 1. Agrego el mensaje al chat visualmente
+                setMessages((prev) => [...prev, nuevo]);
+                
+                // 2. Marco como leído en la BD inmediatamente
+                await supabase.rpc("mark_thread_as_read", { p_thread_id: nuevo.thread_id });
+                
+                // 3. Fuerzo actualización del Badge global 
+                // (Porque el listener Global habrá subido el contador, y yo necesito bajarlo de nuevo porque ya lo leí)
+                notificarUnreadNavbar();
+              } 
+              
+              // CASO B: No lo estoy viendo (es de otro hilo)
+              else {
+                // 1. Solo pongo el punto rojo local en la lista
                 setThreadUnread((prev) => ({
                   ...prev,
                   [nuevo.thread_id]: true,
                 }));
+                // NO llamamos a notificarUnreadNavbar() aquí.
+                // Dejamos que App.jsx (Global) maneje el Badge y el Toast.
               }
 
-              // 2. Si tengo el hilo abierto, agrego el mensaje en vivo y marco leído
-              if (estoyViendoEsteHilo) {
-                setMessages((prev) => [...prev, nuevo]);
-                
-                // Marcar como leído inmediatamente en BD para que no quede pendiente
-                await supabase.rpc("mark_thread_as_read", { p_thread_id: nuevo.thread_id });
-              }
-
-              // 3. Recargar la lista de threads para actualizar el orden (último mensaje arriba)
-              // Nota: Esto también ayuda a que si es un hilo nuevo, aparezca en la lista.
+              // COMÚN: Recargar lista para que el hilo suba al primer lugar
               cargarThreads(currentUserId);
-              
-              // 4. Actualizar el contador global del Navbar (opcional, por seguridad)
-              notificarUnreadNavbar();
             }
           )
           .subscribe((status) => {
             console.log("📶 Estado canal comms_chat_mensajes:", status);
-            // Sin reintentos manuales; Supabase se encarga de reconectar
           });
+          
         canalMensajesRef.current = canal;
       };
 
