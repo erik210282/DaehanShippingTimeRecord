@@ -671,7 +671,7 @@ export default function Comunicaciones() {
                       gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.4fr) auto",
                       columnGap: 12,
                       rowGap: 8,
-                      alignItems: "center",
+                      alignItems: "flex-start",
                     }}
                   >
                     {/* Destinatarios */}
@@ -748,8 +748,8 @@ export default function Comunicaciones() {
                           }
                           style={{
                             flex: 1,
-                            minWidth: 170,      // 🔹 mismo ancho mínimo que Send
-                            height: 38,         // 🔹 MISMA ALTURA
+                            Width: 170,
+                            height: 38,         
                             lineHeight: "38px",
                             borderStyle: "solid",
                             borderWidth: urgencia === "urgent" ? 4 : 2,
@@ -757,7 +757,7 @@ export default function Comunicaciones() {
                               urgencia === "urgent" ? "#c00000ff" : "#ffffff",
                             boxShadow:
                               urgencia === "urgent"
-                                ? "0 0 0 2px rgba(192,0,0,0.5)"
+                                ? "0 0 0 2px rgba(253, 0, 0, 0.9)"
                                 : "none",
                           }}
                         >
