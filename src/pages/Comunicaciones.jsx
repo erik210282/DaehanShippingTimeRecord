@@ -747,7 +747,6 @@ export default function Comunicaciones() {
                             )
                           }
                           style={{
-                            flex: 1, 
                             width: 170,
                             height: 38,         
                             lineHeight: "38px",
@@ -771,6 +770,7 @@ export default function Comunicaciones() {
                       style={{
                         display: "flex",
                         justifyContent: "flex-end",
+                        marginTop: 24,
                         alignItems: "center",
                       }}
                     >
