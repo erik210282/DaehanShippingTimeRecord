@@ -777,8 +777,8 @@ export default function Comunicaciones() {
                       <BtnPrimary
                         onClick={handleCreateThread}
                         style={{
-                          minWidth: 170,
-                          height: 38,          // 🔹 misma altura que Urgent
+                          Width: 170,
+                          height: 38,      
                           justifyContent: "center",
                         }}
                       >
