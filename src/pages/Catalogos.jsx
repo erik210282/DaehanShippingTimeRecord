@@ -601,6 +601,13 @@ async function save() {
         <Modal
           isOpen={!!edit}
           onRequestClose={() => { setEdit(null); setIsNew(false); setBillTo({ ...billToDefaults }); }}
+          style={{
+            content: {
+              width: "70%",         
+              maxWidth: "100%",    
+              margin: "0 auto",
+            }
+          }}
         >
           <div className="card">
             <h3>{isNew ? t("add") : t("edit")}</h3>
