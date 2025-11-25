@@ -16,7 +16,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
 import LanguageBar from "./components/LanguageBar";
-// IMPORTANTE: El ToastContainer y CSS SOLO deben estar aquí en App.jsx
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -110,7 +109,7 @@ const GlobalChatListener = () => {
     return () => {
       supabase.removeChannel(canal);
     };
-  }, []); // Array vacío: Solo se monta UNA vez al entrar a la App
+  }, [currentUserIdRef.current, location.pathname]);
 
   return null;
 };
