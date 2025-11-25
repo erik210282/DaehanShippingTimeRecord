@@ -71,7 +71,15 @@ export default function Usuarios() {
 
       const data = await res.json();
       console.log("🔻 Respuesta create-user:", res.status, data);
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        const msg = data?.error || "Unknown error";
+        if (data?.details) {
+          console.log("📄 Detalles Supabase:", data.details);
+        }
+        setMensajeKey("error_user_creation");
+        setMensajeExtra(`: ${msg}`);
+        return;
+      }
 
       setMensajeKey("success_user_created");
       setMensajeExtra("");
@@ -80,6 +88,7 @@ export default function Usuarios() {
       setPassword("");
       if (mostrarUsuarios) cargarUsuarios();
     } catch (error) {
+      console.error("❌ Error creando usuario:", error);
       setMensajeKey("error_user_creation");
       setMensajeExtra(`: ${error.message}`);
     } finally {
