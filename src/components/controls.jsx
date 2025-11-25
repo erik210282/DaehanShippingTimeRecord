@@ -229,7 +229,6 @@ export const TablePagination = ({
             const newSize = Number(e.target.value);
             onPageSizeChange(newSize);
           }}
-          // mismo alto que los botones de página
           style={{
             width: 70,
             height: 32,
@@ -237,7 +236,7 @@ export const TablePagination = ({
             lineHeight: "32px",
             fontSize: 12,
             padding: "0 6px",
-            marginTop: 3,
+            marginTop: 6,
           }}
         >
           {pageSizeOptions.map((opt) => (
