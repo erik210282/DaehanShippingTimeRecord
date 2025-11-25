@@ -89,41 +89,24 @@ const GlobalChatListener = () => {
           }
 
           // B) MOSTRAR TOAST (Si es urgente):
-          try {
-            // Verificamos si soy parte del hilo antes de mostrar alerta
-            const { data: participacion } = await supabase
-              .from('chat_thread_participants')
-              .select('id')
-              .eq('thread_id', nuevo.thread_id)
-              .eq('user_id', myId)
-              .maybeSingle();
+         /* try {
+            const { data: toastData } = await supabase.rpc("get_toast_data_for_message", {
+              p_message_id: nuevo.id, // O nuevo.thread_id si es más fácil
+              p_user_id: myId,
+            });
 
-            if (participacion) {
-               // Soy parte del hilo, verificamos urgencia
-               const { data: thread } = await supabase
-                .from("chat_threads")
-                .select("es_urgente")
-                .eq("id", nuevo.thread_id)
-                .single();
-
-               if (thread?.es_urgente) {
-                  const { data: remitente } = await supabase
-                    .from("operadores")
-                    .select("nombre")
-                    .eq("uid", nuevo.sender_id)
-                    .single();
-                  
-                  const nombre = remitente?.nombre || "Sistema";
-                  toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
-                    position: "top-center",
-                    theme: "colored",
-                    autoClose: 1500,
-                  });
-               }
+            if (toastData?.is_urgent) {
+              const nombre = toastData.sender_name || "Sistema";
+              toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
+                position: "top-center",
+                theme: "colored",
+                autoClose: 1500,
+              });
             }
           } catch (err) {
-            console.error("Error en alerta global:", err);
+            console.error("Error en alerta global unificada:", err);
           }
+            */
         }
       )
       .subscribe((status) => {
