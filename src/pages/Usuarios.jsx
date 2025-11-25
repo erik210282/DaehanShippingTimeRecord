@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
-import { DSInput, DSNativeSelect, BtnPrimary, BtnSecondary, BtnEditDark, BtnDanger } from "../components/controls";
+import { DSInput, DSNativeSelect, BtnPrimary, BtnSecondary, BtnEditDark, BtnDanger,TablePagination, } from "../components/controls";
 import { supabase } from "../supabase/client";
 
 const API_URL = "https://daehanshippingbackend.onrender.com";
@@ -21,6 +21,10 @@ export default function Usuarios() {
   const [nuevosPasswords, setNuevosPasswords] = useState({});
   const [cargando, setCargando] = useState(false);
   const [creando, setCreando] = useState(false);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
 
   useEffect(() => {
     // Cambia el cursor de TODO el documento
@@ -197,6 +201,16 @@ export default function Usuarios() {
     setMostrarUsuarios(!mostrarUsuarios);
   };
 
+  // ==========================
+  // Paginado: cálculo de filas
+  // ==========================
+  const totalRows = usuarios.length;
+  const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const filasPagina = usuarios.slice(startIndex, endIndex);
+
    return (
     <div className="page-container page-container--fluid">
       <div className="card">
@@ -285,7 +299,9 @@ export default function Usuarios() {
                   </tr>
                 </thead>
                 <tbody>
-                  {usuarios.map((u) => (
+                  {filasPagina.map((usuarios, i) => {
+                    const globalIndex = startIndex + i;
+                    return(
                     <tr key={u.uid}>
                       <td>{u.nombre || ""}</td>
                       <td>{u.email}</td>
@@ -354,9 +370,21 @@ export default function Usuarios() {
                       </td>
                     <td>{u.uid}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
+              <TablePagination
+              totalRows={totalRows}
+              page={currentPage}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}              
+              pageSizeOptions={[25, 50, 100, 200]}
+            />
             </div>
         )}
         </div>
