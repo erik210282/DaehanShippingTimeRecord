@@ -690,7 +690,7 @@ export default function Comunicaciones() {
                       <div style={{ marginBottom: 4 }}>
                         <label
                           style={{
-                            fontSize: 14,
+                            fontSize: 18,
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 6,
@@ -747,7 +747,7 @@ export default function Comunicaciones() {
                             )
                           }
                           style={{
-                            width: 170,
+                            width: 200,
                             height: 38,         
                             lineHeight: "38px",
                             borderStyle: "solid",
@@ -771,7 +771,7 @@ export default function Comunicaciones() {
                         display: "flex",
                         alignItems: "flex-start",
                         justifyContent: "flex-end",
-                        marginTop: 30,
+                        marginTop: 33,
                       }}
                     >
                       <BtnPrimary
