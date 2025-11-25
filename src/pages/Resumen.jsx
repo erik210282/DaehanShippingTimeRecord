@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../supabase/client";
 import { format } from "date-fns";
-import { DSInput, DSDate } from "../components/controls";
+import { DSInput, DSDate, TablePagination } from "../components/controls";
 
 export default function Resumen() {
   const { t } = useTranslation();
@@ -13,6 +13,9 @@ export default function Resumen() {
   const [productosDict, setProductosDict] = useState({});
   const [operadoresDict, setOperadoresDict] = useState({});
   const [actividadesDict, setActividadesDict] = useState({});
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const colorActividad = (nombreActividad) => {
     switch (nombreActividad?.toLowerCase()) {
@@ -191,10 +194,21 @@ export default function Resumen() {
         : resultado;
       // 💾 Actualizar estado
       setResumenData(filtrado);
+      setPage(1);
     };
 
     fetchResumen();
   }, [productosDict, operadoresDict, filtroIdx, fechaInicio, fechaFin]);
+
+  // ==========================
+  // Paginado: cálculo de filas
+  // ==========================
+  const totalRows = resumenData.length;
+  const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const filasPagina = resumenData.slice(startIndex, endIndex);
 
   return (
     <div className="page-container page-container--fluid">
@@ -237,7 +251,7 @@ export default function Resumen() {
               </tr>
             </thead>
             <tbody>
-              {resumenData.map((fila, i) => (
+              {filasPagina.map((fila, i) => (
                 <tr key={i}>
                   <td>{fila.idx}</td>
                   <td>
@@ -259,6 +273,16 @@ export default function Resumen() {
               ))}
             </tbody>
           </table>
+          <TablePagination
+              totalRows={totalRows}
+              page={currentPage}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1); 
+              }}
+            />
         </div>
       </div>
     </div>
