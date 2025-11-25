@@ -660,6 +660,7 @@ export default function Comunicaciones() {
                     rows={4}
                     style={{
                       minHeight: 90,
+                      width: maxWidth,
                       marginBottom: 4,
                     }}
                   />
