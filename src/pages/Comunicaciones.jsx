@@ -753,8 +753,8 @@ export default function Comunicaciones() {
                             lineHeight: "38px",
                             borderStyle: "solid",
                             borderWidth: 2,
-                            backgroundColor: active ? "#dc2626" : "#111",
-                            border: active ? "2px solid #dc2626" : "2px solid #111",
+                            borderColor:
+                              urgencia === "urgent" ? "#c00000ff" : "#ffffff",
                             boxShadow:
                               urgencia === "urgent"
                                 ? "0 0 0 4px rgba(253, 0, 0, 0.9)"
