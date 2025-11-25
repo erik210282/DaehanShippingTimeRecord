@@ -9,6 +9,7 @@ import {
   BtnSecondary,
   TextAreaStyle,
   BtnDanger,
+  BtnToggleUrgent,
 } from "../components/controls";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -657,14 +658,14 @@ export default function Comunicaciones() {
                     }}
                   />
 
-                  {/* Fila inferior: destinatarios + urgencia + botón */}
+                                    {/* Fila inferior: destinatarios + prioridad + botón */}
                   <div
                     style={{
                       display: "grid",
                       gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.4fr) auto",
                       columnGap: 12,
                       rowGap: 8,
-                      alignItems: "flex-end",
+                      alignItems: "flex-start", // 🔹 etiquetas alineadas arriba
                     }}
                   >
                     {/* Destinatarios */}
@@ -718,22 +719,21 @@ export default function Comunicaciones() {
                       )}
                     </div>
 
-                    {/* Urgencia */}
+                    {/* Prioridad / Urgencia */}
                     <div>
                       <label
                         style={{
-                          fontStyle: "bold",
                           fontSize: 18,
                           fontWeight: 600,
                           display: "block",
                           marginBottom: 4,
                         }}
                       >
-                        {t("urgent_level")}
+                        {t("priority")}
                       </label>
 
                       <div style={{ display: "flex", gap: 8 }}>
-                        <BtnSecondary
+                        <BtnToggleUrgent
                           type="button"
                           onClick={() =>
                             setUrgencia((prev) =>
@@ -742,26 +742,37 @@ export default function Comunicaciones() {
                           }
                           style={{
                             flex: 1,
+                            minWidth: 170,      // 🔹 mismo ancho mínimo que Send
+                            height: 38,         // 🔹 MISMA ALTURA
+                            lineHeight: "38px",
                             borderStyle: "solid",
-                            borderWidth: urgencia === "urgent" ? 4 : 2,   // ← GROSOR DEL BORDE
-                            borderColor: urgencia === "urgent" ? "#c00000ff" : "#ffffff",
+                            borderWidth: urgencia === "urgent" ? 4 : 2,
+                            borderColor:
+                              urgencia === "urgent" ? "#c00000ff" : "#ffffff",
                             boxShadow:
                               urgencia === "urgent"
-                                ? "0 0 0 2px rgba(192,0,0,0.5)"           // ← MARCO EXTERNO OPCIONAL
+                                ? "0 0 0 2px rgba(192,0,0,0.5)"
                                 : "none",
                           }}
                         >
                           {t("urgent")}
-                        </BtnSecondary>
+                        </BtnToggleUrgent>
                       </div>
                     </div>
 
                     {/* Botón enviar */}
-                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        alignItems: "flex-start",
+                      }}
+                    >
                       <BtnPrimary
                         onClick={handleCreateThread}
                         style={{
                           minWidth: 170,
+                          height: 38,          // 🔹 misma altura que Urgent
                           justifyContent: "center",
                         }}
                       >

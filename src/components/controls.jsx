@@ -126,6 +126,24 @@ export const BtnTinyRound = ({ children, style, ...p }) => (
   </button>
 );
 
+export const BtnToggleUrgent = ({ active, ...props }) => (
+  <button
+    {...props}
+    style={{
+      height: 38,
+      lineHeight: "38px",
+      padding: "0 16px",
+      backgroundColor: active ? "#dc2626" : "#111",
+      border: active ? "2px solid #dc2626" : "2px solid #111",
+      color: "#fff",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 14,
+      fontWeight: 600,
+    }}
+  />
+);
+
 // ===========================
 // PAGINADO GENERAL
 // ===========================
