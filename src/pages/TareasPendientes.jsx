@@ -15,6 +15,7 @@ import {
   PillInput,
   PillInputNumber,
   TextAreaStyle,
+  TablePagination,
 } from "../components/controls";
 
 Modal.setAppElement("#root");
@@ -31,6 +32,9 @@ export default function TareasPendientes() {
   const { t, i18n } = useTranslation();
   const [tareaAEliminar, setTareaAEliminar] = useState(null);
   const [operadores, setOperadores] = useState({});
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Drag & Drop state
   const [dragIndex, setDragIndex] = useState(null);
@@ -363,6 +367,16 @@ export default function TareasPendientes() {
     }
   };
 
+  // ==========================
+  // Paginado: cálculo de filas
+  // ==========================
+  const totalRows = tareas.length;
+  const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const filasPagina = tareas.slice(startIndex, endIndex);
+
   return (
     <div className="page-container page-container--fluid">
       <style>{`
@@ -405,7 +419,9 @@ export default function TareasPendientes() {
               </tr>
             </thead>
             <tbody key={i18n.language}>
-              {tareas.map((tarea, i) => (
+              {filasPagina.map((tarea, i) => {
+                const globalIndex = startIndex + i;
+                return (
                 <tr
                   key={tarea.id}
                   draggable
@@ -526,9 +542,21 @@ export default function TareasPendientes() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
+          <TablePagination
+                        totalRows={totalRows}
+                        page={currentPage}
+                        pageSize={pageSize}
+                        onPageChange={setPage}
+                        onPageSizeChange={(size) => {
+                          setPageSize(size);
+                          setPage(1);
+                        }}              
+                        pageSizeOptions={[25, 50, 100, 200]}
+                      />
         </div>
 
         <Modal

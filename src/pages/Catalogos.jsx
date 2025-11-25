@@ -12,6 +12,7 @@ import {
   BtnSecondary,
   BtnEditDark,
   BtnDanger,
+  TablePagination,
 } from "../components/controls";
 
 // === Helpers email/phone ===
@@ -53,6 +54,9 @@ export default function Catalogos() {
   const [edit, setEdit] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const isSimple = useMemo(() => tab === "actividades" || tab === "operadores", [tab]);
   const tableName = useMemo(() => {
@@ -158,6 +162,7 @@ export default function Catalogos() {
       const { data, error } = await query;
       if (error) throw error;
       setRows(data || []);
+      setPage(1);
     } catch (e) {
       toast.error(e.message || t("error_loading") || "Error al cargar.");
     } finally {
@@ -432,6 +437,16 @@ async function save() {
     return rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
   }, [rows, filter]);
 
+  // ==========================
+  // Paginado: cálculo de filas
+  // ==========================
+  const totalRows = filtrados.length;
+  const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const filasPagina = filtrados.slice(startIndex, endIndex);
+
   return (
     <div className="page-container page-container--fluid">
       <div className="card">
@@ -505,7 +520,7 @@ async function save() {
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={12}>{t("no_results_found")}</td></tr>
               ) : (
-                filtered.map((r) => (
+                filasPagina.map((r) => (
                   <tr key={r.id}>
                     {tab === "productos" && (
                       <>
@@ -598,6 +613,16 @@ async function save() {
               )}
             </tbody>
           </table>
+          <TablePagination
+            totalRows={totalRows}
+            page={currentPage}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1); // al cambiar tamaño de página
+            }}
+          />
         </div>
 
         <Modal
