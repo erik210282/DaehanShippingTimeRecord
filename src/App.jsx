@@ -81,13 +81,13 @@ const GlobalChatListener = () => {
 
           // Si el mensaje lo envié yo, no hago nada (ni badge, ni toast)
           if (nuevo.sender_id === myId) return;
-
+/*
           // A) ACTUALIZAR BADGE:
           const { data, error } = await supabase.rpc("count_unread_messages_for_user");
           if (!error && typeof data === "number") {
             window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
           }
-
+*/
           // B) MOSTRAR TOAST (Si es urgente):
          try {
             const { data: toastData } = await supabase.rpc("get_toast_data_for_message", {
