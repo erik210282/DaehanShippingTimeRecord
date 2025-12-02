@@ -718,19 +718,12 @@ export default function Comunicaciones() {
                             setDestinatariosSeleccionados(vals || [])
                           }
                           placeholder={t("recipients")}
-                          styles={{
-                            container: (base) => ({
-                              ...base,
-                              width: "50%",
-                            }),
-                          }}
                         />
                       )}
                     </div>
 
-                    {/* Prioridad / Urgencia */}
-                    <div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}></div>
+                    {/* PRIORIDAD + BOTONES JUNTOS */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       <label
                         style={{
                           fontSize: 18,
@@ -742,7 +735,7 @@ export default function Comunicaciones() {
                         {t("priority")}
                       </label>
 
-                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <div style={{ display: "flex", gap: 10 }}>
                         <BtnToggleUrgent
                           type="button"
                           onClick={() =>
@@ -752,7 +745,7 @@ export default function Comunicaciones() {
                           }
                           style={{
                             width: 170,
-                            height: 38,         
+                            height: 38,
                             lineHeight: "38px",
                             borderStyle: "solid",
                             borderWidth: 2,
@@ -766,22 +759,20 @@ export default function Comunicaciones() {
                         >
                           {t("urgent")}
                         </BtnToggleUrgent>
+
+                        <BtnPrimary
+                          onClick={handleCreateThread}
+                          style={{
+                            width: 170,
+                            height: 38,
+                            justifyContent: "center",
+                          }}
+                        >
+                          {t("send")}
+                        </BtnPrimary>
                       </div>
                     </div>
-                    {/* Botón enviar */}
-                      <BtnPrimary
-                        onClick={handleCreateThread}
-                        style={{
-                          width: 170,
-                          height: 38,      
-                          justifyContent: "center",
-                        }}
-                      >
-                        {t("send")}
-                      </BtnPrimary>
                   </div>
-                </div>
-
         {/* ================= LISTA DE THREADS + CHAT ================= */}
         <div
           style={{
