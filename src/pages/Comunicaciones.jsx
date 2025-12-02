@@ -678,18 +678,28 @@ export default function Comunicaciones() {
                     }}
                   >
                     {/* Destinatarios */}
-                    <div>
-                      <label
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          
+                      {/* Fila: label + checkbox */}
+                      <div
                         style={{
-                          fontSize: 18,
-                          fontWeight: 600,
-                          display: "block",
-                          marginBottom: 4,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 20,
                         }}
                       >
-                        {t("recipients")}
-                      </label>
+                        {/* Label Recipients */}
+                        <label
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {t("recipients")}
+                        </label>
 
+                        {/* Checkbox All users */}
                         <label
                           style={{
                             fontSize: 15,
@@ -706,21 +716,20 @@ export default function Comunicaciones() {
                           />
                           {t("all_users")}
                         </label>
+                      </div>
 
+                      {/* Select debajo */}
                       {!sendToAll && (
                         <DSSelect
                           isMulti
                           options={operadoresOptions}
                           value={destinatariosSeleccionados}
-                          onChange={(vals) =>
-                            setDestinatariosSeleccionados(vals || [])
-                          }
+                          onChange={(vals) => setDestinatariosSeleccionados(vals || [])}
                           placeholder={t("recipients")}
-                        
                         />
                       )}
                     </div>
-
+                    
                     {/* Prioridad / Urgencia */}
                     <div
                       style={{
