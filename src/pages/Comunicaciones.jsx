@@ -671,8 +671,8 @@ export default function Comunicaciones() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
-                      columnGap: 20,
+                      gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 2fr)",
+                      columnGap: 12,
                       rowGap: 8,
                       alignItems: "flex-start",
                     }}
