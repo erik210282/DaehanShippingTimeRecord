@@ -660,8 +660,10 @@ export default function Comunicaciones() {
                     rows={4}
                     style={{
                       minHeight: 90,
-                      width:  "100%",
                       marginBottom: 4,
+                      width: "100%",
+                      maxWidth: "100%",
+                      boxSizing: "border-box", 
                     }}
                   />
 
@@ -669,8 +671,8 @@ export default function Comunicaciones() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "minmax(0, 2fr) auto auto",
-                      columnGap: 12,
+                      gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
+                      columnGap: 20,
                       rowGap: 8,
                       alignItems: "flex-start",
                     }}
@@ -728,6 +730,7 @@ export default function Comunicaciones() {
 
                     {/* Prioridad / Urgencia */}
                     <div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}></div>
                       <label
                         style={{
                           fontSize: 18,
@@ -739,7 +742,7 @@ export default function Comunicaciones() {
                         {t("priority")}
                       </label>
 
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                         <BtnToggleUrgent
                           type="button"
                           onClick={() =>
@@ -765,16 +768,7 @@ export default function Comunicaciones() {
                         </BtnToggleUrgent>
                       </div>
                     </div>
-
                     {/* Botón enviar */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        justifyContent: "flex-end",
-                        marginTop: 33,
-                      }}
-                    >
                       <BtnPrimary
                         onClick={handleCreateThread}
                         style={{
@@ -785,7 +779,6 @@ export default function Comunicaciones() {
                       >
                         {t("send")}
                       </BtnPrimary>
-                    </div>
                   </div>
                 </div>
 
