@@ -718,12 +718,13 @@ export default function Comunicaciones() {
                             setDestinatariosSeleccionados(vals || [])
                           }
                           placeholder={t("recipients")}
+                        
                         />
                       )}
                     </div>
 
-                    {/* PRIORIDAD + BOTONES JUNTOS */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {/* Prioridad / Urgencia */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}></div>
                       <label
                         style={{
                           fontSize: 18,
@@ -745,7 +746,7 @@ export default function Comunicaciones() {
                           }
                           style={{
                             width: 170,
-                            height: 38,
+                            height: 38,         
                             lineHeight: "38px",
                             borderStyle: "solid",
                             borderWidth: 2,
@@ -760,19 +761,22 @@ export default function Comunicaciones() {
                           {t("urgent")}
                         </BtnToggleUrgent>
 
-                        <BtnPrimary
-                          onClick={handleCreateThread}
-                          style={{
-                            width: 170,
-                            height: 38,
-                            justifyContent: "center",
-                          }}
-                        >
-                          {t("send")}
-                        </BtnPrimary>
-                      </div>
+
+                    {/* Botón enviar */}
+                      <BtnPrimary
+                        onClick={handleCreateThread}
+                        style={{
+                          width: 170,
+                          height: 38,      
+                          justifyContent: "center",
+                        }}
+                      >
+                        {t("send")}
+                      </BtnPrimary>
                     </div>
                   </div>
+                </div>
+
         {/* ================= LISTA DE THREADS + CHAT ================= */}
         <div
           style={{
