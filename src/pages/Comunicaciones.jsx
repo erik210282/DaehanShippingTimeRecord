@@ -690,7 +690,6 @@ export default function Comunicaciones() {
                         {t("recipients")}
                       </label>
 
-                      <div style={{ marginBottom: 4 }}>
                         <label
                           style={{
                             fontSize: 15,
@@ -707,7 +706,6 @@ export default function Comunicaciones() {
                           />
                           {t("all_users")}
                         </label>
-                      </div>
 
                       {!sendToAll && (
                         <DSSelect
