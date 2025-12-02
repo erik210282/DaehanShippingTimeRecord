@@ -724,7 +724,13 @@ export default function Comunicaciones() {
                     </div>
 
                     {/* Prioridad / Urgencia */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}></div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                      }}
+                    >
                       <label
                         style={{
                           fontSize: 18,
@@ -736,7 +742,13 @@ export default function Comunicaciones() {
                         {t("priority")}
                       </label>
 
-                      <div style={{ display: "flex", gap: 10 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          alignItems: "center",
+                        }}
+                      >
                         <BtnToggleUrgent
                           type="button"
                           onClick={() =>
@@ -746,7 +758,7 @@ export default function Comunicaciones() {
                           }
                           style={{
                             width: 170,
-                            height: 38,         
+                            height: 38,
                             lineHeight: "38px",
                             borderStyle: "solid",
                             borderWidth: 2,
@@ -761,18 +773,17 @@ export default function Comunicaciones() {
                           {t("urgent")}
                         </BtnToggleUrgent>
 
-
-                    {/* Botón enviar */}
-                      <BtnPrimary
-                        onClick={handleCreateThread}
-                        style={{
-                          width: 170,
-                          height: 38,      
-                          justifyContent: "center",
-                        }}
-                      >
-                        {t("send")}
-                      </BtnPrimary>
+                        <BtnPrimary
+                          onClick={handleCreateThread}
+                          style={{
+                            width: 170,
+                            height: 38,
+                            justifyContent: "center",
+                          }}
+                        >
+                          {t("send")}
+                        </BtnPrimary>
+                      </div>
                     </div>
                   </div>
                 </div>
