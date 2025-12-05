@@ -814,7 +814,7 @@ export default function Comunicaciones() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 2fr)",
+            gridTemplateColumns: "20% 80%",
             gap: 12,
             minHeight: 360,
           }}
