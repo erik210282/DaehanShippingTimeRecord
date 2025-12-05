@@ -132,8 +132,7 @@ export default function Comunicaciones() {
       }
     }, [t]);
 
-    // =========================
-    // Cargar threads SOLO del usuario actual
+    // Cargar threads SOLO del usuario actual (con TODOS los participantes)
     // =========================
     const cargarThreads = useCallback(
       async (userId) => {
@@ -142,6 +141,24 @@ export default function Comunicaciones() {
         try {
           setLoadingThreads(true);
 
+          // 1) Obtener los hilos donde participa el usuario actual
+          const { data: misParticipaciones, error: partError } = await supabase
+            .from("chat_thread_participants")
+            .select("thread_id")
+            .eq("user_id", userId);
+
+          if (partError) throw partError;
+
+          const threadIds = Array.from(
+            new Set((misParticipaciones || []).map((p) => p.thread_id))
+          );
+
+          if (!threadIds.length) {
+            setThreads([]);
+            return;
+          }
+
+          // 2) Traer los hilos con TODOS sus participantes
           const { data, error } = await supabase
             .from("chat_threads")
             .select(
@@ -152,10 +169,10 @@ export default function Comunicaciones() {
                 es_urgente,
                 created_at,
                 creado_por,
-                chat_thread_participants!inner(user_id)
+                chat_thread_participants(user_id)
               `
             )
-            .eq("chat_thread_participants.user_id", userId)
+            .in("id", threadIds)
             .order("created_at", { ascending: false });
 
           if (error) throw error;
@@ -163,7 +180,6 @@ export default function Comunicaciones() {
           const threadsFiltrados = (data || []).map(
             ({ chat_thread_participants, ...rest }) => ({
               ...rest,
-              // Guardamos los participantes (uids) para poder mostrar "Para:"
               participantes: (chat_thread_participants || []).map(
                 (p) => p.user_id
               ),
@@ -171,7 +187,6 @@ export default function Comunicaciones() {
           );
 
           setThreads(threadsFiltrados);
-
         } catch (err) {
           console.error("Error cargando threads:", err);
           toast.error(
