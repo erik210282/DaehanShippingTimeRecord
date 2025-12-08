@@ -85,7 +85,6 @@ export default function Comunicaciones() {
     const cargarUsuario = async () => {
       const { data, error } = await supabase.auth.getUser();
       if (error) {
-        console.warn("Error obteniendo usuario actual:", error.message);
         return;
       }
       setCurrentUserId(data?.user?.id ?? null);
@@ -125,7 +124,6 @@ export default function Comunicaciones() {
         }));
         setOperadoresOptions(opts);
       } catch (error) {
-        console.error("Error cargando usuarios para comunicaciones:", error);
         toast.error(
           error.message || t("error_loading") || "Error cargando usuarios"
         );
@@ -188,7 +186,6 @@ export default function Comunicaciones() {
 
           setThreads(threadsFiltrados);
         } catch (err) {
-          console.error("Error cargando threads:", err);
           toast.error(
             (t("error_loading") || "Error cargando hilos") +
               ": " +
@@ -250,7 +247,6 @@ export default function Comunicaciones() {
           setThreadUnread((prev) => ({ ...prev, ...hilosConNoLeidos }));
           
         } catch (err) {
-          console.error("Error verificando no leídos:", err);
         }
       };
 
@@ -282,7 +278,6 @@ export default function Comunicaciones() {
             { p_thread_id: threadId }
           );
           if (readError) {
-            console.warn("mark_thread_as_read error:", readError.message);
           } else {
             // ✅ Quitar indicador de "nuevo" en este hilo
             setThreadUnread((prev) => ({
@@ -294,7 +289,6 @@ export default function Comunicaciones() {
             await notificarUnreadNavbar();
           }
         } catch (err) {
-          console.error("Error cargando mensajes:", err);
           toast.error(
             (t("error_loading") || "Error cargando mensajes") +
               ": " +
@@ -334,7 +328,6 @@ export default function Comunicaciones() {
     // =========================
     useEffect(() => {
       if (!currentUserId) return;
-      console.log("🔗 Realtime Comunicaciones — creando canales...");
 
       const crearCanalMensajes = () => {
         // Si ya había un canal, lo removemos antes de crear otro
@@ -380,8 +373,6 @@ export default function Comunicaciones() {
             }
           )
           .subscribe((status) => {
-            console.log("📶 Estado canal comms_chat_mensajes:", status);
-            // Sin reintentos manuales; Supabase se encarga de reconectar
           });
         canalMensajesRef.current = canal;
       };
@@ -428,8 +419,6 @@ export default function Comunicaciones() {
             }
           )
           .subscribe((status) => {
-            console.log("📶 Estado canal comms_chat_threads:", status);
-            // Sin reintentos manuales
           });
 
         canalThreadsRef.current = canal;
@@ -441,7 +430,6 @@ export default function Comunicaciones() {
 
       // Cleanup SOLO al salir de la página
       return () => {
-        console.log("🧹 Cleanup Comunicaciones: removiendo canales");
         if (canalMensajesRef.current) {
           supabase.removeChannel(canalMensajesRef.current);
           canalMensajesRef.current = null;
@@ -545,7 +533,6 @@ export default function Comunicaciones() {
 
         toast.success(t("sent"));
       } catch (err) {
-        console.error("Error creando conversación:", err);
         toast.error(err.message || "Error creando conversación");
       }
     };
@@ -617,7 +604,6 @@ export default function Comunicaciones() {
           t("thread_deleted") || "Conversación eliminada correctamente"
         );
       } catch (err) {
-        console.error("Error eliminando conversación:", err);
         toast.error(
           err.message || "Error eliminando la conversación"
         );
@@ -656,10 +642,8 @@ export default function Comunicaciones() {
               { p_thread_id: selectedThread.id }
             );
             if (readError2) {
-              console.warn("mark_thread_as_read error:", readError2.message);
             }
           } catch (err) {
-            console.error("Error enviando mensaje:", err);
             toast.error(err.message || "Error enviando mensaje");
           }
   };
