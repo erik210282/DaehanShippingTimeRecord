@@ -394,6 +394,7 @@ export default function Comunicaciones() {
 
         const canal = supabase
           .channel("comms_chat_threads")
+          // 👉 Cuando se crea un hilo nuevo
           .on(
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "chat_threads" },
@@ -401,10 +402,35 @@ export default function Comunicaciones() {
               cargarThreads(currentUserId);
             }
           )
+          // 👉 Cuando alguien elimina un hilo
+          .on(
+            "postgres_changes",
+            { event: "DELETE", schema: "public", table: "chat_threads" },
+            (payload) => {
+              const deletedId = payload.old?.id;
+              if (!deletedId) return;
+
+              // Quitar el hilo de la lista
+              setThreads((prev) => prev.filter((th) => th.id !== deletedId));
+
+              // Limpiar indicador de no leídos de ese hilo
+              setThreadUnread((prev) => {
+                const { [deletedId]: _omit, ...rest } = prev;
+                return rest;
+              });
+
+              // Si es el hilo que tengo abierto, limpiar selección y mensajes
+              if (selectedThreadIdRef.current === deletedId) {
+                setSelectedThread(null);
+                setMessages([]);
+              }
+            }
+          )
           .subscribe((status) => {
             console.log("📶 Estado canal comms_chat_threads:", status);
             // Sin reintentos manuales
           });
+
         canalThreadsRef.current = canal;
       };
 
