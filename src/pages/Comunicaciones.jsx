@@ -424,6 +424,7 @@ export default function Comunicaciones() {
                 setSelectedThread(null);
                 setMessages([]);
               }
+              notificarUnreadNavbar();
             }
           )
           .subscribe((status) => {
@@ -450,7 +451,7 @@ export default function Comunicaciones() {
           canalThreadsRef.current = null;
         }
       };
-    }, [currentUserId, cargarThreads, cargarMensajesThread, setThreadUnread]);
+    }, [currentUserId, cargarThreads, cargarMensajesThread, setThreadUnread, notificarUnreadNavbar]);
 
     // =========================
     // Crear nuevo thread + primer mensaje
@@ -604,6 +605,13 @@ export default function Comunicaciones() {
         setThreads((prev) => prev.filter((th) => th.id !== threadId));
         setSelectedThread(null);
         setMessages([]);
+
+        setThreadUnread((prev) => {
+          const { [threadId]: _omit, ...rest } = prev;
+          return rest;
+        });
+
+        await notificarUnreadNavbar();
 
         toast.success(
           t("thread_deleted") || "Conversación eliminada correctamente"
