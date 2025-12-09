@@ -133,19 +133,31 @@ const Navbar = () => {
     return () => authListener?.subscription?.unsubscribe?.();
   }, []);
 
+  // Cargar valor inicial del badge
   useEffect(() => {
     const cargarUnreadInicial = async () => {
       try {
-        const { data } = await supabase.rpc("count_unread_messages_for_user");
-        if (typeof data === "number") setUnreadCount(data);
-      } catch (err) { console.error(err); }
+        const { data, error } = await supabase.rpc("count_unread_messages_for_user");
+        if (error) {
+          console.error("❌ Error RPC inicial badge:", error);
+          return;
+        }
+        const valor = Number(data) || 0;
+        console.log("🔔 Unread inicial Navbar:", valor);
+        setUnreadCount(valor);
+      } catch (err) { 
+        console.error("❌ Error cargarUnreadInicial:", err); 
+      }
     };
     cargarUnreadInicial();
   }, []);
 
+  // Escuchar cambios desde cualquier parte de la app
   useEffect(() => {
     const handler = (ev) => {
-      if (typeof ev.detail === "number") setUnreadCount(ev.detail);
+      const valor = Number(ev.detail) || 0;
+      console.log("🔔 Unread actualizado por evento:", valor);
+      setUnreadCount(valor);
     };
     window.addEventListener("unread-chat-updated", handler);
     return () => window.removeEventListener("unread-chat-updated", handler);

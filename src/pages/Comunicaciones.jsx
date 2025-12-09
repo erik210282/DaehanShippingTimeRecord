@@ -71,12 +71,21 @@ export default function Comunicaciones() {
     const { data, error } = await supabase.rpc(
       "count_unread_messages_for_user"
     );
-    if (!error && typeof data === "number") {
-      window.dispatchEvent(
-        new CustomEvent("unread-chat-updated", { detail: data })
-      );
+
+    if (error) {
+      console.error("❌ Error RPC count_unread_messages_for_user:", error);
+      return;
     }
+
+    // Aseguramos que siempre sea un número (aunque venga como string)
+    const valor = Number(data) || 0;
+    console.log("🔔 Unread recalculado (Comunicaciones):", valor);
+
+    window.dispatchEvent(
+      new CustomEvent("unread-chat-updated", { detail: valor })
+    );
   }, []);
+
 
   // =========================
   // Cargar usuario actual
