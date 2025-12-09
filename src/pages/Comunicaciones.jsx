@@ -803,12 +803,12 @@ export default function Comunicaciones() {
                       >
                         <BtnToggleUrgent
                           type="button"
+                          active={urgencia === "urgent"}
                           onClick={() =>
                             setUrgencia((prev) =>
                               prev === "urgent" ? "normal" : "urgent"
                             )
                           }
-                          
                         >
                           {t("urgent")}
                         </BtnToggleUrgent>
