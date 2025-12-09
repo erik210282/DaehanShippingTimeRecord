@@ -34,7 +34,6 @@ export default function RequireSupervisor({ children }) {
           .maybeSingle();
 
         if (error) {
-          console.error("❌ Error verificando rol:", error);
           if (mounted) {
             setAllowed(false);
             setChecking(false);
@@ -55,7 +54,6 @@ export default function RequireSupervisor({ children }) {
           }
         }
       } catch (e) {
-        console.error("❌ Guard error:", e);
         if (mounted) {
           setAllowed(false);
           setChecking(false);

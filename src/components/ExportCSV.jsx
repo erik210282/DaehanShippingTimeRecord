@@ -38,7 +38,6 @@ export default function ExportCSV() {
     const { data, error } = await supabase.from('actividades_realizadas').select('*');
 
     if (error) {
-      console.error('Error al obtener datos:', error);
       return;
     }
 

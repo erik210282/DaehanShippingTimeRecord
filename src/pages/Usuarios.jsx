@@ -74,11 +74,9 @@ export default function Usuarios() {
       });
 
       const data = await res.json();
-      console.log("🔻 Respuesta create-user:", res.status, data);
       if (!res.ok) {
         const msg = data?.error || "Unknown error";
         if (data?.details) {
-          console.log("📄 Detalles Supabase:", data.details);
         }
         setMensajeKey("error_user_creation");
         setMensajeExtra(`: ${msg}`);
@@ -93,7 +91,6 @@ export default function Usuarios() {
       setRole("");
       if (mostrarUsuarios) cargarUsuarios();
     } catch (error) {
-      console.error("❌ Error creando usuario:", error);
       setMensajeKey("error_user_creation");
       setMensajeExtra(`: ${error.message}`);
     } finally {
@@ -191,7 +188,6 @@ export default function Usuarios() {
       setMensajeExtra("");
       cargarUsuarios();
     } catch (error) {
-      console.error("❌ Error al eliminar usuario:", error);
       setMensajeKey("error_deleting_user");
       setMensajeExtra("");
     }

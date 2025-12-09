@@ -73,13 +73,11 @@ export default function Comunicaciones() {
     );
 
     if (error) {
-      console.error("❌ Error RPC count_unread_messages_for_user:", error);
       return;
     }
 
     // Aseguramos que siempre sea un número (aunque venga como string)
     const valor = Number(data) || 0;
-    console.log("🔔 Unread recalculado (Comunicaciones):", valor);
 
     window.dispatchEvent(
       new CustomEvent("unread-chat-updated", { detail: valor })
@@ -288,9 +286,6 @@ export default function Comunicaciones() {
           );
 
           if (readError) {
-            console.error("⚠️ mark_thread_as_read error:", readError);
-            // Opcional: toast visual
-            // toast.error("Error marcando la conversación como leída");
           } else {
             setThreadUnread((prev) => ({
               ...prev,
@@ -376,7 +371,6 @@ export default function Comunicaciones() {
                   { p_thread_id: nuevo.thread_id }
                 );
                 if (readErrorLive) {
-                  console.error("⚠️ mark_thread_as_read live error:", readErrorLive);
                 } else {
                   // Si todo bien, actualizamos badge justo después
                   await notificarUnreadNavbar();
@@ -660,7 +654,6 @@ export default function Comunicaciones() {
               { p_thread_id: selectedThread.id }
             );
             if (readError2) {
-              console.error("⚠️ mark_thread_as_read (reply) error:", readError2);
             }
           } catch (err) {
             toast.error(err.message || "Error enviando mensaje");

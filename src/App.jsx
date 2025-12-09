@@ -43,8 +43,6 @@ const GlobalChatListener = () => {
 
   // 2. Suscripción ÚNICA y persistente
   useEffect(() => {
-    console.log("🟢 Iniciando Global Listener...");
-
     const recalcularUnread = async () => {
       try {
         const { data, error } = await supabase.rpc(
@@ -56,7 +54,6 @@ const GlobalChatListener = () => {
           );
         }
       } catch (err) {
-        console.error("❌ Error recalculando unread (GlobalListener):", err);
       }
     };
 
@@ -116,7 +113,6 @@ const GlobalChatListener = () => {
               autoClose: 1500,
             });
           } catch (err) {
-            console.error("Error en alerta global:", err);
           }
         }
       )
@@ -170,14 +166,11 @@ const Navbar = () => {
       try {
         const { data, error } = await supabase.rpc("count_unread_messages_for_user");
         if (error) {
-          console.error("❌ Error RPC inicial badge:", error);
           return;
         }
         const valor = Number(data) || 0;
-        console.log("🔔 Unread inicial Navbar:", valor);
         setUnreadCount(valor);
       } catch (err) { 
-        console.error("❌ Error cargarUnreadInicial:", err); 
       }
     };
     cargarUnreadInicial();
@@ -187,7 +180,6 @@ const Navbar = () => {
   useEffect(() => {
     const handler = (ev) => {
       const valor = Number(ev.detail) || 0;
-      console.log("🔔 Unread actualizado por evento:", valor);
       setUnreadCount(valor);
     };
     window.addEventListener("unread-chat-updated", handler);
