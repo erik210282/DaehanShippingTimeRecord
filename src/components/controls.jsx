@@ -126,7 +126,7 @@ export const BtnTinyRound = ({ children, style, ...p }) => (
   </button>
 );
 
-export const BtnToggleUrgent = ({ active, ...props }) => (
+export const BtnToggleUrgent = ({ active, style, children, ...props }) => (
    <button
     {...props}
     style={{
