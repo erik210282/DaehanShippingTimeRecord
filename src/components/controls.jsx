@@ -129,17 +129,23 @@ export const BtnTinyRound = ({ children, style, ...p }) => (
 export const BtnToggleUrgent = ({ active, ...props }) => (
   <button
     {...props}
-    style={{
-      height: 38,
+      style={{
       width: 170,
+      height: 38,
       lineHeight: "38px",
-      padding: "0 14px",
-      backgroundColor: active ? "#dc2626" : "#111",
-      border: active ? "2px solid #dc2626" : "2px solid #111",
-      color: "#fff",
-      borderRadius: 6,
+      borderStyle: "solid",
+      borderWidth: 2,
+      borderRadius: 8,
       cursor: "pointer",
-      fontWeight: 600,
+      backgroundColor: urgencia === "urgent" ? "#ffebee" : "#f5f5f5",
+      borderColor: urgencia === "urgent" ? "#c00000" : "#ccc",
+      color: urgencia === "urgent" ? "#b71c1c" : "#000",
+      fontWeight: urgencia === "urgent" ? 700 : 500,
+      boxShadow:
+        urgencia === "urgent"
+          ? "0 0 0 3px rgba(220, 0, 0, 0.7)"
+          : "none",
+      transition: "all 0.15s ease-in-out",
     }}
   />
 );
