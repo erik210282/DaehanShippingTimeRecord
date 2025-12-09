@@ -44,65 +44,96 @@ const GlobalChatListener = () => {
   // 2. Suscripción ÚNICA y persistente
   useEffect(() => {
     console.log("🟢 Iniciando Global Listener...");
-    
+
+    const recalcularUnread = async () => {
+      try {
+        const { data, error } = await supabase.rpc(
+          "count_unread_messages_for_user"
+        );
+        if (!error && typeof data === "number") {
+          window.dispatchEvent(
+            new CustomEvent("unread-chat-updated", { detail: data })
+          );
+        }
+      } catch (err) {
+        console.error("❌ Error recalculando unread (GlobalListener):", err);
+      }
+    };
+
     const canal = supabase
-      .channel("global_chat_alerts") // Nombre fijo para evitar crear miles de canales
+      .channel("global_chat_alerts") // Nombre fijo
+      // A) CUALQUIER cambio en chat_messages
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages" },
+        { event: "*", schema: "public", table: "chat_messages" },
         async (payload) => {
           const nuevo = payload.new;
           const myId = currentUserIdRef.current;
 
-          // Si el mensaje lo envié yo, no hago nada (ni badge, ni toast)
+          // Siempre recalculamos badge (INSERT/UPDATE/DELETE)
+          await recalcularUnread();
+
+          // Solo mostramos toast en INSERT
+          if (payload.eventType !== "INSERT") return;
+          if (!nuevo) return;
+
+          // Si yo lo envié, no hago nada
           if (nuevo.sender_id === myId) return;
 
-          // A) ACTUALIZAR BADGE:
-          // Llamamos al RPC (ya corregido en SQL) directamente. 
-          // Si el mensaje no es para mí, el RPC devolverá el mismo número y no pasará nada visualmente malo.
-          const { data, error } = await supabase.rpc("count_unread_messages_for_user");
-          if (!error && typeof data === "number") {
-            window.dispatchEvent(new CustomEvent("unread-chat-updated", { detail: data }));
-          }
-
-          // B) MOSTRAR TOAST (Solo si es urgente):
-          // Consultamos si el hilo es urgente. Si no pertenezco al hilo, RLS o la lógica bloqueará el acceso, 
-          // pero el try/catch evitará errores en consola.
+          // B) MOSTRAR TOAST (solo si es urgente y soy participante)
           try {
-            // Verificamos si soy parte del hilo antes de mostrar alerta
+            // Verificar que soy parte del hilo
             const { data: participacion } = await supabase
-              .from('chat_thread_participants')
-              .select('id')
-              .eq('thread_id', nuevo.thread_id)
-              .eq('user_id', myId)
+              .from("chat_thread_participants")
+              .select("id")
+              .eq("thread_id", nuevo.thread_id)
+              .eq("user_id", myId)
               .maybeSingle();
 
-            if (participacion) {
-               // Soy parte del hilo, verificamos urgencia
-               const { data: thread } = await supabase
-                .from("chat_threads")
-                .select("es_urgente")
-                .eq("id", nuevo.thread_id)
-                .single();
+            if (!participacion) return;
 
-               if (thread?.es_urgente) {
-                  const { data: remitente } = await supabase
-                    .from("operadores")
-                    .select("nombre")
-                    .eq("uid", nuevo.sender_id)
-                    .single();
-                  
-                  const nombre = remitente?.nombre || "Sistema";
-                  toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
-                    position: "top-center",
-                    theme: "colored",
-                    autoClose: 1500,
-                  });
-               }
-            }
+            // Verificar urgencia del hilo
+            const { data: thread } = await supabase
+              .from("chat_threads")
+              .select("es_urgente")
+              .eq("id", nuevo.thread_id)
+              .single();
+
+            if (!thread?.es_urgente) return;
+
+            // Nombre del remitente
+            const { data: remitente } = await supabase
+              .from("operadores")
+              .select("nombre")
+              .eq("uid", nuevo.sender_id)
+              .single();
+
+            const nombre = remitente?.nombre || "Sistema";
+
+            toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
+              position: "top-center",
+              theme: "colored",
+              autoClose: 1500,
+            });
           } catch (err) {
             console.error("Error en alerta global:", err);
           }
+        }
+      )
+      // B) Cualquier cambio en chat_message_read_status → recalcular badge
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chat_message_read_status" },
+        async () => {
+          await recalcularUnread();
+        }
+      )
+      // C) Cualquier cambio en chat_threads (incluye DELETE) → recalcular badge
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chat_threads" },
+        async () => {
+          await recalcularUnread();
         }
       )
       .subscribe();
@@ -110,7 +141,7 @@ const GlobalChatListener = () => {
     return () => {
       supabase.removeChannel(canal);
     };
-  }, []); // Array vacío: Solo se monta UNA vez al entrar a la App
+  }, []); // Solo una vez al entrar a la App
 
   return null;
 };
