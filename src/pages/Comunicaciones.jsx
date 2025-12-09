@@ -286,17 +286,19 @@ export default function Comunicaciones() {
             "mark_thread_as_read",
             { p_thread_id: threadId }
           );
+
           if (readError) {
+            console.error("⚠️ mark_thread_as_read error:", readError);
+            // Opcional: toast visual
+            // toast.error("Error marcando la conversación como leída");
           } else {
-            // ✅ Quitar indicador de "nuevo" en este hilo
             setThreadUnread((prev) => ({
               ...prev,
               [threadId]: false,
             }));
-
-            // ✅ Actualizar badge del navbar sin F5
             await notificarUnreadNavbar();
           }
+
         } catch (err) {
           toast.error(
             (t("error_loading") || "Error cargando mensajes") +
@@ -368,11 +370,18 @@ export default function Comunicaciones() {
               // 2. Si tengo el hilo abierto, agrego el mensaje en vivo y marco leído
               if (estoyViendoEsteHilo) {
                 setMessages((prev) => [...prev, nuevo]);
-                
-                // Marcar como leído inmediatamente en BD para que no quede pendiente
-                await supabase.rpc("mark_thread_as_read", { p_thread_id: nuevo.thread_id });
-              }
 
+                const { error: readErrorLive } = await supabase.rpc(
+                  "mark_thread_as_read",
+                  { p_thread_id: nuevo.thread_id }
+                );
+                if (readErrorLive) {
+                  console.error("⚠️ mark_thread_as_read live error:", readErrorLive);
+                } else {
+                  // Si todo bien, actualizamos badge justo después
+                  await notificarUnreadNavbar();
+                }
+              }
               // 3. Recargar la lista de threads para actualizar el orden (último mensaje arriba)
               // Nota: Esto también ayuda a que si es un hilo nuevo, aparezca en la lista.
               cargarThreads(currentUserId);
@@ -651,6 +660,7 @@ export default function Comunicaciones() {
               { p_thread_id: selectedThread.id }
             );
             if (readError2) {
+              console.error("⚠️ mark_thread_as_read (reply) error:", readError2);
             }
           } catch (err) {
             toast.error(err.message || "Error enviando mensaje");
