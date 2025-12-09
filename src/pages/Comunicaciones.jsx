@@ -814,12 +814,17 @@ export default function Comunicaciones() {
                             lineHeight: "38px",
                             borderStyle: "solid",
                             borderWidth: 2,
-                            borderColor:
-                              urgencia === "urgent" ? "#c00000ff" : "#ffffff",
+                            borderRadius: 8,
+                            cursor: "pointer",
+                            backgroundColor: urgencia === "urgent" ? "#ffebee" : "#f5f5f5",
+                            borderColor: urgencia === "urgent" ? "#c00000" : "#ccc",
+                            color: urgencia === "urgent" ? "#b71c1c" : "#000",
+                            fontWeight: urgencia === "urgent" ? 700 : 500,
                             boxShadow:
                               urgencia === "urgent"
-                                ? "0 0 0 4px rgba(253, 0, 0, 0.9)"
+                                ? "0 0 0 3px rgba(220, 0, 0, 0.7)"
                                 : "none",
+                            transition: "all 0.15s ease-in-out",
                           }}
                         >
                           {t("urgent")}
