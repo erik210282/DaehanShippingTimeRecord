@@ -27,6 +27,7 @@ export default function TareasPendientes() {
   const [tareas, setTareas] = useState([]);
   const [actividades, setActividades] = useState({});
   const [productos, setProductos] = useState({});
+  const [partes, setPartes] = useState({});
   const [modalAbierto, setModalAbierto] = useState(false);
   const [tareaActual, setTareaActual] = useState(null);
   const { t, i18n } = useTranslation();
@@ -94,13 +95,14 @@ export default function TareasPendientes() {
   const fetchProductos = async () => {
     const { data, error } = await supabase
       .from("productos")
-      .select("id, nombre, activo");
+      .select("id, nombre, part_number, activo");
 
     if (!error && data) {
       const prod = {};
       data.forEach((doc) => {
         if (doc.activo !== false) prod[doc.id] = doc.nombre;
       });
+      setPartes(Object.fromEntries(data.map((doc) => [doc.id, doc.part_number || ""])));
       const ordenadas = Object.fromEntries(
         Object.entries(prod).sort(([, a], [, b]) => a.localeCompare(b))
       );
@@ -203,6 +205,7 @@ export default function TareasPendientes() {
         productos: [{ producto: "", cantidad: "" }],
         operadores: [],
         notas: "",
+        instrucciones_supervisor: "",
         estado: "pendiente",
         prioridad: getNextPriority(),
       });
@@ -227,6 +230,12 @@ export default function TareasPendientes() {
       productos: data.productos || [{ producto: "", cantidad: "" }],
       operadores: data.operadores || [],
       notas: data.notas || "",
+      instrucciones_supervisor: data.instrucciones_supervisor ?? data.notas ?? "",
+      _idxOriginal: data.idx,
+      _seriesOriginal: JSON.stringify((data.productos || []).map((p) => ({
+        idx_line: p.idx_line || "", primera_etiqueta: p.primera_etiqueta || "",
+        producto: p.producto, cantidad: Number(p.cantidad),
+      }))),
       estado: data.estado || "pendiente",
     });
 
@@ -241,7 +250,8 @@ export default function TareasPendientes() {
   };
 
   const guardarTarea = async () => {
-    const { idx, actividad, productos: listaProductos, notas } = tareaActual;
+    const { idx, actividad, productos: listaProductos } = tareaActual;
+    const instrucciones = tareaActual.instrucciones_supervisor ?? tareaActual.notas ?? "";
 
     if (!actividad || !idx || listaProductos.some((p) => !p.producto || !p.cantidad)) {
       toast.error(t("fill_all_fields"));
@@ -256,20 +266,63 @@ export default function TareasPendientes() {
       return;
     }
 
+    const shipping = ["stage", "label", "scan", "load"].includes(
+      (actividades[actividad] || "").toLowerCase().trim()
+    );
+    const tieneEtiquetas = shipping && (!tareaActual.id ||
+      listaProductos.some((p) => p.idx_line || p.primera_etiqueta));
+    if (tareaActual.id && tieneEtiquetas && idx.trim() !== tareaActual._idxOriginal) {
+      toast.error("El IDX de una tarea con etiquetas no se puede cambiar.");
+      return;
+    }
+    if (tieneEtiquetas && listaProductos.some((p) =>
+      !/^\d{2,3}$/.test(p.idx_line || "") ||
+      !/^(6J|5J|1J).*\d{4,}$/i.test((p.primera_etiqueta || "").replace(/\s+/g, "")) ||
+      !Number.isInteger(Number(p.cantidad)) || Number(p.cantidad) < 1
+    )) {
+      toast.error("Cada producto necesita sufijo IDX, primera etiqueta y cantidad de cajas válida.");
+      return;
+    }
+    if (tieneEtiquetas && new Set(listaProductos.map((p) => p.idx_line)).size !== listaProductos.length) {
+      toast.error("Cada producto necesita un sufijo IDX distinto.");
+      return;
+    }
+
     const datos = {
-      idx: idx || "",
+      idx: idx.trim(),
       actividad,
       productos: listaProductos.map((p) => ({
         producto: p.producto,
         cantidad: Number(p.cantidad),
+        ...(tieneEtiquetas ? {
+          idx_line: p.idx_line,
+          primera_etiqueta: p.primera_etiqueta.trim().toUpperCase().replace(/\s+/g, ""),
+        } : {}),
       })),
-      notas: notas || "",
+      notas: instrucciones,
+      instrucciones_supervisor: instrucciones,
       estado: tareaActual.estado || "pendiente",
       operadores: tareaActual.operadores || [],
       prioridad: tareaActual.prioridad ?? getNextPriority(),
     };
 
     try {
+      const seriesActual = JSON.stringify(datos.productos.map((p) => ({
+        idx_line: p.idx_line || "", primera_etiqueta: p.primera_etiqueta || "",
+        producto: p.producto, cantidad: p.cantidad,
+      })));
+      if (tieneEtiquetas && (!tareaActual.id || seriesActual !== tareaActual._seriesOriginal)) {
+        const { error: planError } = await supabase.rpc("shipping_register_plan", {
+          p_idx: idx.trim(),
+          p_lines: datos.productos.map((p) => ({
+            idx_line: p.idx_line,
+            producto: p.producto,
+            cantidad: p.cantidad,
+            primera_etiqueta: p.primera_etiqueta,
+          })),
+        });
+        if (planError) throw planError;
+      }
       if (tareaActual.id) {
         const { error } = await supabase
           .from("tareas_pendientes")
@@ -289,6 +342,7 @@ export default function TareasPendientes() {
       fetchTareas();
     } catch (error) {
       toast.error(t("error_saving"));
+      if (error?.message) toast.error(error.message);
     }
   };
 
@@ -594,7 +648,7 @@ export default function TareasPendientes() {
               />
 
               {tareaActual.productos.map((p, index) => (
-                <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+                <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
                   <DSSelect
                     options={Object.entries(productos).map(([id, nombre]) => ({ value: id, label: nombre }))}
                     value={
@@ -610,7 +664,7 @@ export default function TareasPendientes() {
                   />
                   <PillInput
                     type="number"
-                    placeholder={t("amount")}
+                    placeholder="Cajas / Boxes"
                     value={p.cantidad ?? ""}
                     onChange={(e) => {
                       const nuevos = [...tareaActual.productos];
@@ -619,6 +673,37 @@ export default function TareasPendientes() {
                     }}
                     style={{ width: "220px" }}
                   />
+                  {["stage", "label", "scan", "load"].includes(
+                    (actividades[tareaActual.actividad] || "").toLowerCase().trim()
+                  ) && (
+                    <>
+                      <PillInput
+                        type="text"
+                        placeholder="Sufijo IDX (01/02/03)"
+                        value={p.idx_line || ""}
+                        onChange={(e) => {
+                          const nuevos = [...tareaActual.productos];
+                          nuevos[index] = { ...p, idx_line: e.target.value.trim() };
+                          setTareaActual({ ...tareaActual, productos: nuevos });
+                        }}
+                        style={{ width: "150px" }}
+                      />
+                      <PillInput
+                        type="text"
+                        placeholder="Primera etiqueta 6J/5J/1J"
+                        value={p.primera_etiqueta || ""}
+                        onChange={(e) => {
+                          const nuevos = [...tareaActual.productos];
+                          nuevos[index] = { ...p, primera_etiqueta: e.target.value };
+                          setTareaActual({ ...tareaActual, productos: nuevos });
+                        }}
+                        style={{ width: "240px" }}
+                      />
+                      <small style={{ alignSelf: "center" }}>
+                        {partes[p.producto] ? `Parte: ${partes[p.producto]}` : "Seleccione un producto con número de parte"}
+                      </small>
+                    </>
+                  )}
                   {index > 0 && (
                     <BtnDanger
                       onClick={() => {
@@ -665,10 +750,10 @@ export default function TareasPendientes() {
               </div>
 
               <TextAreaStyle
-                placeholder={t("notes")}
-                value={tareaActual.notas}
+                placeholder="Instrucciones del supervisor / Supervisor instructions"
+                value={tareaActual.instrucciones_supervisor ?? tareaActual.notas ?? ""}
                 onChange={(e) =>
-                  setTareaActual({ ...tareaActual, notas: e.target.value })
+                  setTareaActual({ ...tareaActual, instrucciones_supervisor: e.target.value })
                 }
                 style={{
                   marginTop: "10px",

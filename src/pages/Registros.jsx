@@ -275,6 +275,7 @@ useEffect(() => {
 
     setRegistroActual({
       ...registro,
+      notas: registro.comentario_actividad ?? registro.notas ?? "",
       productos: Array.isArray(registro.productos)
         ? registro.productos
         : [{ producto: registro.producto, cantidad: registro.cantidad }],
@@ -395,6 +396,10 @@ useEffect(() => {
     hora_inicio: new Date(horaInicio),
     hora_fin: new Date(horaFin),
     duracion,
+    ...(!esNuevo && registroActual.comentario_actividad !== null &&
+      registroActual.comentario_actividad !== undefined
+      ? { comentario_actividad: notas || "" }
+      : {}),
   };
 
   try {
@@ -435,7 +440,8 @@ useEffect(() => {
       [t("end_time")]: fin.toLocaleString(),
       [t("duration_min")]: d.duracion ? Math.round(d.duracion) : "-",
       [t("pausas")]: typeof d.pausa_total === "number" ? Math.round(d.pausa_total) : "-",
-      [t("notes")]: d.notas || "N/A",
+      [t("notes")]: d.comentario_actividad ?? d.notas ?? "N/A",
+      ["Supervisor instructions"]: d.instrucciones_supervisor || "",
     }));
   });
 
@@ -546,7 +552,12 @@ useEffect(() => {
                         )}
                         {" "}min
                       </td>
-                      <td>{r.notas || "-"}</td>
+                      <td>
+                        {r.instrucciones_supervisor && (
+                          <div><strong>Supervisor:</strong> {r.instrucciones_supervisor}</div>
+                        )}
+                        <div>{r.comentario_actividad ?? r.notas ?? "-"}</div>
+                      </td>
                       <td>
                         <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
                           <BtnEditDark onClick={() => abrirModal(r)}>{t("edit")}</BtnEditDark>
