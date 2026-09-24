@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "../supabase/client";
 import { format } from "date-fns";
 import { DSInput, DSDate, TablePagination } from "../components/controls";
+import { fetchShippingCaptures, isShippingVerified } from "../utils/shippingValidation";
+
+const SHIPPING_PHASES = ["stage", "label", "scan", "load"];
 
 export default function Resumen() {
   const { t } = useTranslation();
@@ -13,6 +16,7 @@ export default function Resumen() {
   const [productosDict, setProductosDict] = useState({});
   const [operadoresDict, setOperadoresDict] = useState({});
   const [actividadesDict, setActividadesDict] = useState({});
+  const [shippingError, setShippingError] = useState("");
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -80,7 +84,8 @@ export default function Resumen() {
 
   useEffect(() => {
     const fetchResumen = async () => {
-      if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length) return;
+      if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length ||
+          !Object.keys(actividadesDict).length) return;
 
       const PAGE = 1000;
       let from = 0;
@@ -108,7 +113,15 @@ export default function Resumen() {
 
       // Trabajaremos con 'data' como antes
       const data = todo;
-      if (!data.length) return;
+      if (!data.length) { setResumenData([]); return; }
+      let capturas;
+      try {
+        capturas = await fetchShippingCaptures();
+        setShippingError("");
+      } catch (error) {
+        setShippingError(error.message || t("shipping_captures_error"));
+        return;
+      }
       const agrupadas = {};
 
       data.forEach((act) => {
@@ -128,6 +141,8 @@ export default function Resumen() {
             label: null,
             scan: null,
             load: null,
+            validaciones: {},
+            capturaLoad: null,
             notas: "",
             fechaNotas: null,
           };
@@ -151,17 +166,30 @@ export default function Resumen() {
         }
 
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
+        const captura = capturas[act.id];
+        const verificada = captura && isShippingVerified(act, captura, nombreActividad);
         const registro = (
           <>
             <strong>{operadorNombre}</strong>
             <br />
             <span style={{ opacity: 0.7 }}>{hora}</span>
+            {captura && (
+              <div style={{ fontSize: "0.8em", marginTop: 4 }}>
+                <span style={{ color: verificada ? "#166534" : "#b45309", fontWeight: 700 }}>
+                  {verificada ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
+                </span>
+                <div>{t("shipping_start_label")}: {captura.etiqueta_inicio}</div>
+                <div>{t("shipping_end_label")}: {captura.etiqueta_fin || "—"}</div>
+              </div>
+            )}
           </>
         );
 
         if (nombreActividad) {
-          if (["stage", "label", "scan", "load"].includes(nombreActividad)) {
+          if (SHIPPING_PHASES.includes(nombreActividad)) {
             agrupadas[key][nombreActividad] = registro;
+            agrupadas[key].validaciones[nombreActividad] = captura ? verificada : null;
+            if (nombreActividad === "load") agrupadas[key].capturaLoad = captura || null;
           } else {
           }
         } else {
@@ -170,7 +198,7 @@ export default function Resumen() {
         }
 
         if (!agrupadas[key].fechaNotas || new Date(act.createdAt) > new Date(agrupadas[key].fechaNotas)) {
-          agrupadas[key].notas = act.notas || "";
+          agrupadas[key].notas = act.comentario_actividad ?? act.notas ?? "";
           agrupadas[key].fechaNotas = act.createdAt;
         }
       });
@@ -198,7 +226,7 @@ export default function Resumen() {
     };
 
     fetchResumen();
-  }, [productosDict, operadoresDict, filtroIdx, fechaInicio, fechaFin]);
+  }, [productosDict, operadoresDict, actividadesDict, filtroIdx, fechaInicio, fechaFin, t]);
 
   // ==========================
   // Paginado: cálculo de filas
@@ -214,6 +242,7 @@ export default function Resumen() {
     <div className="page-container page-container--fluid">
       <div className="card">
         <h2>{t("summary")}</h2>
+        {shippingError && <p role="alert" style={{ color: "#b91c1c" }}>{shippingError}</p>}
         <div style={{ marginBottom: 12 }}>
           <DSInput
             type="text"
@@ -247,6 +276,9 @@ export default function Resumen() {
                 <th>{t("label")}</th>
                 <th>{t("scan")}</th>
                 <th>{t("load")}</th>
+                <th>{t("shipping_trailer")}</th>
+                <th>{t("shipping_door")}</th>
+                <th>{t("shipping_validation")}</th>
                 <th>{t("notes")}</th>
               </tr>
             </thead>
@@ -268,7 +300,19 @@ export default function Resumen() {
                   <td style={{ backgroundColor: colorActividad("label")}}>{fila.label || "-"}</td>
                   <td style={{ backgroundColor: colorActividad("scan")}}>{fila.scan || "-"}</td>
                   <td style={{ backgroundColor: colorActividad("load")}}>{fila.load || "-"}</td>
-                  <td>{fila.notas}</td>
+                  <td>{fila.capturaLoad?.trailer || "—"}</td>
+                  <td>{fila.capturaLoad?.puerta || "—"}</td>
+                  <td>
+                    {Object.values(fila.validaciones).some((valor) => valor !== null) ? (
+                      <strong style={{ color: SHIPPING_PHASES.every((fase) => fila.validaciones[fase] === true)
+                        ? "#166534" : "#92400e" }}>
+                        {SHIPPING_PHASES.every((fase) => fila.validaciones[fase] === true)
+                          ? `✓ ${t("shipping_all_verified")}`
+                          : `${SHIPPING_PHASES.filter((fase) => fila.validaciones[fase] === true).length}/4 ${t("shipping_verified")}`}
+                      </strong>
+                    ) : "—"}
+                  </td>
+                  <td>{fila.notas || "—"}</td>
                 </tr>
               ))}
             </tbody>
