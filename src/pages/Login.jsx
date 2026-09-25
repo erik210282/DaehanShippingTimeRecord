@@ -47,7 +47,7 @@ export default function Login() {
         return;
       }
 
-      // Validación de perfil como en móvil (opcional)
+      // El perfil activo es obligatorio para entrar a la aplicación.
       const { data: profile, error: pErr } = await supabase
         .from("operadores")
         .select("role, activo, nombre")
@@ -56,23 +56,17 @@ export default function Login() {
 
       if (pErr) {
         toast.error(t("error") || "Ocurrió un error");
-        return;
-      }
-
-      if (profile && profile.activo === false) {
-        toast.error(t("notActive") || "Tu usuario no está activo");
         await supabase.auth.signOut();
         return;
       }
 
-      // Si existe registro y está inactivo, bloquear
-      if (profile && profile.activo === false) {
+      if (!profile || profile.activo !== true) {
         toast.error(t("notActive") || "Tu usuario no está activo");
         await supabase.auth.signOut();
         return;
       }
       const allowedRoles = ["operador", "supervisor"];
-      if (profile && !allowedRoles.includes(profile.role)) {
+      if (!allowedRoles.includes(profile.role)) {
         toast.error(t("wrongRole") || "No tienes permisos para entrar");
         await supabase.auth.signOut();
         return;
