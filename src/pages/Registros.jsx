@@ -62,6 +62,7 @@ export default function Registros() {
   const [selectActividades, setSelectActividades] = useState([]);
   const [selectProductos, setSelectProductos] = useState([]);
   const [selectOperadores, setSelectOperadores] = useState([]);
+  const [operadoresCatalogo, setOperadoresCatalogo] = useState([]);
 
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
 
@@ -83,7 +84,7 @@ const cargarCatalogos = async () => {
       await Promise.all([
         supabase.from("actividades").select("id, nombre"),
         supabase.from("productos").select("id, nombre"),
-        supabase.from("operadores").select("id, nombre"),
+        supabase.from("operadores").select("id, nombre, activo, inactive_since"),
       ]);
 
     if (actErr) console.error("[Registros] Error Actividades", actErr);
@@ -101,6 +102,7 @@ const cargarCatalogos = async () => {
     setMapaActividades(actividades);
     setMapaProductos(productos);
     setMapaOperadores(operadores);
+    setOperadoresCatalogo(opData || []);
 
     setSelectActividades(
       actData
@@ -118,7 +120,7 @@ const cargarCatalogos = async () => {
 
     setSelectOperadores(
       opData
-        ?.filter((doc) => doc.activo !== false)
+        ?.filter((doc) => doc.activo === true)
         .map((doc) => ({ value: doc.id, label: doc.nombre }))
         .sort((a, b) => a.label.localeCompare(b.label)) || []
     );
@@ -181,6 +183,12 @@ const actualizarRegistros = async () => {
   cargarCatalogos();
   actualizarRegistros(); // carga inicial
 
+  const refreshOperators = () => {
+    if (document.visibilityState === "visible") cargarCatalogos();
+  };
+  window.addEventListener("focus", refreshOperators);
+  document.addEventListener("visibilitychange", refreshOperators);
+
   const canal = supabase
     .channel("Registros - onSnapshot Actualizar registros 4")
     .on(
@@ -198,6 +206,8 @@ const actualizarRegistros = async () => {
 
   return () => {
     supabase.removeChannel(canal);
+    window.removeEventListener("focus", refreshOperators);
+    document.removeEventListener("visibilitychange", refreshOperators);
   };
 }, []);
 
@@ -367,6 +377,20 @@ useEffect(() => {
    ...actual,
    shipping_edit: { ...actual.shipping_edit, [campo]: value.toUpperCase() },
  }));
+
+ const operadoresEditables = [...selectOperadores];
+ if (!esNuevo && registroActual?.estado === "finalizada") {
+   const fin = new Date(registroActual.horaFin);
+   operadoresCatalogo.forEach((op) => {
+     if (op.activo === true || operadoresEditables.some((option) => option.value === op.id)) return;
+     const yaRegistrado = registroActual.operadores?.includes(op.id);
+     const activoEntonces = op.inactive_since && !Number.isNaN(fin.getTime()) &&
+       fin < new Date(op.inactive_since);
+     if (yaRegistrado || activoEntonces) {
+       operadoresEditables.push({ value: op.id, label: op.nombre });
+     }
+   });
+ }
 
   const eliminarRegistro = async (id) => {
   try {
@@ -774,7 +798,7 @@ useEffect(() => {
             ➕ {t("add_product")}
           </BtnSecondary>
           <div style={{ marginTop: 12 }}></div>
-          <DSSelect isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
+          <DSSelect isMulti options={operadoresEditables} value={operadoresEditables.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <TextAreaStyle value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={3} style={{ marginTop: 10, minHeight: 90, width: "85%", }} />
            <div className="records-edit-grid">
              <label>{t("start_time")}
