@@ -280,7 +280,7 @@ export default function Resumen() {
         <div className="table-wrap">
           <table className="table summary-table">
             <colgroup>
-              {[7, 12, 4, 11, 11, 11, 12, 7, 7, 7, 11].map((width, i) =>
+              {[7, 10, 6, 11, 11, 11, 12, 7, 7, 7, 11].map((width, i) =>
                 <col key={i} style={{ width: `${width}%` }} />)}
             </colgroup>
             <thead>
