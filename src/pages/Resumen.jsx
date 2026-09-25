@@ -193,7 +193,7 @@ export default function Resumen() {
         if (nombreActividad) {
           if (SHIPPING_PHASES.includes(nombreActividad)) {
             agrupadas[key][nombreActividad] = registro;
-            agrupadas[key].validaciones[nombreActividad] = captura ? verificada : null;
+            if (nombreActividad === "load") agrupadas[key].validaciones.load = captura ? verificada : null;
             if (nombreActividad === "load") agrupadas[key].capturaLoad = captura || null;
           } else {
           }
@@ -305,15 +305,14 @@ export default function Resumen() {
                   <td style={{ backgroundColor: colorActividad("label")}}>{fila.label || "-"}</td>
                   <td style={{ backgroundColor: colorActividad("scan")}}>{fila.scan || "-"}</td>
                   <td style={{ backgroundColor: colorActividad("load")}}>{fila.load || "-"}</td>
-                  <td>{fila.capturaLoad?.trailer || "—"}</td>
-                  <td>{fila.capturaLoad?.puerta || "—"}</td>
+                  <td>{fila.capturaLoad?.trailer_fin || fila.capturaLoad?.trailer || "—"}</td>
+                  <td>{fila.capturaLoad?.puerta_fin || fila.capturaLoad?.puerta || "—"}</td>
                   <td>
-                    {Object.values(fila.validaciones).some((valor) => valor !== null) ? (
-                      <strong style={{ color: SHIPPING_PHASES.every((fase) => fila.validaciones[fase] === true)
+                    {fila.validaciones.load !== undefined && fila.validaciones.load !== null ? (
+                      <strong style={{ color: fila.validaciones.load === true
                         ? "#166534" : "#92400e" }}>
-                        {SHIPPING_PHASES.every((fase) => fila.validaciones[fase] === true)
-                          ? `✓ ${t("shipping_all_verified")}`
-                          : `${SHIPPING_PHASES.filter((fase) => fila.validaciones[fase] === true).length}/4 ${t("shipping_verified")}`}
+                        {fila.validaciones.load === true
+                          ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
                       </strong>
                     ) : "—"}
                   </td>
