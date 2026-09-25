@@ -359,8 +359,9 @@ export default function TareasPendientes() {
 
       setModalAbierto(false);
       fetchTareas();
-    } catch {
-      toast.error(t("error_saving"));
+    } catch (error) {
+      console.error("Error al guardar la tarea:", error);
+      toast.error(error?.message || t("error_saving"));
     }
   };
 
