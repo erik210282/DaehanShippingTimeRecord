@@ -14,6 +14,7 @@ export default function Resumen() {
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [productosDict, setProductosDict] = useState({});
+  const [partesDict, setPartesDict] = useState({});
   const [operadoresDict, setOperadoresDict] = useState({});
   const [actividadesDict, setActividadesDict] = useState({});
   const [shippingError, setShippingError] = useState("");
@@ -58,7 +59,7 @@ export default function Resumen() {
       // 2. Cargar productos y operadores
       const [{ data: productos, error: errorProductos }, { data: operadores, error: errorOperadores }] =
         await Promise.all([
-          supabase.from("productos").select("id, nombre"),
+           supabase.from("productos").select("id, nombre, part_number"),
           supabase.from("operadores").select("id, nombre"),
         ]);
 
@@ -70,6 +71,7 @@ export default function Resumen() {
       productos?.forEach((p) => {
         prodDict[p.id] = p.nombre;
       });
+      setPartesDict(Object.fromEntries((productos || []).map((p) => [p.id, p.part_number || ""])));
 
       const opDict = {};
       operadores?.forEach((op) => {
@@ -151,19 +153,19 @@ export default function Resumen() {
         if (Array.isArray(act.productos)) {
           act.productos.forEach((item) => {
             const nombreProducto = productosDict?.[item.producto];
-            if (nombreProducto && !agrupadas[key].productos.includes(nombreProducto)) {
-              agrupadas[key].productos.push(nombreProducto);
+            if (nombreProducto && !agrupadas[key].productos.some((p) => p.id === item.producto)) {
+              agrupadas[key].productos.push({ id: item.producto, nombre: nombreProducto });
               agrupadas[key].cantidades.push(item.cantidad);
             }
           });
         }
         const nombreActividad = actividadesDict[act.actividad]?.toLowerCase().trim() || "";
-        let operadorNombre = "-";
-        if (Array.isArray(act.operadores)) {
-          operadorNombre = act.operadores.map((id) => operadoresDict[id] || `ID:${id}`).join(", ");
-        } else if (typeof act.operadores === "string" && act.operadores.trim()) {
-          operadorNombre = operadoresDict[act.operadores] || act.operadores;
-        }
+         let operadorNombres = ["-"];
+         if (Array.isArray(act.operadores)) {
+           operadorNombres = act.operadores.map((id) => operadoresDict[id] || `ID:${id}`);
+         } else if (typeof act.operadores === "string" && act.operadores.trim()) {
+           operadorNombres = [operadoresDict[act.operadores] || act.operadores];
+         }
 
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
         // Older IDX tasks can have a Load capture without a configured label plan.
@@ -171,9 +173,14 @@ export default function Resumen() {
         const verificada = captura && isShippingVerified(act, captura, nombreActividad);
         const registro = (
           <>
-            <strong>{operadorNombre}</strong>
-            <br />
-            <span style={{ opacity: 0.7 }}>{hora}</span>
+             {operadorNombres.map((nombre, i) =>
+               <span key={i} className="summary-operator">{nombre}</span>)}
+             <span className="summary-time">{hora}
+               {act.duracion !== null && act.duracion !== undefined && (
+                 <> · {Math.round(act.duracion)}m ({act.pausa_total === null ||
+                   act.pausa_total === undefined ? "—" : Math.round(act.pausa_total)}m)</>
+               )}
+             </span>
             {captura && (
               <div style={{ fontSize: "0.8em", marginTop: 4 }}>
                 <span style={{ color: verificada ? "#166534" : "#b45309", fontWeight: 700 }}>
@@ -231,7 +238,7 @@ export default function Resumen() {
     };
 
     fetchResumen();
-  }, [productosDict, operadoresDict, actividadesDict, filtroIdx, fechaInicio, fechaFin, t]);
+   }, [productosDict, partesDict, operadoresDict, actividadesDict, filtroIdx, fechaInicio, fechaFin, t]);
 
   // ==========================
   // Paginado: cálculo de filas
@@ -271,7 +278,11 @@ export default function Resumen() {
         </div>
 
         <div className="table-wrap">
-          <table className="table">
+          <table className="table summary-table">
+            <colgroup>
+              {[7, 12, 4, 11, 11, 11, 12, 7, 7, 7, 11].map((width, i) =>
+                <col key={i} style={{ width: `${width}%` }} />)}
+            </colgroup>
             <thead>
               <tr>
                 <th>{t("idxcode")}</th>
@@ -281,8 +292,8 @@ export default function Resumen() {
                 <th>{t("label")}</th>
                 <th>{t("scan")}</th>
                 <th>{t("load")}</th>
-                <th>{t("shipping_trailer")}</th>
                 <th>{t("shipping_door")}</th>
+                <th>{t("shipping_trailer")}</th>
                 <th>{t("shipping_validation")}</th>
                 <th>{t("notes")}</th>
               </tr>
@@ -290,10 +301,14 @@ export default function Resumen() {
             <tbody>
               {filasPagina.map((fila, i) => (
                 <tr key={i}>
-                  <td>{fila.idx}</td>
+                  <td className="summary-nowrap" title={fila.idx}>{fila.idx}</td>
                   <td>
                     {fila.productos?.length
-                      ? fila.productos.map((p, i) => <div key={i}>{p}</div>)
+                      ? fila.productos.map((p) => <div key={p.id}>
+                          {p.nombre}
+                          {partesDict[p.id] && partesDict[p.id].toUpperCase() !== "NA" &&
+                            <span className="summary-part">({partesDict[p.id]})</span>}
+                        </div>)
                       : "-"}
                   </td>
                   <td>
@@ -305,8 +320,8 @@ export default function Resumen() {
                   <td style={{ backgroundColor: colorActividad("label")}}>{fila.label || "-"}</td>
                   <td style={{ backgroundColor: colorActividad("scan")}}>{fila.scan || "-"}</td>
                   <td style={{ backgroundColor: colorActividad("load")}}>{fila.load || "-"}</td>
-                  <td>{fila.capturaLoad?.trailer_fin || fila.capturaLoad?.trailer || "—"}</td>
-                  <td>{fila.capturaLoad?.puerta_fin || fila.capturaLoad?.puerta || "—"}</td>
+                  <td className="summary-nowrap">{fila.capturaLoad?.puerta_fin || fila.capturaLoad?.puerta || "—"}</td>
+                  <td className="summary-nowrap">{fila.capturaLoad?.trailer_fin || fila.capturaLoad?.trailer || "—"}</td>
                   <td>
                     {fila.validaciones.load !== undefined && fila.validaciones.load !== null ? (
                       <strong style={{ color: fila.validaciones.load === true
