@@ -236,7 +236,7 @@ export default function TareasPendientes() {
       .single();
 
     if (error || !data) {
-      toast.error("Error cargando tarea actualizada");
+      toast.error(t("error_loading_task"));
       return;
     }
 
@@ -289,7 +289,7 @@ export default function TareasPendientes() {
     const tieneEtiquetas = productosConEtiqueta.length > 0 && (!tareaActual.id ||
       productosConEtiqueta.some((p) => p.idx_line || p.primera_etiqueta));
     if (tareaActual.id && tieneEtiquetas && idx.trim() !== tareaActual._idxOriginal) {
-      toast.error("El IDX de una tarea con etiquetas no se puede cambiar.");
+       toast.error(t("task_idx_locked_error"));
       return;
     }
     if (tieneEtiquetas && productosConEtiqueta.some((p) =>
@@ -297,11 +297,11 @@ export default function TareasPendientes() {
       !/^(6J|5J|1J).*\d{4,}$/i.test((p.primera_etiqueta || "").replace(/\s+/g, "")) ||
       !Number.isInteger(Number(p.cantidad)) || Number(p.cantidad) < 1
     )) {
-      toast.error("Cada producto necesita sufijo IDX, primera etiqueta y cantidad de cajas válida.");
+       toast.error(t("task_product_plan_error"));
       return;
     }
     if (tieneEtiquetas && new Set(productosConEtiqueta.map((p) => p.idx_line)).size !== productosConEtiqueta.length) {
-      toast.error("Cada producto necesita un sufijo IDX distinto.");
+       toast.error(t("task_unique_suffix_error"));
       return;
     }
 
@@ -359,9 +359,8 @@ export default function TareasPendientes() {
 
       setModalAbierto(false);
       fetchTareas();
-    } catch (error) {
+    } catch {
       toast.error(t("error_saving"));
-      if (error?.message) toast.error(error.message);
     }
   };
 
@@ -681,7 +680,9 @@ export default function TareasPendientes() {
                     }
                     onChange={(e) => {
                       const nuevos = [...tareaActual.productos];
-                      nuevos[index] = { ...p, producto: e.value, idx_line: "", primera_etiqueta: "" };
+                       nuevos[index] = { ...p, producto: e.value, idx_line: "",
+                         primera_etiqueta: isShippingActivity(tareaActual.actividad) && !isEmptyContainer(e.value)
+                           ? "6J" : "" };
                       setTareaActual({ ...tareaActual, productos: nuevos });
                     }}
                     placeholder={t("select_product")}
@@ -689,7 +690,7 @@ export default function TareasPendientes() {
                   />
                   <PillInput
                     type="number"
-                    placeholder="Cajas / Boxes"
+                     placeholder={t("task_boxes_placeholder")}
                     value={p.cantidad ?? ""}
                     onChange={(e) => {
                       const nuevos = [...tareaActual.productos];
@@ -702,7 +703,7 @@ export default function TareasPendientes() {
                     <>
                       <PillInput
                         type="text"
-                        placeholder="Sufijo IDX (01/02/03)"
+                         placeholder={t("task_idx_suffix_placeholder")}
                         value={p.idx_line || ""}
                         onChange={(e) => {
                           const nuevos = [...tareaActual.productos];
@@ -713,11 +714,17 @@ export default function TareasPendientes() {
                       />
                       <PillInput
                         type="text"
-                        placeholder="Primera etiqueta 6J/5J/1J"
-                        value={p.primera_etiqueta || ""}
-                        onChange={(e) => {
-                          const nuevos = [...tareaActual.productos];
-                          nuevos[index] = { ...p, primera_etiqueta: e.target.value };
+                         placeholder={t("task_first_label_placeholder")}
+                         value={p.primera_etiqueta || ""}
+                         onFocus={() => {
+                           if (p.primera_etiqueta) return;
+                           const nuevos = [...tareaActual.productos];
+                           nuevos[index] = { ...p, primera_etiqueta: "6J" };
+                           setTareaActual({ ...tareaActual, productos: nuevos });
+                         }}
+                         onChange={(e) => {
+                           const nuevos = [...tareaActual.productos];
+                           nuevos[index] = { ...p, primera_etiqueta: e.target.value.toUpperCase().replace(/\s+/g, "") };
                           setTareaActual({ ...tareaActual, productos: nuevos });
                         }}
                         style={{ width: "240px" }}
@@ -781,7 +788,7 @@ export default function TareasPendientes() {
               </div>
 
               <TextAreaStyle
-                placeholder="Instrucciones del supervisor / Supervisor instructions"
+                 placeholder={t("task_supervisor_instructions_placeholder")}
                 value={tareaActual.instrucciones_supervisor ?? tareaActual.notas ?? ""}
                 onChange={(e) =>
                   setTareaActual({ ...tareaActual, instrucciones_supervisor: e.target.value })

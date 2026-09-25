@@ -324,6 +324,70 @@ button {
   background-color: #f9fafb;
 }
 
+/* Dense desktop tables keep the full record visible in one viewport. */
+.records-table, .summary-table {
+  table-layout: fixed;
+  min-width: 0;
+  font-size: clamp(10px, 0.76vw, 13px);
+}
+.records-table th, .records-table td,
+.summary-table th, .summary-table td {
+  padding: clamp(3px, 0.45vw, 8px);
+  overflow-wrap: anywhere;
+}
+.records-table .records-nowrap,
+.summary-table .summary-nowrap,
+.records-table .records-labels > div,
+.records-table .records-date > div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.records-table .records-amount { text-align: center; }
+.records-table .records-date > div + div { margin-top: 3px; }
+.records-table .records-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.records-table .records-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.records-table .records-actions button {
+  min-width: 0;
+  padding: 5px 3px;
+  font-size: inherit;
+}
+.records-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin-top: 12px;
+}
+.records-edit-grid label { display: flex; flex-direction: column; gap: 4px; }
+.records-edit-grid input { width: 100%; box-sizing: border-box; }
+.records-shipping-editor { margin-top: 18px; }
+.records-shipping-editor h4 { margin: 0; }
+.summary-table .summary-part {
+  display: block;
+  font-size: 0.78em;
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.summary-table .summary-operator { display: block; font-weight: 700; }
+.summary-table .summary-time { display: block; opacity: 0.75; }
+@media (max-width: 700px) {
+  .records-table, .summary-table { font-size: 10px; }
+  .records-table th, .records-table td,
+  .summary-table th, .summary-table td { padding: 3px; }
+  .records-edit-grid { grid-template-columns: 1fr; }
+}
+
 
 .add-record-button {
   position: fixed;

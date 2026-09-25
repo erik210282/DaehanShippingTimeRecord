@@ -22,6 +22,19 @@ import {
 
 Modal.setAppElement("#root");
 
+const roundMinutes = (value) => Math.round(value * 100) / 100;
+const elapsedMinutes = (start, end) => {
+  const minutes = (new Date(end).getTime() - new Date(start).getTime()) / 60000;
+  return Number.isFinite(minutes) && minutes >= 0 ? roundMinutes(minutes) : null;
+};
+const formatRecordDate = (date, language) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return ["—", "—"];
+  return [
+    date.toLocaleDateString(language),
+    date.toLocaleTimeString(language, { hour: "numeric", minute: "2-digit", second: "2-digit" }),
+  ];
+};
+
 export default function Registros() {
   const { t, i18n } = useTranslation();
 
@@ -40,6 +53,7 @@ export default function Registros() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [registroActual, setRegistroActual] = useState(null);
   const [esNuevo, setEsNuevo] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [mapaActividades, setMapaActividades] = useState({});
   const [mapaProductos, setMapaProductos] = useState({});
@@ -283,7 +297,7 @@ useEffect(() => {
       if (!fecha) return "";
       const d = new Date(fecha);
       const pad = (n) => String(n).padStart(2, "0");
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     };
 
     setRegistroActual({
@@ -294,6 +308,15 @@ useEffect(() => {
         : [{ producto: registro.producto, cantidad: registro.cantidad }],
       horaInicio: formatFecha(registro.horaInicio),
       horaFin: formatFecha(registro.horaFin),
+      pausa_total: registro.pausa_total ?? 0,
+      shipping_edit: {
+        etiqueta_inicio: registro.shipping_capture?.etiqueta_inicio || "",
+        etiqueta_fin: registro.shipping_capture?.etiqueta_fin || "",
+        puerta: registro.shipping_capture?.puerta || "",
+        puerta_fin: registro.shipping_capture?.puerta_fin || "",
+        trailer: registro.shipping_capture?.trailer || "",
+        trailer_fin: registro.shipping_capture?.trailer_fin || "",
+      },
     });
     setEsNuevo(false);
   } else {
@@ -306,12 +329,44 @@ useEffect(() => {
       horaInicio: "",
       horaFin: "",
       duracion: "", 
+      pausa_total: 0,
       notas: "",
     });
     setEsNuevo(true);
   }
   setModalAbierto(true);
 };
+
+ const cambiarFechaRegistro = (campo, value) => {
+   setRegistroActual((actual) => {
+     const nuevo = { ...actual, [campo]: value };
+     const elapsed = elapsedMinutes(nuevo.horaInicio, nuevo.horaFin);
+     if (elapsed !== null) {
+       const paused = Math.min(elapsed, Math.max(0, Number(nuevo.pausa_total) || 0));
+       nuevo.pausa_total = roundMinutes(paused);
+       nuevo.duracion = roundMinutes(elapsed - paused);
+     }
+     return nuevo;
+   });
+ };
+
+ const cambiarMinutosRegistro = (campo, value) => {
+   setRegistroActual((actual) => {
+     const elapsed = elapsedMinutes(actual.horaInicio, actual.horaFin);
+     const numeric = value === "" ? "" : Math.max(0, Number(value));
+     const nuevo = { ...actual, [campo]: numeric };
+     if (elapsed !== null && numeric !== "") {
+       if (campo === "duracion") nuevo.pausa_total = roundMinutes(Math.max(0, elapsed - numeric));
+       else nuevo.duracion = roundMinutes(Math.max(0, elapsed - numeric));
+     }
+     return nuevo;
+   });
+ };
+
+ const cambiarCaptura = (campo, value) => setRegistroActual((actual) => ({
+   ...actual,
+   shipping_edit: { ...actual.shipping_edit, [campo]: value.toUpperCase() },
+ }));
 
   const eliminarRegistro = async (id) => {
   try {
@@ -331,7 +386,8 @@ useEffect(() => {
 };
 
  const guardarRegistro = async () => {
-  const {
+   if (saving) return;
+   const {
     idx,
     actividad,
     productos,
@@ -339,7 +395,8 @@ useEffect(() => {
     notas,
     horaInicio,
     horaFin,
-    duracion,
+     duracion,
+     pausa_total,
   } = registroActual;
 
   if (
@@ -349,7 +406,7 @@ useEffect(() => {
     !operadores.length ||
     !horaInicio ||
     !horaFin ||
-    !duracion
+     duracion === "" || duracion === null
   ) {
     toast.error(t("fill_all_fields"));
     return;
@@ -399,6 +456,14 @@ useEffect(() => {
     toast.error(t("invalid_time_range"));
     return;
   }
+  const elapsed = elapsedMinutes(horaInicio, horaFin);
+  if (elapsed === null || !Number.isFinite(Number(duracion)) ||
+      !Number.isFinite(Number(pausa_total)) || Number(duracion) < 0 ||
+      Number(pausa_total) < 0 || Number(duracion) > elapsed + 0.01 ||
+      Number(pausa_total) > elapsed + 0.01) {
+    toast.error(t("invalid_duration_pause"));
+    return;
+  }
 
   const data = {
     idx,
@@ -408,13 +473,15 @@ useEffect(() => {
     notas: notas || "",
     hora_inicio: new Date(horaInicio),
     hora_fin: new Date(horaFin),
-    duracion,
+    duracion: Number(duracion),
+    pausa_total: Number(pausa_total),
     ...(!esNuevo && registroActual.comentario_actividad !== null &&
       registroActual.comentario_actividad !== undefined
       ? { comentario_actividad: notas || "" }
       : {}),
   };
 
+  setSaving(true);
   try {
     if (esNuevo) {
       const { error } = await supabase
@@ -422,17 +489,21 @@ useEffect(() => {
         .insert([data]);
       if (error) throw error;
     } else {
-      const { error } = await supabase
-        .from("actividades_realizadas")
-        .update(data)
-        .eq("id", registroActual.id);
+      const { error } = await supabase.rpc("shipping_supervisor_edit_record", {
+        p_actividad: registroActual.id,
+        p_record: data,
+        p_capture: registroActual.shipping_edit,
+      });
       if (error) throw error;
     }
 
+    await actualizarRegistros();
     toast.success(t("save_success"));
     setModalAbierto(false);
   } catch (error) {
-    toast.error(t("error_saving"));
+    toast.error(error.message || t("error_saving"));
+  } finally {
+    setSaving(false);
   }
 };
 
@@ -523,7 +594,11 @@ useEffect(() => {
           </div>  
 
           <div className="table-wrap">
-            <table className="table">
+            <table className="table records-table">
+              <colgroup>
+                {[6, 5, 8, 4, 9, 8, 8, 6, 9, 7, 8, 6, 11, 5].map((width, i) =>
+                  <col key={i} style={{ width: `${width}%` }} />)}
+              </colgroup>
               <thead>
                 <tr>
                   <th>{t("idx")}</th>
@@ -533,10 +608,10 @@ useEffect(() => {
                   <th>{t("operator")}</th>
                   <th>{t("start_time")}</th>
                   <th>{t("end_time")}</th>
-                  <th>{t("duration_min")} / {t("pausas")}</th>
-                  <th>{t("shipping_labels")}</th>
-                  <th>{t("shipping_trailer")}</th>
-                  <th>{t("shipping_door")}</th>
+                   <th>{t("duration_pause_short")}</th>
+                   <th>{t("shipping_labels")}</th>
+                   <th>{t("shipping_door")}</th>
+                   <th>{t("shipping_trailer")}</th>
                   <th>{t("shipping_validation")}</th>
                   <th>{t("notes")}</th>
                   <th>{t("actions")}</th>
@@ -546,20 +621,22 @@ useEffect(() => {
                 {filasPagina.map((r) => {
                   const inicio = new Date(r.horaInicio);
                   const fin = new Date(r.horaFin);
-                  const captura = r.shipping_capture;
-                  const validado = captura && isShippingVerified(r, captura, mapaActividades[r.actividad]);
-                  return (
-                    <tr key={r.id}>
-                      <td>{r.idx || "N/A"}</td>
+                   const captura = r.shipping_capture;
+                   const validado = captura && isShippingVerified(r, captura, mapaActividades[r.actividad]);
+                   const startParts = formatRecordDate(inicio, i18n.language);
+                   const endParts = formatRecordDate(fin, i18n.language);
+                   return (
+                     <tr key={r.id}>
+                       <td className="records-nowrap" title={r.idx}>{r.idx || "N/A"}</td>
                       <td>{mapaActividades[r.actividad] || `ID: ${r.actividad}`}</td>
-                    <td>
+                     <td>
                       {Array.isArray(r.productos)
                         ? r.productos.map((p, i) => (
                             <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
                           ))
                         : mapaProductos[r.producto]}
                     </td>
-                    <td>
+                    <td className="records-amount">
                       {Array.isArray(r.productos)
                         ? r.productos.map((p, i) => (
                             <div key={i}>{p.cantidad}</div>
@@ -567,53 +644,48 @@ useEffect(() => {
                         : r.cantidad}
                     </td>
                       <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
-                      <td>{inicio.toLocaleString()}</td>
-                      <td>{fin.toLocaleString()}</td>
-                      <td>
-                        {r.duracion ? Math.round(r.duracion) : "-"} min /{" "}                        
-                        {r.pausa_total === null || r.pausa_total === undefined ? (
-                          <span style={{ color: "red", fontWeight: "bold" }}>*</span> 
-                        ) : typeof r.pausa_total === "number" &&
-                          Math.round(r.pausa_total) >= 1 ? (
-                          Math.round(r.pausa_total)     
-                        ) : (
-                          "-"     
-                        )}
-                        {" "}min
-                      </td>
-                      <td>
-                        {captura?.etiqueta_inicio || captura?.etiqueta_fin ? (
-                          <>
-                            <div>{t("shipping_start_label")}: {captura.etiqueta_inicio || "—"}</div>
-                            <div>{t("shipping_end_label")}: {captura.etiqueta_fin || "—"}</div>
-                          </>
-                        ) : "—"}
-                      </td>
-                      <td>{captura?.trailer || captura?.trailer_fin
-                        ? captura.trailer_fin && captura.trailer && captura.trailer_fin !== captura.trailer
-                          ? `${captura.trailer} → ${captura.trailer_fin}` : captura.trailer
-                            || captura.trailer_fin
-                        : "—"}</td>
-                      <td>{captura?.puerta || captura?.puerta_fin
-                        ? captura.puerta_fin && captura.puerta && captura.puerta_fin !== captura.puerta
-                          ? `${captura.puerta} → ${captura.puerta_fin}` : captura.puerta
-                            || captura.puerta_fin
-                        : "—"}</td>
+                       <td className="records-date"><div>{startParts[0]}</div><div>{startParts[1]}</div></td>
+                       <td className="records-date"><div>{endParts[0]}</div><div>{endParts[1]}</div></td>
+                       <td className="records-nowrap" title={`${r.duracion ?? "—"} / ${r.pausa_total ?? "—"} min`}>
+                         {r.duracion === null || r.duracion === undefined ? "—" : Math.round(r.duracion)}
+                         m ({r.pausa_total === null || r.pausa_total === undefined
+                           ? "—" : Math.round(r.pausa_total)}m)
+                       </td>
+                       <td className="records-labels">
+                         {captura?.etiqueta_inicio || captura?.etiqueta_fin ? (
+                           <>
+                             <div>{t("shipping_start_label")}: {captura.etiqueta_inicio || "—"}</div>
+                             <div>{t("shipping_end_label")}: {captura.etiqueta_fin || "—"}</div>
+                           </>
+                         ) : "—"}
+                       </td>
+                       <td className="records-nowrap" title={[captura?.puerta, captura?.puerta_fin].filter(Boolean).join(" → ")}>{captura?.puerta || captura?.puerta_fin
+                         ? captura.puerta_fin && captura.puerta && captura.puerta_fin !== captura.puerta
+                           ? `${captura.puerta} → ${captura.puerta_fin}` : captura.puerta
+                             || captura.puerta_fin
+                         : "—"}</td>
+                       <td className="records-nowrap" title={[captura?.trailer, captura?.trailer_fin].filter(Boolean).join(" → ")}>{captura?.trailer || captura?.trailer_fin
+                         ? captura.trailer_fin && captura.trailer && captura.trailer_fin !== captura.trailer
+                           ? `${captura.trailer} → ${captura.trailer_fin}` : captura.trailer
+                             || captura.trailer_fin
+                         : "—"}</td>
                       <td>{captura ? (
                         <strong style={{ color: validado ? "#166534" : "#b45309" }}>
                           {validado ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
                         </strong>
                       ) : "—"}</td>
-                      <td>
-                        {r.instrucciones_supervisor && (
-                          <div><strong>Supervisor:</strong> {r.instrucciones_supervisor}</div>
-                        )}
-                        <div>{r.comentario_actividad ?? r.notas ?? "-"}</div>
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                          <BtnEditDark onClick={() => abrirModal(r)}>{t("edit")}</BtnEditDark>
-                          <BtnDanger 
+                       <td title={[r.instrucciones_supervisor, r.comentario_actividad ?? r.notas].filter(Boolean).join(" | ")}>
+                         <div className="records-note">
+                         {r.instrucciones_supervisor && (
+                           <div><strong>Supervisor:</strong> {r.instrucciones_supervisor}</div>
+                         )}
+                         <div>{r.comentario_actividad ?? r.notas ?? "-"}</div>
+                         </div>
+                       </td>
+                       <td>
+                         <div className="records-actions">
+                           <BtnEditDark style={{ width: "100%", padding: "4px 2px" }} onClick={() => abrirModal(r)}>{t("edit")}</BtnEditDark>
+                           <BtnDanger style={{ width: "100%", padding: "4px 2px" }}
                             onClick={() => setRegistroAEliminar(r)}
                           >
                             {t("delete")}
@@ -704,21 +776,48 @@ useEffect(() => {
           <div style={{ marginTop: 12 }}></div>
           <DSSelect isMulti options={selectOperadores} value={selectOperadores.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <TextAreaStyle value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={3} style={{ marginTop: 10, minHeight: 90, width: "85%", }} />
-          <DSDate type="datetime-local" value={registroActual?.horaInicio} onChange={(e) => setRegistroActual({ ...registroActual, horaInicio: e.target.value })}  style={{ marginTop: 14, marginBottom: 6 }}/>
-          <DSDate type="datetime-local" value={registroActual?.horaFin} onChange={(e) => setRegistroActual({ ...registroActual, horaFin: e.target.value })}  style={{ marginTop: 10, marginBottom: 10 }}/>
-
-          <label style={{ marginTop: 8, marginBottom: 4 }}>{t("duration_min")}</label>
-            <DSInput
-              type="number"
-              className="form-control"
-              value={registroActual?.duracion || ""}
-              onChange={(e) =>
-                setRegistroActual({ ...registroActual, duracion: Number(e.target.value) })
-              }
-              style={{ maxWidth: 160, marginBottom: 12 }}
-            />
+           <div className="records-edit-grid">
+             <label>{t("start_time")}
+               <DSDate type="datetime-local" step="1" value={registroActual?.horaInicio || ""}
+                 onChange={(e) => cambiarFechaRegistro("horaInicio", e.target.value)} />
+             </label>
+             <label>{t("end_time")}
+               <DSDate type="datetime-local" step="1" value={registroActual?.horaFin || ""}
+                 onChange={(e) => cambiarFechaRegistro("horaFin", e.target.value)} />
+             </label>
+             <label>{t("duration_min")}
+               <DSInput type="number" min="0" step="0.01"
+                 value={registroActual?.duracion ?? ""}
+                 onChange={(e) => cambiarMinutosRegistro("duracion", e.target.value)} />
+             </label>
+             <label>{t("pausas")}
+               <DSInput type="number" min="0" step="0.01"
+                 value={registroActual?.pausa_total ?? ""}
+                 onChange={(e) => cambiarMinutosRegistro("pausa_total", e.target.value)} />
+             </label>
+           </div>
+           {!esNuevo && (
+             <div className="records-shipping-editor">
+               <h4>{t("shipping_capture_details")}</h4>
+               <div className="records-edit-grid">
+                 {[
+                   ["etiqueta_inicio", "shipping_start_label"],
+                   ["etiqueta_fin", "shipping_end_label"],
+                   ["puerta", "shipping_door_start"],
+                   ["puerta_fin", "shipping_door_end"],
+                   ["trailer", "shipping_trailer_start"],
+                   ["trailer_fin", "shipping_trailer_end"],
+                 ].map(([campo, translation]) => (
+                   <label key={campo}>{t(translation)}
+                     <DSInput type="text" value={registroActual?.shipping_edit?.[campo] || ""}
+                       onChange={(e) => cambiarCaptura(campo, e.target.value)} />
+                   </label>
+                 ))}
+               </div>
+             </div>
+           )}
           <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-            <BtnPrimary type="button" onClick={guardarRegistro}>{t("save")}</BtnPrimary>
+             <BtnPrimary type="button" onClick={guardarRegistro} disabled={saving}>{t("save")}</BtnPrimary>
             <BtnSecondary type="button" onClick={() => setModalAbierto(false)}>{t("cancel")}</BtnSecondary>
           </div>
         </Modal>  
