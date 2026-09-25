@@ -373,16 +373,21 @@ button {
 .records-shipping-editor h4 { margin: 0; }
 .summary-table .summary-part {
   display: block;
-  font-size: 0.78em;
-  opacity: 0.7;
+  font-size: 0.9em;
+  opacity: 0.85;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .summary-table .summary-operator { display: block; font-weight: 700; }
-.summary-table .summary-time { display: block; opacity: 0.75; }
+.summary-table { font-size: clamp(12px, 0.9vw, 15px); }
+.summary-table .summary-time { display: block; opacity: 0.8; font-size: 0.91em; }
+.summary-table .summary-time-date { display: block; }
+.summary-table .summary-duration { display: block; white-space: nowrap; }
+.summary-table .summary-capture { font-size: 0.95em; margin-top: 4px; }
+.summary-table .summary-capture > div { overflow-wrap: anywhere; }
 @media (max-width: 700px) {
-  .records-table, .summary-table { font-size: 10px; }
+  .records-table, .summary-table { font-size: 11px; }
   .records-table th, .records-table td,
   .summary-table th, .summary-table td { padding: 3px; }
   .records-edit-grid { grid-template-columns: 1fr; }
