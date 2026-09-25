@@ -6,18 +6,37 @@ const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading
 
   useEffect(() => {
-    // Obtener sesión actual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session?.user);
-    });
+    let mounted = true;
+    const verifySession = async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (!mounted) return;
+      if (authError || !user) {
+        setIsAuthenticated(false);
+        return;
+      }
+      const { data: profile, error } = await supabase.from("operadores")
+        .select("activo, role").eq("uid", user.id).maybeSingle();
+      if (!mounted) return;
+      const allowed = !error && profile?.activo === true && profile.role === "supervisor";
+      setIsAuthenticated(allowed);
+      if (!allowed && !error) await supabase.auth.signOut({ scope: "local" });
+    };
+    verifySession();
+    const onFocus = () => { if (document.visibilityState === "visible") verifySession(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
 
     // Suscribirse a cambios
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session?.user);
+      if (!session?.user) setIsAuthenticated(false);
+      else setTimeout(verifySession, 0);
     });
 
     return () => {
-      listener.subscription.unsubscribe();
+      mounted = false;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+      listener?.subscription?.unsubscribe();
     };
   }, []);
 

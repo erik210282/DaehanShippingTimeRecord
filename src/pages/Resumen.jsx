@@ -175,14 +175,14 @@ export default function Resumen() {
           <>
              {operadorNombres.map((nombre, i) =>
                <span key={i} className="summary-operator">{nombre}</span>)}
-             <span className="summary-time">{hora}
+             <span className="summary-time"><span className="summary-time-date">{hora}</span>
                {act.duracion !== null && act.duracion !== undefined && (
-                 <> · {Math.round(act.duracion)}m ({act.pausa_total === null ||
-                   act.pausa_total === undefined ? "—" : Math.round(act.pausa_total)}m)</>
+                 <span className="summary-duration">{Math.round(act.duracion)}m ({act.pausa_total === null ||
+                   act.pausa_total === undefined ? "—" : Math.round(act.pausa_total)}m)</span>
                )}
              </span>
             {captura && (
-              <div style={{ fontSize: "0.8em", marginTop: 4 }}>
+              <div className="summary-capture">
                 <span style={{ color: verificada ? "#166534" : "#b45309", fontWeight: 700 }}>
                   {verificada ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
                 </span>

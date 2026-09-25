@@ -131,7 +131,7 @@ export default function TareasPendientes() {
     if (!error && data) {
       const ops = {};
       data.forEach((doc) => {
-        if (doc.activo !== false) ops[doc.id] = doc.nombre;
+        if (doc.activo === true) ops[doc.id] = doc.nombre;
       });
       const ordenadas = Object.fromEntries(
         Object.entries(ops).sort(([, a], [, b]) => a.localeCompare(b))
@@ -319,7 +319,7 @@ export default function TareasPendientes() {
       notas: instrucciones,
       instrucciones_supervisor: instrucciones,
       estado: tareaActual.estado || "pendiente",
-      operadores: tareaActual.operadores || [],
+      operadores: (tareaActual.operadores || []).filter((id) => operadores[id]),
       prioridad: tareaActual.prioridad ?? getNextPriority(),
       es_urgente: Boolean(tareaActual.es_urgente),
       mismo_dia: Boolean(tareaActual.mismo_dia),
@@ -761,9 +761,9 @@ export default function TareasPendientes() {
                   isMulti
                   options={operadorOpciones}
                   value={
-                    tareaActual?.operadores?.map((opId) => ({
+                    tareaActual?.operadores?.filter((opId) => operadores[opId]).map((opId) => ({
                       value: opId,
-                      label: operadores[opId] || opId,
+                      label: operadores[opId],
                     })) || []
                   }
                   onChange={(e) =>
