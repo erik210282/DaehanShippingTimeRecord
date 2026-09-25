@@ -250,7 +250,7 @@ export default function GenerarBOL() {
 
       const { data: loads, error: loadError } = await supabase
         .from("actividades_realizadas")
-        .select("id, estado, trailer, puerta")
+        .select("id, estado, trailer, puerta, trailer_fin, puerta_fin")
         .eq("idx", selectedIdx)
         .eq("estado", "finalizada")
         .in("actividad", loadTypes.map((type) => String(type.id)))
@@ -272,10 +272,11 @@ export default function GenerarBOL() {
         setTrailerNo(verified.capture.trailer_fin || verified.capture.trailer);
         setDockNo(verified.capture.puerta_fin || verified.capture.puerta);
       } else if (active) {
-        const legacyLoad = loads.find((load) => load.trailer?.trim() && load.puerta?.trim());
+        const legacyLoad = loads.find((load) =>
+          (load.trailer_fin || load.trailer)?.trim() && (load.puerta_fin || load.puerta)?.trim());
         if (legacyLoad) {
-          setTrailerNo(legacyLoad.trailer);
-          setDockNo(legacyLoad.puerta);
+          setTrailerNo(legacyLoad.trailer_fin || legacyLoad.trailer);
+          setDockNo(legacyLoad.puerta_fin || legacyLoad.puerta);
         }
       }
     }
