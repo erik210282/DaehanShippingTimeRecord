@@ -6,6 +6,7 @@ import { isAfter, isBefore, format } from "date-fns";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { supabase } from "../supabase/client";
+import { fetchShippingCaptures, isShippingVerified } from "../utils/shippingValidation";
 import {
   DSInput,
   DSSelect,
@@ -133,10 +134,19 @@ const actualizarRegistros = async () => {
     from += PAGE;
   }
 
+  let capturas;
+  try {
+    capturas = await fetchShippingCaptures();
+  } catch (error) {
+    toast.error(error.message || t("shipping_captures_error"));
+    return;
+  }
+
   const nuevos = (acumulado || []).map((doc) => ({
     id: doc.id,
     idx: doc.idx || "",
     ...doc,
+    shipping_capture: capturas[doc.id] || null,
     operadores: Array.isArray(doc.operadores)
       ? doc.operadores
       : typeof doc.operador === "string" && doc.operador.trim()
@@ -228,7 +238,10 @@ useEffect(() => {
       r.operadores?.some(
         (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
       ) ||
-      (r.idx && r.idx.toLowerCase().includes(texto));
+      (r.idx && r.idx.toLowerCase().includes(texto)) ||
+      [r.shipping_capture?.trailer, r.shipping_capture?.puerta,
+        r.shipping_capture?.etiqueta_inicio, r.shipping_capture?.etiqueta_fin]
+        .some((valor) => valor?.toLowerCase().includes(texto));
 
     const fechaInicio =
       r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
@@ -275,6 +288,7 @@ useEffect(() => {
 
     setRegistroActual({
       ...registro,
+      notas: registro.comentario_actividad ?? registro.notas ?? "",
       productos: Array.isArray(registro.productos)
         ? registro.productos
         : [{ producto: registro.producto, cantidad: registro.cantidad }],
@@ -395,6 +409,10 @@ useEffect(() => {
     hora_inicio: new Date(horaInicio),
     hora_fin: new Date(horaFin),
     duracion,
+    ...(!esNuevo && registroActual.comentario_actividad !== null &&
+      registroActual.comentario_actividad !== undefined
+      ? { comentario_actividad: notas || "" }
+      : {}),
   };
 
   try {
@@ -435,7 +453,18 @@ useEffect(() => {
       [t("end_time")]: fin.toLocaleString(),
       [t("duration_min")]: d.duracion ? Math.round(d.duracion) : "-",
       [t("pausas")]: typeof d.pausa_total === "number" ? Math.round(d.pausa_total) : "-",
-      [t("notes")]: d.notas || "N/A",
+      [t("notes")]: d.comentario_actividad ?? d.notas ?? "N/A",
+      ["Supervisor instructions"]: d.instrucciones_supervisor || "",
+      [t("shipping_start_label")]: d.shipping_capture?.etiqueta_inicio || "",
+      [t("shipping_end_label")]: d.shipping_capture?.etiqueta_fin || "",
+      [t("shipping_trailer_start")]: d.shipping_capture?.trailer || "",
+      [t("shipping_trailer_end")]: d.shipping_capture?.trailer_fin || "",
+      [t("shipping_door_start")]: d.shipping_capture?.puerta || "",
+      [t("shipping_door_end")]: d.shipping_capture?.puerta_fin || "",
+      [t("shipping_validation")]: d.shipping_capture
+        ? (isShippingVerified(d, d.shipping_capture, mapaActividades[d.actividad])
+          ? t("shipping_verified") : t("shipping_pending_verification"))
+        : "",
     }));
   });
 
@@ -505,6 +534,10 @@ useEffect(() => {
                   <th>{t("start_time")}</th>
                   <th>{t("end_time")}</th>
                   <th>{t("duration_min")} / {t("pausas")}</th>
+                  <th>{t("shipping_labels")}</th>
+                  <th>{t("shipping_trailer")}</th>
+                  <th>{t("shipping_door")}</th>
+                  <th>{t("shipping_validation")}</th>
                   <th>{t("notes")}</th>
                   <th>{t("actions")}</th>
                 </tr>
@@ -513,6 +546,8 @@ useEffect(() => {
                 {filasPagina.map((r) => {
                   const inicio = new Date(r.horaInicio);
                   const fin = new Date(r.horaFin);
+                  const captura = r.shipping_capture;
+                  const validado = captura && isShippingVerified(r, captura, mapaActividades[r.actividad]);
                   return (
                     <tr key={r.id}>
                       <td>{r.idx || "N/A"}</td>
@@ -546,7 +581,33 @@ useEffect(() => {
                         )}
                         {" "}min
                       </td>
-                      <td>{r.notas || "-"}</td>
+                      <td>
+                        {captura ? (
+                          <>
+                            <div>{t("shipping_start_label")}: {captura.etiqueta_inicio || "—"}</div>
+                            <div>{t("shipping_end_label")}: {captura.etiqueta_fin || "—"}</div>
+                          </>
+                        ) : "—"}
+                      </td>
+                      <td>{captura?.trailer
+                        ? captura.trailer_fin && captura.trailer_fin !== captura.trailer
+                          ? `${captura.trailer} → ${captura.trailer_fin}` : captura.trailer
+                        : "—"}</td>
+                      <td>{captura?.puerta
+                        ? captura.puerta_fin && captura.puerta_fin !== captura.puerta
+                          ? `${captura.puerta} → ${captura.puerta_fin}` : captura.puerta
+                        : "—"}</td>
+                      <td>{captura ? (
+                        <strong style={{ color: validado ? "#166534" : "#b45309" }}>
+                          {validado ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
+                        </strong>
+                      ) : "—"}</td>
+                      <td>
+                        {r.instrucciones_supervisor && (
+                          <div><strong>Supervisor:</strong> {r.instrucciones_supervisor}</div>
+                        )}
+                        <div>{r.comentario_actividad ?? r.notas ?? "-"}</div>
+                      </td>
                       <td>
                         <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
                           <BtnEditDark onClick={() => abrirModal(r)}>{t("edit")}</BtnEditDark>
