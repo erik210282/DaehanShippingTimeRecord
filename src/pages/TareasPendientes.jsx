@@ -21,6 +21,8 @@ import {
 Modal.setAppElement("#root");
 
 let canalTareas = null;
+const SHIPPING_PHASES = ["stage", "label", "scan", "load"];
+const EMPTY_CONTAINER_PRODUCTS = new Set(["delivery", "empty crates", "empty"]);
 
 export default function TareasPendientes() {
   const location = useLocation();
@@ -40,6 +42,17 @@ export default function TareasPendientes() {
   // Drag & Drop state
   const [dragIndex, setDragIndex] = useState(null);
   const [overIndex, setOverIndex] = useState(null);
+
+  const isShippingActivity = (id) => SHIPPING_PHASES.includes(
+    (actividades[id] || "").toLowerCase().trim()
+  );
+  const isEmptyContainer = (id) => EMPTY_CONTAINER_PRODUCTS.has(
+    (productos[id] || "").toLowerCase().trim()
+  );
+  const productLabel = (id, nombre) => {
+    const part = partes[id]?.trim();
+    return part && part.toUpperCase() !== "NA" ? `${nombre} (${part})` : nombre;
+  };
 
   const colorActividad = (nombreActividad) => {
     switch (nombreActividad?.toLowerCase()) {
@@ -206,6 +219,8 @@ export default function TareasPendientes() {
         operadores: [],
         notas: "",
         instrucciones_supervisor: "",
+        es_urgente: false,
+        mismo_dia: false,
         estado: "pendiente",
         prioridad: getNextPriority(),
       });
@@ -231,8 +246,10 @@ export default function TareasPendientes() {
       operadores: data.operadores || [],
       notas: data.notas || "",
       instrucciones_supervisor: data.instrucciones_supervisor ?? data.notas ?? "",
+      es_urgente: data.es_urgente === true,
+      mismo_dia: data.mismo_dia === true,
       _idxOriginal: data.idx,
-      _seriesOriginal: JSON.stringify((data.productos || []).map((p) => ({
+      _seriesOriginal: JSON.stringify((data.productos || []).filter((p) => !isEmptyContainer(p.producto)).map((p) => ({
         idx_line: p.idx_line || "", primera_etiqueta: p.primera_etiqueta || "",
         producto: p.producto, cantidad: Number(p.cantidad),
       }))),
@@ -266,16 +283,16 @@ export default function TareasPendientes() {
       return;
     }
 
-    const shipping = ["stage", "label", "scan", "load"].includes(
-      (actividades[actividad] || "").toLowerCase().trim()
-    );
-    const tieneEtiquetas = shipping && (!tareaActual.id ||
-      listaProductos.some((p) => p.idx_line || p.primera_etiqueta));
+    const shipping = isShippingActivity(actividad);
+    const productosConEtiqueta = shipping
+      ? listaProductos.filter((p) => !isEmptyContainer(p.producto)) : [];
+    const tieneEtiquetas = productosConEtiqueta.length > 0 && (!tareaActual.id ||
+      productosConEtiqueta.some((p) => p.idx_line || p.primera_etiqueta));
     if (tareaActual.id && tieneEtiquetas && idx.trim() !== tareaActual._idxOriginal) {
       toast.error("El IDX de una tarea con etiquetas no se puede cambiar.");
       return;
     }
-    if (tieneEtiquetas && listaProductos.some((p) =>
+    if (tieneEtiquetas && productosConEtiqueta.some((p) =>
       !/^\d{2,3}$/.test(p.idx_line || "") ||
       !/^(6J|5J|1J).*\d{4,}$/i.test((p.primera_etiqueta || "").replace(/\s+/g, "")) ||
       !Number.isInteger(Number(p.cantidad)) || Number(p.cantidad) < 1
@@ -283,7 +300,7 @@ export default function TareasPendientes() {
       toast.error("Cada producto necesita sufijo IDX, primera etiqueta y cantidad de cajas válida.");
       return;
     }
-    if (tieneEtiquetas && new Set(listaProductos.map((p) => p.idx_line)).size !== listaProductos.length) {
+    if (tieneEtiquetas && new Set(productosConEtiqueta.map((p) => p.idx_line)).size !== productosConEtiqueta.length) {
       toast.error("Cada producto necesita un sufijo IDX distinto.");
       return;
     }
@@ -294,7 +311,7 @@ export default function TareasPendientes() {
       productos: listaProductos.map((p) => ({
         producto: p.producto,
         cantidad: Number(p.cantidad),
-        ...(tieneEtiquetas ? {
+        ...(tieneEtiquetas && !isEmptyContainer(p.producto) ? {
           idx_line: p.idx_line,
           primera_etiqueta: p.primera_etiqueta.trim().toUpperCase().replace(/\s+/g, ""),
         } : {}),
@@ -304,17 +321,19 @@ export default function TareasPendientes() {
       estado: tareaActual.estado || "pendiente",
       operadores: tareaActual.operadores || [],
       prioridad: tareaActual.prioridad ?? getNextPriority(),
+      es_urgente: Boolean(tareaActual.es_urgente),
+      mismo_dia: Boolean(tareaActual.mismo_dia),
     };
 
     try {
-      const seriesActual = JSON.stringify(datos.productos.map((p) => ({
+      const seriesActual = JSON.stringify(datos.productos.filter((p) => !isEmptyContainer(p.producto)).map((p) => ({
         idx_line: p.idx_line || "", primera_etiqueta: p.primera_etiqueta || "",
         producto: p.producto, cantidad: p.cantidad,
       })));
       if (tieneEtiquetas && (!tareaActual.id || seriesActual !== tareaActual._seriesOriginal)) {
         const { error: planError } = await supabase.rpc("shipping_register_plan", {
           p_idx: idx.trim(),
-          p_lines: datos.productos.map((p) => ({
+          p_lines: datos.productos.filter((p) => !isEmptyContainer(p.producto)).map((p) => ({
             idx_line: p.idx_line,
             producto: p.producto,
             cantidad: p.cantidad,
@@ -542,6 +561,12 @@ export default function TareasPendientes() {
                         </svg>
                       </BtnTinyRound>
                     </div>
+                    {(tarea.es_urgente || tarea.mismo_dia) && (
+                      <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 5, flexWrap: "wrap" }}>
+                        {tarea.es_urgente && <span title={t("task_urgent")} style={{ background: "#991b1b", color: "white", borderRadius: 6, padding: "2px 6px", fontSize: 11 }}>{t("task_urgent")}</span>}
+                        {tarea.mismo_dia && <span title={t("task_same_day")} style={{ background: "#1d4ed8", color: "white", borderRadius: 6, padding: "2px 6px", fontSize: 11 }}>{t("task_same_day")}</span>}
+                      </div>
+                    )}
                   </td>
 
                   {/* Handle visual para arrastrar */}
@@ -650,13 +675,13 @@ export default function TareasPendientes() {
               {tareaActual.productos.map((p, index) => (
                 <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
                   <DSSelect
-                    options={Object.entries(productos).map(([id, nombre]) => ({ value: id, label: nombre }))}
+                    options={Object.entries(productos).map(([id, nombre]) => ({ value: id, label: productLabel(id, nombre) }))}
                     value={
-                      p.producto && productos[p.producto] ? { value: p.producto, label: productos[p.producto] } : null
+                      p.producto && productos[p.producto] ? { value: p.producto, label: productLabel(p.producto, productos[p.producto]) } : null
                     }
                     onChange={(e) => {
                       const nuevos = [...tareaActual.productos];
-                      nuevos[index].producto = e.value;
+                      nuevos[index] = { ...p, producto: e.value, idx_line: "", primera_etiqueta: "" };
                       setTareaActual({ ...tareaActual, productos: nuevos });
                     }}
                     placeholder={t("select_product")}
@@ -673,9 +698,7 @@ export default function TareasPendientes() {
                     }}
                     style={{ width: "220px" }}
                   />
-                  {["stage", "label", "scan", "load"].includes(
-                    (actividades[tareaActual.actividad] || "").toLowerCase().trim()
-                  ) && (
+                  {isShippingActivity(tareaActual.actividad) && !isEmptyContainer(p.producto) && (
                     <>
                       <PillInput
                         type="text"
@@ -699,9 +722,6 @@ export default function TareasPendientes() {
                         }}
                         style={{ width: "240px" }}
                       />
-                      <small style={{ alignSelf: "center" }}>
-                        {partes[p.producto] ? `Parte: ${partes[p.producto]}` : "Seleccione un producto con número de parte"}
-                      </small>
                     </>
                   )}
                   {index > 0 && (
@@ -747,6 +767,17 @@ export default function TareasPendientes() {
                   }
                   placeholder={t("select_operator")}
                 />
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "18px", marginTop: "16px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                  <input type="checkbox" checked={Boolean(tareaActual.es_urgente)} onChange={(e) => setTareaActual({ ...tareaActual, es_urgente: e.target.checked })} />
+                  {t("task_urgent")}
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                  <input type="checkbox" checked={Boolean(tareaActual.mismo_dia)} onChange={(e) => setTareaActual({ ...tareaActual, mismo_dia: e.target.checked })} />
+                  {t("task_same_day")}
+                </label>
               </div>
 
               <TextAreaStyle

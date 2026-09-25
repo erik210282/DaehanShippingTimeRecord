@@ -198,6 +198,8 @@
   "shipping_pending_verification": "Sin validar",
   "shipping_captures_error": "No se pudieron cargar las capturas de Shipping",
   "task_added": "Tarea agregada",
+  "task_urgent": "Urgente",
+  "task_same_day": "Mismo día",
   "task_completed": "Tarea Completada",
   "task_deleted": "Tarea eliminada",
   "task_started": "Tarea iniciada",

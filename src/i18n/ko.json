@@ -192,6 +192,8 @@
   "shipping_pending_verification": "미검증",
   "shipping_captures_error": "Shipping 라벨 정보를 불러올 수 없습니다",
   "task_added": "작업이 추가되었습니다.",
+  "task_urgent": "긴급",
+  "task_same_day": "당일",
   "task_completed": "작업 완료됨",
   "task_deleted": "작업이 삭제되었습니다.",
   "task_started": "작업이 시작되었습니다.",

@@ -3,6 +3,7 @@ import { supabase } from "../supabase/client";
 import { useTranslation } from "react-i18next";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { isShippingVerified } from "../utils/shippingValidation";
 import { jsPDF } from "jspdf";
 import QRCode from "qrcode";
 import "../App.css";
@@ -230,6 +231,54 @@ export default function GenerarBOL() {
       } catch {}
     };
   }, [cargarIdxOptions, cargarPoOptions, cargarShipperOptions]);
+
+  // Use the most recent verified LOAD capture for the selected IDX.
+  // These fields remain editable when the IDX has no verified LOAD yet.
+  React.useEffect(() => {
+    let active = true;
+    setTrailerNo("");
+    setDockNo("");
+    if (!selectedIdx) return;
+
+    async function cargarDatosCarga() {
+      const { data: loadTypes, error: typeError } = await supabase
+        .from("actividades")
+        .select("id")
+        .ilike("nombre", "load");
+      if (typeError) throw typeError;
+      if (!loadTypes?.length) return;
+
+      const { data: loads, error: loadError } = await supabase
+        .from("actividades_realizadas")
+        .select("id, estado")
+        .eq("idx", selectedIdx)
+        .eq("estado", "finalizada")
+        .in("actividad", loadTypes.map((type) => String(type.id)))
+        .order("createdAt", { ascending: false })
+        .limit(100);
+      if (loadError) throw loadError;
+      if (!loads?.length) return;
+
+      const { data: captures, error: captureError } = await supabase
+        .from("shipping_activity_labels")
+        .select("actividad_id, etiqueta_inicio, etiqueta_fin, trailer, puerta, trailer_fin, puerta_fin")
+        .in("actividad_id", loads.map((load) => load.id));
+      if (captureError) throw captureError;
+
+      const capturesById = new Map((captures || []).map((capture) => [capture.actividad_id, capture]));
+      const verified = loads.map((load) => ({ load, capture: capturesById.get(load.id) }))
+        .find(({ load, capture }) => isShippingVerified(load, capture, "load"));
+      if (active && verified) {
+        setTrailerNo(verified.capture.trailer_fin || verified.capture.trailer);
+        setDockNo(verified.capture.puerta_fin || verified.capture.puerta);
+      }
+    }
+
+    cargarDatosCarga().catch((error) => {
+      if (active) toast.error(error.message || maybeT("shipping_captures_error"));
+    });
+    return () => { active = false; };
+  }, [selectedIdx, maybeT]);
 
   /* ------ Cargar detalle del IDX y datos del PO ------- */
   React.useEffect(() => {
