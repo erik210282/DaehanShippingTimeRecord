@@ -589,13 +589,15 @@ useEffect(() => {
                           </>
                         ) : "—"}
                       </td>
-                      <td>{captura?.trailer
-                        ? captura.trailer_fin && captura.trailer_fin !== captura.trailer
+                      <td>{captura?.trailer || captura?.trailer_fin
+                        ? captura.trailer_fin && captura.trailer && captura.trailer_fin !== captura.trailer
                           ? `${captura.trailer} → ${captura.trailer_fin}` : captura.trailer
+                            || captura.trailer_fin
                         : "—"}</td>
-                      <td>{captura?.puerta
-                        ? captura.puerta_fin && captura.puerta_fin !== captura.puerta
+                      <td>{captura?.puerta || captura?.puerta_fin
+                        ? captura.puerta_fin && captura.puerta && captura.puerta_fin !== captura.puerta
                           ? `${captura.puerta} → ${captura.puerta_fin}` : captura.puerta
+                            || captura.puerta_fin
                         : "—"}</td>
                       <td>{captura ? (
                         <strong style={{ color: validado ? "#166534" : "#b45309" }}>
