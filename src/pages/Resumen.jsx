@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "../supabase/client";
 import { format } from "date-fns";
 import { DSInput, DSDate, TablePagination } from "../components/controls";
-import { fetchShippingCaptures, isShippingVerified } from "../utils/shippingValidation";
+import { fetchShippingCaptures, isShippingVerified, legacyShippingCapture } from "../utils/shippingValidation";
 
 const SHIPPING_PHASES = ["stage", "label", "scan", "load"];
 
@@ -167,9 +167,7 @@ export default function Resumen() {
 
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
         // Older IDX tasks can have a Load capture without a configured label plan.
-        const captura = capturas[act.id] || (act.trailer || act.puerta
-          ? { trailer: act.trailer, puerta: act.puerta, etiqueta_inicio: null, etiqueta_fin: null }
-          : null);
+        const captura = capturas[act.id] || legacyShippingCapture(act);
         const verificada = captura && isShippingVerified(act, captura, nombreActividad);
         const registro = (
           <>
