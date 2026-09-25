@@ -166,7 +166,10 @@ export default function Resumen() {
         }
 
         const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
-        const captura = capturas[act.id];
+        // Older IDX tasks can have a Load capture without a configured label plan.
+        const captura = capturas[act.id] || (act.trailer || act.puerta
+          ? { trailer: act.trailer, puerta: act.puerta, etiqueta_inicio: null, etiqueta_fin: null }
+          : null);
         const verificada = captura && isShippingVerified(act, captura, nombreActividad);
         const registro = (
           <>
@@ -178,8 +181,12 @@ export default function Resumen() {
                 <span style={{ color: verificada ? "#166534" : "#b45309", fontWeight: 700 }}>
                   {verificada ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
                 </span>
-                <div>{t("shipping_start_label")}: {captura.etiqueta_inicio}</div>
-                <div>{t("shipping_end_label")}: {captura.etiqueta_fin || "—"}</div>
+                {(captura.etiqueta_inicio || captura.etiqueta_fin) && (
+                  <>
+                    <div>{t("shipping_start_label")}: {captura.etiqueta_inicio || "—"}</div>
+                    <div>{t("shipping_end_label")}: {captura.etiqueta_fin || "—"}</div>
+                  </>
+                )}
               </div>
             )}
           </>
