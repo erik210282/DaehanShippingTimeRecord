@@ -6,7 +6,7 @@ import { isAfter, isBefore, format } from "date-fns";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { supabase } from "../supabase/client";
-import { fetchShippingCaptures, isShippingVerified } from "../utils/shippingValidation";
+import { fetchShippingCaptures, isShippingVerified, legacyShippingCapture } from "../utils/shippingValidation";
 import {
   DSInput,
   DSSelect,
@@ -146,9 +146,7 @@ const actualizarRegistros = async () => {
     id: doc.id,
     idx: doc.idx || "",
     ...doc,
-    shipping_capture: capturas[doc.id] || (doc.trailer || doc.puerta
-      ? { trailer: doc.trailer, puerta: doc.puerta, etiqueta_inicio: null, etiqueta_fin: null }
-      : null),
+    shipping_capture: capturas[doc.id] || legacyShippingCapture(doc),
     operadores: Array.isArray(doc.operadores)
       ? doc.operadores
       : typeof doc.operador === "string" && doc.operador.trim()
