@@ -48,6 +48,31 @@ export default function Usuarios() {
     { value: 'supervisor', label: t('role_supervisor') },
   ]), [t]);
 
+  const actualizarEstadoORol = async (uid, changes) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error(t("session_expired_title"));
+      const response = await fetch(`${API_URL}/update-user-role`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY,
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ uid, ...changes }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || t("error"));
+      setMensajeKey("");
+      setMensajeExtra("");
+      await cargarUsuarios();
+    } catch (error) {
+      setMensajeKey("error");
+      setMensajeExtra(`: ${error.message}`);
+      await cargarUsuarios();
+    }
+  };
+
   const crearUsuario = async () => {
     if (creando) return;
     if (!email || !nombre || !password || !role) {
@@ -305,15 +330,7 @@ export default function Usuarios() {
                           value={u.rol || ""}
                           onChange={async (e) => {
                             const nuevoRol = e.target.value;
-                            const { error } = await supabase
-                              .from("operadores")
-                              .update({ role: nuevoRol })
-                              .eq("uid", u.uid);
-
-                            if (error) {
-                            }
-
-                            cargarUsuarios();
+                            await actualizarEstadoORol(u.uid, { role: nuevoRol });
                           }}
                         >
                           <option value="" disabled>{t('select_role_placeholder')}</option>
@@ -353,13 +370,7 @@ export default function Usuarios() {
                           checked={u.activo ?? true}
                           onChange={async (e) => {
                             const nuevoActivo = e.target.checked;
-                            const { error } = await supabase
-                              .from("operadores")
-                              .update({ activo: nuevoActivo })
-                              .eq("uid", u.uid);
-                            if (error) {
-                            }
-                            cargarUsuarios();
+                            await actualizarEstadoORol(u.uid, { is_active: nuevoActivo });
                           }}
                         />
                       </td>
