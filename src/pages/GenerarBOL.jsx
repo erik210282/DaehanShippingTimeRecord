@@ -232,7 +232,7 @@ export default function GenerarBOL() {
     };
   }, [cargarIdxOptions, cargarPoOptions, cargarShipperOptions]);
 
-  // Use the most recent verified LOAD capture for the selected IDX.
+  // Prefer a verified LOAD; older IDX tasks may only have start-time trailer/door.
   // These fields remain editable when the IDX has no verified LOAD yet.
   React.useEffect(() => {
     let active = true;
@@ -250,7 +250,7 @@ export default function GenerarBOL() {
 
       const { data: loads, error: loadError } = await supabase
         .from("actividades_realizadas")
-        .select("id, estado")
+        .select("id, estado, trailer, puerta")
         .eq("idx", selectedIdx)
         .eq("estado", "finalizada")
         .in("actividad", loadTypes.map((type) => String(type.id)))
@@ -271,6 +271,12 @@ export default function GenerarBOL() {
       if (active && verified) {
         setTrailerNo(verified.capture.trailer_fin || verified.capture.trailer);
         setDockNo(verified.capture.puerta_fin || verified.capture.puerta);
+      } else if (active) {
+        const legacyLoad = loads.find((load) => load.trailer?.trim() && load.puerta?.trim());
+        if (legacyLoad) {
+          setTrailerNo(legacyLoad.trailer);
+          setDockNo(legacyLoad.puerta);
+        }
       }
     }
 
