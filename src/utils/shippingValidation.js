@@ -19,8 +19,9 @@ export async function fetchShippingCaptures() {
 
 export function isShippingVerified(activity, capture, activityName) {
   if (!capture || capture.legacy || activity.estado !== "finalizada" ||
-      !capture.etiqueta_inicio || !capture.etiqueta_fin) return false;
-  if (activityName?.toLowerCase().trim() !== "load") return true;
+      activityName?.toLowerCase().trim() !== "load" ||
+      !capture.etiqueta_inicio || !capture.etiqueta_fin ||
+      capture.etiqueta_inicio === capture.etiqueta_fin) return false;
   return Boolean(capture.trailer?.trim() && capture.puerta?.trim() &&
     capture.trailer === capture.trailer_fin && capture.puerta === capture.puerta_fin);
 }
@@ -28,12 +29,14 @@ export function isShippingVerified(activity, capture, activityName) {
 // A label written for an old task has no IDX range to check against.
 // Surface it in the UI without counting it as a verified shipping capture.
 export function legacyShippingCapture(activity) {
-  if (!activity.trailer && !activity.puerta &&
+  if (!activity.trailer && !activity.puerta && !activity.trailer_fin && !activity.puerta_fin &&
       !activity.etiqueta_inicio_manual && !activity.etiqueta_fin_manual) return null;
   return {
     legacy: true,
     trailer: activity.trailer || null,
     puerta: activity.puerta || null,
+    trailer_fin: activity.trailer_fin || null,
+    puerta_fin: activity.puerta_fin || null,
     etiqueta_inicio: activity.etiqueta_inicio_manual || null,
     etiqueta_fin: activity.etiqueta_fin_manual || null,
   };
