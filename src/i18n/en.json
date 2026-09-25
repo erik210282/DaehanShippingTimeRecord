@@ -203,6 +203,8 @@
   "shipping_pending_verification": "Not verified",
   "shipping_captures_error": "Shipping captures could not be loaded",
   "task_added": "Task added",
+  "task_urgent": "Urgent",
+  "task_same_day": "Same day",
   "task_completed": "Task completed",
   "task_deleted": "Task deleted",
   "task_started": "Task started",
