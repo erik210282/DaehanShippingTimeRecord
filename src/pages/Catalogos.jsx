@@ -189,6 +189,9 @@ const pick = (obj, keys) =>
 async function save() {
   try {
     if (!edit) return;
+    if (tab === "operadores" && isNew) {
+      return toast.error(t("users"));
+    }
 
     // Validaciones básicas por tipo de tabla
     if (isSimple) {
@@ -257,6 +260,9 @@ async function save() {
         "activo",
         "id",
       ]);
+    } else if (tab === "operadores") {
+      // Account status is managed in Users so Supabase Auth stays in sync.
+      payload = pick(edit, ["nombre", "id"]);
     } else if (isSimple) {
       payload = pick(edit, ["nombre", "activo", "id"]);
     }
@@ -327,6 +333,10 @@ async function save() {
 
   async function remove(row) {
     try {
+      if (tab === "operadores") {
+        toast.info(t("users"));
+        return;
+      }
       if (tab === "pos") {
         const { error } = await supabase.from(tableName).delete().eq("id", row.id);
         if (error) throw error;
@@ -889,7 +899,9 @@ async function save() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
                 <DSInput placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
                 <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
+                  <input type="checkbox" checked={!!edit?.activo} disabled={tab === "operadores"}
+                    onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
+                  {tab === "operadores" && <small>{t("users")}</small>}
                 </label>
               </div>
             )}
