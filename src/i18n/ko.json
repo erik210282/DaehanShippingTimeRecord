@@ -317,5 +317,10 @@
   "global_publish": "게시",
   "global_disable": "비활성화",
   "global_enable": "활성화",
-  "global_saved": "저장되었습니다"
+  "global_saved": "저장되었습니다",
+  "global_back": "뒤로",
+  "global_no_access": "배정된 부서가 없습니다. 관리자에게 문의하세요.",
+  "global_role_operador": "작업자",
+  "global_role_lider": "리더",
+  "global_role_supervisor": "감독자"
 }

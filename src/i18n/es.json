@@ -317,5 +317,10 @@
   "global_publish": "Publicar",
   "global_disable": "Desactivar",
   "global_enable": "Activar",
-  "global_saved": "Guardado"
+  "global_saved": "Guardado",
+  "global_back": "Volver",
+  "global_no_access": "No tienes departamentos asignados. Consulta a tu supervisor.",
+  "global_role_operador": "Operador",
+  "global_role_lider": "Líder",
+  "global_role_supervisor": "Supervisor"
 }

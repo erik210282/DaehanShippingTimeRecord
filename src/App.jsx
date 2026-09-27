@@ -201,9 +201,8 @@ const Navbar = ({ access }) => {
   return (
     <div className="navbar">
       <div className="navbar-center">
-        <button onClick={() => navigate('/inicio')}>{t('global_home')}</button>
+        {access.admin || access.supervisor ? (location.pathname !== '/inicio' && <button onClick={() => navigate('/inicio')}>{t('global_back')}</button>) : null}
         {shipping && <>
-        <strong className="global-department-label">{t('global_shipping')}</strong>
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
         <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
@@ -232,7 +231,7 @@ const Navbar = ({ access }) => {
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
         <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
         </>}
-        {access.admin && <button onClick={() => navigate('/global-settings')}>{t('global_settings')}</button>}
+        {(access.admin || access.supervisor) && <button onClick={() => navigate('/global-settings')}>{t('global_settings')}</button>}
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
       <LanguageBar />
@@ -247,19 +246,26 @@ function DepartmentRoute({ access }) {
 }
 
 const PrivateArea = () => {
+  const { t } = useTranslation();
   const access = useGlobalAccess();
   const location = useLocation();
   if (access.loading) return <div className="global-loading">Cargando…</div>;
   if (access.error) return <div className="global-loading" role="alert">{access.error}</div>;
+  const canSeeHome = access.admin || access.supervisor;
+  const firstDepartment = access.memberships.find(m => m.department === 'shipping')?.department || access.memberships[0]?.department;
+  if (!canSeeHome && location.pathname === '/inicio') {
+    if (!firstDepartment) return <div className="global-loading">{t('global_no_access')}</div>;
+    return <Navigate to={firstDepartment === 'shipping' ? '/tareas-pendientes' : `/departamento/${firstDepartment}`} replace />;
+  }
   const isGlobalRoute = location.pathname === '/inicio' || location.pathname === '/global-settings' || location.pathname.startsWith('/departamento/');
-  if (!isGlobalRoute && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
+  if (!isGlobalRoute && !access.admin && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
   return <RequireSupervisor>
     <div className="app-container">
       <Navbar access={access} />
       <div className="content">
         <Routes>
           <Route path="/inicio" element={<GlobalHome access={access} />} />
-          <Route path="/global-settings" element={access.admin ? <GlobalSettings /> : <Navigate to="/inicio" replace />} />
+          <Route path="/global-settings" element={canSeeHome ? <GlobalSettings access={access} /> : <Navigate to="/inicio" replace />} />
           <Route path="/departamento/:name" element={<DepartmentRoute access={access} />} />
           <Route path="/tareas-pendientes" element={<ProtectedRoute><TareasPendientes /></ProtectedRoute>} />
           <Route path="/resumen" element={<ProtectedRoute><Resumen /></ProtectedRoute>} />
