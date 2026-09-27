@@ -371,6 +371,7 @@ button {
 .records-edit-grid input { width: 100%; box-sizing: border-box; }
 .records-shipping-editor { margin-top: 18px; }
 .records-shipping-editor h4 { margin: 0; }
+.records-plan-field { display: flex; flex-direction: column; gap: 3px; font-size: 0.82em; }
 .summary-table .summary-part {
   display: block;
   font-size: 0.9em;
@@ -381,12 +382,13 @@ button {
 }
 .summary-table .summary-operator { display: block; font-weight: 700; }
 .summary-table { font-size: clamp(12px, 0.9vw, 15px); }
-.summary-table .summary-time { display: block; opacity: 0.8; font-size: 0.91em; }
-.summary-table .summary-time-date { display: block; }
-.summary-table .summary-duration { display: block; white-space: nowrap; }
+.summary-table .summary-date { display: block; opacity: 0.8; font-size: 0.91em; }
+.summary-table .summary-time { display: flex; gap: 6px; align-items: baseline; white-space: nowrap; opacity: 0.8; font-size: 0.91em; }
+.summary-table .summary-duration { white-space: nowrap; }
 .summary-table .summary-capture { font-size: 0.95em; margin-top: 4px; }
-.summary-table .summary-capture > div { overflow-wrap: anywhere; }
-.pending-table { table-layout: fixed; min-width: 0; font-size: clamp(11px, 0.8vw, 13px); }
+.summary-table .summary-capture-end { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+.summary-table .summary-capture-end strong { font-size: 0.9em; }
+.pending-table { table-layout: fixed; min-width: 0; font-size: clamp(12px, 0.86vw, 15px); }
 .pending-table th, .pending-table td { padding: clamp(3px, 0.4vw, 7px); overflow-wrap: normal; }
 .pending-table th { white-space: nowrap; }
 .pending-table .pending-nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -399,7 +401,7 @@ button {
 .pending-badges { gap: 2px; flex-wrap: wrap; margin-top: 2px; }
 .pending-badges span { color: #fff; border-radius: 4px; padding: 1px 3px; font-size: 10px; }
 .pending-actions { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; white-space: nowrap; }
-.pending-actions button { min-width: 0; padding: 5px 6px; font-size: clamp(10px, 0.75vw, 12px); }
+.pending-actions button { min-width: 0; padding: 5px 5px; font-size: clamp(11px, 0.76vw, 13px); }
 .supervisor-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
 .supervisor-field { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; min-width: 0; }
 .supervisor-dock { display: flex; align-items: center; gap: 8px; }
