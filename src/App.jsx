@@ -203,6 +203,7 @@ const Navbar = ({ access }) => {
       <div className="navbar-center">
         <button onClick={() => navigate('/inicio')}>{t('global_home')}</button>
         {shipping && <>
+        <strong className="global-department-label">{t('global_shipping')}</strong>
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
         <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
