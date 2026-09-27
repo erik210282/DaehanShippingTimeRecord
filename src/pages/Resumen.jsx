@@ -167,7 +167,8 @@ export default function Resumen() {
            operadorNombres = [operadoresDict[act.operadores] || act.operadores];
          }
 
-        const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "Pp") : "-";
+        const fechaCorta = act.hora_inicio ? format(new Date(act.hora_inicio), "P") : "-";
+        const hora = act.hora_inicio ? format(new Date(act.hora_inicio), "p") : "-";
         // Older IDX tasks can have a Load capture without a configured label plan.
         const captura = capturas[act.id] || legacyShippingCapture(act);
         const verificada = captura && isShippingVerified(act, captura, nombreActividad);
@@ -175,23 +176,22 @@ export default function Resumen() {
           <>
              {operadorNombres.map((nombre, i) =>
                <span key={i} className="summary-operator">{nombre}</span>)}
-             <span className="summary-time"><span className="summary-time-date">{hora}</span>
+             <span className="summary-date">{fechaCorta}</span>
+             <span className="summary-time"><span>{hora}</span>
                {act.duracion !== null && act.duracion !== undefined && (
                  <span className="summary-duration">{Math.round(act.duracion)}m ({act.pausa_total === null ||
                    act.pausa_total === undefined ? "—" : Math.round(act.pausa_total)}m)</span>
                )}
              </span>
-            {captura && (
+            {nombreActividad === "load" && captura && (
               <div className="summary-capture">
-                <span style={{ color: verificada ? "#166534" : "#b45309", fontWeight: 700 }}>
-                  {verificada ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
-                </span>
-                {(captura.etiqueta_inicio || captura.etiqueta_fin) && (
-                  <>
-                    <div>{t("shipping_start_label")}: {labelLastFour(captura.etiqueta_inicio)}</div>
-                    <div>{t("shipping_end_label")}: {labelLastFour(captura.etiqueta_fin)}</div>
-                  </>
-                )}
+                <div>{t("shipping_start_label")}: {labelLastFour(captura.etiqueta_inicio)}</div>
+                <div className="summary-capture-end">
+                  <span>{t("shipping_end_label")}: {labelLastFour(captura.etiqueta_fin)}</span>
+                  <strong style={{ color: verificada ? "#166534" : "#b45309" }}>
+                    {verificada ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
+                  </strong>
+                </div>
               </div>
             )}
           </>
@@ -279,7 +279,7 @@ export default function Resumen() {
         <div className="table-wrap">
           <table className="table summary-table">
             <colgroup>
-              {[7, 10, 6, 11, 11, 11, 19, 7, 7, 11].map((width, i) =>
+              {[7, 10, 6, 13, 13, 13, 15, 7, 7, 9].map((width, i) =>
                 <col key={i} style={{ width: `${width}%` }} />)}
             </colgroup>
             <thead>
