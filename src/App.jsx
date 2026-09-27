@@ -259,7 +259,7 @@ const PrivateArea = () => {
   }
   const isGlobalRoute = location.pathname === '/inicio' || location.pathname === '/global-settings' || location.pathname.startsWith('/departamento/');
   if (!isGlobalRoute && !access.admin && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
-  return <RequireSupervisor>
+  const portal = <>
     <div className="app-container">
       <Navbar access={access} />
       <div className="content">
@@ -280,7 +280,8 @@ const PrivateArea = () => {
         </Routes>
       </div>
     </div>
-  </RequireSupervisor>
+  </>;
+  return isGlobalRoute || canSeeHome ? portal : <RequireSupervisor>{portal}</RequireSupervisor>;
 };
 
 const AppContent = () => (
