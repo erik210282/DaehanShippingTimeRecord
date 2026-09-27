@@ -18,4 +18,3 @@
 .global-panel button:disabled { opacity: .5; }
 .global-list > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid #eee; }
 .global-loading { display: grid; place-items: center; min-height: 60vh; }
-.global-department-label { align-self: center; color: #93c5fd; font-size: 13px; }

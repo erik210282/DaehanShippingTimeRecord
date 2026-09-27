@@ -317,5 +317,10 @@
   "global_publish": "Publish",
   "global_disable": "Disable",
   "global_enable": "Enable",
-  "global_saved": "Saved"
+  "global_saved": "Saved",
+  "global_back": "Back",
+  "global_no_access": "No departments are assigned to you. Contact your supervisor.",
+  "global_role_operador": "Operator",
+  "global_role_lider": "Leader",
+  "global_role_supervisor": "Supervisor"
 }
