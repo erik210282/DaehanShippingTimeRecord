@@ -1,0 +1,20 @@
+.global-page { max-width: 1250px; margin: 0 auto; padding: 32px 22px 80px; min-height: 70vh; }
+.global-heading { margin: 12px 0 30px; }
+.global-heading span { color: #2563eb; font-size: 12px; font-weight: 800; letter-spacing: .12em; }
+.global-heading h1 { font-size: clamp(28px, 4vw, 42px); margin: 10px 0; }
+.global-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.global-card { display: flex; align-items: center; gap: 15px; min-height: 105px; text-align: left; padding: 20px; border: 1px solid #dfe3ea; border-radius: 14px; background: white; color: #111827; cursor: pointer; font-size: 18px; }
+.global-card:hover:not(:disabled) { border-color: #2563eb; box-shadow: 0 5px 20px #0000000a; }
+.global-card:disabled { opacity: .45; cursor: default; }
+.global-card > span { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 10px; color: #2563eb; background: #eaf1ff; font-weight: 800; }
+.global-card small { margin-left: auto; }
+.global-back { border: 0; background: none; color: #2563eb; cursor: pointer; font-weight: 700; }
+.global-panel { padding: 22px; border: 1px solid #dfe3ea; background: white; border-radius: 14px; }
+.global-settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.global-panel form { display: grid; gap: 13px; margin-bottom: 20px; }
+.global-panel label { display: grid; gap: 5px; font-weight: 600; }
+.global-panel input, .global-panel select, .global-panel textarea { padding: 10px; width: 100%; box-sizing: border-box; }
+.global-panel button { border: 0; border-radius: 8px; padding: 9px 14px; background: #2563eb; color: white; cursor: pointer; }
+.global-panel button:disabled { opacity: .5; }
+.global-list > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid #eee; }
+.global-loading { display: grid; place-items: center; min-height: 60vh; }

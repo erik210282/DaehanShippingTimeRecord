@@ -74,7 +74,7 @@ export default function Login() {
 
       localStorage.setItem("usuario", JSON.stringify(data.user));
       toast.success(t("welcome_user", { name: profile?.nombre ?? "" }) || "¡Bienvenido!");
-      navigate("/tareas-pendientes");
+      navigate("/inicio");
     } catch (err) {
       toast.error(t("error") || "Ocurrió un error");
     } finally {
