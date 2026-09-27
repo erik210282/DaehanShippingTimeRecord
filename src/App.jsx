@@ -16,6 +16,8 @@ import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
 import LanguageBar from "./components/LanguageBar";
+import { GlobalHome, GlobalSettings, DepartmentLanding, useGlobalAccess } from './GlobalPortal';
+import { useParams, Navigate } from 'react-router-dom';
 // IMPORTANTE: El ToastContainer y CSS SOLO deben estar aquí en App.jsx
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -142,8 +144,9 @@ const GlobalChatListener = () => {
   return null;
 };
 // --- NAVBAR ---
-const Navbar = () => {
+const Navbar = ({ access }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -188,6 +191,8 @@ const Navbar = () => {
 
   if (!user) return null;
 
+  const shipping = !['/inicio', '/global-settings'].includes(location.pathname) && !location.pathname.startsWith('/departamento/');
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -196,6 +201,9 @@ const Navbar = () => {
   return (
     <div className="navbar">
       <div className="navbar-center">
+        <button onClick={() => navigate('/inicio')}>{t('global_home')}</button>
+        {shipping && <>
+        <strong className="global-department-label">{t('global_shipping')}</strong>
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
         <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
         <button onClick={() => navigate("/registros")}>{t("records")}</button>
@@ -223,6 +231,8 @@ const Navbar = () => {
         <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
         <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
+        </>}
+        {access.admin && <button onClick={() => navigate('/global-settings')}>{t('global_settings')}</button>}
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
       <LanguageBar />
@@ -231,12 +241,26 @@ const Navbar = () => {
 };
 
 // --- CONFIGURACIÓN DE RUTAS ---
-const PrivateArea = () => (
-  <RequireSupervisor>
+function DepartmentRoute({ access }) {
+  const { name } = useParams();
+  return <DepartmentLanding name={name} access={access} />;
+}
+
+const PrivateArea = () => {
+  const access = useGlobalAccess();
+  const location = useLocation();
+  if (access.loading) return <div className="global-loading">Cargando…</div>;
+  if (access.error) return <div className="global-loading" role="alert">{access.error}</div>;
+  const isGlobalRoute = location.pathname === '/inicio' || location.pathname === '/global-settings' || location.pathname.startsWith('/departamento/');
+  if (!isGlobalRoute && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
+  return <RequireSupervisor>
     <div className="app-container">
-      <Navbar />
+      <Navbar access={access} />
       <div className="content">
         <Routes>
+          <Route path="/inicio" element={<GlobalHome access={access} />} />
+          <Route path="/global-settings" element={access.admin ? <GlobalSettings /> : <Navigate to="/inicio" replace />} />
+          <Route path="/departamento/:name" element={<DepartmentRoute access={access} />} />
           <Route path="/tareas-pendientes" element={<ProtectedRoute><TareasPendientes /></ProtectedRoute>} />
           <Route path="/resumen" element={<ProtectedRoute><Resumen /></ProtectedRoute>} />
           <Route path="/registros" element={<ProtectedRoute><Registros /></ProtectedRoute>} />
@@ -246,11 +270,12 @@ const PrivateArea = () => (
           <Route path="/catalogos" element={<ProtectedRoute><Catalogos /></ProtectedRoute>} />
           <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
           <Route path="/configuracion-tareas" element={<ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/inicio" replace />} />
         </Routes>
       </div>
     </div>
   </RequireSupervisor>
-);
+};
 
 const AppContent = () => (
   <div className="app-root">
