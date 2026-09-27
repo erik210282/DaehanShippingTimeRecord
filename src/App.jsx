@@ -16,7 +16,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase/client";
 import RequireSupervisor from "./components/RequireSupervisor";
 import LanguageBar from "./components/LanguageBar";
-import { GlobalHome, GlobalSettings, DepartmentLanding, useGlobalAccess } from './GlobalPortal';
+import { GlobalHome, DepartmentLanding, useGlobalAccess } from './GlobalPortal';
+import GlobalSettings from './GlobalSettings';
+import SetPassword from './SetPassword';
+import { AnnouncementNotice, GlobalAnnouncements, useAnnouncementGate } from './GlobalAnnouncements';
 import { useParams, Navigate } from 'react-router-dom';
 // IMPORTANTE: El ToastContainer y CSS SOLO deben estar aquí en App.jsx
 import { toast, ToastContainer } from "react-toastify";
@@ -144,7 +147,7 @@ const GlobalChatListener = () => {
   return null;
 };
 // --- NAVBAR ---
-const Navbar = ({ access }) => {
+const Navbar = ({ access, onAnnouncements }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, i18n } = useTranslation();
@@ -191,7 +194,7 @@ const Navbar = ({ access }) => {
 
   if (!user) return null;
 
-  const shipping = !['/inicio', '/global-settings'].includes(location.pathname) && !location.pathname.startsWith('/departamento/');
+  const shipping = !['/inicio', '/global-settings', '/announcements'].includes(location.pathname) && !location.pathname.startsWith('/departamento/');
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -231,7 +234,7 @@ const Navbar = ({ access }) => {
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
         <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
         </>}
-        {(access.admin || access.supervisor) && <button onClick={() => navigate('/global-settings')}>{t('global_settings')}</button>}
+        {location.pathname !== '/inicio' && location.pathname !== '/announcements' && <button onClick={onAnnouncements}>{t('global_announcements')}</button>}
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
       <LanguageBar />
@@ -247,25 +250,35 @@ function DepartmentRoute({ access }) {
 
 const PrivateArea = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const access = useGlobalAccess();
   const location = useLocation();
+  const announcements = useAnnouncementGate(access.userId);
+  const returnPath = useRef(location.pathname);
   if (access.loading) return <div className="global-loading">Cargando…</div>;
   if (access.error) return <div className="global-loading" role="alert">{access.error}</div>;
+  if (!announcements.ready) return <div className="global-loading">{t('loading')}…</div>;
+  if (announcements.error && !announcements.items.length) return <div className="global-loading" role="alert">{announcements.error}<button onClick={announcements.load}>{t('global_retry')}</button></div>;
+  if (announcements.gate && location.pathname !== '/announcements') {
+    returnPath.current = location.pathname;
+    return <Navigate to="/announcements" replace />;
+  }
   const canSeeHome = access.admin || access.supervisor;
   const firstDepartment = access.memberships.find(m => m.department === 'shipping')?.department || access.memberships[0]?.department;
   if (!canSeeHome && location.pathname === '/inicio') {
     if (!firstDepartment) return <div className="global-loading">{t('global_no_access')}</div>;
     return <Navigate to={firstDepartment === 'shipping' ? '/tareas-pendientes' : `/departamento/${firstDepartment}`} replace />;
   }
-  const isGlobalRoute = location.pathname === '/inicio' || location.pathname === '/global-settings' || location.pathname.startsWith('/departamento/');
+  const isGlobalRoute = ['/inicio', '/global-settings', '/announcements'].includes(location.pathname) || location.pathname.startsWith('/departamento/');
   if (!isGlobalRoute && !access.admin && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
   const portal = <>
     <div className="app-container">
-      <Navbar access={access} />
+      <Navbar access={access} onAnnouncements={() => { if (announcements.pending.length) { returnPath.current = location.pathname; announcements.open(); } navigate('/announcements'); }} />
       <div className="content">
         <Routes>
           <Route path="/inicio" element={<GlobalHome access={access} />} />
           <Route path="/global-settings" element={canSeeHome ? <GlobalSettings access={access} /> : <Navigate to="/inicio" replace />} />
+          <Route path="/announcements" element={<GlobalAnnouncements access={access} announcements={announcements} onContinue={announcements.acknowledge} onBack={() => navigate(returnPath.current === '/announcements' ? '/inicio' : returnPath.current || '/inicio', { replace: true })} />} />
           <Route path="/departamento/:name" element={<DepartmentRoute access={access} />} />
           <Route path="/tareas-pendientes" element={<ProtectedRoute><TareasPendientes /></ProtectedRoute>} />
           <Route path="/resumen" element={<ProtectedRoute><Resumen /></ProtectedRoute>} />
@@ -280,6 +293,7 @@ const PrivateArea = () => {
         </Routes>
       </div>
     </div>
+    {announcements.notice && !announcements.gate && <AnnouncementNotice onOpen={() => { returnPath.current = location.pathname; announcements.open(); navigate('/announcements'); }} />}
   </>;
   return isGlobalRoute || canSeeHome ? portal : <RequireSupervisor>{portal}</RequireSupervisor>;
 };
@@ -300,6 +314,7 @@ const AppContent = () => (
     
     <Routes>
       <Route path="/" element={<Login />} />
+      <Route path="/set-password" element={<SetPassword />} />
       <Route path="/*" element={<PrivateArea />} />
     </Routes>
   </div>
