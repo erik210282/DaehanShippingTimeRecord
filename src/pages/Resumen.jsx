@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../supabase/client";
 import { format } from "date-fns";
-import { DSInput, DSDate, TablePagination } from "../components/controls";
+import { DSInput, DSDate, BtnSecondary, TablePagination } from "../components/controls";
 import { fetchShippingCaptures, isShippingVerified, legacyShippingCapture } from "../utils/shippingValidation";
 
 const SHIPPING_PHASES = ["stage", "label", "scan", "load"];
@@ -274,6 +274,12 @@ export default function Resumen() {
             onChange={(e) => setFechaFin(e.target.value)}
             style={{ padding: 4 }}
           />
+          <BtnSecondary type="button" style={{ marginLeft: 10 }} onClick={() => {
+            setFiltroIdx("");
+            setFechaInicio("");
+            setFechaFin("");
+            setPage(1);
+          }}>{t("clear_filters")}</BtnSecondary>
         </div>
 
         <div className="table-wrap">
