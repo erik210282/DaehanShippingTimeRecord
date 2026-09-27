@@ -67,7 +67,15 @@
   margin: 0;
 }
 .global-link-output { word-break: break-all; border: 1px solid #dfe3ea; padding: 12px; background: #f8fafc; }
-.global-user-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.global-access-actions, .global-user-actions { display: grid; gap: 12px; }
+.global-access-actions { margin-top: 18px; }
+.global-account-actions { margin-top: 26px; padding-top: 18px; border-top: 1px solid #e5e7eb; }
+.global-account-actions h3 { margin: 0 0 14px; font-size: 16px; color: #344054; }
+.global-panel .global-access-actions button, .global-panel .global-user-actions button { width: 100%; min-height: 44px; text-align: center; }
+.global-panel .global-action-secondary { background: #fff; color: #1d4ed8; border: 1px solid #b6c9f7; }
+.global-panel .global-action-secondary:hover:not(:disabled) { background: #eff6ff; }
+.global-panel .global-action-danger { background: #fff; color: #b42318; border: 1px solid #f2b8b5; }
+.global-panel .global-action-danger:hover:not(:disabled) { background: #fef3f2; }
 .global-settings-grid > .global-panel { align-self: start; }
 .global-announcement-admin-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
 .global-announcement-admin-row button { border: 0; border-radius: 8px; background: #2563eb; color: white; padding: 9px 14px; cursor: pointer; }

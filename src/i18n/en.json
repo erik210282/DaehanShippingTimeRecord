@@ -346,6 +346,7 @@
   "global_link_private": "Copy and give this link only to the intended person. It can be used once.",
   "global_copy_link": "Copy link",
   "global_disable_user": "Disable user",
+  "global_account_actions": "User account",
   "global_enable_user": "Enable user",
   "global_delete_unused": "Delete if unused",
   "global_confirm_delete": "Delete this account? It will only be deleted if there is no history.",

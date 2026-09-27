@@ -346,6 +346,7 @@
   "global_link_private": "해당 사용자에게만 이 링크를 전달하세요. 한 번만 사용할 수 있습니다.",
   "global_copy_link": "링크 복사",
   "global_disable_user": "사용자 비활성화",
+  "global_account_actions": "사용자 계정",
   "global_enable_user": "사용자 활성화",
   "global_delete_unused": "사용 기록이 없으면 삭제",
   "global_confirm_delete": "계정을 삭제할까요? 사용 기록이 없는 경우에만 삭제됩니다.",

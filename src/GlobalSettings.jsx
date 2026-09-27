@@ -106,12 +106,17 @@ export default function GlobalSettings({ access }) {
       <section className="global-panel"><h2>{t('global_access')}</h2>
         <label>{t('global_user')}<select value={selected} onChange={e => selectUser(e.target.value)}><option value="">—</option>{people.map(u => <option key={u.uid} value={u.uid}>{u.nombre}</option>)}</select></label>
         {person && <><p>{person.nombre} · {person.email}</p><Choices values={draft} onChange={setDraft} userId={selected} />
-          <button className="global-settings-action" disabled={busy || !person.activo} onClick={() => perform(saveAssignments)}>{t('global_save_access')}</button>
-          {person.activo && <button className="global-settings-action" disabled={busy} onClick={() => perform(async () => { const result = await invoke({ action: 'link', user_id: selected }); setLink(result.link); })}>{t('global_generate_link')}</button>}
-          {access.admin && selected !== access.userId && <div className="global-user-actions">
-            <button className="global-settings-action" disabled={busy} onClick={() => perform(async () => { await invoke({ action: person.activo ? 'deactivate' : 'reactivate', user_id: selected }); await refresh(); })}>{t(person.activo ? 'global_disable_user' : 'global_enable_user')}</button>
-            <button className="global-settings-action" disabled={busy} onClick={() => { if (window.confirm(t('global_confirm_delete'))) perform(async () => { await invoke({ action: 'delete', user_id: selected }); setSelected(''); setDraft({}); await refresh(); }); }}>{t('global_delete_unused')}</button>
-          </div>}
+          <div className="global-access-actions">
+            <button className="global-settings-action" disabled={busy || !person.activo} onClick={() => perform(saveAssignments)}>{t('global_save_access')}</button>
+            {person.activo && <button className="global-settings-action global-action-secondary" disabled={busy} onClick={() => perform(async () => { const result = await invoke({ action: 'link', user_id: selected }); setLink(result.link); })}>{t('global_generate_link')}</button>}
+          </div>
+          {access.admin && selected !== access.userId && <section className="global-account-actions" aria-label={t('global_account_actions')}>
+            <h3>{t('global_account_actions')}</h3>
+            <div className="global-user-actions">
+              <button className="global-settings-action global-action-secondary" disabled={busy} onClick={() => perform(async () => { await invoke({ action: person.activo ? 'deactivate' : 'reactivate', user_id: selected }); await refresh(); })}>{t(person.activo ? 'global_disable_user' : 'global_enable_user')}</button>
+              <button className="global-settings-action global-action-danger" disabled={busy} onClick={() => { if (window.confirm(t('global_confirm_delete'))) perform(async () => { await invoke({ action: 'delete', user_id: selected }); setSelected(''); setDraft({}); await refresh(); }); }}>{t('global_delete_unused')}</button>
+            </div>
+          </section>}
         </>}
       </section>
       <section className="global-panel"><h2>{t('global_create_user')}</h2>
