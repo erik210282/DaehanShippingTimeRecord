@@ -23,6 +23,7 @@ import {
 Modal.setAppElement("#root");
 
 const roundMinutes = (value) => Math.round(value * 100) / 100;
+const labelLastFour = (value) => String(value || "").match(/\d{4}$/)?.[0] || "—";
 const elapsedMinutes = (start, end) => {
   const minutes = (new Date(end).getTime() - new Date(start).getTime()) / 60000;
   return Number.isFinite(minutes) && minutes >= 0 ? roundMinutes(minutes) : null;
@@ -52,6 +53,7 @@ export default function Registros() {
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [registroActual, setRegistroActual] = useState(null);
+  const [lineasRegistro, setLineasRegistro] = useState([]);
   const [esNuevo, setEsNuevo] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -68,6 +70,19 @@ export default function Registros() {
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+
+  useEffect(() => {
+    if (!modalAbierto || esNuevo || !registroActual?.idx) return;
+    let activo = true;
+    setLineasRegistro([]);
+    supabase.from("shipping_lines")
+      .select("producto, idx_line, primera_etiqueta")
+      .eq("idx", registroActual.idx)
+      .then(({ data, error }) => {
+        if (activo && !error) setLineasRegistro(data || []);
+      });
+    return () => { activo = false; };
+  }, [modalAbierto, esNuevo, registroActual?.idx]);
 
   const parseFecha = (fecha) => {
     if (!fecha) return null;
@@ -302,6 +317,7 @@ useEffect(() => {
 ]);
 
  const abrirModal = (registro) => {
+  setLineasRegistro([]);
   if (registro) {
     const formatFecha = (fecha) => {
       if (!fecha) return "";
@@ -437,6 +453,7 @@ useEffect(() => {
   }
 
   const productosLimpios = productos.map((p) => ({
+    ...p,
     producto: p.producto,
     cantidad: Number(p.cantidad),
   }));
@@ -678,8 +695,8 @@ useEffect(() => {
                        <td className="records-labels">
                          {captura?.etiqueta_inicio || captura?.etiqueta_fin ? (
                            <>
-                             <div>{t("shipping_start_label")}: {captura.etiqueta_inicio || "—"}</div>
-                             <div>{t("shipping_end_label")}: {captura.etiqueta_fin || "—"}</div>
+                             <div>{t("shipping_start_label")}: {labelLastFour(captura.etiqueta_inicio)}</div>
+                             <div>{t("shipping_end_label")}: {labelLastFour(captura.etiqueta_fin)}</div>
                            </>
                          ) : "—"}
                        </td>
@@ -756,7 +773,7 @@ useEffect(() => {
           <DSSelect options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
 
           {registroActual?.productos?.map((p, index) => (
-            <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+            <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
               <DSSelect
                 options={selectProductos}
                 value={selectProductos.find((opt) => opt.value === p.producto) || null}
@@ -779,6 +796,24 @@ useEffect(() => {
                 }}
                 style={{ maxWidth: 160 }}
               />
+              {!esNuevo && ["stage", "label", "scan", "load"].includes(
+                mapaActividades[registroActual?.actividad]?.toLowerCase().trim()
+              ) && (p.idx_line || p.primera_etiqueta || lineasRegistro.some(
+                (linea) => String(linea.producto) === String(p.producto)
+              )) && (
+                <>
+                  <label className="records-plan-field">{t("task_idx_suffix_placeholder")}
+                    <DSInput type="text" readOnly
+                      value={lineasRegistro.find((linea) => String(linea.producto) === String(p.producto))?.idx_line || p.idx_line || ""}
+                      style={{ width: 125 }} />
+                  </label>
+                  <label className="records-plan-field">{t("task_first_label_placeholder")}
+                    <DSInput type="text" readOnly
+                      value={lineasRegistro.find((linea) => String(linea.producto) === String(p.producto))?.primera_etiqueta || p.primera_etiqueta || ""}
+                      style={{ width: 210 }} />
+                  </label>
+                </>
+              )}
               {index > 0 && (
                 <BtnTinyRound type="button" onClick={() => {
                   const nuevos = registroActual.productos.filter((_, i) => i !== index);
@@ -797,6 +832,26 @@ useEffect(() => {
           >
             ➕ {t("add_product")}
           </BtnSecondary>
+           {!esNuevo && (
+             <div className="records-shipping-editor">
+               <h4>{t("shipping_capture_details")}</h4>
+               <div className="records-edit-grid">
+                 {[
+                   ["etiqueta_inicio", "shipping_start_label"],
+                   ["etiqueta_fin", "shipping_end_label"],
+                   ["puerta", "shipping_door_start"],
+                   ["puerta_fin", "shipping_door_end"],
+                   ["trailer", "shipping_trailer_start"],
+                   ["trailer_fin", "shipping_trailer_end"],
+                 ].map(([campo, translation]) => (
+                   <label key={campo}>{t(translation)}
+                     <DSInput type="text" value={registroActual?.shipping_edit?.[campo] || ""}
+                       onChange={(e) => cambiarCaptura(campo, e.target.value)} />
+                   </label>
+                 ))}
+               </div>
+             </div>
+           )}
           <div style={{ marginTop: 12 }}></div>
           <DSSelect isMulti options={operadoresEditables} value={operadoresEditables.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <TextAreaStyle value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={3} style={{ marginTop: 10, minHeight: 90, width: "85%", }} />
@@ -820,26 +875,6 @@ useEffect(() => {
                  onChange={(e) => cambiarMinutosRegistro("pausa_total", e.target.value)} />
              </label>
            </div>
-           {!esNuevo && (
-             <div className="records-shipping-editor">
-               <h4>{t("shipping_capture_details")}</h4>
-               <div className="records-edit-grid">
-                 {[
-                   ["etiqueta_inicio", "shipping_start_label"],
-                   ["etiqueta_fin", "shipping_end_label"],
-                   ["puerta", "shipping_door_start"],
-                   ["puerta_fin", "shipping_door_end"],
-                   ["trailer", "shipping_trailer_start"],
-                   ["trailer_fin", "shipping_trailer_end"],
-                 ].map(([campo, translation]) => (
-                   <label key={campo}>{t(translation)}
-                     <DSInput type="text" value={registroActual?.shipping_edit?.[campo] || ""}
-                       onChange={(e) => cambiarCaptura(campo, e.target.value)} />
-                   </label>
-                 ))}
-               </div>
-             </div>
-           )}
           <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
              <BtnPrimary type="button" onClick={guardarRegistro} disabled={saving}>{t("save")}</BtnPrimary>
             <BtnSecondary type="button" onClick={() => setModalAbierto(false)}>{t("cancel")}</BtnSecondary>
