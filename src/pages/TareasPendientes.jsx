@@ -394,8 +394,6 @@ export default function TareasPendientes() {
         return { color: "green", icono: "🟢", texto: t("started") };
       case "pausada":
         return { color: "#b91c1c", icono: "🔴", texto: t("paused") };
-      case "pausada":
-        return { color: "red", icono: "🔴", texto: t("paused") };
       default:
         return { color: "goldenrod", icono: "🟡", texto: t("pending") };
     }
@@ -585,7 +583,7 @@ export default function TareasPendientes() {
         <div className="table-wrap">
           <table className="table pending-table">
             <colgroup>
-              {[7, 2, 8, 7, 12, 6, 10, 17, 9, 22].map((width, i) =>
+              {[7, 2, 8, 8, 16, 7, 11, 14, 10, 17].map((width, i) =>
                 <col key={i} style={{ width: `${width}%` }} />)}
             </colgroup>
             <thead>
