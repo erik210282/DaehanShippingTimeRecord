@@ -33,7 +33,7 @@ function Login() {
   }
   return <main className="login-page">
     <div className="login-card">
-      <div className="login-head"><div className="brand-symbol">D</div><LanguagePicker /></div>
+      <div className="login-head"><div className="brand-symbol"><img src="/brand.png" alt="Daehan" /></div><LanguagePicker /></div>
       <p className="eyebrow">DAEHAN</p><h1>{t('app')}</h1>
       <form onSubmit={submit}>
         <label>{t('user')}<input type="email" required autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} /></label>
@@ -218,7 +218,7 @@ function Shell({ session }) {
   if (state.error) return <div className="center-message error">{state.error} <button onClick={() => supabase.auth.signOut()}>{t('logout')}</button></div>;
   return <div className="app-shell">
     <header className="topbar">
-      <Link to="/" className="brand"><span className="brand-symbol">D</span><span>DAEHAN <small>{t('app')}</small></span></Link>
+      <Link to="/" className="brand"><span className="brand-symbol"><img src="/brand.png" alt="" /></span><span>DAEHAN <small>{t('app')}</small></span></Link>
       <nav aria-label={t('departments')}>
         <Link className={location.pathname === '/' ? 'current' : ''} to="/">{t('home')}</Link>
         {departments.filter(d => state.access.some(a => a.department === d)).map(d => <Link className={location.pathname === `/${d}` ? 'current' : ''} key={d} to={`/${d}`}>{t(d)}</Link>)}
