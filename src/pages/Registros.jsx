@@ -802,16 +802,14 @@ useEffect(() => {
                 (linea) => String(linea.producto) === String(p.producto)
               )) && (
                 <>
-                  <label className="records-plan-field">{t("task_idx_suffix_placeholder")}
-                    <DSInput type="text" readOnly
-                      value={lineasRegistro.find((linea) => String(linea.producto) === String(p.producto))?.idx_line || p.idx_line || ""}
-                      style={{ width: 125 }} />
-                  </label>
-                  <label className="records-plan-field">{t("task_first_label_placeholder")}
-                    <DSInput type="text" readOnly
-                      value={lineasRegistro.find((linea) => String(linea.producto) === String(p.producto))?.primera_etiqueta || p.primera_etiqueta || ""}
-                      style={{ width: 210 }} />
-                  </label>
+                  <DSInput type="text" readOnly
+                    aria-label={t("task_idx_suffix_placeholder")}
+                    value={lineasRegistro.find((linea) => String(linea.producto) === String(p.producto))?.idx_line || p.idx_line || ""}
+                    style={{ width: 125 }} />
+                  <DSInput type="text" readOnly
+                    aria-label={t("task_first_label_placeholder")}
+                    value={lineasRegistro.find((linea) => String(linea.producto) === String(p.producto))?.primera_etiqueta || p.primera_etiqueta || ""}
+                    style={{ width: 210 }} />
                 </>
               )}
               {index > 0 && (
