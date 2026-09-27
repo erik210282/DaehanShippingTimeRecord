@@ -6,6 +6,7 @@ import { DSInput, DSDate, TablePagination } from "../components/controls";
 import { fetchShippingCaptures, isShippingVerified, legacyShippingCapture } from "../utils/shippingValidation";
 
 const SHIPPING_PHASES = ["stage", "label", "scan", "load"];
+const labelLastFour = (value) => String(value || "").match(/\d{4}$/)?.[0] || "—";
 
 export default function Resumen() {
   const { t } = useTranslation();
@@ -143,7 +144,6 @@ export default function Resumen() {
             label: null,
             scan: null,
             load: null,
-            validaciones: {},
             capturaLoad: null,
             notas: "",
             fechaNotas: null,
@@ -188,8 +188,8 @@ export default function Resumen() {
                 </span>
                 {(captura.etiqueta_inicio || captura.etiqueta_fin) && (
                   <>
-                    <div>{t("shipping_start_label")}: {captura.etiqueta_inicio || "—"}</div>
-                    <div>{t("shipping_end_label")}: {captura.etiqueta_fin || "—"}</div>
+                    <div>{t("shipping_start_label")}: {labelLastFour(captura.etiqueta_inicio)}</div>
+                    <div>{t("shipping_end_label")}: {labelLastFour(captura.etiqueta_fin)}</div>
                   </>
                 )}
               </div>
@@ -200,7 +200,6 @@ export default function Resumen() {
         if (nombreActividad) {
           if (SHIPPING_PHASES.includes(nombreActividad)) {
             agrupadas[key][nombreActividad] = registro;
-            if (nombreActividad === "load") agrupadas[key].validaciones.load = captura ? verificada : null;
             if (nombreActividad === "load") agrupadas[key].capturaLoad = captura || null;
           } else {
           }
@@ -280,7 +279,7 @@ export default function Resumen() {
         <div className="table-wrap">
           <table className="table summary-table">
             <colgroup>
-              {[7, 10, 6, 11, 11, 11, 12, 7, 7, 7, 11].map((width, i) =>
+              {[7, 10, 6, 11, 11, 11, 19, 7, 7, 11].map((width, i) =>
                 <col key={i} style={{ width: `${width}%` }} />)}
             </colgroup>
             <thead>
@@ -294,7 +293,6 @@ export default function Resumen() {
                 <th>{t("load")}</th>
                 <th>{t("shipping_door")}</th>
                 <th>{t("shipping_trailer")}</th>
-                <th>{t("shipping_validation")}</th>
                 <th>{t("notes")}</th>
               </tr>
             </thead>
@@ -322,15 +320,6 @@ export default function Resumen() {
                   <td style={{ backgroundColor: colorActividad("load")}}>{fila.load || "-"}</td>
                   <td className="summary-nowrap">{fila.capturaLoad?.puerta_fin || fila.capturaLoad?.puerta || "—"}</td>
                   <td className="summary-nowrap">{fila.capturaLoad?.trailer_fin || fila.capturaLoad?.trailer || "—"}</td>
-                  <td>
-                    {fila.validaciones.load !== undefined && fila.validaciones.load !== null ? (
-                      <strong style={{ color: fila.validaciones.load === true
-                        ? "#166534" : "#92400e" }}>
-                        {fila.validaciones.load === true
-                          ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
-                      </strong>
-                    ) : "—"}
-                  </td>
                   <td>{fila.notas || "—"}</td>
                 </tr>
               ))}

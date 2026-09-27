@@ -386,11 +386,37 @@ button {
 .summary-table .summary-duration { display: block; white-space: nowrap; }
 .summary-table .summary-capture { font-size: 0.95em; margin-top: 4px; }
 .summary-table .summary-capture > div { overflow-wrap: anywhere; }
+.pending-table { table-layout: fixed; min-width: 0; font-size: clamp(11px, 0.8vw, 13px); }
+.pending-table th, .pending-table td { padding: clamp(3px, 0.4vw, 7px); overflow-wrap: normal; }
+.pending-table th { white-space: nowrap; }
+.pending-table .pending-nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pending-priority-cell { text-align: center !important; }
+.pending-priority-controls, .pending-priority-arrows, .pending-badges {
+  display: flex; justify-content: center; align-items: center;
+}
+.pending-priority-controls { flex-direction: column; gap: 2px; }
+.pending-priority-arrows { gap: 4px; }
+.pending-badges { gap: 2px; flex-wrap: wrap; margin-top: 2px; }
+.pending-badges span { color: #fff; border-radius: 4px; padding: 1px 3px; font-size: 10px; }
+.pending-actions { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; white-space: nowrap; }
+.pending-actions button { min-width: 0; padding: 5px 6px; font-size: clamp(10px, 0.75vw, 12px); }
+.supervisor-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+.supervisor-field { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; min-width: 0; }
+.supervisor-dock { display: flex; align-items: center; gap: 8px; }
+.supervisor-dock input { width: 100%; min-width: 0; }
+.supervisor-modal-actions, .supervisor-label-editor { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+.supervisor-label-line { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+.supervisor-label-line span { overflow-wrap: anywhere; }
+.supervisor-label-editor { flex: 1 1 100%; margin-top: 0; }
 @media (max-width: 700px) {
   .records-table, .summary-table { font-size: 11px; }
   .records-table th, .records-table td,
   .summary-table th, .summary-table td { padding: 3px; }
   .records-edit-grid { grid-template-columns: 1fr; }
+  .pending-table th, .pending-table td { padding: 2px; font-size: 10px; }
+  .pending-actions { gap: 2px; }
+  .pending-actions button { padding: 4px 2px; font-size: 9px; }
+  .supervisor-fields { grid-template-columns: 1fr; }
 }
 
 
