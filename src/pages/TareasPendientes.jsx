@@ -35,6 +35,18 @@ export default function TareasPendientes() {
   const { t, i18n } = useTranslation();
   const [tareaAEliminar, setTareaAEliminar] = useState(null);
   const [operadores, setOperadores] = useState({});
+  const [esSupervisor, setEsSupervisor] = useState(false);
+  const [controlTarea, setControlTarea] = useState(null);
+  const [controlOperadores, setControlOperadores] = useState([]);
+  const [controlDock, setControlDock] = useState("");
+  const [controlTrailer, setControlTrailer] = useState("");
+  const [controlEtiqueta, setControlEtiqueta] = useState("");
+  const [guardandoControl, setGuardandoControl] = useState(false);
+  const [etiquetasTarea, setEtiquetasTarea] = useState(null);
+  const [lineasEtiqueta, setLineasEtiqueta] = useState([]);
+  const [editandoLinea, setEditandoLinea] = useState(null);
+  const [nuevaEtiqueta, setNuevaEtiqueta] = useState("");
+  const [guardandoEtiqueta, setGuardandoEtiqueta] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -49,6 +61,9 @@ export default function TareasPendientes() {
   const isEmptyContainer = (id) => EMPTY_CONTAINER_PRODUCTS.has(
     (productos[id] || "").toLowerCase().trim()
   );
+  const isLoad = (id) => (actividades[id] || "").toLowerCase().trim() === "load";
+  const requiereEtiqueta = (tarea) => isLoad(tarea.actividad) &&
+    tarea.productos?.some((p) => !isEmptyContainer(p.producto));
   const productLabel = (id, nombre) => {
     const part = partes[id]?.trim();
     return part && part.toUpperCase() !== "NA" ? `${nombre} (${part})` : nombre;
@@ -153,6 +168,12 @@ export default function TareasPendientes() {
     fetchProductos();
     fetchOperadores();
     fetchTareas();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { setEsSupervisor(false); return; }
+      const { data } = await supabase.from("operadores")
+        .select("role, activo").eq("uid", user.id).maybeSingle();
+      setEsSupervisor(data?.activo === true && data?.role === "supervisor");
+    });
 
     // Canal principal para tareas_pendientes (se reutiliza si ya existe)
     if (!canalTareas) {
@@ -372,6 +393,8 @@ export default function TareasPendientes() {
       case "iniciada":
         return { color: "green", icono: "🟢", texto: t("started") };
       case "pausada":
+        return { color: "#b91c1c", icono: "🔴", texto: t("paused") };
+      case "pausada":
         return { color: "red", icono: "🔴", texto: t("paused") };
       default:
         return { color: "goldenrod", icono: "🟡", texto: t("pending") };
@@ -385,6 +408,90 @@ export default function TareasPendientes() {
         .sort((a, b) => a.label.localeCompare(b.label)),
     [operadores]
   );
+
+  const abrirControl = (tarea) => {
+    setControlTarea(tarea);
+    setControlOperadores([]);
+    setControlDock("");
+    setControlTrailer("");
+    setControlEtiqueta("");
+  };
+
+  const guardarControl = async () => {
+    if (!controlTarea || guardandoControl) return;
+    const iniciar = controlTarea.estado === "pendiente";
+    const carga = isLoad(controlTarea.actividad);
+    if (iniciar && controlOperadores.length === 0) {
+      toast.error(t("supervisor_select_operator"));
+      return;
+    }
+    if (carga && (!controlDock.trim() || !controlTrailer.trim() ||
+      (requiereEtiqueta(controlTarea) && !/^\d{4}$/.test(controlEtiqueta)))) {
+      toast.error(t("supervisor_load_required"));
+      return;
+    }
+    setGuardandoControl(true);
+    try {
+      const { error } = await supabase.rpc(
+        iniciar ? "shipping_supervisor_start_task" : "shipping_supervisor_finish_task",
+        {
+          p_tarea: controlTarea.id,
+          ...(iniciar ? { p_operadores: controlOperadores } : {}),
+          p_etiqueta: controlEtiqueta || null,
+          p_trailer: carga ? controlTrailer.trim().toUpperCase() : null,
+          p_puerta: carga ? `DOCK ${controlDock.replace(/\D/g, "")}` : null,
+        }
+      );
+      if (error) throw error;
+      toast.success(t(iniciar ? "task_started" : "task_completed"));
+      setControlTarea(null);
+      await fetchTareas();
+    } catch (error) {
+      toast.error(error.message || t("error_saving"));
+      await fetchTareas();
+    } finally {
+      setGuardandoControl(false);
+    }
+  };
+
+  const abrirEtiquetas = async (tarea) => {
+    setEtiquetasTarea(tarea);
+    setEditandoLinea(null);
+    const { data, error } = await supabase.from("shipping_lines")
+      .select("id, idx_line, producto, cantidad_cajas, primera_etiqueta")
+      .eq("idx", tarea.idx).order("idx_line");
+    if (error) {
+      toast.error(error.message);
+      setEtiquetasTarea(null);
+      return;
+    }
+    setLineasEtiqueta(data || []);
+  };
+
+  const guardarPrimeraEtiqueta = async (linea) => {
+    if (guardandoEtiqueta) return;
+    const etiqueta = nuevaEtiqueta.trim().toUpperCase().replace(/\s+/g, "");
+    if (!/^(6J|5J|1J).*\d{4,}$/.test(etiqueta)) {
+      toast.error(t("task_product_plan_error"));
+      return;
+    }
+    setGuardandoEtiqueta(true);
+    try {
+      const { error } = await supabase.rpc("shipping_supervisor_change_first_label", {
+        p_line: linea.id, p_first: etiqueta,
+      });
+      if (error) throw error;
+      setLineasEtiqueta((prev) => prev.map((item) => item.id === linea.id
+        ? { ...item, primera_etiqueta: etiqueta } : item));
+      setEditandoLinea(null);
+      await fetchTareas();
+      toast.success(t("task_label_updated"));
+    } catch (error) {
+      toast.error(error.message || t("error_saving"));
+    } finally {
+      setGuardandoEtiqueta(false);
+    }
+  };
 
   // ---------- Drag & Drop helpers ----------
   const onDragStart = (idx) => setDragIndex(idx);
@@ -476,11 +583,15 @@ export default function TareasPendientes() {
         </BtnPrimary>
 
         <div className="table-wrap">
-          <table className="table">
+          <table className="table pending-table">
+            <colgroup>
+              {[7, 2, 8, 7, 12, 6, 10, 17, 9, 22].map((width, i) =>
+                <col key={i} style={{ width: `${width}%` }} />)}
+            </colgroup>
             <thead>
               <tr>
-                <th style={{ width: 110 }}>{t("prioridad")}</th>
-                <th style={{ width: 40 }}></th>
+                <th>{t("prioridad")}</th>
+                <th></th>
                 <th>{t("idx")}</th>
                 <th>{t("activity")}</th>
                 <th>{t("product")}</th>
@@ -509,8 +620,8 @@ export default function TareasPendientes() {
                   }}
                 >
                   {/* Prioridad editable + botones estéticos */}
-                  <td style={{ whiteSpace: "nowrap", textAlign: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, height: "34px" }}>
+                  <td className="pending-priority-cell">
+                    <div className="pending-priority-controls">
                       <PillInputNumber
                         type="number"
                         min={1}
@@ -525,9 +636,11 @@ export default function TareasPendientes() {
                           else toast.success(t("priority_updated"));
                         }}
                         title={t("edit_priority")}
+                        style={{ width: 46, height: 22, fontSize: 13, padding: "1px 3px" }}
                       />
-
+                      <div className="pending-priority-arrows">
                       <BtnTinyRound
+                        style={{ width: 21, height: 21 }}
                         title={t("move_up")}
                         onClick={async () => {
                           const idx = tareas.findIndex((t) => t.id === tarea.id);
@@ -539,12 +652,13 @@ export default function TareasPendientes() {
                         aria-label={t("move_up")}
                       >
                         {/* Ícono chevron up blanco */}
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                           <path d="M7 14l5-5 5 5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </BtnTinyRound>
 
                       <BtnTinyRound
+                        style={{ width: 21, height: 21 }}
                         title={t("move_down")}
                         onClick={async () => {
                           const idx = tareas.findIndex((t) => t.id === tarea.id);
@@ -556,15 +670,16 @@ export default function TareasPendientes() {
                         aria-label={t("move_down")}
                       >
                         {/* Ícono chevron down blanco */}
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                           <path d="M7 10l5 5 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </BtnTinyRound>
+                      </div>
                     </div>
                     {(tarea.es_urgente || tarea.mismo_dia) && (
-                      <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 5, flexWrap: "wrap" }}>
-                        {tarea.es_urgente && <span title={t("task_urgent")} style={{ background: "#991b1b", color: "white", borderRadius: 6, padding: "2px 6px", fontSize: 11 }}>{t("task_urgent")}</span>}
-                        {tarea.mismo_dia && <span title={t("task_same_day")} style={{ background: "#1d4ed8", color: "white", borderRadius: 6, padding: "2px 6px", fontSize: 11 }}>{t("task_same_day")}</span>}
+                      <div className="pending-badges">
+                        {tarea.es_urgente && <span title={t("task_urgent")} style={{ background: "#991b1b" }}>{t("task_urgent")}</span>}
+                        {tarea.mismo_dia && <span title={t("task_same_day")} style={{ background: "#1d4ed8" }}>{t("task_same_day")}</span>}
                       </div>
                     )}
                   </td>
@@ -574,7 +689,7 @@ export default function TareasPendientes() {
                     <span className="drag-handle">☰</span>
                   </td>
 
-                  <td>{tarea.idx || "-"}</td>
+                  <td className="pending-nowrap" title={tarea.idx}>{tarea.idx || "-"}</td>
                   <td>{mostrarNombre(tarea.actividad, actividades)}</td>
                   <td>
                     {Array.isArray(tarea.productos)
@@ -592,7 +707,7 @@ export default function TareasPendientes() {
                       : "-"}
                   </td>
                   <td>{tarea.notas || "-"}</td>
-                  <td style={{ fontWeight: "bold" }}>
+                  <td className="pending-nowrap" style={{ fontWeight: "bold" }}>
                     {(() => {
                       const estadoVisual = obtenerEstadoVisual(tarea.estado);
                       return (
@@ -611,13 +726,23 @@ export default function TareasPendientes() {
                     })()}
                   </td>
                   <td>
-                    <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                    <div className="pending-actions">
                       <BtnEditDark onClick={() => abrirModal(tarea)}>
                         {t("edit")}
                       </BtnEditDark>
                       <BtnDanger onClick={() => setTareaAEliminar(tarea)}>
                         {t("delete")}
                       </BtnDanger>
+                      {esSupervisor && (
+                        <BtnPrimary onClick={() => abrirControl(tarea)}>
+                          {t(tarea.estado === "pendiente" ? "start" : "finish")}
+                        </BtnPrimary>
+                      )}
+                      {esSupervisor && isLoad(tarea.actividad) && (
+                        <BtnSecondary onClick={() => abrirEtiquetas(tarea)}>
+                          {t("task_label_button")}
+                        </BtnSecondary>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -810,6 +935,100 @@ export default function TareasPendientes() {
                   {t("cancel")}
                 </BtnSecondary>
               </div>
+            </>
+          )}
+        </Modal>
+
+        <Modal
+          isOpen={Boolean(controlTarea)}
+          onRequestClose={() => !guardandoControl && setControlTarea(null)}
+          className="modal"
+          overlayClassName="modal-overlay"
+        >
+          {controlTarea && (
+            <>
+              <h3>{t(controlTarea.estado === "pendiente" ? "start_activity" : "finish_activity")}: {controlTarea.idx}</h3>
+              <p>{mostrarNombre(controlTarea.actividad, actividades)}</p>
+              {controlTarea.estado === "pendiente" && (
+                <label className="supervisor-field">
+                  {t("select_operators")}
+                  <DSSelect isMulti options={operadorOpciones}
+                    value={operadorOpciones.filter((op) => controlOperadores.includes(op.value))}
+                    onChange={(selected) => setControlOperadores((selected || []).map((op) => op.value))}
+                    placeholder={t("select_operators")} />
+                </label>
+              )}
+              {isLoad(controlTarea.actividad) && (
+                <div className="supervisor-fields">
+                  <label className="supervisor-field">
+                    {t("shipping_door")}
+                    <div className="supervisor-dock">
+                      <span>DOCK</span>
+                      <PillInput inputMode="numeric" value={controlDock}
+                        onChange={(e) => setControlDock(e.target.value.replace(/\D/g, ""))}
+                        placeholder="#" />
+                    </div>
+                  </label>
+                  <label className="supervisor-field">
+                    {t("shipping_trailer")}
+                    <PillInput value={controlTrailer} onChange={(e) => setControlTrailer(e.target.value.toUpperCase())}
+                      style={{ width: "100%" }} />
+                  </label>
+                  {requiereEtiqueta(controlTarea) && (
+                    <label className="supervisor-field">
+                      {t(controlTarea.estado === "pendiente" ? "shipping_start_label" : "shipping_end_label")}
+                      <PillInput inputMode="numeric" maxLength={4} value={controlEtiqueta}
+                        onChange={(e) => setControlEtiqueta(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        placeholder={t("supervisor_label_last_four")} style={{ width: "100%" }} />
+                    </label>
+                  )}
+                </div>
+              )}
+              <div className="supervisor-modal-actions">
+                <BtnSecondary disabled={guardandoControl} onClick={() => setControlTarea(null)}>{t("cancel")}</BtnSecondary>
+                <BtnPrimary disabled={guardandoControl} onClick={guardarControl}>
+                  {guardandoControl ? "…" : t(controlTarea.estado === "pendiente" ? "start" : "finish")}
+                </BtnPrimary>
+              </div>
+            </>
+          )}
+        </Modal>
+
+        <Modal
+          isOpen={Boolean(etiquetasTarea)}
+          onRequestClose={() => !guardandoEtiqueta && setEtiquetasTarea(null)}
+          className="modal"
+          overlayClassName="modal-overlay"
+        >
+          {etiquetasTarea && (
+            <>
+              <h3>{t("task_label_button")}: {etiquetasTarea.idx}</h3>
+              {lineasEtiqueta.length === 0 && <p>{t("supervisor_no_label_plan")}</p>}
+              {lineasEtiqueta.map((linea) => (
+                <div key={linea.id} className="supervisor-label-line">
+                  <strong>{mostrarNombre(linea.producto, productos)} ({linea.idx_line})</strong>
+                  <span>{linea.primera_etiqueta}</span>
+                  {editandoLinea === linea.id ? (
+                    <div className="supervisor-label-editor">
+                      <PillInput value={nuevaEtiqueta}
+                        onChange={(e) => setNuevaEtiqueta(e.target.value.toUpperCase().replace(/\s+/g, ""))}
+                        style={{ width: "100%" }} />
+                      <BtnPrimary disabled={guardandoEtiqueta} onClick={() => guardarPrimeraEtiqueta(linea)}>
+                        {t("save")}
+                      </BtnPrimary>
+                      <BtnSecondary disabled={guardandoEtiqueta} onClick={() => setEditandoLinea(null)}>
+                        {t("cancel")}
+                      </BtnSecondary>
+                    </div>
+                  ) : (
+                    <BtnEditDark onClick={() => { setEditandoLinea(linea.id); setNuevaEtiqueta(linea.primera_etiqueta); }}>
+                      {t("edit")}
+                    </BtnEditDark>
+                  )}
+                </div>
+              ))}
+              <p>{t("supervisor_label_lock_notice")}</p>
+              <BtnSecondary onClick={() => setEtiquetasTarea(null)}>{t("close")}</BtnSecondary>
             </>
           )}
         </Modal>
