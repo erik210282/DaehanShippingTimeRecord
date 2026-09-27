@@ -371,7 +371,6 @@ button {
 .records-edit-grid input { width: 100%; box-sizing: border-box; }
 .records-shipping-editor { margin-top: 18px; }
 .records-shipping-editor h4 { margin: 0; }
-.records-plan-field { display: flex; flex-direction: column; gap: 3px; font-size: 0.82em; }
 .summary-table .summary-part {
   display: block;
   font-size: 0.9em;
