@@ -1,0 +1,37 @@
+.inv-page { max-width: 1400px; padding: 28px 22px 80px; margin: auto; color: #142135; }
+.inv-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; }
+.inv-head small { color: #2563eb; font-weight: 800; letter-spacing: .1em; }
+.inv-head h1 { margin: 5px 0; font-size: clamp(27px, 4vw, 40px); }
+.inv-page button { padding: 10px 14px; border: 0; border-radius: 9px; background: #2563eb; color: white; cursor: pointer; font-weight: 700; }
+.inv-page button:disabled { opacity: .45; cursor: default; }
+.inv-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 18px; }
+.inv-tabs button { background: white; color: #344054; border: 1px solid #d7dfed; white-space: nowrap; }
+.inv-tabs button.active { color: white; background: #1d4ed8; border-color: #1d4ed8; }
+.inv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.inv-card { padding: 20px; margin: 0 0 18px; background: white; border: 1px solid #dbe4f0; border-radius: 14px; }
+.inv-card h2 { margin: 0 0 15px; }
+.inv-card strong { display: block; font-size: 24px; }
+.inv-card small, .inv-muted { color: #667085; }
+.inv-wide { grid-column: 1 / -1; }
+.inv-table-wrap { width: 100%; overflow-x: auto; margin: 16px 0; }
+.inv-table-wrap table { width: 100%; border-collapse: collapse; text-align: left; }
+.inv-table-wrap th, .inv-table-wrap td { padding: 11px 12px; border-bottom: 1px solid #e7eaf0; vertical-align: middle; }
+.inv-table-wrap th { background: #f4f7fd; font-size: 13px; }
+.inv-negative { color: #c21f2f; font-weight: 800; }
+.inv-low { color: #b15a00; font-weight: 800; }
+.inv-form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin: 18px 0; padding: 17px; background: #f6f9ff; border-radius: 11px; }
+.inv-form h3 { width: 100%; margin: 0 0 4px; }
+.inv-form input, .inv-form select, .inv-table-wrap input { min-height: 40px; padding: 8px; min-width: 150px; max-width: 100%; box-sizing: border-box; border: 1px solid #b8c5d6; border-radius: 8px; color: #142135; background: white; }
+.inv-form input[type="number"] { max-width: 245px; }
+.inv-table-wrap input { min-width: 105px; width: 155px; }
+.inv-file { display: inline-grid; gap: 8px; margin: 10px 14px 10px 0; padding: 10px; border: 1px solid #b8c5d6; border-radius: 8px; }
+.inv-message { padding: 12px; background: #eaf1ff; color: #132f6b; border-radius: 8px; }
+.inv-bom { border-top: 1px solid #e1e6ef; padding: 16px 0; }
+.inv-bom h3 { margin: 0 0 10px; }
+.inv-bom button { margin: 5px 8px 5px 0; }
+.inv-page .inv-danger { background: #b42318; }
+@media (max-width: 700px) {
+  .inv-page { padding: 18px 12px 80px; }
+  .inv-card { padding: 14px; }
+  .inv-form input, .inv-form select { width: 100%; max-width: none !important; }
+}

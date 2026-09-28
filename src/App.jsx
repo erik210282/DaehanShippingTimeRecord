@@ -21,6 +21,7 @@ import GlobalSettings from './GlobalSettings';
 import SetPassword from './SetPassword';
 import { AnnouncementNotice, GlobalAnnouncements, useAnnouncementGate } from './GlobalAnnouncements';
 import { useParams, Navigate } from 'react-router-dom';
+import Inventarios from './pages/Inventarios';
 // IMPORTANTE: El ToastContainer y CSS SOLO deben estar aquí en App.jsx
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -194,7 +195,7 @@ const Navbar = ({ access, onAnnouncements }) => {
 
   if (!user) return null;
 
-  const shipping = !['/inicio', '/global-settings', '/announcements'].includes(location.pathname) && !location.pathname.startsWith('/departamento/');
+  const shipping = !['/inicio', '/global-settings', '/announcements', '/inventarios'].includes(location.pathname) && !location.pathname.startsWith('/departamento/');
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -234,6 +235,8 @@ const Navbar = ({ access, onAnnouncements }) => {
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
         <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
         </>}
+        {(access.admin || access.memberships.some(m => ['inventory', 'shipping', 'production', 'receiving', 'quality'].includes(m.department))) &&
+          <button onClick={() => navigate('/inventarios')}>Inventarios</button>}
         {location.pathname !== '/inicio' && location.pathname !== '/announcements' && <button onClick={onAnnouncements}>{t('global_announcements')}</button>}
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
@@ -269,7 +272,7 @@ const PrivateArea = () => {
     if (!firstDepartment) return <div className="global-loading">{t('global_no_access')}</div>;
     return <Navigate to={firstDepartment === 'shipping' ? '/tareas-pendientes' : `/departamento/${firstDepartment}`} replace />;
   }
-  const isGlobalRoute = ['/inicio', '/global-settings', '/announcements'].includes(location.pathname) || location.pathname.startsWith('/departamento/');
+  const isGlobalRoute = ['/inicio', '/global-settings', '/announcements', '/inventarios'].includes(location.pathname) || location.pathname.startsWith('/departamento/');
   if (!isGlobalRoute && !access.admin && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
   const portal = <>
     <div className="app-container">
@@ -280,6 +283,8 @@ const PrivateArea = () => {
           <Route path="/global-settings" element={canSeeHome ? <GlobalSettings access={access} /> : <Navigate to="/inicio" replace />} />
           <Route path="/announcements" element={<GlobalAnnouncements access={access} announcements={announcements} onContinue={announcements.acknowledge} onBack={() => navigate(returnPath.current === '/announcements' ? '/inicio' : returnPath.current || '/inicio', { replace: true })} />} />
           <Route path="/departamento/:name" element={<DepartmentRoute access={access} />} />
+          <Route path="/inventarios" element={access.admin || access.memberships.some(m => ['inventory', 'shipping', 'production', 'receiving', 'quality'].includes(m.department))
+            ? <Inventarios access={access} /> : <Navigate to="/inicio" replace />} />
           <Route path="/tareas-pendientes" element={<ProtectedRoute><TareasPendientes /></ProtectedRoute>} />
           <Route path="/resumen" element={<ProtectedRoute><Resumen /></ProtectedRoute>} />
           <Route path="/registros" element={<ProtectedRoute><Registros /></ProtectedRoute>} />
