@@ -116,7 +116,7 @@ export function GlobalAnnouncements({ access, announcements, onContinue, onBack 
   }
   const current = announcements.pending[0];
   return <main className="global-page">
-    <div className="global-heading"><span>DAEHAN · {t('global_announcements')}</span><h1>{localGreeting(t)}, {access.name}</h1></div>
+    <div className="global-heading"><span>DAEHAN APP · {t('global_announcements')}</span><h1>{localGreeting(t)}, {access.name}</h1></div>
     {announcements.gate && current ? <section className="global-panel global-announcement-message" aria-live="polite">
       <span className="global-kicker">{t('global_announcement')} · {t(current.audience === 'all' ? 'global_everyone' : 'global_individual')}</span>
       <h2>{translatedAnnouncement(current, 'title', i18n.language)}</h2>

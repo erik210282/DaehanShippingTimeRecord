@@ -36,7 +36,7 @@ export function GlobalHome({ access }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   return <main className="global-page">
-    <div className="global-heading"><span>DAEHAN · {t('global_home')}</span><h1>{localGreeting(t)}, {access.name}</h1></div>
+    <div className="global-heading"><span>DAEHAN APP · {t('global_home')}</span><h1>{localGreeting(t)}, {access.name}</h1></div>
     <div className="global-cards">
       {departmentKeys.filter(key => access.admin || access.memberships.some(item => item.department === key)).map(key =>
         <button key={key} className="global-card" onClick={() => navigate(key === 'shipping' ? '/tareas-pendientes' : `/departamento/${key}`)}>
@@ -54,8 +54,7 @@ export function DepartmentLanding({ name, access }) {
   const navigate = useNavigate();
   if (!departmentKeys.includes(name) || (!access.admin && !access.memberships.some(m => m.department === name))) return <Navigate to="/inicio" replace />;
   return <main className="global-page">{(access.admin || access.supervisor) && <button className="global-back" onClick={() => navigate('/inicio')}>← {t('global_home')}</button>}
-    <div className="global-heading"><span>DAEHAN · {t('global_department')}</span><h1>{t(`global_${name}`)}</h1></div>
+    <div className="global-heading"><span>DAEHAN APP · {t('global_department')}</span><h1>{t(`global_${name}`)}</h1></div>
     <section className="global-panel">{t('global_pending')}</section>
   </main>;
 }
-
