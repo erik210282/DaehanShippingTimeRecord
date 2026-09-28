@@ -38,7 +38,7 @@ export default function SetPassword() {
     setBusy(false);
   }
   return <main className="global-page"><div style={{ display: 'flex', justifyContent: 'flex-end' }}><LanguageBar /></div>
-    <div className="global-heading"><span>DAEHAN</span><h1>{t('global_set_password')}</h1></div>
+    <div className="global-heading"><span>DAEHAN APP</span><h1>{t('global_set_password')}</h1></div>
     <section className="global-panel" style={{ maxWidth: 500 }}>
       {error && <p role="alert">{error}</p>}
       {done ? <><p>{t('global_password_ready')}</p><button className="global-settings-action" onClick={() => navigate('/')}>{t('global_sign_in')}</button></> : ready ? <form onSubmit={save}>

@@ -89,7 +89,7 @@ export default function GlobalSettings({ access }) {
 
   const person = people.find(u => u.uid === selected);
   return <main className="global-page"><button className="global-back" onClick={() => navigate('/inicio')}>← {t('global_home')}</button>
-    <div className="global-heading"><span>DAEHAN</span><h1>{t('global_settings')}</h1></div>
+    <div className="global-heading"><span>DAEHAN APP</span><h1>{t('global_settings')}</h1></div>
     {status && <p role="status">{status}</p>}
     {link && <div className="global-panel"><strong>{t('global_password_link')}</strong><p>{t('global_link_private')}</p><div className="global-link-output">{link}</div><button className="global-settings-action" onClick={() => navigator.clipboard.writeText(link)}>{t('global_copy_link')}</button></div>}
     <div className="global-settings-grid">

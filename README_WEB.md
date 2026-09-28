@@ -1,7 +1,7 @@
-# 📘 README – Registro de Actividades (Web)
+# DAEHAN APP — Web
 
 ## 📦 Descripción General
-Esta es la versión web del sistema **Registro de Actividades** utilizado por Daehan Shipping para registrar, consultar y analizar tareas operativas de producción. La aplicación permite:
+Esta es la web de **DAEHAN APP** para toda la organización. Shipping es el primer departamento operativo; sus tareas y registros existentes se conservan. La aplicación permite:
 
 - Asignar y gestionar tareas pendientes
 - Registrar actividades realizadas con tiempos y operadores
