@@ -205,7 +205,7 @@ const Navbar = ({ access, onAnnouncements }) => {
   return (
     <div className="navbar">
       <div className="navbar-center">
-        {access.admin || access.supervisor ? (location.pathname !== '/inicio' && <button onClick={() => navigate('/inicio')}>{t('global_back')}</button>) : null}
+        {access.admin || access.supervisor ? (location.pathname !== '/inicio' && location.pathname !== '/inventarios' && <button onClick={() => navigate('/inicio')}>{t('global_back')}</button>) : null}
         {shipping && <>
         <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
         <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
@@ -235,8 +235,6 @@ const Navbar = ({ access, onAnnouncements }) => {
         <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
         <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
         </>}
-        {(access.admin || access.memberships.some(m => ['inventory', 'shipping', 'production', 'receiving', 'quality'].includes(m.department))) &&
-          <button onClick={() => navigate('/inventarios')}>Inventarios</button>}
         {location.pathname !== '/inicio' && location.pathname !== '/announcements' && <button onClick={onAnnouncements}>{t('global_announcements')}</button>}
         <button onClick={handleLogout}>{t("logout")}</button>
       </div>
