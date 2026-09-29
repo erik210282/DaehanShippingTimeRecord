@@ -39,7 +39,7 @@ export function GlobalHome({ access }) {
     <div className="global-heading"><span>DAEHAN APP · {t('global_home')}</span><h1>{localGreeting(t)}, {access.name}</h1></div>
     <div className="global-cards">
       {departmentKeys.filter(key => access.admin || access.memberships.some(item => item.department === key)).map(key =>
-        <button key={key} className="global-card" onClick={() => navigate(key === 'shipping' ? '/tareas-pendientes' : `/departamento/${key}`)}>
+        <button key={key} className="global-card" onClick={() => navigate(key === 'shipping' ? '/tareas-pendientes' : key === 'inventory' ? '/inventarios' : `/departamento/${key}`)}>
           <span>{key[0].toUpperCase()}</span><strong>{t(`global_${key}`)}</strong><small>↗</small>
         </button>
       )}
