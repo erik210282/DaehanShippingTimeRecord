@@ -16,10 +16,12 @@
 .inv-page .inv-nav-group button.active { background: #eaf1ff; color: #1741ad; font-weight: 800; }
 .inv-main { min-width: 0; }
 .inv-mobile-nav { display: none; }
-.inv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.inv-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .inv-card { padding: 20px; margin: 0 0 18px; background: white; border: 1px solid #dbe4f0; border-radius: 14px; }
 .inv-card h2 { margin: 0 0 15px; }
-.inv-card strong { display: block; font-size: 24px; }
+.inv-grid .inv-card strong { display: block; font-size: 24px; }
+.inv-card .inv-inline-strong { font-size: inherit; font-weight: 700; }
+.inv-grid .inv-card h2 { min-height: 2.6em; line-height: 1.3; }
 .inv-card small, .inv-muted { color: #667085; }
 .inv-wide { grid-column: 1 / -1; }
 .inv-table-wrap { width: 100%; overflow-x: auto; margin: 16px 0; }
@@ -49,6 +51,11 @@
 @media (max-width: 700px) {
   .inv-page { padding: 18px 12px 80px; }
   .inv-head { align-items: flex-end; }
+  .inv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .inv-card { padding: 14px; }
   .inv-form input, .inv-form select { width: 100%; max-width: none !important; }
+}
+@media (max-width: 440px) {
+  .inv-grid { grid-template-columns: minmax(0, 1fr); }
+  .inv-head button { padding: 9px 10px; }
 }
