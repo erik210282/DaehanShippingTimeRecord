@@ -19,3 +19,4 @@ assert.throws(()=>finishLines([{id:'l',expected:10}],{l:{received:'5',damaged:'1
 assert.equal(finishLines([{id:'l',expected:10}],{l:{received:'12',damaged:'2',note:'Reported'}})[0].received,12);
 assert.match(localDay('2026-09-29T12:00:00Z'),/^2026-09-29$/);
 console.log('PASS: quantities, location permissions, statuses, pause exclusion, mixed units and damage validation');
+

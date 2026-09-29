@@ -16,8 +16,8 @@ export function quantity(value, allowZero = false) {
   if (!Number.isFinite(result) || (allowZero ? result < 0 : result <= 0)) throw Error('receiving_quantity');
   return result;
 }
-export const itemLabel = item => `${item.part_number} � ${item.description} (${item.uom})`;
-export const locationLabel = item => `${item.code} � ${item.name}`;
+export const itemLabel = item => `${item.part_number} · ${item.description} (${item.uom})`;
+export const locationLabel = item => `${item.code} · ${item.name}`;
 export const activeTask = task => ['running', 'paused'].includes(task.status);
 export const statusColors = { pending: '#FFF44F', process: '#AEC6CF', completed: '#B2FBA5', paused: '#F1BA8B', cancelled: '#eeeeee' };
 export function receiptState(receipt, lines, tasks) {
