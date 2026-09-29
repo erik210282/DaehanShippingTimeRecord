@@ -10,6 +10,12 @@ const sections = [
   ['PACKAGING', 'Material de empaque'], ['quality', 'Control de calidad'],
   ['counts', 'Chequeo de inventarios'], ['dispatch', 'Confirmar envíos'], ['catalog', 'Catálogo'],
 ];
+const navGroups = [
+  ['Existencias', ['overview', 'RAW', 'WIP', 'FG', 'PACKAGING']],
+  ['Planeación', ['bom', 'demand']],
+  ['Operación', ['counts', 'dispatch', 'quality']],
+  ['Administración', ['catalog']],
+];
 const areas = ['RAW', 'WIP', 'FG', 'PACKAGING', 'HOLD'];
 const n = value => Number(value || 0);
 const fmt = value => n(value).toLocaleString('es-MX', { maximumFractionDigits: 3 });
@@ -190,9 +196,26 @@ export default function Inventarios({ access }) {
       : i.responsible_department === countDepartment);
 
   return <main className="inv-page">
-    <header className="inv-head"><div><small>DAEHAN APP · INVENTARIOS</small><h1>Inventarios</h1></div><button onClick={() => act(async () => {}, 'Actualizado.')}>Actualizar</button></header>
-    <nav className="inv-tabs" aria-label="Secciones de inventario">{sections.map(([key,label]) =>
-      <button key={key} className={tab === key ? 'active' : ''} onClick={() => { setTab(key); setMessage(''); }}>{label}</button>)}</nav>
+    <header className="inv-head"><div><Link className="inv-home" to="/inicio">← Inicio</Link><small>DAEHAN APP · INVENTARIOS</small><h1>Inventarios</h1></div><button onClick={() => act(async () => {}, 'Actualizado.')}>Actualizar</button></header>
+    <div className="inv-layout">
+      <aside className="inv-sidebar">
+        <nav aria-label="Secciones de inventarios">{navGroups.map(([group, keys]) =>
+          <div className="inv-nav-group" key={group}>
+            <p>{group}</p>
+            {keys.map(key => <button key={key} type="button" aria-current={tab === key ? 'page' : undefined}
+              className={tab === key ? 'active' : ''} onClick={() => { setTab(key); setMessage(''); }}>
+              {sections.find(section => section[0] === key)?.[1]}
+            </button>)}
+          </div>)}</nav>
+      </aside>
+      <div className="inv-main">
+        <div className="inv-mobile-nav"><label htmlFor="inv-section">Sección</label>
+          <select id="inv-section" value={tab} onChange={event => { setTab(event.target.value); setMessage(''); }}>
+            {navGroups.map(([group, keys]) => <optgroup key={group} label={group}>
+              {keys.map(key => <option key={key} value={key}>{sections.find(section => section[0] === key)?.[1]}</option>)}
+            </optgroup>)}
+          </select>
+        </div>
     {!!message && <p role="status" className="inv-message">{message}</p>}
 
     {tab === 'overview' && <div className="inv-grid">
@@ -389,5 +412,7 @@ export default function Inventarios({ access }) {
     {tab === 'quality' && <section className="inv-card"><h2>Control de calidad</h2>
       <p>El modelo contempla material retenido, liberado y rechazado, y existencias separadas en HOLD.</p>
       <p>El registro de inspecciones y los bloqueos operativos quedan pendientes hasta definir con Calidad su proceso real.</p></section>}
+      </div>
+    </div>
   </main>;
 }
