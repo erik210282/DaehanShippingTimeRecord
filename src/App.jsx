@@ -22,11 +22,12 @@ import SetPassword from './SetPassword';
 import { AnnouncementNotice, GlobalAnnouncements, useAnnouncementGate } from './GlobalAnnouncements';
 import { useParams, Navigate } from 'react-router-dom';
 import Inventarios from './pages/Inventarios';
-// IMPORTANTE: El ToastContainer y CSS SOLO deben estar aquí en App.jsx
+import Receiving from './pages/Receiving';
+// IMPORTANTE: El ToastContainer y CSS SOLO deben estar aqu� en App.jsx
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// --- GLOBAL CHAT LISTENER (VERSIÓN SIMPLIFICADA Y ROBUSTA) ---
+// --- GLOBAL CHAT LISTENER (VERSION SIMPLIFICADA Y ROBUSTA) ---
 const GlobalChatListener = () => {
   const { t } = useTranslation();
   const currentUserIdRef = useRef(null);
@@ -47,7 +48,7 @@ const GlobalChatListener = () => {
     return () => { authListener?.subscription?.unsubscribe?.(); };
   }, []);
 
-  // 2. Suscripción ÚNICA y persistente
+  // 2. Suscripci�n UNICA y persistente
   useEffect(() => {
     const recalcularUnread = async () => {
       try {
@@ -80,7 +81,7 @@ const GlobalChatListener = () => {
           if (payload.eventType !== "INSERT") return;
           if (!nuevo) return;
 
-          // Si yo lo envié, no hago nada
+          // Si yo lo envi�, no hago nada
           if (nuevo.sender_id === myId) return;
 
           // B) MOSTRAR TOAST (solo si es urgente y soy participante)
@@ -113,7 +114,7 @@ const GlobalChatListener = () => {
 
             const nombre = remitente?.nombre || "Sistema";
 
-            toast.error(`🔥 ${t("urgent_message_arrived_from", { name: nombre })}`, {
+            toast.error(`?? ${t("urgent_message_arrived_from", { name: nombre })}`, {
               position: "top-center",
               theme: "colored",
               autoClose: 1500,
@@ -122,7 +123,7 @@ const GlobalChatListener = () => {
           }
         }
       )
-      // B) Cualquier cambio en chat_message_read_status → recalcular badge
+      // B) Cualquier cambio en chat_message_read_status  recalcular badge
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "chat_message_read_status" },
@@ -130,7 +131,7 @@ const GlobalChatListener = () => {
           await recalcularUnread();
         }
       )
-      // C) Cualquier cambio en chat_threads (incluye DELETE) → recalcular badge
+      // C) Cualquier cambio en chat_threads (incluye DELETE)  recalcular badge
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "chat_threads" },
@@ -243,9 +244,10 @@ const Navbar = ({ access, onAnnouncements }) => {
   );
 };
 
-// --- CONFIGURACIÓN DE RUTAS ---
+// --- CONFIGURACION DE RUTAS ---
 function DepartmentRoute({ access }) {
   const { name } = useParams();
+  if (name === 'receiving') return <Receiving access={access} />;
   return <DepartmentLanding name={name} access={access} />;
 }
 
@@ -256,9 +258,9 @@ const PrivateArea = () => {
   const location = useLocation();
   const announcements = useAnnouncementGate(access.userId);
   const returnPath = useRef(location.pathname);
-  if (access.loading) return <div className="global-loading">Cargando…</div>;
+  if (access.loading) return <div className="global-loading">Cargando.</div>;
   if (access.error) return <div className="global-loading" role="alert">{access.error}</div>;
-  if (!announcements.ready) return <div className="global-loading">{t('loading')}…</div>;
+  if (!announcements.ready) return <div className="global-loading">{t('loading')}.</div>;
   if (announcements.error && !announcements.items.length) return <div className="global-loading" role="alert">{announcements.error}<button onClick={announcements.load}>{t('global_retry')}</button></div>;
   if (announcements.gate && location.pathname !== '/announcements') {
     returnPath.current = location.pathname;
@@ -306,7 +308,7 @@ const AppContent = () => (
     {/* Listener Global INVISIBLE pero siempre activo */}
     <GlobalChatListener />
     
-    {/* ÚNICO ToastContainer de toda la app */}
+    {/* UNICO ToastContainer de toda la app */}
     <ToastContainer 
       position="top-center" 
       autoClose={2000} 
