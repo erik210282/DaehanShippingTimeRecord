@@ -6,6 +6,7 @@ import i18n from '../i18n/i18n';
 import { BtnPrimary, BtnSecondary, BtnDanger, PillInput, DSSelect } from '../components/controls';
 import { api, emptyData, newId, number, quantity, activeTask, allowedLocations, receiptState, statusColors, itemLabel, locationLabel, finishLines, effectiveSeconds, productivity, localDay } from '../receiving/api';
 import { registerReceiving, receivingError } from '../receiving/translations';
+import DepartmentNav from '../components/DepartmentNav';
 import './Receiving.css';
 registerReceiving(i18n);
 const service = api(supabase);
@@ -44,7 +45,7 @@ export default function Receiving({ access }) {
   const date = value => value ? new Date(value).toLocaleString(i18n.language) : '—';
   const refresh = useCallback(async () => {
     if (!allowed) { setLoading(false); return; }
-    try { setData(await service.load()); setReady(true); setError(''); } catch { setError(t('rc_load_error')); } finally { setLoading(false); }
+    try { setData(await service.load()); setReady(true); setError(''); } catch (failure) { console.error('Receiving load failed', failure.code, failure.message); setError(t('rc_load_error')); } finally { setLoading(false); }
   }, [allowed,t]);
   useEffect(() => { refresh(); const timer=setInterval(refresh,30000); return () => clearInterval(timer); }, [refresh]);
   useEffect(()=>{
@@ -96,7 +97,7 @@ export default function Receiving({ access }) {
   const tabs = receiver ? ['pending','summary','productivity', ...(manage?['catalogs']:[]), ...(supervisor?['users']:[])] : ['summary'];
   return <main className="rc-page">
     <div className="rc-heading"><div><span>DAEHAN APP</span><h1>{t('rc_title')}</h1></div><BtnSecondary disabled={busy} onClick={refresh}>{t('rc_refresh')}</BtnSecondary></div>
-    <nav className="rc-nav" aria-label={t('rc_title')}>{tabs.map(key=><button type="button" key={key} aria-current={currentTab===key?'page':undefined} onClick={()=>{setTab(key);setCatalogDraft(null);}}>{t(`rc_${key}`)}</button>)}</nav>
+    <DepartmentNav items={tabs.map(key=>({key,label:t(`rc_${key}`)}))} value={currentTab} onChange={key=>{setTab(key);setCatalogDraft(null);}} label={t('rc_title')}/>
     {error && <div className="rc-alert rc-error" role="alert">{error}</div>}{message && <div className="rc-alert" role="status">{message}</div>}
     {loading ? <p>{t('loading')}</p> : <>
     {['pending','summary','productivity'].includes(currentTab) && <>

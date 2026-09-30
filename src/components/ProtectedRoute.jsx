@@ -19,7 +19,7 @@ const ProtectedRoute = ({ children }) => {
       if (!mounted) return;
       const allowed = !error && profile?.activo === true && profile.role === "supervisor";
       setIsAuthenticated(allowed);
-      if (!allowed && !error) await supabase.auth.signOut({ scope: "local" });
+      if (!profile?.activo && !error) await supabase.auth.signOut({ scope: "local" });
     };
     verifySession();
     const onFocus = () => { if (document.visibilityState === "visible") verifySession(); };
@@ -42,7 +42,7 @@ const ProtectedRoute = ({ children }) => {
 
   if (isAuthenticated === null) return null; // O un spinner
 
-  return isAuthenticated ? children : <Navigate to="/" replace />;
+  return isAuthenticated ? children : <Navigate to="/inicio" replace />;
 };
 
 export default ProtectedRoute;

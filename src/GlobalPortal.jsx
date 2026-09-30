@@ -5,13 +5,16 @@ import { supabase } from './supabase/client';
 import { localGreeting } from './GlobalAnnouncements';
 import './GlobalPortal.css';
 
-export const departmentKeys = ['shipping', 'production', 'quality', 'receiving', 'inventory'];
+import { departmentKeys, visibleDepartments } from './access';
+export { departmentKeys } from './access';
 
 export function useGlobalAccess() {
   const [state, setState] = useState({ loading: true, memberships: [], admin: false, supervisor: false, name: '', userId: '', error: '' });
   useEffect(() => {
     let live = true;
-    (async () => {
+    let request = 0;
+    const load = async () => {
+      const ownRequest = ++request;
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (!live) return;
       if (authError || !user) { setState({ loading: false, memberships: [], admin: false, supervisor: false, name: '', userId: '', error: authError?.message || 'Sesión expirada' }); return; }
@@ -20,14 +23,23 @@ export function useGlobalAccess() {
         supabase.from('global_department_memberships').select('department,role').eq('user_id', user.id).eq('active', true),
         supabase.from('global_system_admins').select('user_id').eq('user_id', user.id).maybeSingle(),
       ]);
-      if (!live) return;
+      if (!live || ownRequest !== request) return;
       const error = person.error || access.error || admin.error;
       setState({ loading: false, memberships: access.data || [], admin: !!admin.data,
         supervisor: (access.data || []).some(m => m.role === 'supervisor'),
         name: person.data?.nombre || '', userId: user.id,
         error: error?.message || (person.data?.activo ? '' : 'Cuenta inactiva') });
-    })();
-    return () => { live = false; };
+    };
+    load();
+    const focus = () => load();
+    const visible = () => { if (document.visibilityState === 'visible') load(); };
+    window.addEventListener('focus', focus);
+    window.addEventListener('global-access-updated', focus);
+    document.addEventListener('visibilitychange', visible);
+    const timer = setInterval(load, 30000);
+    const channel = supabase.channel('global-access-web')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'global_department_memberships' }, load).subscribe();
+    return () => { live = false; clearInterval(timer); window.removeEventListener('focus', focus); window.removeEventListener('global-access-updated', focus); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel); };
   }, []);
   return state;
 }
@@ -38,9 +50,7 @@ export function GlobalHome({ access }) {
   return <main className="global-page">
     <div className="global-heading"><span>DAEHAN APP · {t('global_home')}</span><h1>{localGreeting(t)}, {access.name}</h1></div>
     <div className="global-cards">
-      {departmentKeys.filter(key => access.admin || (key === 'inventory'
-        ? access.memberships.some(item => ['inventory', 'shipping', 'production', 'receiving', 'quality'].includes(item.department))
-        : access.memberships.some(item => item.department === key))).map(key =>
+      {visibleDepartments(access.memberships, access.admin).map(key =>
         <button key={key} className="global-card" onClick={() => navigate(key === 'shipping' ? '/tareas-pendientes' : key === 'inventory' ? '/inventarios' : `/departamento/${key}`)}>
           <span>{key[0].toUpperCase()}</span><strong>{t(`global_${key}`)}</strong><small>↗</small>
         </button>
@@ -53,9 +63,8 @@ export function GlobalHome({ access }) {
 
 export function DepartmentLanding({ name, access }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   if (!departmentKeys.includes(name) || (!access.admin && !access.memberships.some(m => m.department === name))) return <Navigate to="/inicio" replace />;
-  return <main className="global-page">{(access.admin || access.supervisor) && <button className="global-back" onClick={() => navigate('/inicio')}>← {t('global_home')}</button>}
+  return <main className="global-page">
     <div className="global-heading"><span>DAEHAN APP · {t('global_department')}</span><h1>{t(`global_${name}`)}</h1></div>
     <section className="global-panel">{t('global_pending')}</section>
   </main>;

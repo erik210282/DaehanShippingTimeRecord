@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import Papa from 'papaparse';
+import DepartmentNav from '../components/DepartmentNav';
 import './Inventarios.css';
 
 const sections = [
@@ -10,12 +11,6 @@ const sections = [
   ['FG', 'inv_area_FG'], ['bom', 'inv_bom'], ['demand', 'inv_demand'],
   ['PACKAGING', 'inv_area_PACKAGING'], ['quality', 'inv_quality'],
   ['counts', 'inv_counts'], ['dispatch', 'inv_dispatch'], ['catalog', 'inv_catalog'],
-];
-const navGroups = [
-  ['inv_group_stock', ['overview', 'RAW', 'WIP', 'FG', 'PACKAGING']],
-  ['inv_group_planning', ['bom', 'demand']],
-  ['inv_group_operations', ['counts', 'dispatch', 'quality']],
-  ['inv_group_admin', ['catalog']],
 ];
 const areas = ['RAW', 'WIP', 'FG', 'PACKAGING', 'HOLD'];
 const n = value => Number(value || 0);
@@ -204,26 +199,10 @@ export default function Inventarios({ access }) {
       : i.responsible_department === countDepartment);
 
   return <main className="inv-page">
-    <header className="inv-head"><div><Link className="inv-home" to="/inicio">← {t('inv_home')}</Link><small>DAEHAN APP · {t('inv_title').toLocaleUpperCase(i18n.language)}</small><h1>{t('inv_title')}</h1></div><button onClick={() => act(async () => {}, t('inv_updated'))}>{t('inv_refresh')}</button></header>
+    <header className="inv-head"><div><small>DAEHAN APP · {t('inv_title')}</small><h1>{t('inv_title')}</h1></div><button onClick={() => act(async () => {}, t('inv_updated'))}>{t('inv_refresh')}</button></header>
+    <DepartmentNav items={sections.map(([key,label])=>({key,label:t(label)}))} value={tab} onChange={key=>{setTab(key);setMessage('');}} label={t('inv_section')}/>
     <div className="inv-layout">
-      <aside className="inv-sidebar">
-        <nav aria-label={t('inv_section')}>{navGroups.map(([group, keys]) =>
-          <div className="inv-nav-group" key={group}>
-            <p>{t(group)}</p>
-            {keys.map(key => <button key={key} type="button" aria-current={tab === key ? 'page' : undefined}
-              className={tab === key ? 'active' : ''} onClick={() => { setTab(key); setMessage(''); }}>
-              {sectionLabel(key)}
-            </button>)}
-          </div>)}</nav>
-      </aside>
       <div className="inv-main">
-        <div className="inv-mobile-nav"><label htmlFor="inv-section">{t('inv_section')}</label>
-          <select id="inv-section" value={tab} onChange={event => { setTab(event.target.value); setMessage(''); }}>
-            {navGroups.map(([group, keys]) => <optgroup key={group} label={t(group)}>
-              {keys.map(key => <option key={key} value={key}>{sectionLabel(key)}</option>)}
-            </optgroup>)}
-          </select>
-        </div>
     {!!message && <p role="status" className="inv-message">{message}</p>}
 
     {tab === 'overview' && <div className="inv-grid">

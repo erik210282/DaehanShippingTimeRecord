@@ -61,10 +61,10 @@ export function api(db) {
   const rpc = (name, params) => unwrap(db.rpc(name, params));
   return {
     async load() {
-      const pageAll = async (table, order = 'id', filter) => {
+      const pageAll = async (table, order = 'id', filter, columns = '*') => {
         let rows = [], offset = 0;
         while (true) {
-          let query = db.from(table).select('*').order(order).range(offset, offset + 999);
+          let query = db.from(table).select(columns).order(order).range(offset, offset + 999);
           if(filter) query=filter(query);
           const page = await unwrap(query);
           rows = rows.concat(page); if (page.length < 1000) return rows; offset += 1000;
@@ -73,7 +73,7 @@ export function api(db) {
       const [suppliers, locations, assignments, items, receipts, lines, tasks, users] = await Promise.all([
         pageAll('receiving_suppliers', 'code'), pageAll('receiving_locations', 'code'),
         pageAll('receiving_item_locations', 'item_id'),
-        pageAll('inventory_items', 'part_number', query=>query.in('category',['RAW','PACKAGING'])),
+        pageAll('inventory_items', 'part_number', query=>query.in('category',['RAW','PACKAGING']), 'id,part_number,description,category,uom,active,minimum_quantity,responsible_department,default_location'),
         pageAll('receiving_receipts', 'code'), pageAll('receiving_line_status'), pageAll('receiving_tasks'), rpc('receiving_users', {}),
       ]);
       return { suppliers, locations, assignments, items, receipts, lines, tasks, users };
