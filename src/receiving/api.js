@@ -39,7 +39,7 @@ export function effectiveSeconds(task) {
 }
 export function productivity(tasks, lines) {
   const groups = new Map();
-  for (const task of tasks.filter(row => row.status === 'finished')) {
+  for (const task of tasks.filter(row => row.status === 'finished').flatMap(task=>[task.operator_id,...(task.additional_operator_ids||[])].map(operator_id=>({...task,operator_id})))) {
     const taskLines = task.kind === 'unload' ? lines.filter(line => line.receipt_id === task.receipt_id) : lines.filter(line => line.id === task.line_id);
     // Do not divide the full unloading time between unlike products or units.
     const units = new Set(taskLines.map(line => line.uom));
@@ -76,10 +76,10 @@ export function api(db) {
         pageAll('inventory_items', 'part_number', query=>query.in('category',['RAW','FG','PACKAGING']), 'id,part_number,description,category,uom,active,minimum_quantity,responsible_department,default_location'),
         pageAll('receiving_receipts', 'code'), pageAll('receiving_line_status'), pageAll('receiving_tasks'), rpc('receiving_users', {}), pageAll('receiving_material_types','code'), pageAll('receiving_item_types','item_id'),
       ]);
-      return { suppliers, locations, assignments, items:items.filter(i=>i.category!=='FG' || i.responsible_department==='receiving' || itemTypes.some(m=>m.item_id===i.id)).map(i=>({...i,material_type:itemTypes.find(m=>m.item_id===i.id)?.material_type || i.category})), receipts, lines, tasks, users, materialTypes };
+      return { suppliers, locations, assignments, items:items.map(i=>({...i,material_type:itemTypes.find(m=>m.item_id===i.id)?.material_type || i.category})), receipts, lines, tasks, users, materialTypes };
     },
     start: (id, data) => rpc('receiving_start', { p_id: id, p_data: data }),
-    putaway: (id, line, location, amount) => rpc('receiving_putaway', { p_id: id, p_line: line, p_location: location, p_quantity: quantity(amount) }),
+    putaway: (id, line, location, amount, operators=[]) => rpc('receiving_putaway_group', { p_id: id, p_line: line, p_location: location, p_quantity: quantity(amount),p_operators:operators }),
     task: (id, action, lines = []) => rpc('receiving_task', { p_id: id, p_action: action, p_lines: lines }),
     catalog: (kind, data) => rpc('receiving_catalog', { p_kind: kind, p_data: data }),
     hold: (line, reason) => rpc('receiving_hold', { p_line: line, p_reason: reason }),

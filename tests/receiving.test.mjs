@@ -14,6 +14,7 @@ const task={operator_id:'u',kind:'unload',receipt_id:'r',started_at:'2026-09-29T
 assert.equal(effectiveSeconds(task),3000);
 assert.equal(productivity([task],[{receipt_id:'r',received:10,uom:'EA'},{receipt_id:'r',received:20,uom:'KG'}])[0].uph,null);
 assert.equal(productivity([task],[{receipt_id:'r',received:10,uom:'EA'}])[0].uph,12);
+assert.deepEqual(productivity([{...task,additional_operator_ids:['helper']}],[{receipt_id:'r',received:10,uom:'EA'}]).map(row=>[row.operator_id,row.seconds,row.uph]),[['u',3000,12],['helper',3000,12]]);
 assert.throws(()=>finishLines([{id:'l',expected:10}],{l:{received:'5',damaged:'6',note:'damage'}}));
 assert.throws(()=>finishLines([{id:'l',expected:10}],{l:{received:'5',damaged:'1',note:''}}));
 assert.equal(finishLines([{id:'l',expected:10}],{l:{received:'12',damaged:'2',note:'Reported'}})[0].received,12);
@@ -25,4 +26,8 @@ console.log('PASS: quantities, location permissions, statuses, pause exclusion, 
 const material={id:'raw',part_number:'RAW-1',description:'Material',category:'RAW',uom:'EA',active:true};
 const restrictedDb={from(table){let columns;const q={select(value){columns=value;return q;},order(){return q;},range(){return q;},in(){return q;},then(resolve){const denied=table==='inventory_items'&&columns==='*';return Promise.resolve({data:denied?null:table==='inventory_items'?[material]:[],error:denied?{code:'42501',message:'permission denied'}:null}).then(resolve);}};return q;},rpc:async()=>({data:[],error:null})};
 assert.deepEqual((await api(restrictedDb).load()).items,[{...material,material_type:'RAW'}]);
+material.category='FG';material.producto_id='shipping-product';material.responsible_department='inventory';
+assert.equal((await api(restrictedDb).load()).items[0].id,'raw');
+let putRequest;await api({rpc:async(name,params)=>{putRequest={name,params};return{data:'task',error:null};}}).putaway('task','line','location',3,['helper']);
+assert.equal(putRequest.name,'receiving_putaway_group');assert.deepEqual(putRequest.params.p_operators,['helper']);
 console.log('PASS: Receiving loads against restricted product column permissions');

@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { subscribeUpdates, inventoryTables } from '../realtime';
+import Catalogos from './Catalogos';
+import QualityHolds from '../components/QualityHolds';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import Papa from 'papaparse';
@@ -81,8 +83,6 @@ export default function Inventarios({ access }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [move, setMove] = useState({ item: '', delta: '', note: '', lot: '', location: '', date: today() });
-  const [itemForm, setItemForm] = useState({ part_number: '', description: '', category: 'RAW', uom: 'EA', minimum_quantity: 0, responsible_department: 'inventory', default_location: '' });
-  const [editingItem, setEditingItem] = useState(null);
   const [production, setProduction] = useState({ item: '', date: today(), good: '', waste: '', wip: '0', note: '' });
   const [bomItem, setBomItem] = useState('');
   const [bomId, setBomId] = useState('');
@@ -119,7 +119,7 @@ export default function Inventarios({ access }) {
       setFinishedIdx([...new Set((completed||[]).map(r=>r.idx))]);
     }
   }
-  useEffect(() => { refresh().catch(e => setMessage(e.message)); }, []);
+  useEffect(() => { const load=()=>refresh().catch(e=>setMessage(e.message));load();return subscribeUpdates(supabase,'inventory-web',inventoryTables,load); }, []);
   async function act(fn, success = t('global_saved')) {
     if (busy) return;
     setBusy(true); setMessage('');
@@ -199,7 +199,7 @@ export default function Inventarios({ access }) {
       : i.responsible_department === countDepartment);
 
   return <main className="inv-page">
-    <header className="inv-head"><div><small>DAEHAN APP · {t('inv_title')}</small><h1>{t('inv_title')}</h1></div><button onClick={() => act(async () => {}, t('inv_updated'))}>{t('inv_refresh')}</button></header>
+    <header className="inv-head"><div><small>DAEHAN APP · {t('inv_title')}</small><h1>{t('inv_title')}</h1></div></header>
     <DepartmentNav items={sections.map(([key,label])=>({key,label:t(label)}))} value={tab} onChange={key=>{setTab(key);setMessage('');}} label={t('inv_section')}/>
     <div className="inv-layout">
       <div className="inv-main">
@@ -262,35 +262,7 @@ export default function Inventarios({ access }) {
           <td>{t(r.bom_id ? 'inv_consumption_recorded' : 'inv_consumption_pending')}</td></tr>)}</tbody></table></div>}
     </section>}
 
-    {tab === 'catalog' && <section className="inv-card"><h2>{t('inv_catalog_title')}</h2>
-      <p>{t('inv_catalog_intro')} <Link to="/catalogos">{t('inv_shipping_catalog')}</Link>.</p>
-      {canCatalog && <form className="inv-form" onSubmit={e => { e.preventDefault(); act(async () => {
-        await unwrap(supabase.from('inventory_items').insert({...itemForm,minimum_quantity:Number(itemForm.minimum_quantity)}));
-        setItemForm({...itemForm,part_number:'',description:''});
-      },t('inv_material_added')); }}>
-        <h3>{t('inv_add_raw_packaging')}</h3><input required placeholder={t('inv_part_number_new')} value={itemForm.part_number} onChange={e => setItemForm({...itemForm,part_number:e.target.value.trim().toUpperCase()})}/>
-        <input required placeholder={t('inv_description')} value={itemForm.description} onChange={e => setItemForm({...itemForm,description:e.target.value})}/>
-        <select value={itemForm.category} onChange={e => setItemForm({...itemForm,category:e.target.value})}><option value="RAW">{t('inv_raw_short')}</option><option value="PACKAGING">{t('inv_packaging_short')}</option></select>
-        <input required placeholder={t('inv_unit')} value={itemForm.uom} onChange={e => setItemForm({...itemForm,uom:e.target.value})}/>
-        <input type="number" min="0" step="any" placeholder={t('inv_min_stock')} value={itemForm.minimum_quantity} onChange={e => setItemForm({...itemForm,minimum_quantity:e.target.value})}/>
-        <select value={itemForm.responsible_department} onChange={e => setItemForm({...itemForm,responsible_department:e.target.value})}>
-          {['inventory','receiving','production','shipping'].map(d => <option key={d} value={d}>{departmentLabel(d)}</option>)}</select>
-        <input placeholder={t('inv_location')} value={itemForm.default_location} onChange={e => setItemForm({...itemForm,default_location:e.target.value})}/>
-        <button disabled={busy}>{t('inv_add_part')}</button></form>}
-      <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th><th>{t('inv_description')}</th><th>{t('inv_category')}</th><th>{t('inv_unit')}</th><th>{t('inv_minimum')}</th><th>{t('inv_supervisor_responsible')}</th><th>{t('inv_location')}</th><th></th></tr></thead><tbody>
-        {items.map(i => <tr key={i.id}><td>{i.part_number}</td><td>{i.description}</td><td>{areaLabel(i.category)}</td><td>{i.uom}</td>
-          <td>{editingItem?.id===i.id ? <input type="number" min="0" step="any" value={editingItem.minimum_quantity} onChange={e=>setEditingItem({...editingItem,minimum_quantity:e.target.value})}/> : fmt(i.minimum_quantity)}</td>
-          <td>{editingItem?.id===i.id ? <select value={editingItem.responsible_department} onChange={e=>setEditingItem({...editingItem,responsible_department:e.target.value})}>
-            {['inventory','receiving','production','shipping','quality'].map(d=><option key={d} value={d}>{departmentLabel(d)}</option>)}</select> : departmentLabel(i.responsible_department)}</td>
-          <td>{editingItem?.id===i.id ? <input value={editingItem.default_location || ''} onChange={e=>setEditingItem({...editingItem,default_location:e.target.value})}/> : i.default_location || '—'}</td>
-          <td>{canCatalog && (editingItem?.id===i.id ? <button disabled={busy} onClick={()=>act(async()=>{
-            await unwrap(supabase.from('inventory_items').update({
-              minimum_quantity:Number(editingItem.minimum_quantity),responsible_department:editingItem.responsible_department,
-              default_location:editingItem.default_location || null,
-            }).eq('id',i.id)); setEditingItem(null);
-          },t('inv_limit_saved'))}>{t('inv_save')}</button> :
-            <button onClick={()=>setEditingItem(i)}>{t('inv_edit')}</button>)}</td></tr>)}
-      </tbody></table></div></section>}
+    {tab === 'catalog' && <Catalogos access={access}/>}
 
     {tab === 'bom' && <section className="inv-card"><h2>{t('inv_bom_title')}</h2>
       {can('production',true) || canCatalog ? <><form className="inv-form" onSubmit={e => {e.preventDefault();act(async () => {
@@ -397,8 +369,7 @@ export default function Inventarios({ access }) {
       <h3>{t('inv_confirmed_shipments')}</h3>{dispatches.map(d=><p key={d.idx}>{d.ship_date} · IDX {d.idx} · {t('inv_confirmed_at')} {new Date(d.confirmed_at).toLocaleString(locale)}</p>)}</section>}
 
     {tab === 'quality' && <section className="inv-card"><h2>{t('inv_quality_title')}</h2>
-      <p>{t('inv_quality_intro')}</p>
-      <p>{t('inv_quality_pending')}</p></section>}
+      <QualityHolds items={items} access={access}/></section>}
       </div>
     </div>
   </main>;
