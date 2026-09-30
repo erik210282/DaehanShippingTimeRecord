@@ -31,7 +31,7 @@ export function receiptState(receipt, lines, tasks) {
 }
 export function allowedLocations(itemId, locations, assignments) {
   const assigned = assignments.filter(row => row.item_id === itemId);
-  return locations.filter(row => row.active && (!assigned.length || assigned.some(a => a.location_id === row.id)));
+  return locations.filter(row => row.active && !row.is_system_stage && (!assigned.length || assigned.some(a => a.location_id === row.id)));
 }
 export function effectiveSeconds(task) {
   if (!task.finished_at) return 0;

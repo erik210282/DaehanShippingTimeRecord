@@ -73,7 +73,7 @@ Object.assign(phrases, {
  stock_category:['Categoría de inventario','Inventory category','재고 분류'],material_help:['Elige la categoría de inventario que corresponde a este tipo. Cuarentena solo se usa en ubicaciones.','Choose the inventory category for this type. Quarantine is only used for locations.','유형에 해당하는 재고 분류를 선택하세요. 격리는 위치에만 사용됩니다.'],
  address:['Dirección','Address','주소'], street:['Calle','Street','도로명'],exterior_number:['Número exterior','Exterior number','건물 번호'],interior_number:['Número interior','Interior number','상세 번호'],neighborhood:['Colonia / Distrito','Neighborhood / District','구역'],city:['Ciudad','City','도시'],state:['Estado / Provincia','State / Province','주 / 도'],postal_code:['Código postal','Postal code','우편번호'],country:['País','Country','국가'],phone:['Teléfono','Phone','전화번호'],
  all_locations:['Sin preasignación: todas las ubicaciones activas.','No assignments: all active locations.','미지정: 모든 활성 위치.'],
- setup:['Faltan proveedores, productos o ubicaciones activas. Solicita su registro en Catálogos.','Active suppliers, products or locations are missing. Request setup in Catalogs.','활성 공급업체, 제품 또는 위치가 없습니다. 카탈로그에 등록해 주세요.'],
+ setup:['Faltan proveedores o productos activos. Solicita su registro en Catálogos.','Active suppliers or products are missing. Request setup in Catalogs.','활성 공급업체 또는 제품이 없습니다. 카탈로그에 등록해 주세요.'],
 });
 export function registerReceiving(i18n) {
   ['es','en','ko'].forEach((lang, index) => i18n.addResourceBundle(lang, 'translation', Object.fromEntries(Object.entries(phrases).map(([key, values]) => [`rc_${key}`, values[index]])), true, false));

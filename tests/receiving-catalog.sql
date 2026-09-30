@@ -21,7 +21,8 @@ begin
  perform public.receiving_catalog('supplier',jsonb_build_object('code','ILLEGAL-'||v_token,'name','Illegal'));
  raise exception 'TEST: operator edited catalog';
  exception when others then if sqlerrm<>'receiving_forbidden' then raise; end if; end;
- perform public.receiving_start(v_receipt,jsonb_build_object('supplier_id',v_supplier,'manifest','TEST','po_number','PO-123','dock','2','trailer','TR01','staging_id',v_stage,'lines',jsonb_build_array(jsonb_build_object('item_id',v_item,'expected',10,'lot','TEST'))));
+ perform public.receiving_start(v_receipt,jsonb_build_object('supplier_id',v_supplier,'manifest','TEST','po_number','PO-123','dock','2','trailer','TR01','lines',jsonb_build_array(jsonb_build_object('item_id',v_item,'expected',10,'lot','TEST'))));
+ if not exists(select 1 from public.receiving_receipts r join public.receiving_locations l on l.id=r.staging_id where r.id=v_receipt and l.is_system_stage) then raise exception 'TEST: automatic staging'; end if;
  -- Repeat start is idempotent even after the request times out.
  perform public.receiving_start(v_receipt,'{}'::jsonb);
  if (select count(*) from public.receiving_tasks where receipt_id=v_receipt)<>1 then raise exception 'TEST: duplicate start'; end if;
@@ -38,6 +39,10 @@ begin
  select sum(quantity_delta) into v_total from public.inventory_movements where item_id=v_item and area='RAW';
  if v_total<>12 then raise exception 'TEST: receipt stock %',v_total; end if;
  if (select quality_status from public.receiving_line_status where id=v_line)<>'available' then raise exception 'TEST: default quarantine'; end if;
+ select staging_id into v_stage from public.receiving_receipts where id=v_receipt;
+ begin
+ perform public.receiving_putaway(gen_random_uuid(),v_line,v_stage,1); raise exception 'TEST: putaway to staging';
+ exception when others then if sqlerrm<>'receiving_location' then raise; end if; end;
  begin
  perform public.receiving_putaway(gen_random_uuid(),v_line,v_storage,13);
  raise exception 'TEST: excess putaway accepted';
@@ -71,6 +76,10 @@ begin
  if (select quality_status from public.receiving_line_status where id=v_line)<>'released'
  or (select sum(quantity_delta) from public.inventory_movements where item_id=v_item and area='RAW')<>12
  or (select sum(quantity_delta) from public.inventory_movements where item_id=v_item and area='HOLD')<>0 then raise exception 'TEST: release'; end if;
+ select staging_id into v_stage from public.receiving_receipts where id=v_receipt;
+ begin
+ perform public.receiving_catalog('location',jsonb_build_object('id',v_stage,'code','CHANGED','name','Changed','material_type','RAW','active',false)); raise exception 'TEST: staging editable';
+ exception when others then if sqlerrm<>'receiving_location' then raise; end if; end;
  -- New types, finished products, complete supplier data and PO persist.
  if (select phone from public.receiving_suppliers where id=v_supplier)<>'555123' or (select city from public.receiving_suppliers where id=v_supplier)<>'Monterrey' then raise exception 'TEST: supplier fields'; end if;
  if (select po_number from public.receiving_receipts where id=v_receipt)<>'PO-123' then raise exception 'TEST: PO number'; end if;
@@ -80,7 +89,7 @@ begin
  v_id:=public.receiving_catalog('item',jsonb_build_object('part_number','FG-'||v_token,'category','FG','uom','EA'));
  perform set_config('request.jwt.claim.sub',v_receiver,true);
  v_receipt:=gen_random_uuid();
- perform public.receiving_start(v_receipt,jsonb_build_object('supplier_id',v_supplier,'manifest','FG-INVOICE','dock','3','trailer','TR02','staging_id',v_storage,'lines',jsonb_build_array(jsonb_build_object('item_id',v_id,'expected',5))));
+ perform public.receiving_start(v_receipt,jsonb_build_object('supplier_id',v_supplier,'manifest','FG-INVOICE','dock','3','trailer','TR02','lines',jsonb_build_array(jsonb_build_object('item_id',v_id,'expected',5))));
  select id into v_line from public.receiving_lines where receipt_id=v_receipt;
  perform public.receiving_task(v_receipt,'finish',jsonb_build_array(jsonb_build_object('id',v_line,'received',5,'damaged',0,'note','')));
  if (select sum(quantity_delta) from public.inventory_movements where item_id=v_id and area='FG')<>5 then raise exception 'TEST: FG inventory'; end if;
