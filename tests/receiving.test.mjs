@@ -3,7 +3,7 @@ import {api,quantity,allowedLocations,receiptState,effectiveSeconds,productivity
 assert.equal(quantity('1,5'),1.5);
 for(const value of ['',null,'NaN','Infinity','-1','0']) assert.throws(()=>quantity(value));
 assert.equal(quantity('0',true),0);
-const locations=[{id:'a',kind:'STORAGE',active:true},{id:'b',kind:'STORAGE',active:true},{id:'c',kind:'STORAGE',active:false},{id:'d',kind:'RECEIVING',active:true}];
+const locations=[{id:'system',kind:'RECEIVING',active:true,is_system_stage:true},{id:'a',kind:'STORAGE',active:true},{id:'b',kind:'STORAGE',active:true},{id:'c',kind:'STORAGE',active:false},{id:'d',kind:'RECEIVING',active:true}];
 assert.equal(allowedLocations('x',locations,[]).length,3);
 assert.deepEqual(allowedLocations('x',locations,[{item_id:'x',location_id:'b'}]).map(l=>l.id),['b']);
 assert.equal(allowedLocations('x',locations,[{item_id:'x',location_id:'c'}]).length,0);
