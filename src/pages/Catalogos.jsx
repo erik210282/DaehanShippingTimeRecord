@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { usePageSection } from '../usePageSection';
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabase/client";
 import Modal from "react-modal";
 import Papa from "papaparse";
@@ -54,8 +55,12 @@ Modal.setAppElement("#root");
 export default function Catalogos({ access }) {
   const { t } = useTranslation();
 
-  const [tab, setTab] = useState("productos");
-  const [rows, setRows] = useState([]);
+  const [tab, setTab] = usePageSection('catalog', 'productos', ['productos', ...Object.keys(catalogKinds), 'pos', 'shipper', 'actividades']);
+  const [snapshot, setSnapshot] = useState({ tab: null, rows: [] });
+  const rows = snapshot.tab === tab ? snapshot.rows : [];
+  const request = useRef(0), currentTab = useRef(tab);
+  currentTab.current = tab;
+  const setRows = next => setSnapshot({ tab, rows: next });
   const [locations,setLocations]=useState([]),[materials,setMaterials]=useState([]);
   const canManage=access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role));
   const kind=catalogKinds[tab];
@@ -160,6 +165,8 @@ export default function Catalogos({ access }) {
   const simpleDefaults = { nombre: "", activo: true };
 
   async function load() {
+    const version = ++request.current;
+    const current = () => version === request.current && currentTab.current === tab;
     setLoading(true);
     try {
       const [stock,products,locs,types,assignments,itemTypes] = await Promise.all([
@@ -170,6 +177,7 @@ export default function Catalogos({ access }) {
         unwrap(supabase.from('receiving_item_locations').select('*')),
         unwrap(supabase.from('receiving_item_types').select('*')),
       ]);
+      if (!current()) return;
       setLocations(locs);setMaterials(types);
       if(tab==='productos') {
         const metadata=i=>({inventory_id:i?.id,producto_id:i?.producto_id,category:i?.category||'FG',material_type:itemTypes.find(m=>m.item_id===i?.id)?.material_type||i?.category||'FG',uom:i?.uom||'EA',minimum_quantity:i?.minimum_quantity??0,responsible_department:i?.responsible_department||'inventory',default_location:i?.default_location||'',locations:assignments.filter(a=>a.item_id===i?.id).map(a=>a.location_id)});
@@ -177,19 +185,22 @@ export default function Catalogos({ access }) {
       } else {
         const table=kind==='supplier'?'receiving_suppliers':kind==='location'?'receiving_locations':kind==='material'?'receiving_material_types':tableName;
         const data=await unwrap(supabase.from(table).select('*').order(kind?'code':tab==='pos'||tab==='shipper'?'id':'nombre'));
+        if (!current()) return;
         setRows(kind==='location'?data.filter(l=>!l.is_system_stage):data);
       }
-      setPage(1);
     } catch (e) {
+      if (!current()) return;
       toast.error(e.message || t("error_loading") || "Error al cargar.");
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
   }
 
   useEffect(() => {
     load();
-    return subscribeUpdates(supabase,'shared-catalog',catalogTables,load);
+    setPage(1);
+    const unsubscribe=subscribeUpdates(supabase,'shared-catalog',catalogTables,load);
+    return () => { ++request.current; unsubscribe(); };
   }, [tab]);
 
   const openNew = () => {
@@ -419,7 +430,7 @@ async function save() {
       if (tab === "productos") {
         return {
           [t("name")]: r.nombre || "",
-          PartNumber: r.part_number || "",Type:r.material_type,Minimum:r.minimum_quantity,Unit:r.uom,Locations:r.locations.map(id=>locations.find(l=>l.id===id)?.code).join(', '),
+          PartNumber: r.part_number || "",Type:r.material_type,Minimum:r.minimum_quantity,Unit:r.uom,Locations:(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', '),
           [t("description")]: r.descripcion || "",
           "Weight/Piece": r.peso_por_pieza ?? "",
           "bin_type": r.bin_type?? "",
@@ -576,7 +587,7 @@ async function save() {
                         <td>{r.nombre}</td>
                         <td>{r.part_number}</td>
                         <td>{r.descripcion}</td>
-                        <td>{materialLabel(materials.find(m=>m.code===r.material_type),t)}</td><td>{r.minimum_quantity}</td><td>{r.uom}</td><td>{r.locations.map(id=>locations.find(l=>l.id===id)?.code).join(', ')||t('rc_all')}</td>
+                        <td>{materialLabel(materials.find(m=>m.code===r.material_type),t)}</td><td>{r.minimum_quantity}</td><td>{r.uom}</td><td>{(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', ')||t('rc_all')}</td>
                         <td>{r.peso_por_pieza}</td>
                         <td>{r.bin_type}</td>
                         <td>{r.tipo_empaque_retornable}</td>
