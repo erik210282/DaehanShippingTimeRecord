@@ -4,7 +4,7 @@ Receiving is separate from Shipping. It uses the shared `inventory_items` catalo
 
 ## Activation
 
-The production migration is pending explicit approval after automatic approval review blocked its application. The implementation has been tested with a transaction that rolls back all Receiving objects and test records. Apply the reviewed `receiving_operations` migration before deploying the web or publishing a mobile update. Do not mark this module as operational before activation.
+The receiving_operations migration was applied to production on 2026-09-30 with explicit owner authorization. Transactional operational and permission regression tests passed against the activated schema.
 
 Web entry: `/departamento/receiving`. Quality members may use this route to review receipts and explicitly quarantine a received product. They cannot edit Receiving catalogs or execute its operational activities without Receiving access.
 
