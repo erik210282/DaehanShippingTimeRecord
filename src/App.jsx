@@ -22,6 +22,7 @@ import SetPassword from './SetPassword';
 import { AnnouncementNotice, GlobalAnnouncements, useAnnouncementGate } from './GlobalAnnouncements';
 import { useParams, Navigate } from 'react-router-dom';
 import Inventarios from './pages/Inventarios';
+import Receiving from './pages/Receiving';
 // IMPORTANTE: El ToastContainer y CSS SOLO deben estar aquí en App.jsx
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -246,6 +247,7 @@ const Navbar = ({ access, onAnnouncements }) => {
 // --- CONFIGURACIÓN DE RUTAS ---
 function DepartmentRoute({ access }) {
   const { name } = useParams();
+  if (name === 'receiving') return <Receiving access={access} />;
   return <DepartmentLanding name={name} access={access} />;
 }
 
