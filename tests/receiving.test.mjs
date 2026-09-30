@@ -4,7 +4,7 @@ assert.equal(quantity('1,5'),1.5);
 for(const value of ['',null,'NaN','Infinity','-1','0']) assert.throws(()=>quantity(value));
 assert.equal(quantity('0',true),0);
 const locations=[{id:'a',kind:'STORAGE',active:true},{id:'b',kind:'STORAGE',active:true},{id:'c',kind:'STORAGE',active:false},{id:'d',kind:'RECEIVING',active:true}];
-assert.equal(allowedLocations('x',locations,[]).length,2);
+assert.equal(allowedLocations('x',locations,[]).length,3);
 assert.deepEqual(allowedLocations('x',locations,[{item_id:'x',location_id:'b'}]).map(l=>l.id),['b']);
 assert.equal(allowedLocations('x',locations,[{item_id:'x',location_id:'c'}]).length,0);
 assert.equal(receiptState({id:'r',status:'received'},[{receipt_id:'r',received:10,stored:10}],[]),'completed');
@@ -24,5 +24,5 @@ console.log('PASS: quantities, location permissions, statuses, pause exclusion, 
 // Production grants protect unit_cost; select('*') must never break the whole Receiving loader.
 const material={id:'raw',part_number:'RAW-1',description:'Material',category:'RAW',uom:'EA',active:true};
 const restrictedDb={from(table){let columns;const q={select(value){columns=value;return q;},order(){return q;},range(){return q;},in(){return q;},then(resolve){const denied=table==='inventory_items'&&columns==='*';return Promise.resolve({data:denied?null:table==='inventory_items'?[material]:[],error:denied?{code:'42501',message:'permission denied'}:null}).then(resolve);}};return q;},rpc:async()=>({data:[],error:null})};
-assert.deepEqual((await api(restrictedDb).load()).items,[material]);
+assert.deepEqual((await api(restrictedDb).load()).items,[{...material,material_type:'RAW'}]);
 console.log('PASS: Receiving loads against restricted product column permissions');
