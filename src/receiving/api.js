@@ -31,7 +31,7 @@ export function receiptState(receipt, lines, tasks) {
 }
 export function allowedLocations(itemId, locations, assignments) {
   const assigned = assignments.filter(row => row.item_id === itemId);
-  return locations.filter(row => row.active && row.kind === 'STORAGE' && (!assigned.length || assigned.some(a => a.location_id === row.id)));
+  return locations.filter(row => row.active && (!assigned.length || assigned.some(a => a.location_id === row.id)));
 }
 export function effectiveSeconds(task) {
   if (!task.finished_at) return 0;
@@ -70,13 +70,13 @@ export function api(db) {
           rows = rows.concat(page); if (page.length < 1000) return rows; offset += 1000;
         }
       };
-      const [suppliers, locations, assignments, items, receipts, lines, tasks, users] = await Promise.all([
+      const [suppliers, locations, assignments, items, receipts, lines, tasks, users, materialTypes, itemTypes] = await Promise.all([
         pageAll('receiving_suppliers', 'code'), pageAll('receiving_locations', 'code'),
         pageAll('receiving_item_locations', 'item_id'),
-        pageAll('inventory_items', 'part_number', query=>query.in('category',['RAW','PACKAGING']), 'id,part_number,description,category,uom,active,minimum_quantity,responsible_department,default_location'),
-        pageAll('receiving_receipts', 'code'), pageAll('receiving_line_status'), pageAll('receiving_tasks'), rpc('receiving_users', {}),
+        pageAll('inventory_items', 'part_number', query=>query.in('category',['RAW','FG','PACKAGING']), 'id,part_number,description,category,uom,active,minimum_quantity,responsible_department,default_location'),
+        pageAll('receiving_receipts', 'code'), pageAll('receiving_line_status'), pageAll('receiving_tasks'), rpc('receiving_users', {}), pageAll('receiving_material_types','code'), pageAll('receiving_item_types','item_id'),
       ]);
-      return { suppliers, locations, assignments, items, receipts, lines, tasks, users };
+      return { suppliers, locations, assignments, items:items.filter(i=>i.category!=='FG' || i.responsible_department==='receiving' || itemTypes.some(m=>m.item_id===i.id)).map(i=>({...i,material_type:itemTypes.find(m=>m.item_id===i.id)?.material_type || i.category})), receipts, lines, tasks, users, materialTypes };
     },
     start: (id, data) => rpc('receiving_start', { p_id: id, p_data: data }),
     putaway: (id, line, location, amount) => rpc('receiving_putaway', { p_id: id, p_line: line, p_location: location, p_quantity: quantity(amount) }),
@@ -95,4 +95,4 @@ export function finishLines(lines, draft) {
     return { id: line.id, received, damaged, note: values.note?.trim() || '' };
   });
 }
-export const emptyData = { suppliers: [], locations: [], assignments: [], items: [], receipts: [], lines: [], tasks: [], users: [] };
+export const emptyData = { suppliers: [], locations: [], assignments: [], items: [], receipts: [], lines: [], tasks: [], users: [], materialTypes: [] };
