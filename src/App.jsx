@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from
 import Registros from "./pages/Registros";
 import Productividad from "./pages/Productividad";
 import Catalogos from "./pages/Catalogos";
-import Usuarios from "./pages/Usuarios";
 import Login from "./pages/Login";
 import Resumen from "./pages/Resumen";
 import GenerarBOL from "./pages/GenerarBOL";
@@ -197,14 +196,14 @@ const Navbar = () => {
 
   if (!user) return null;
 
-  const shipping = !['/inicio', '/global-settings', '/announcements', '/inventarios'].includes(location.pathname) && !location.pathname.startsWith('/departamento/');
+  const shipping = !['/inicio', '/global-settings', '/announcements', '/inventarios', '/catalogos', '/usuarios'].includes(location.pathname) && !location.pathname.startsWith('/departamento/');
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
   };
 
-  const shippingItems = [['/tareas-pendientes','pending_tasks'],['/resumen','summary'],['/registros','records'],['/generarbol','generate_bol'],['/comunicaciones','communications'],['/productividad','productivity'],['/catalogos','catalogs'],['/usuarios','users']].map(([key,label])=>({key,label:t(label),badge:key==='/comunicaciones'?unreadCount:0}));
+  const shippingItems = [['/tareas-pendientes','pending_tasks'],['/resumen','summary'],['/registros','records'],['/generarbol','generate_bol'],['/comunicaciones','communications'],['/productividad','productivity'],['/catalogos','catalogs']].map(([key,label])=>({key,label:t(label),badge:key==='/comunicaciones'?unreadCount:0}));
   return <>
     <header className="navbar app-header">
       <div className="app-header-left">{location.pathname !== '/inicio' && <button className="app-header-button" onClick={() => navigate('/inicio')}>{t('global_back')}</button>}
@@ -239,7 +238,7 @@ const PrivateArea = () => {
     return <Navigate to="/announcements" replace />;
   }
   const canManageSettings = access.admin || access.supervisor;
-  const isGlobalRoute = ['/inicio', '/global-settings', '/announcements', '/inventarios'].includes(location.pathname) || location.pathname.startsWith('/departamento/');
+  const isGlobalRoute = ['/inicio', '/global-settings', '/announcements', '/inventarios', '/catalogos', '/usuarios'].includes(location.pathname) || location.pathname.startsWith('/departamento/');
   if (!isGlobalRoute && !access.admin && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
   const portal = <>
     <div className="app-container">
@@ -258,8 +257,8 @@ const PrivateArea = () => {
           <Route path="/generarbol" element={<ProtectedRoute><GenerarBOL /></ProtectedRoute>} />
           <Route path="/comunicaciones" element={<ProtectedRoute><Comunicaciones /></ProtectedRoute>} />
           <Route path="/productividad" element={<ProtectedRoute><Productividad /></ProtectedRoute>} />
-          <Route path="/catalogos" element={<ProtectedRoute><Catalogos /></ProtectedRoute>} />
-          <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
+          <Route path="/catalogos" element={access.admin || access.memberships.length ? <Catalogos access={access}/> : <Navigate to="/inicio" replace/>} />
+          <Route path="/usuarios" element={<Navigate to="/global-settings" replace />} />
           <Route path="/configuracion-tareas" element={<ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/inicio" replace />} />
         </Routes>

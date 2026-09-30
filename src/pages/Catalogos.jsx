@@ -15,6 +15,12 @@ import {
   TablePagination,
 } from "../components/controls";
 
+import { subscribeUpdates, catalogTables } from '../realtime';
+import { catalogKinds, catalogDefaults, addressFields, SharedCatalogFields, CatalogSelect, materialLabel } from '../components/SharedCatalogFields';
+import { unwrap, quantity } from '../receiving/api';
+import { registerReceiving, receivingError } from '../receiving/translations';
+import i18n from '../i18n/i18n';
+registerReceiving(i18n);
 // === Helpers email/phone ===
 const onlyDigits = (v) => (v ?? "").replace(/\D+/g, "");
 const formatPhoneUS = (v) => {
@@ -45,11 +51,14 @@ const emailsToInput = (val) =>
 
 Modal.setAppElement("#root");
 
-export default function Catalogos() {
+export default function Catalogos({ access }) {
   const { t } = useTranslation();
 
   const [tab, setTab] = useState("productos");
   const [rows, setRows] = useState([]);
+  const [locations,setLocations]=useState([]),[materials,setMaterials]=useState([]);
+  const canManage=access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role));
+  const kind=catalogKinds[tab];
   const [filter, setFilter] = useState("");
   const [edit, setEdit] = useState(null);
   const [isNew, setIsNew] = useState(false);
@@ -78,7 +87,7 @@ export default function Catalogos() {
     peso_caja_expendable: "",
     cantidad_por_caja_retornable: "",
     cantidad_por_caja_expendable: "",
-    activo: true,
+    activo: true, category:'FG', material_type:'FG',uom:'EA',minimum_quantity:'0',responsible_department:'inventory',default_location:'',locations:[],
   };
 
   const poDefaults = {
@@ -153,15 +162,23 @@ export default function Catalogos() {
   async function load() {
     setLoading(true);
     try {
-      let query = supabase.from(tableName).select("*");
-      if (tab === "productos") query = query.order("nombre", { ascending: true });
-      else if (tab === "pos") query = query.order("id", { ascending: true });
-      else if (tab === "shipper") query = query.order("id", { ascending: true });
-      else query = query.order("nombre", { ascending: true });
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setRows(data || []);
+      const [stock,products,locs,types,assignments,itemTypes] = await Promise.all([
+        unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active').order('part_number')),
+        unwrap(supabase.from('productos').select('*').order('nombre')),
+        unwrap(supabase.from('receiving_locations').select('*').order('code')),
+        unwrap(supabase.from('receiving_material_types').select('*').order('code')),
+        unwrap(supabase.from('receiving_item_locations').select('*')),
+        unwrap(supabase.from('receiving_item_types').select('*')),
+      ]);
+      setLocations(locs);setMaterials(types);
+      if(tab==='productos') {
+        const metadata=i=>({inventory_id:i?.id,producto_id:i?.producto_id,category:i?.category||'FG',material_type:itemTypes.find(m=>m.item_id===i?.id)?.material_type||i?.category||'FG',uom:i?.uom||'EA',minimum_quantity:i?.minimum_quantity??0,responsible_department:i?.responsible_department||'inventory',default_location:i?.default_location||'',locations:assignments.filter(a=>a.item_id===i?.id).map(a=>a.location_id)});
+        setRows([...products.map(p=>({...p,...metadata(stock.find(i=>i.producto_id===p.id))})),...stock.filter(i=>!i.producto_id).map(i=>({id:i.id,nombre:i.description,descripcion:i.description,part_number:i.part_number,activo:i.active,...metadata(i)}))]);
+      } else {
+        const table=kind==='supplier'?'receiving_suppliers':kind==='location'?'receiving_locations':kind==='material'?'receiving_material_types':tableName;
+        const data=await unwrap(supabase.from(table).select('*').order(kind?'code':tab==='pos'||tab==='shipper'?'id':'nombre'));
+        setRows(kind==='location'?data.filter(l=>!l.is_system_stage):data);
+      }
       setPage(1);
     } catch (e) {
       toast.error(e.message || t("error_loading") || "Error al cargar.");
@@ -172,11 +189,13 @@ export default function Catalogos() {
 
   useEffect(() => {
     load();
+    return subscribeUpdates(supabase,'shared-catalog',catalogTables,load);
   }, [tab]);
 
   const openNew = () => {
     setIsNew(true);
-    if (tab === "productos") setEdit({ ...productDefaults });
+    if(kind) setEdit(catalogDefaults(kind));
+    else if (tab === "productos") setEdit({ ...productDefaults });
     else if (tab === "pos") { setEdit({ ...poDefaults }); setBillTo({ ...billToDefaults }); }
     else if (tab === "shipper") setEdit({ ...shipperDefaults });
     else setEdit({ ...simpleDefaults });
@@ -188,7 +207,18 @@ const pick = (obj, keys) =>
 
 async function save() {
   try {
-    if (!edit) return;
+    if (!edit || !canManage) return;
+    if(kind || tab==='productos') {
+      let data=edit;
+      if(tab==='productos') {
+        if(!edit.part_number?.trim())throw Error(t('fill_all_fields'));
+        const shipping={...edit};
+        for(const key of ['peso_por_pieza','peso_caja_retornable','peso_caja_expendable','cantidad_por_caja_retornable','cantidad_por_caja_expendable'])shipping[key]=shipping[key]===''?null:shipping[key];
+        data={id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.responsible_department,default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
+      } else if(kind==='material')data={...edit,id:undefined};
+      await unwrap(supabase.rpc('shared_catalog',{p_kind:kind||'item',p_data:data}));
+      toast.success(t('save_success'));setEdit(null);setIsNew(false);await load();return;
+    }
     if (tab === "operadores" && isNew) {
       return toast.error(t("users"));
     }
@@ -326,13 +356,18 @@ async function save() {
     await load();
     if (tab === "pos") setBillTo({ ...billToDefaults });
   } catch (e) {
-    toast.error(e.message || t("error_saving") || "Error al guardar.");
+    toast.error(e.message?.startsWith('receiving_') || e.message?.startsWith('catalog_') ? receivingError(e,t) : e.message || t("error_saving"));
   }
 }
 
 
   async function remove(row) {
     try {
+      if(!canManage)return;
+      if(tab==='productos') {
+        await unwrap(supabase.rpc('shared_catalog',{p_kind:'item',p_data:{id:row.inventory_id,producto_id:row.producto_id||(!row.inventory_id?row.id:undefined),part_number:row.part_number,description:row.descripcion||row.nombre,material_type:row.material_type,uom:row.uom,minimum_quantity:row.minimum_quantity,responsible_department:row.responsible_department,default_location:row.default_location,locations:row.locations,active:false}}));
+        toast.info(t('item_in_use'));await load();return;
+      }
       if (tab === "operadores") {
         toast.info(t("users"));
         return;
@@ -380,10 +415,11 @@ async function save() {
 
   const exportCSV = () => {
     const data = (rows || []).map((r) => {
+      if(kind)return {Code:r.code,Name:r.name,...(kind==='supplier'?Object.fromEntries(addressFields.map(k=>[k,r[k]||''])):{Type:kind==='material'?r.category:r.material_type}),Status:t(r.active?'active':'inactive')};
       if (tab === "productos") {
         return {
           [t("name")]: r.nombre || "",
-          PartNumber: r.part_number || "",
+          PartNumber: r.part_number || "",Type:r.material_type,Minimum:r.minimum_quantity,Unit:r.uom,Locations:r.locations.map(id=>locations.find(l=>l.id===id)?.code).join(', '),
           [t("description")]: r.descripcion || "",
           "Weight/Piece": r.peso_por_pieza ?? "",
           "bin_type": r.bin_type?? "",
@@ -429,7 +465,7 @@ async function save() {
       };
     });
 
-    const csv = Papa.unparse(data);
+    const csv = Papa.unparse(data,{escapeFormulae:true});
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -464,12 +500,13 @@ async function save() {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 5 }}>
           <DSInput placeholder={t("search")} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ marginTop: 12 }}/>
           <BtnSecondary onClick={() => setTab("productos")}>{t("products")}</BtnSecondary>
+          {Object.entries(catalogKinds).map(([key,value])=><BtnSecondary key={key} onClick={()=>setTab(key)}>{t(value==='material'?'rc_material_types':value==='supplier'?'rc_suppliers':'rc_locations')}</BtnSecondary>)}
           <BtnSecondary onClick={() => setTab("pos")}>{t("po")}</BtnSecondary>
           <BtnSecondary onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
           <BtnSecondary onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
           <BtnSecondary onClick={() => setFilter("")}>{t("clear_filters")}</BtnSecondary>
           <BtnSecondary onClick={exportCSV}>{t("export_csv")}</BtnSecondary>
-          <BtnPrimary onClick={openNew}>➕ {t("add")}</BtnPrimary>
+          <BtnPrimary disabled={!canManage} onClick={openNew}>➕ {t("add")}</BtnPrimary>
         </div>
         <div className="table-wrap">
           <table className="table">
@@ -480,6 +517,7 @@ async function save() {
                     <th>{t("name")}</th>
                     <th>{t("part_number")}</th>
                     <th>{t("description")}</th>
+                    <th>{t('rc_type')}</th><th>{t('inv_min_stock')}</th><th>{t('rc_uom')}</th><th>{t('rc_allowed')}</th>
                     <th>{t("weight_piece")}</th>
                     <th>{t("bin_type")}</th>
                     <th>{t("returnablebox")}</th>
@@ -515,6 +553,7 @@ async function save() {
                     <th>{t("actions")}</th>
                   </>
                 )}
+                {kind && <><th>{t('rc_code')}</th><th>{t('rc_name')}</th>{kind==='supplier'?<><th>{t('rc_address')}</th><th>{t('rc_phone')}</th></>:<th>{t('rc_type')}</th>}<th>{t('rc_active')}</th><th>{t('actions')}</th></>}
                 {isSimple && (
                   <>
                     <th>{t("name")}</th>
@@ -531,12 +570,13 @@ async function save() {
                 <tr><td colSpan={12}>{t("no_results_found")}</td></tr>
               ) : (
                 filasPagina.map((r) => (
-                  <tr key={r.id}>
+                  <tr key={r.id || r.code}>
                     {tab === "productos" && (
                       <>
                         <td>{r.nombre}</td>
                         <td>{r.part_number}</td>
                         <td>{r.descripcion}</td>
+                        <td>{materialLabel(materials.find(m=>m.code===r.material_type),t)}</td><td>{r.minimum_quantity}</td><td>{r.uom}</td><td>{r.locations.map(id=>locations.find(l=>l.id===id)?.code).join(', ')||t('rc_all')}</td>
                         <td>{r.peso_por_pieza}</td>
                         <td>{r.bin_type}</td>
                         <td>{r.tipo_empaque_retornable}</td>
@@ -545,10 +585,10 @@ async function save() {
                         <td>{r.cantidad_por_caja_expendable}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <BtnEditDark onClick={() => { setEdit(r); setIsNew(false); }}>
+                          <BtnEditDark disabled={!canManage} onClick={() => { setEdit(r); setIsNew(false); }}>
                             {t("edit")}
                           </BtnEditDark>
-                          <BtnDanger onClick={() => remove(r)}>
+                          <BtnDanger disabled={!canManage} onClick={() => remove(r)}>
                             {t("delete")}
                           </BtnDanger>
                         </td>
@@ -578,7 +618,7 @@ async function save() {
                           >
                             {t("edit")}
                           </BtnEditDark>
-                          <BtnDanger onClick={() => remove(r)}>{t("delete")}</BtnDanger>
+                          <BtnDanger disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
                     )}
@@ -602,19 +642,20 @@ async function save() {
                           >
                             {t("edit")}
                           </BtnEditDark>
-                          <BtnDanger onClick={() => remove(r)}>{t("delete")}</BtnDanger>
+                          <BtnDanger disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
                     )}
+                    {kind && <><td>{r.code}</td><td>{r.name}</td>{kind==='supplier'?<><td>{addressFields.filter(k=>k!=='phone').map(k=>r[k]).filter(Boolean).join(', ')}</td><td>{r.phone}</td></>:<td>{kind==='material'?t(`rc_${r.category}`):materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>}<td>{t(r.active?'rc_active':'rc_inactive')}</td><td><BtnEditDark disabled={!canManage} onClick={()=>{setEdit({...r,id:kind==='material'?r.code:r.id});setIsNew(false);}}>{t('edit')}</BtnEditDark></td></>}
                     {isSimple && (
                       <>
                         <td>{r.nombre}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <BtnEditDark onClick={() => { setEdit(r); setIsNew(false); }}>
+                          <BtnEditDark disabled={!canManage} onClick={() => { setEdit(r); setIsNew(false); }}>
                             {t("edit")}
                           </BtnEditDark>
-                          <BtnDanger onClick={() => remove(r)}>{t("delete")}</BtnDanger>
+                          <BtnDanger disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
                     )}
@@ -647,14 +688,21 @@ async function save() {
           }}
         >
           <div className="card">
-            <h3>{isNew ? t("add") : t("edit")}</h3>
+            <h3>{isNew ? t('add') : t('edit')} · {t(kind?`rc_${kind==='material'?'material_types':kind}`:tab==='productos'?'products':tab==='pos'?'po':tab==='shipper'?'shipper':'activities')}</h3>
+            {kind && edit && <SharedCatalogFields kind={kind} edit={edit} setEdit={setEdit} materials={materials}/>}
 
             {tab === "productos" && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
+                <CatalogSelect label={t('rc_type')} value={edit?.material_type} onChange={material_type=>setEdit({...edit,material_type,category:materials.find(m=>m.code===material_type)?.category})} options={materials.filter(m=>(m.active||m.code===edit?.material_type)&&m.category!=='HOLD'&&(!edit?.producto_id||m.category==='FG')).map(m=>({value:m.code,label:materialLabel(m,t)}))}/>
+                <label>{t('inv_min_stock')}<DSInput aria-label={t('inv_min_stock')} type="number" min="0" step="any" value={edit?.minimum_quantity??''} onChange={e=>setEdit({...edit,minimum_quantity:e.target.value})}/></label>
+                <label>{t('rc_uom')}<DSInput aria-label={t('rc_uom')} value={edit?.uom||''} onChange={e=>setEdit({...edit,uom:e.target.value.toUpperCase()})}/></label>
+                <CatalogSelect label={t('inv_supervisor_responsible')} value={edit?.responsible_department} onChange={responsible_department=>setEdit({...edit,responsible_department})} options={['inventory','receiving','production','shipping','quality'].map(value=>({value,label:t(`inv_dept_${value}`)}))}/>
+                <CatalogSelect multi label={t('rc_allowed')} value={edit?.locations||[]} onChange={locations=>setEdit({...edit,locations})} options={locations.filter(l=>l.active&&!l.is_system_stage).map(l=>({value:l.id,label:l.code+' · '+l.name}))}/>
+                <DSInput aria-label={t('inv_location')} placeholder={t('inv_location')} value={edit?.default_location||''} onChange={e=>setEdit({...edit,default_location:e.target.value})}/>
                 <DSInput placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
                 <DSInput placeholder={t("part_number")} value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
                 <DSInput placeholder={t("description")} value={edit?.descripcion || ""} onChange={e => setEdit({ ...edit, descripcion: e.target.value })} />
-                <DSInput type="number" placeholder={t("weight_piece")} value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
+                {edit?.category==='FG' && <><DSInput type="number" placeholder={t("weight_piece")} value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
                 <DSInput placeholder={t("bin_type")} value={edit?.bin_type || ""} onChange={e => setEdit({ ...edit, bin_type: e.target.value })} />
                 <DSInput placeholder={t("returnablebox")} value={edit?.tipo_empaque_retornable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_retornable: e.target.value })} />
                 <DSInput placeholder={t("expendablebox")} value={edit?.tipo_empaque_expendable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_expendable: e.target.value })} />
@@ -662,7 +710,7 @@ async function save() {
                 <DSInput type="number" placeholder={t("expendablebw")} value={edit?.peso_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_expendable: e.target.value })} />
                 <DSInput type="number" placeholder={t("units_returnable")} value={edit?.cantidad_por_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_retornable: e.target.value })} />
                 <DSInput type="number" placeholder={t("units_expendable")} value={edit?.cantidad_por_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_expendable: e.target.value })} />
-                <label style={{ gridColumn: "1 / -1" }}>
+                </>}<label style={{ gridColumn: "1 / -1" }}>
                   <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
                 </label>
               </div>
@@ -907,7 +955,7 @@ async function save() {
             )}
 
             <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-              <BtnPrimary onClick={save}>{t("save")}</BtnPrimary>
+              <BtnPrimary disabled={!canManage} onClick={save}>{t("save")}</BtnPrimary>
               <BtnSecondary onClick={() => { setEdit(null); setIsNew(false); }}>
                 {t("cancel")}
               </BtnSecondary>

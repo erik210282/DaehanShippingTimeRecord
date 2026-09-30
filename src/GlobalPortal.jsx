@@ -36,10 +36,9 @@ export function useGlobalAccess() {
     window.addEventListener('focus', focus);
     window.addEventListener('global-access-updated', focus);
     document.addEventListener('visibilitychange', visible);
-    const timer = setInterval(load, 30000);
     const channel = supabase.channel('global-access-web')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'global_department_memberships' }, load).subscribe();
-    return () => { live = false; clearInterval(timer); window.removeEventListener('focus', focus); window.removeEventListener('global-access-updated', focus); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel); };
+    return () => { live = false; window.removeEventListener('focus', focus); window.removeEventListener('global-access-updated', focus); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel); };
   }, []);
   return state;
 }
@@ -55,6 +54,7 @@ export function GlobalHome({ access }) {
           <span>{key[0].toUpperCase()}</span><strong>{t(`global_${key}`)}</strong><small>↗</small>
         </button>
       )}
+      <button className="global-card" onClick={() => navigate('/catalogos')}><span>C</span><strong>{t('catalogs')}</strong><small>›</small></button>
       <button className="global-card" onClick={() => navigate('/announcements')}><span>✉</span><strong>{t('global_announcements')}</strong><small>↗</small></button>
       {(access.admin || access.supervisor) && <button className="global-card" onClick={() => navigate('/global-settings')}><span>⚙</span><strong>{t('global_settings')}</strong><small>↗</small></button>}
     </div>
@@ -63,9 +63,10 @@ export function GlobalHome({ access }) {
 
 export function DepartmentLanding({ name, access }) {
   const { t } = useTranslation();
+  const navigate=useNavigate();
   if (!departmentKeys.includes(name) || (!access.admin && !access.memberships.some(m => m.department === name))) return <Navigate to="/inicio" replace />;
   return <main className="global-page">
     <div className="global-heading"><span>DAEHAN APP · {t('global_department')}</span><h1>{t(`global_${name}`)}</h1></div>
-    <section className="global-panel">{t('global_pending')}</section>
+    <div className="rc-toolbar"><button onClick={()=>navigate('/catalogos')}>{t('catalogs')}</button><button onClick={()=>navigate('/inventarios')}>{t('inv_title')}</button></div><section className="global-panel">{t('global_pending')}</section>
   </main>;
 }
