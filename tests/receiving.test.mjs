@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {quantity,allowedLocations,receiptState,effectiveSeconds,productivity,finishLines,localDay} from '../src/receiving/api.js';
+import {api,quantity,allowedLocations,receiptState,effectiveSeconds,productivity,finishLines,localDay} from '../src/receiving/api.js';
 assert.equal(quantity('1,5'),1.5);
 for(const value of ['',null,'NaN','Infinity','-1','0']) assert.throws(()=>quantity(value));
 assert.equal(quantity('0',true),0);
@@ -20,3 +20,9 @@ assert.equal(finishLines([{id:'l',expected:10}],{l:{received:'12',damaged:'2',no
 assert.match(localDay('2026-09-29T12:00:00Z'),/^2026-09-29$/);
 console.log('PASS: quantities, location permissions, statuses, pause exclusion, mixed units and damage validation');
 
+
+// Production grants protect unit_cost; select('*') must never break the whole Receiving loader.
+const material={id:'raw',part_number:'RAW-1',description:'Material',category:'RAW',uom:'EA',active:true};
+const restrictedDb={from(table){let columns;const q={select(value){columns=value;return q;},order(){return q;},range(){return q;},in(){return q;},then(resolve){const denied=table==='inventory_items'&&columns==='*';return Promise.resolve({data:denied?null:table==='inventory_items'?[material]:[],error:denied?{code:'42501',message:'permission denied'}:null}).then(resolve);}};return q;},rpc:async()=>({data:[],error:null})};
+assert.deepEqual((await api(restrictedDb).load()).items,[material]);
+console.log('PASS: Receiving loads against restricted product column permissions');

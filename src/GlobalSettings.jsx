@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from './supabase/client';
 import { departmentKeys } from './GlobalPortal';
@@ -9,7 +8,6 @@ const emptyAssignments = () => ({});
 
 export default function GlobalSettings({ access }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const managed = access.admin ? departmentKeys : departmentKeys.filter(d => access.memberships.some(m => m.department === d && m.role === 'supervisor'));
   const [people, setPeople] = useState([]);
   const [memberships, setMemberships] = useState([]);
@@ -85,10 +83,11 @@ export default function GlobalSettings({ access }) {
       }
     }
     await refresh();
+    window.dispatchEvent(new Event('global-access-updated'));
   }
 
   const person = people.find(u => u.uid === selected);
-  return <main className="global-page"><button className="global-back" onClick={() => navigate('/inicio')}>← {t('global_home')}</button>
+  return <main className="global-page">
     <div className="global-heading"><span>DAEHAN APP</span><h1>{t('global_settings')}</h1></div>
     {status && <p role="status">{status}</p>}
     {link && <div className="global-panel"><strong>{t('global_password_link')}</strong><p>{t('global_link_private')}</p><div className="global-link-output">{link}</div><button className="global-settings-action" onClick={() => navigator.clipboard.writeText(link)}>{t('global_copy_link')}</button></div>}

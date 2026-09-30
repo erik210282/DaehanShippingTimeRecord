@@ -1,6 +1,6 @@
 # Receiving
 
-Receiving is separate from Shipping. It uses the shared `inventory_items` catalog only for RAW and PACKAGING materials. It does not modify Shipping tables, screens, validation, catalogs or activity logic.
+Receiving is separate from Shipping. It uses the shared `inventory_items` catalog only for RAW and PACKAGING materials. It does not modify Shipping tables, validation, catalogs or activity logic. All departments share the application header and DepartmentNav; Announcements is reached through the main menu. Product queries explicitly request permitted columns and keep unit_cost protected.
 
 ## Activation
 

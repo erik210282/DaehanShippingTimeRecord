@@ -14,8 +14,9 @@ import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase/client";
-import RequireSupervisor from "./components/RequireSupervisor";
 import LanguageBar from "./components/LanguageBar";
+import DepartmentNav from "./components/DepartmentNav";
+import logo from "./assets/Daehan.png";
 import { GlobalHome, DepartmentLanding, useGlobalAccess } from './GlobalPortal';
 import GlobalSettings from './GlobalSettings';
 import SetPassword from './SetPassword';
@@ -149,7 +150,7 @@ const GlobalChatListener = () => {
   return null;
 };
 // --- NAVBAR ---
-const Navbar = ({ access, onAnnouncements }) => {
+const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, i18n } = useTranslation();
@@ -203,45 +204,16 @@ const Navbar = ({ access, onAnnouncements }) => {
     navigate("/");
   };
 
-  return (
-    <div className="navbar">
-      <div className="navbar-center">
-        {access.admin || access.supervisor ? (location.pathname !== '/inicio' && location.pathname !== '/inventarios' && <button onClick={() => navigate('/inicio')}>{t('global_back')}</button>) : null}
-        {shipping && <>
-        <button onClick={() => navigate("/tareas-pendientes")}>{t("pending_tasks")}</button>
-        <button onClick={() => navigate("/resumen")}>{t("summary")}</button>
-        <button onClick={() => navigate("/registros")}>{t("records")}</button>
-        <button onClick={() => navigate("/generarbol")}>{t("generate_bol")}</button>
-        
-        <button onClick={() => navigate("/comunicaciones")} style={{position: 'relative'}}>
-          {t("communications")}
-          {unreadCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: -5,
-              right: -5,
-              background: "#ff0000",
-              color: "#fff",
-              borderRadius: "50%",
-              padding: "2px 6px",
-              fontSize: "10px",
-              fontWeight: "bold"
-            }}> 
-              {unreadCount}
-            </span>
-          )}
-        </button>
-
-        <button onClick={() => navigate("/productividad")}>{t("productivity")}</button>
-        <button onClick={() => navigate("/catalogos")}>{t("catalogs")}</button>
-        <button onClick={() => navigate("/usuarios")}>{t("users")}</button>
-        </>}
-        {location.pathname !== '/inicio' && location.pathname !== '/announcements' && <button onClick={onAnnouncements}>{t('global_announcements')}</button>}
-        <button onClick={handleLogout}>{t("logout")}</button>
+  const shippingItems = [['/tareas-pendientes','pending_tasks'],['/resumen','summary'],['/registros','records'],['/generarbol','generate_bol'],['/comunicaciones','communications'],['/productividad','productivity'],['/catalogos','catalogs'],['/usuarios','users']].map(([key,label])=>({key,label:t(label),badge:key==='/comunicaciones'?unreadCount:0}));
+  return <>
+    <header className="navbar app-header">
+      <div className="app-header-left">{location.pathname !== '/inicio' && <button className="app-header-button" onClick={() => navigate('/inicio')}>{t('global_back')}</button>}
+        <div className="app-brand"><img src={logo} alt="Daehan"/><strong>DAEHAN APP</strong></div>
       </div>
-      <LanguageBar />
-    </div>
-  );
+      <div className="app-header-right"><button className="app-header-button" onClick={handleLogout}>{t('logout')}</button><LanguageBar /></div>
+    </header>
+    {shipping && <div className="app-department-nav"><DepartmentNav items={shippingItems} value={location.pathname} onChange={navigate} label={t('global_shipping')}/></div>}
+  </>;
 };
 
 // --- CONFIGURACIÓN DE RUTAS ---
@@ -266,21 +238,16 @@ const PrivateArea = () => {
     returnPath.current = location.pathname;
     return <Navigate to="/announcements" replace />;
   }
-  const canSeeHome = access.admin || access.supervisor;
-  const firstDepartment = access.memberships.find(m => m.department === 'shipping')?.department || access.memberships[0]?.department;
-  if (!canSeeHome && location.pathname === '/inicio') {
-    if (!firstDepartment) return <div className="global-loading">{t('global_no_access')}</div>;
-    return <Navigate to={firstDepartment === 'shipping' ? '/tareas-pendientes' : `/departamento/${firstDepartment}`} replace />;
-  }
+  const canManageSettings = access.admin || access.supervisor;
   const isGlobalRoute = ['/inicio', '/global-settings', '/announcements', '/inventarios'].includes(location.pathname) || location.pathname.startsWith('/departamento/');
   if (!isGlobalRoute && !access.admin && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
   const portal = <>
     <div className="app-container">
-      <Navbar access={access} onAnnouncements={() => { if (announcements.pending.length) { returnPath.current = location.pathname; announcements.open(); } navigate('/announcements'); }} />
+      <Navbar />
       <div className="content">
         <Routes>
           <Route path="/inicio" element={<GlobalHome access={access} />} />
-          <Route path="/global-settings" element={canSeeHome ? <GlobalSettings access={access} /> : <Navigate to="/inicio" replace />} />
+          <Route path="/global-settings" element={canManageSettings ? <GlobalSettings access={access} /> : <Navigate to="/inicio" replace />} />
           <Route path="/announcements" element={<GlobalAnnouncements access={access} announcements={announcements} onContinue={announcements.acknowledge} onBack={() => navigate(returnPath.current === '/announcements' ? '/inicio' : returnPath.current || '/inicio', { replace: true })} />} />
           <Route path="/departamento/:name" element={<DepartmentRoute access={access} />} />
           <Route path="/inventarios" element={access.admin || access.memberships.some(m => ['inventory', 'shipping', 'production', 'receiving', 'quality'].includes(m.department))
@@ -300,7 +267,7 @@ const PrivateArea = () => {
     </div>
     {announcements.notice && !announcements.gate && <AnnouncementNotice onOpen={() => { returnPath.current = location.pathname; announcements.open(); navigate('/announcements'); }} />}
   </>;
-  return isGlobalRoute || canSeeHome ? portal : <RequireSupervisor>{portal}</RequireSupervisor>;
+  return portal;
 };
 
 const AppContent = () => (
