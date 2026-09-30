@@ -1,3 +1,4 @@
+import { usePageSection } from '../usePageSection';
 import React, { useEffect, useMemo, useState } from 'react';
 import { subscribeUpdates, inventoryTables } from '../realtime';
 import Catalogos from './Catalogos';
@@ -69,7 +70,7 @@ export default function Inventarios({ access }) {
   const areaLabel = area => t(`inv_area_${area}`);
   const departmentLabel = department => t(`inv_dept_${department}`);
   const statusLabel = status => t(`inv_status_${status}`);
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = usePageSection('inventory', 'overview', sections.map(([key])=>key));
   const [items, setItems] = useState([]);
   const [balances, setBalances] = useState([]);
   const [counts, setCounts] = useState([]);

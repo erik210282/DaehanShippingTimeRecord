@@ -24,6 +24,12 @@ begin
  begin
  perform public.shared_catalog('item',jsonb_build_object('part_number','QA-INVALID-'||v_token,'material_type','RAW','uom','EA','minimum_quantity',-1));
  raise exception 'TEST: invalid minimum allowed'; exception when others then if sqlerrm<>'receiving_quantity' then raise; end if; end;
+ -- Keep FG in the shared Shipping catalog but reject it for new trailer receipts.
+ begin
+ perform public.receiving_start(gen_random_uuid(),jsonb_build_object('supplier_id',v_supplier,'manifest','FG BLOCKED','dock','1','trailer','QA','lines',jsonb_build_array(jsonb_build_object('item_id',v_item,'expected',1))));
+ raise exception 'TEST: finished product accepted for new receipt'; exception when others then if sqlerrm<>'receiving_invalid' then raise; end if; end;
+ if (select count(*) from public.receiving_receipts where manifest='FG BLOCKED')<>0 then raise exception 'TEST: rejected FG left receipt'; end if;
+ v_item:=public.shared_catalog('item',jsonb_build_object('part_number','QA-RAW-'||v_token,'description','QA raw','material_type','RAW','uom','EA','minimum_quantity',2,'locations',jsonb_build_array(v_location)));
  perform set_config('request.jwt.claim.sub',v_admin,true);
  perform public.receiving_start(v_a,jsonb_build_object('supplier_id',v_supplier,'manifest','QA Participants','dock','1','trailer','QA','additional_operator_ids',jsonb_build_array(v_operator),'lines',jsonb_build_array(jsonb_build_object('item_id',v_item,'expected',8))));
  if not exists(select 1 from public.receiving_tasks where id=v_a and v_operator::uuid=any(additional_operator_ids)) then raise exception 'TEST: additional operators not recorded'; end if;

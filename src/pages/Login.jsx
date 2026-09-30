@@ -47,6 +47,8 @@ export default function Login() {
         return;
       }
 
+      try { sessionStorage.removeItem(`announcements-seen:${data.user.id}`); sessionStorage.removeItem('announcement-return'); } catch {}
+
       // El perfil activo es obligatorio para entrar a la aplicación.
       const { data: profile, error: pErr } = await supabase
         .from("operadores")

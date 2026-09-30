@@ -20,10 +20,15 @@ export function useAnnouncementGate(userId) {
   const [gate, setGate] = useState(false);
   const [notice, setNotice] = useState(false);
   const seen = useRef(new Set());
+  const seenUser = useRef(null);
   const started = useRef(false);
   const gateRef = useRef(false);
   const load = useCallback(async () => {
     if (!userId) return;
+    if (seenUser.current !== userId) {
+      seenUser.current = userId; started.current = false;
+      try { seen.current = new Set(JSON.parse(sessionStorage.getItem(`announcements-seen:${userId}`) || '[]')); } catch { seen.current = new Set(); }
+    }
     const { data, error: failure } = await supabase.from('global_announcements')
       .select('id,title,body,title_translations,body_translations,audience,target_user_id,starts_at,ends_at')
       .eq('active', true).order('created_at', { ascending: true });
@@ -59,6 +64,7 @@ export function useAnnouncementGate(userId) {
       .insert({ announcement_id: item.id, user_id: userId });
     if (failure && failure.code !== '23505') { setError(failure.message); return false; }
     seen.current.add(item.id);
+    try { sessionStorage.setItem(`announcements-seen:${userId}`, JSON.stringify([...seen.current])); } catch {}
     setSeenVersion(v => v + 1);
     if (pending.length === 1) { gateRef.current = false; setGate(false); setNotice(false); }
     return pending.length === 1;

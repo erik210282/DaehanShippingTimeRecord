@@ -2,6 +2,7 @@
 insert into public.global_department_memberships(user_id,department,role,active)
 values('e37d7e6b-4c88-429b-83a0-8e30540f998c','receiving','operador',true)
 on conflict(user_id,department) do update set role='operador',active=true;
+update public.global_department_memberships set role='operador' where user_id='e37d7e6b-4c88-429b-83a0-8e30540f998c' and department='shipping';
 set local role authenticated;
 do $$
 declare v_supplier uuid; v_stage uuid; v_storage uuid; v_other uuid; v_item uuid;
@@ -67,9 +68,9 @@ begin
  perform public.receiving_task(v_task,'pause'); perform public.receiving_task(v_task,'finish');
  if (select stored from public.receiving_line_status where id=v_line)<>4 then raise exception 'TEST: held putaway'; end if;
  if (select sum(quantity_delta) from public.inventory_movements where item_id=v_item and area='HOLD')<>12 then raise exception 'TEST: putaway doubled inventory'; end if;
- v_id:=gen_random_uuid(); perform public.receiving_putaway(v_id,v_line,v_storage,3); perform public.receiving_task(v_id,'cancel');
- if (select available_to_store from public.receiving_line_status where id=v_line)<>8 then raise exception 'TEST: cancel reservation'; end if;
- v_id:=gen_random_uuid(); perform public.receiving_putaway(v_id,v_line,v_storage,8); perform public.receiving_task(v_id,'finish');
+ v_id:=gen_random_uuid(); perform public.receiving_putaway(v_id,v_line,v_storage,3); perform public.receiving_task(v_id,'pause'); perform public.receiving_task(v_id,'finish');
+ if (select available_to_store from public.receiving_line_status where id=v_line)<>5 then raise exception 'TEST: paused task reservation'; end if;
+ v_id:=gen_random_uuid(); perform public.receiving_putaway(v_id,v_line,v_storage,5); perform public.receiving_task(v_id,'finish');
  if (select stored from public.receiving_line_status where id=v_line)<>12 then raise exception 'TEST: complete putaway'; end if;
  perform set_config('request.jwt.claim.sub',v_admin,true);
  perform public.inventory_quality_resolve(v_hold,true,'Quality release');
@@ -89,11 +90,10 @@ begin
  v_id:=public.receiving_catalog('item',jsonb_build_object('part_number','FG-'||v_token,'category','FG','uom','EA'));
  perform set_config('request.jwt.claim.sub',v_receiver,true);
  v_receipt:=gen_random_uuid();
+ begin
  perform public.receiving_start(v_receipt,jsonb_build_object('supplier_id',v_supplier,'manifest','FG-INVOICE','dock','3','trailer','TR02','lines',jsonb_build_array(jsonb_build_object('item_id',v_id,'expected',5))));
- select id into v_line from public.receiving_lines where receipt_id=v_receipt;
- perform public.receiving_task(v_receipt,'finish',jsonb_build_array(jsonb_build_object('id',v_line,'received',5,'damaged',0,'note','')));
- if (select sum(quantity_delta) from public.inventory_movements where item_id=v_id and area='FG')<>5 then raise exception 'TEST: FG inventory'; end if;
- perform public.receiving_putaway(gen_random_uuid(),v_line,v_other,5);
+ raise exception 'TEST: FG accepted for new receipt'; exception when others then if sqlerrm<>'receiving_invalid' then raise; end if; end;
+ if exists(select 1 from public.receiving_receipts where id=v_receipt) then raise exception 'TEST: FG rejection left partial receipt'; end if;
  if (select count(*) from public.receiving_material_types)<4 then raise exception 'TEST: operator material catalogs'; end if;
  perform set_config('request.jwt.claim.sub',gen_random_uuid()::text,true);
  if (select count(*) from public.receiving_receipts)<>0 then raise exception 'TEST: unauthorized read'; end if;

@@ -1,3 +1,4 @@
+import { usePageSection } from '../usePageSection';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +13,7 @@ import Catalogos from './Catalogos';
 import { subscribeUpdates, receivingTables } from '../realtime';
 registerReceiving(i18n);
 const service = api(supabase);
-const blankLine = () => ({ item_id: '', expected: '' });
+const blankLine = () => ({ item_id: '', expected: '', category: 'RAW' });
 const blankReceipt = () => ({ supplier_id: '', manifest: '', po_number: '', dock: '', trailer: '', lines: [blankLine()] });
 
 function SelectField({ label, value, onChange, options, multi = false, disabled = false }) {
@@ -29,7 +30,7 @@ export default function Receiving({ access }) {
   const { t, i18n } = useTranslation();
   const [data, setData] = useState(emptyData), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
   const [ready,setReady]=useState(false);
-  const [tab, setTab] = useState('pending'), [from, setFrom] = useState(''), [to, setTo] = useState(''), [filter, setFilter] = useState(''), [search, setSearch] = useState('');
+  const [tab, setTab] = usePageSection('receiving', 'pending', ['pending','summary','productivity','catalogs']), [from, setFrom] = useState(''), [to, setTo] = useState(''), [filter, setFilter] = useState(''), [search, setSearch] = useState('');
   const [newReceipt, setNewReceipt] = useState(false), [receiptDraft, setReceiptDraft] = useState(blankReceipt), [selected, setSelected] = useState('');
   const [finishTask, setFinishTask] = useState(null), [actual, setActual] = useState({});
   const [putLine, setPutLine] = useState(null), [putLocation, setPutLocation] = useState(''), [putQuantity, setPutQuantity] = useState('');
@@ -121,7 +122,8 @@ export default function Receiving({ access }) {
       <Field required label={t('rc_manifest')} value={receiptDraft.manifest} onChange={manifest=>setReceiptDraft({...receiptDraft,manifest})}/><Field label={t('rc_po_number')} value={receiptDraft.po_number} onChange={po_number=>setReceiptDraft({...receiptDraft,po_number})}/><Field required label={t('rc_dock')} inputMode="numeric" value={receiptDraft.dock} onChange={dock=>setReceiptDraft({...receiptDraft,dock:dock.replace(/\D/g,'')})}/>
       <Field required label={t('rc_trailer')} value={receiptDraft.trailer} onChange={trailer=>setReceiptDraft({...receiptDraft,trailer:trailer.toUpperCase()})}/>
     </div>{receiptDraft.lines.map((line,index)=><div className="rc-product-row" key={index}>
-      <SelectField label={t('rc_item')} value={line.item_id} options={options(data.items.filter(i=>i.active),itemLabel)} onChange={item_id=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.map((l,i)=>i===index?{...l,item_id}:l)})}/>
+      <SelectField label={t('rc_type')} value={line.category} options={['RAW','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))} onChange={category=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.map((l,i)=>i===index?{...l,category,item_id:''}:l)})}/>
+      <SelectField label={t('rc_item')} value={line.item_id} options={options(data.items.filter(i=>i.active && i.category===line.category && ['RAW','PACKAGING'].includes(i.category)),itemLabel)} onChange={item_id=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.map((l,i)=>i===index?{...l,item_id}:l)})}/>
       {['expected'].map(key=><Field key={key} required={key==='expected'} label={t(`rc_${key}`)} type={key==='expected'?'number':'text'} min={key==='expected'?0:undefined} step="any" value={line[key]} onChange={value=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.map((l,i)=>i===index?{...l,[key]:value}:l)})}/>)}
       <BtnDanger type="button" disabled={receiptDraft.lines.length===1} onClick={()=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.filter((_,i)=>i!==index)})}>{t('rc_remove')}</BtnDanger>
     </div>)}<div className="rc-toolbar"><BtnSecondary type="button" onClick={()=>setReceiptDraft({...receiptDraft,lines:[...receiptDraft.lines,blankLine()]})}>{t('rc_add')}</BtnSecondary><BtnPrimary disabled={busy}>{t('rc_start')}</BtnPrimary><BtnSecondary type="button" disabled={busy} onClick={()=>setNewReceipt(false)}>{t('rc_close')}</BtnSecondary></div></form></section></div>}
