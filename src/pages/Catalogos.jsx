@@ -1,3 +1,4 @@
+import './Catalogos.css';
 import { usePageSection } from '../usePageSection';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabase/client";
@@ -17,7 +18,7 @@ import {
 } from "../components/controls";
 
 import { subscribeUpdates, catalogTables } from '../realtime';
-import { catalogKinds, catalogDefaults, addressFields, SharedCatalogFields, CatalogSelect, materialLabel } from '../components/SharedCatalogFields';
+import { catalogKinds, catalogDefaults, addressFields, SharedCatalogFields, CatalogSelect, materialLabel, CatalogInput, ProductCatalogFields, supplierAddress } from '../components/SharedCatalogFields';
 import { unwrap, quantity } from '../receiving/api';
 import { registerReceiving, receivingError } from '../receiving/translations';
 import i18n from '../i18n/i18n';
@@ -61,7 +62,8 @@ export default function Catalogos({ access }) {
   const request = useRef(0), currentTab = useRef(tab);
   currentTab.current = tab;
   const setRows = next => setSnapshot({ tab, rows: next });
-  const [locations,setLocations]=useState([]),[materials,setMaterials]=useState([]);
+  const [locations,setLocations]=useState([]),[materials,setMaterials]=useState([]),[suppliers,setSuppliers]=useState([]);
+  const [typeFilter,setTypeFilter]=useState(''),[hideInactive,setHideInactive]=useState(true);
   const canManage=access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role));
   const kind=catalogKinds[tab];
   const [filter, setFilter] = useState("");
@@ -92,7 +94,7 @@ export default function Catalogos({ access }) {
     peso_caja_expendable: "",
     cantidad_por_caja_retornable: "",
     cantidad_por_caja_expendable: "",
-    activo: true, category:'FG', material_type:'FG',uom:'EA',minimum_quantity:'0',responsible_department:'inventory',default_location:'',locations:[],
+    activo: true, category:'FG', material_type:'FG',uom:'EA',minimum_quantity:'0',responsible_department:'shipping',default_location:'',locations:[],supplier_id:'',lead_time_days:'',
   };
 
   const poDefaults = {
@@ -169,19 +171,20 @@ export default function Catalogos({ access }) {
     const current = () => version === request.current && currentTab.current === tab;
     setLoading(true);
     try {
-      const [stock,products,locs,types,assignments,itemTypes] = await Promise.all([
-        unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active').order('part_number')),
+      const [stock,products,locs,types,assignments,itemTypes,supplierRows] = await Promise.all([
+        unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active,part_name,supplier_id,lead_time_days').order('part_number')),
         unwrap(supabase.from('productos').select('*').order('nombre')),
         unwrap(supabase.from('receiving_locations').select('*').order('code')),
         unwrap(supabase.from('receiving_material_types').select('*').order('code')),
         unwrap(supabase.from('receiving_item_locations').select('*')),
         unwrap(supabase.from('receiving_item_types').select('*')),
+        unwrap(supabase.from('receiving_suppliers').select('*').order('name')),
       ]);
       if (!current()) return;
-      setLocations(locs);setMaterials(types);
+      setLocations(locs);setMaterials(types);setSuppliers(supplierRows);
       if(tab==='productos') {
-        const metadata=i=>({inventory_id:i?.id,producto_id:i?.producto_id,category:i?.category||'FG',material_type:itemTypes.find(m=>m.item_id===i?.id)?.material_type||i?.category||'FG',uom:i?.uom||'EA',minimum_quantity:i?.minimum_quantity??0,responsible_department:i?.responsible_department||'inventory',default_location:i?.default_location||'',locations:assignments.filter(a=>a.item_id===i?.id).map(a=>a.location_id)});
-        setRows([...products.map(p=>({...p,...metadata(stock.find(i=>i.producto_id===p.id))})),...stock.filter(i=>!i.producto_id).map(i=>({id:i.id,nombre:i.description,descripcion:i.description,part_number:i.part_number,activo:i.active,...metadata(i)}))]);
+        const metadata=i=>({inventory_id:i?.id,producto_id:i?.producto_id,supplier_id:i?.supplier_id||'',lead_time_days:i?.lead_time_days??'',category:i?.category||'FG',material_type:itemTypes.find(m=>m.item_id===i?.id)?.material_type||i?.category||'FG',uom:i?.uom||'EA',minimum_quantity:i?.minimum_quantity??0,responsible_department:i?.responsible_department||'inventory',default_location:i?.default_location||'',locations:assignments.filter(a=>a.item_id===i?.id).map(a=>a.location_id)});
+        setRows([...products.map(p=>({...p,...metadata(stock.find(i=>i.producto_id===p.id))})),...stock.filter(i=>!i.producto_id).map(i=>({id:i.id,nombre:i.part_name||i.description,descripcion:i.description,part_number:i.part_number,activo:i.active,...metadata(i)}))]);
       } else {
         const table=kind==='supplier'?'receiving_suppliers':kind==='location'?'receiving_locations':kind==='material'?'receiving_material_types':tableName;
         const data=await unwrap(supabase.from(table).select('*').order(kind?'code':tab==='pos'||tab==='shipper'?'id':'nombre'));
@@ -225,7 +228,7 @@ async function save() {
         if(!edit.part_number?.trim())throw Error(t('fill_all_fields'));
         const shipping={...edit};
         for(const key of ['peso_por_pieza','peso_caja_retornable','peso_caja_expendable','cantidad_por_caja_retornable','cantidad_por_caja_expendable'])shipping[key]=shipping[key]===''?null:shipping[key];
-        data={id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.responsible_department,default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
+        data={id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,part_name:edit.nombre,supplier_id:edit.supplier_id||null,lead_time_days:edit.lead_time_days===''?null:Number(edit.lead_time_days),material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.category==='FG'?'shipping':'receiving',default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
       } else if(kind==='material')data={...edit,id:undefined};
       await unwrap(supabase.rpc('shared_catalog',{p_kind:kind||'item',p_data:data}));
       toast.success(t('save_success'));setEdit(null);setIsNew(false);await load();return;
@@ -425,8 +428,8 @@ async function save() {
   }
 
   const exportCSV = () => {
-    const data = (rows || []).map((r) => {
-      if(kind)return {Code:r.code,Name:r.name,...(kind==='supplier'?Object.fromEntries(addressFields.map(k=>[k,r[k]||''])):{Type:kind==='material'?r.category:r.material_type}),Status:t(r.active?'active':'inactive')};
+    const data = (filtered || []).map((r) => {
+      if(kind)return {Code:r.code,Name:kind==='material'?materialLabel(r,t):r.name,...(kind==='supplier'?Object.fromEntries(addressFields.map(k=>[k,r[k]||''])):{Type:kind==='material'?r.category:r.material_type}),Status:t(r.active?'active':'inactive')};
       if (tab === "productos") {
         return {
           [t("name")]: r.nombre || "",
@@ -490,9 +493,8 @@ async function save() {
 
   const filtered = useMemo(() => {
     const q = (filter || "").toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
-  }, [rows, filter]);
+    return rows.filter(r=>(!hideInactive || (r.active ?? r.activo)) && (tab!=='productos'||!typeFilter||r.category===typeFilter) && (!q || JSON.stringify(r).toLowerCase().includes(q)));
+  }, [rows, filter, hideInactive, typeFilter, tab]);
 
   // ==========================
   // Paginado: cálculo de filas
@@ -505,21 +507,24 @@ async function save() {
   const filasPagina = filtered.slice(startIndex, endIndex);
 
   return (
-    <div className="page-container page-container--fluid">
+    <div className="page-container page-container--fluid catalog-page">
       <div className="card">
-        <h2>{t("catalogs")}</h2>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 5 }}>
+        <div className="catalog-toolbar"><h2 className="module-title">{t("catalogs")}</h2>
+        <div className="catalog-actions">
           <DSInput placeholder={t("search")} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ marginTop: 12 }}/>
           <BtnSecondary onClick={() => setTab("productos")}>{t("products")}</BtnSecondary>
           {Object.entries(catalogKinds).map(([key,value])=><BtnSecondary key={key} onClick={()=>setTab(key)}>{t(value==='material'?'rc_material_types':value==='supplier'?'rc_suppliers':'rc_locations')}</BtnSecondary>)}
           <BtnSecondary onClick={() => setTab("pos")}>{t("po")}</BtnSecondary>
           <BtnSecondary onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
           <BtnSecondary onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
-          <BtnSecondary onClick={() => setFilter("")}>{t("clear_filters")}</BtnSecondary>
+          <BtnSecondary onClick={() => {setFilter('');setTypeFilter('');setHideInactive(true);setPage(1);}}>{t("clear_filters")}</BtnSecondary>
           <BtnSecondary onClick={exportCSV}>{t("export_csv")}</BtnSecondary>
           <BtnPrimary disabled={!canManage} onClick={openNew}>➕ {t("add")}</BtnPrimary>
         </div>
-        <div className="table-wrap">
+        <div className="catalog-filters">
+         {tab==='productos'&&<CatalogSelect label={t('rc_type')} value={typeFilter} onChange={value=>{setTypeFilter(value);setPage(1);}} options={[{value:'',label:t('rc_all')},...['RAW','FG','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))]}/>}
+         <label className="catalog-checkbox"><input type="checkbox" checked={hideInactive} onChange={e=>{setHideInactive(e.target.checked);setPage(1);}}/>{t('rc_hide_inactive')}</label>
+        </div></div><div className="table-wrap catalog-table-scroll">
           <table className="table">
             <thead>
               <tr>
@@ -529,13 +534,13 @@ async function save() {
                     <th>{t("part_number")}</th>
                     <th>{t("description")}</th>
                     <th>{t('rc_type')}</th><th>{t('inv_min_stock')}</th><th>{t('rc_uom')}</th><th>{t('rc_allowed')}</th>
-                    <th>{t("weight_piece")}</th>
+                    {typeFilter!=='FG'&&typeFilter!=='PACKAGING'&&<><th>{t('rc_supplier')}</th><th>{t('rc_supplier_location')}</th><th>{t('rc_lead_time')}</th></>}{(!typeFilter||typeFilter==='FG')&&<><th>{t("weight_piece")}</th>
                     <th>{t("bin_type")}</th>
                     <th>{t("returnablebox")}</th>
                     <th>{t("expendablebox")}</th>
                     <th>{t("units_returnable")}</th>
                     <th>{t("units_expendable")}</th>
-                    <th>{t("status")}</th>
+                    </>}<th>{t("status")}</th>
                     <th>{t("actions")}</th>
                   </>
                 )}
@@ -588,13 +593,13 @@ async function save() {
                         <td>{r.part_number}</td>
                         <td>{r.descripcion}</td>
                         <td>{materialLabel(materials.find(m=>m.code===r.material_type),t)}</td><td>{r.minimum_quantity}</td><td>{r.uom}</td><td>{(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', ')||t('rc_all')}</td>
-                        <td>{r.peso_por_pieza}</td>
+                        {typeFilter!=='FG'&&typeFilter!=='PACKAGING'&&<><td>{suppliers.find(s=>s.id===r.supplier_id)?.name||'—'}</td><td>{supplierAddress(suppliers.find(s=>s.id===r.supplier_id))||'—'}</td><td>{r.lead_time_days??'—'}</td></>}{(!typeFilter||typeFilter==='FG')&&<><td>{r.peso_por_pieza}</td>
                         <td>{r.bin_type}</td>
                         <td>{r.tipo_empaque_retornable}</td>
                         <td>{r.tipo_empaque_expendable}</td>
                         <td>{r.cantidad_por_caja_retornable}</td>
                         <td>{r.cantidad_por_caja_expendable}</td>
-                        <td>{r.activo ? t("active") : t("inactive")}</td>
+                        </>}<td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
                           <BtnEditDark disabled={!canManage} onClick={() => { setEdit(r); setIsNew(false); }}>
                             {t("edit")}
@@ -657,7 +662,7 @@ async function save() {
                         </td>
                       </>
                     )}
-                    {kind && <><td>{r.code}</td><td>{r.name}</td>{kind==='supplier'?<><td>{addressFields.filter(k=>k!=='phone').map(k=>r[k]).filter(Boolean).join(', ')}</td><td>{r.phone}</td></>:<td>{kind==='material'?t(`rc_${r.category}`):materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>}<td>{t(r.active?'rc_active':'rc_inactive')}</td><td><BtnEditDark disabled={!canManage} onClick={()=>{setEdit({...r,id:kind==='material'?r.code:r.id});setIsNew(false);}}>{t('edit')}</BtnEditDark></td></>}
+                    {kind && <><td>{r.code}</td><td>{kind==='material'?materialLabel(r,t):r.name}</td>{kind==='supplier'?<><td>{addressFields.filter(k=>k!=='phone').map(k=>r[k]).filter(Boolean).join(', ')}</td><td>{r.phone}</td></>:<td>{kind==='material'?t(`rc_${r.category}`):materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>}<td>{t(r.active?'rc_active':'rc_inactive')}</td><td><BtnEditDark disabled={!canManage} onClick={()=>{setEdit({...r,id:kind==='material'?r.code:r.id});setIsNew(false);}}>{t('edit')}</BtnEditDark></td></>}
                     {isSimple && (
                       <>
                         <td>{r.nombre}</td>
@@ -691,109 +696,85 @@ async function save() {
           isOpen={!!edit}
           onRequestClose={() => { setEdit(null); setIsNew(false); setBillTo({ ...billToDefaults }); }}
           style={{
+            overlay:{zIndex:10000,backgroundColor:'#0008'},
             content: {
-              width: "70%",         
-              maxWidth: "100%",    
-              margin: "0 auto",
+              width: "min(960px, calc(100vw - 32px))", maxHeight:"88vh", inset:"50% auto auto 50%", transform:"translate(-50%, -50%)", margin:0, padding:20, boxSizing:'border-box', overflow:'auto',
             }
           }}
         >
-          <div className="card">
+          <div className="catalog-dialog">
             <h3>{isNew ? t('add') : t('edit')} · {t(kind?`rc_${kind==='material'?'material_types':kind}`:tab==='productos'?'products':tab==='pos'?'po':tab==='shipper'?'shipper':'activities')}</h3>
             {kind && edit && <SharedCatalogFields kind={kind} edit={edit} setEdit={setEdit} materials={materials}/>}
 
-            {tab === "productos" && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
-                <CatalogSelect label={t('rc_type')} value={edit?.material_type} onChange={material_type=>setEdit({...edit,material_type,category:materials.find(m=>m.code===material_type)?.category})} options={materials.filter(m=>(m.active||m.code===edit?.material_type)&&m.category!=='HOLD'&&(!edit?.producto_id||m.category==='FG')).map(m=>({value:m.code,label:materialLabel(m,t)}))}/>
-                <label>{t('inv_min_stock')}<DSInput aria-label={t('inv_min_stock')} type="number" min="0" step="any" value={edit?.minimum_quantity??''} onChange={e=>setEdit({...edit,minimum_quantity:e.target.value})}/></label>
-                <label>{t('rc_uom')}<DSInput aria-label={t('rc_uom')} value={edit?.uom||''} onChange={e=>setEdit({...edit,uom:e.target.value.toUpperCase()})}/></label>
-                <CatalogSelect label={t('inv_supervisor_responsible')} value={edit?.responsible_department} onChange={responsible_department=>setEdit({...edit,responsible_department})} options={['inventory','receiving','production','shipping','quality'].map(value=>({value,label:t(`inv_dept_${value}`)}))}/>
-                <CatalogSelect multi label={t('rc_allowed')} value={edit?.locations||[]} onChange={locations=>setEdit({...edit,locations})} options={locations.filter(l=>l.active&&!l.is_system_stage).map(l=>({value:l.id,label:l.code+' · '+l.name}))}/>
-                <DSInput aria-label={t('inv_location')} placeholder={t('inv_location')} value={edit?.default_location||''} onChange={e=>setEdit({...edit,default_location:e.target.value})}/>
-                <DSInput placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
-                <DSInput placeholder={t("part_number")} value={edit?.part_number || ""} onChange={e => setEdit({ ...edit, part_number: e.target.value })} />
-                <DSInput placeholder={t("description")} value={edit?.descripcion || ""} onChange={e => setEdit({ ...edit, descripcion: e.target.value })} />
-                {edit?.category==='FG' && <><DSInput type="number" placeholder={t("weight_piece")} value={edit?.peso_por_pieza ?? ""} onChange={e => setEdit({ ...edit, peso_por_pieza: e.target.value })} />
-                <DSInput placeholder={t("bin_type")} value={edit?.bin_type || ""} onChange={e => setEdit({ ...edit, bin_type: e.target.value })} />
-                <DSInput placeholder={t("returnablebox")} value={edit?.tipo_empaque_retornable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_retornable: e.target.value })} />
-                <DSInput placeholder={t("expendablebox")} value={edit?.tipo_empaque_expendable || ""} onChange={e => setEdit({ ...edit, tipo_empaque_expendable: e.target.value })} />
-                <DSInput type="number" placeholder={t("returnablebw")} value={edit?.peso_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_retornable: e.target.value })} />
-                <DSInput type="number" placeholder={t("expendablebw")} value={edit?.peso_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, peso_caja_expendable: e.target.value })} />
-                <DSInput type="number" placeholder={t("units_returnable")} value={edit?.cantidad_por_caja_retornable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_retornable: e.target.value })} />
-                <DSInput type="number" placeholder={t("units_expendable")} value={edit?.cantidad_por_caja_expendable ?? ""} onChange={e => setEdit({ ...edit, cantidad_por_caja_expendable: e.target.value })} />
-                </>}<label style={{ gridColumn: "1 / -1" }}>
-                  <input type="checkbox" checked={!!edit?.activo} onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}
-                </label>
-              </div>
-            )}
+            {tab === 'productos' && edit && <ProductCatalogFields edit={edit} setEdit={setEdit} materials={materials} locations={locations} suppliers={suppliers}/>}
 
             {tab === "pos" && (
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(2, minmax(240px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(240px,100%), 1fr))",
                   gap: 8,
                 }}
               >
-                <DSInput
+                <CatalogInput
                   placeholder={t("po", "PO")}
                   value={edit?.po || ""}
                   onChange={(e) => setEdit({ ...edit, po: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("consignee", "Consignee")}
                   value={edit?.consignee_name || ""}
                   onChange={(e) => setEdit({ ...edit, consignee_name: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={`${t("address", "Address")} 1`}
                   value={edit?.consignee_address1 || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, consignee_address1: e.target.value })
                   }
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={`${t("address", "Address")} 2`}
                   value={edit?.consignee_address2 || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, consignee_address2: e.target.value })
                   }
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("city", "City")}
                   value={edit?.consignee_city || ""}
                   onChange={(e) => setEdit({ ...edit, consignee_city: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("state", "State")}
                   value={edit?.consignee_state || ""}
                   onChange={(e) => setEdit({ ...edit, consignee_state: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("zip", "ZIP")}
                   value={edit?.consignee_zip || ""}
                   onChange={(e) => setEdit({ ...edit, consignee_zip: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("country", "Country")}
                   value={edit?.consignee_country || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, consignee_country: e.target.value })
                   }
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("contact_name", "Contact Name")}
                   value={edit?.consignee_contact_name || ""}
                   onChange={(e) => setEdit({ ...edit, consignee_contact_name: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("contact_email", "Contact Email")}
                   value={edit?.consignee_contact_email || ""}
                   onChange={(e) =>
                     setEdit((prev) => ({ ...prev, consignee_contact_email: e.target.value }))
                   }
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("contact_phone", "Contact Phone")}
                   value={edit?.consignee_contact_phone || ""}
                   onChange={(e) =>
@@ -806,17 +787,17 @@ async function save() {
                     }))
                   }
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("freight_class", "Freight Class")}
                   value={edit?.freight_class || ""}
                   onChange={(e) => setEdit({ ...edit, freight_class: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("freight_charges", "Freight Charges")}
                   value={edit?.freight_charges || ""}
                   onChange={(e) => setEdit({ ...edit, freight_charges: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("carrier", "Carrier")}
                   value={edit?.carrier_name || ""}
                   onChange={(e) => setEdit({ ...edit, carrier_name: e.target.value })}
@@ -830,39 +811,39 @@ async function save() {
                   {t("active", "Activo")}
                 </label>
                 <hr style={{ gridColumn: "1 / -1", margin: "8px 0" }} />
-                <strong style={{ gridColumn: "1 / -1" }}>Bill Charges To</strong>
-                <DSInput
-                  placeholder="Name"
+                <strong style={{ gridColumn: "1 / -1" }}>{t('rc_bill_to')}</strong>
+                <CatalogInput
+                  placeholder={t('name')}
                   value={billTo.bill_to_name || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_name: e.target.value })}
                 />
-                <DSInput
-                  placeholder="Address 1"
+                <CatalogInput
+                  placeholder={`${t('address')} 1`}
                   value={billTo.bill_to_address1 || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_address1: e.target.value })}
                 />
-                <DSInput
-                  placeholder="Address 2"
+                <CatalogInput
+                  placeholder={`${t('address')} 2`}
                   value={billTo.bill_to_address2 || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_address2: e.target.value })}
                 />
-                <DSInput
-                  placeholder="City"
+                <CatalogInput
+                  placeholder={t('city')}
                   value={billTo.bill_to_city || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_city: e.target.value })}
                 />
-                <DSInput
-                  placeholder="State"
+                <CatalogInput
+                  placeholder={t('state')}
                   value={billTo.bill_to_state || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_state: e.target.value })}
                 />
-                <DSInput
-                  placeholder="ZIP"
+                <CatalogInput
+                  placeholder={t('zip')}
                   value={billTo.bill_to_zip || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_zip: e.target.value })}
                 />
-                <DSInput
-                  placeholder="Country"
+                <CatalogInput
+                  placeholder={t('country')}
                   value={billTo.bill_to_country || ""}
                   onChange={(e) => setBillTo({ ...billTo, bill_to_country: e.target.value })}
                 />
@@ -873,64 +854,64 @@ async function save() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(2, minmax(240px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(240px,100%), 1fr))",
                   gap: 8,
                 }}
               >
-                <DSInput
+                <CatalogInput
                   placeholder={t("shipper", "Shipper")}
                   value={edit?.shipper_name || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_name: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={`${t("address", "Address")} 1`}
                   value={edit?.shipper_address1 || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, shipper_address1: e.target.value })
                   }
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={`${t("address", "Address")} 2`}
                   value={edit?.shipper_address2 || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, shipper_address2: e.target.value })
                   }
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("city", "City")}
                   value={edit?.shipper_city || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_city: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("state", "State")}
                   value={edit?.shipper_state || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_state: e.target.value })}
                 />
-                <input
+                <CatalogInput
                   placeholder={t("zip", "ZIP")}
                   value={edit?.shipper_zip || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_zip: e.target.value })}
                 />
-                <DSInput
+<CatalogInput
                   placeholder={t("country", "Country")}
                   value={edit?.shipper_country || ""}
                   onChange={(e) =>
                     setEdit({ ...edit, shipper_country: e.target.value })
                   }
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("contact_name", "Contact Name")}
                   value={edit?.shipper_contact_name || ""}
                   onChange={(e) => setEdit({ ...edit, shipper_contact_name: e.target.value })}
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("contact_email", "Contact Email")}
                   value={edit?.shipper_contact_email || ""}
                   onChange={(e) =>
                     setEdit((prev) => ({ ...prev, shipper_contact_email: e.target.value }))
                   }
                 />
-                <DSInput
+                <CatalogInput
                   placeholder={t("contact_phone", "Contact Phone")}
                   value={edit?.shipper_contact_phone || ""}
                   onChange={(e) =>
@@ -955,8 +936,8 @@ async function save() {
             )}
 
             {isSimple && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 8 }}>
-                <DSInput placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px,100%), 1fr))", gap: 8 }}>
+                <CatalogInput placeholder={t("name")} value={edit?.nombre || ""} onChange={e => setEdit({ ...edit, nombre: e.target.value })} />
                 <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <input type="checkbox" checked={!!edit?.activo} disabled={tab === "operadores"}
                     onChange={() => setEdit({ ...edit, activo: !edit?.activo })} /> {t("active")}

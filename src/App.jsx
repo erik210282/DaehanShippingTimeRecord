@@ -1,3 +1,4 @@
+import ModuleHeading from './components/ModuleHeading';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Registros from "./pages/Registros";
 import Productividad from "./pages/Productividad";
@@ -194,6 +195,13 @@ const Navbar = () => {
     return () => window.removeEventListener("unread-chat-updated", handler);
   }, []);
 
+  useEffect(() => {
+    const header=document.querySelector('.app-header');
+    if(!header)return;
+    const update=()=>document.documentElement.style.setProperty('--app-header-height',header.getBoundingClientRect().height+'px');
+    update();const observer=new ResizeObserver(update);observer.observe(header);return()=>observer.disconnect();
+  }, [user]);
+
   if (!user) return null;
 
   const shipping = !['/inicio', '/global-settings', '/announcements', '/inventarios', '/catalogos', '/usuarios'].includes(location.pathname) && !location.pathname.startsWith('/departamento/');
@@ -211,7 +219,7 @@ const Navbar = () => {
       </div>
       <div className="app-header-right"><button className="app-header-button" onClick={handleLogout}>{t('logout')}</button><LanguageBar /></div>
     </header>
-    {shipping && <div className="app-department-nav"><DepartmentNav items={shippingItems} value={location.pathname} onChange={navigate} label={t('global_shipping')}/></div>}
+    {shipping && <div className="app-department-nav"><ModuleHeading title={t('global_shipping')}/><DepartmentNav items={shippingItems} value={location.pathname} onChange={navigate} label={t('global_shipping')}/></div>}
   </>;
 };
 

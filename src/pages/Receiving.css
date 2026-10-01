@@ -37,3 +37,9 @@
 .rc-check input { width:20px; height:20px; }
 .rc-link { overflow-wrap:anywhere; }
 @media(max-width:700px) { .rc-product-row { grid-template-columns:1fr; } .rc-dialog { padding:16px; } .rc-modal { padding:8px; } .rc-page { padding:18px 12px 80px; } }
+
+.rc-product-info {grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px 20px;color:#344054;font-size:14px;}
+
+.rc-product-info {order:5;}
+.rc-product-row {grid-template-columns:minmax(160px,1fr) minmax(250px,2fr) minmax(120px,1fr) auto;}
+@media(max-width:720px){.rc-product-row{grid-template-columns:1fr}.rc-product-info{order:5;display:grid}}

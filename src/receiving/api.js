@@ -16,7 +16,7 @@ export function quantity(value, allowZero = false) {
   if (!Number.isFinite(result) || (allowZero ? result < 0 : result <= 0)) throw Error('receiving_quantity');
   return result;
 }
-export const itemLabel = item => `${item.part_number} · ${item.description} (${item.uom})`;
+export const itemLabel = item => `${item.part_number} · ${item.part_name || item.description} (${item.uom})`;
 export const locationLabel = item => `${item.code} · ${item.name}`;
 export const activeTask = task => ['running', 'paused'].includes(task.status);
 export const statusColors = { pending: '#FFF44F', process: '#AEC6CF', completed: '#B2FBA5', paused: '#F1BA8B', cancelled: '#eeeeee' };
@@ -73,7 +73,7 @@ export function api(db) {
       const [suppliers, locations, assignments, items, receipts, lines, tasks, users, materialTypes, itemTypes] = await Promise.all([
         pageAll('receiving_suppliers', 'code'), pageAll('receiving_locations', 'code'),
         pageAll('receiving_item_locations', 'item_id'),
-        pageAll('inventory_items', 'part_number', query=>query.in('category',['RAW','FG','PACKAGING']), 'id,part_number,description,category,uom,active,minimum_quantity,responsible_department,default_location'),
+        pageAll('inventory_items', 'part_number', query=>query.in('category',['RAW','FG','PACKAGING']), 'id,part_number,description,category,uom,active,minimum_quantity,responsible_department,default_location,part_name,supplier_id,lead_time_days'),
         pageAll('receiving_receipts', 'code'), pageAll('receiving_line_status'), pageAll('receiving_tasks'), rpc('receiving_users', {}), pageAll('receiving_material_types','code'), pageAll('receiving_item_types','item_id'),
       ]);
       return { suppliers, locations, assignments, items:items.map(i=>({...i,material_type:itemTypes.find(m=>m.item_id===i.id)?.material_type || i.category})), receipts, lines, tasks, users, materialTypes };
