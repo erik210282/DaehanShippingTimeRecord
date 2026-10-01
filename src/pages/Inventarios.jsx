@@ -1,3 +1,4 @@
+import ModuleHeading from '../components/ModuleHeading';
 import { usePageSection } from '../usePageSection';
 import React, { useEffect, useMemo, useState } from 'react';
 import { subscribeUpdates, inventoryTables } from '../realtime';
@@ -199,9 +200,9 @@ export default function Inventarios({ access }) {
     : countArea === 'HOLD' ? countDepartment === 'quality' && balances.some(b => b.item_id === i.id && b.area === 'HOLD')
       : i.responsible_department === countDepartment);
 
-  return <main className="inv-page">
-    <header className="inv-head"><div><small>DAEHAN APP · {t('inv_title')}</small><h1>{t('inv_title')}</h1></div></header>
-    <DepartmentNav items={sections.map(([key,label])=>({key,label:t(label)}))} value={tab} onChange={key=>{setTab(key);setMessage('');}} label={t('inv_section')}/>
+  return <><div className="module-department-nav">
+    <ModuleHeading title={t('inv_title')}/>
+    <DepartmentNav items={sections.map(([key,label])=>({key,label:t(label)}))} value={tab} onChange={key=>{setTab(key);setMessage('');}} label={t('inv_section')}/></div><main className="inv-page module-surface">
     <div className="inv-layout">
       <div className="inv-main">
     {!!message && <p role="status" className="inv-message">{message}</p>}
@@ -373,5 +374,5 @@ export default function Inventarios({ access }) {
       <QualityHolds items={items} access={access}/></section>}
       </div>
     </div>
-  </main>;
+  </main></>;
 }

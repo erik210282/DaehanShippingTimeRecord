@@ -1,10 +1,11 @@
+import ModuleHeading from '../components/ModuleHeading';
 import { usePageSection } from '../usePageSection';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import i18n from '../i18n/i18n';
-import { BtnPrimary, BtnSecondary, BtnDanger, PillInput, DSSelect } from '../components/controls';
+import { BtnPrimary, BtnSecondary, BtnDanger, DSInput, DSSelect } from '../components/controls';
 import { api, emptyData, newId, number, quantity, activeTask, allowedLocations, receiptState, statusColors, itemLabel, locationLabel, finishLines, effectiveSeconds, productivity, localDay } from '../receiving/api';
 import { registerReceiving, receivingError } from '../receiving/translations';
 import DepartmentNav from '../components/DepartmentNav';
@@ -23,7 +24,7 @@ function SelectField({ label, value, onChange, options, multi = false, disabled 
     onChange={option => onChange(multi ? (option || []).map(o => o.value) : option?.value || '')} /></label>;
 }
 function Field({ label, value, onChange, type = 'text', ...props }) {
-  return <label className="rc-field"><span>{label}</span><PillInput type={type} value={value} onChange={e => onChange(e.target.value)} {...props} /></label>;
+  return <label className="rc-field"><span>{label}</span><DSInput type={type} value={value} onChange={e => onChange(e.target.value)} {...props} /></label>;
 }
 
 export default function Receiving({ access }) {
@@ -80,9 +81,9 @@ export default function Receiving({ access }) {
   function openPut(line) { setPutAdditional([]);setPutLine(line); setPutLocation(''); setPutQuantity(String(line.available_to_store)); putId.current=newId(); }
   const currentTab=receiver?tab:'summary';
   const tabs = receiver ? ['pending','summary','productivity', ...(manage?['catalogs']:[])] : ['summary'];
-  return <main className="rc-page">
-    <div className="rc-heading"><div><span>DAEHAN APP</span><h1>{t('rc_title')}</h1></div></div>
-    <DepartmentNav items={tabs.map(key=>({key,label:t(`rc_${key}`)}))} value={currentTab} onChange={key=>{setTab(key);}} label={t('rc_title')}/>
+  return <><div className="module-department-nav">
+    <ModuleHeading title={t('rc_title')}/>
+    <DepartmentNav items={tabs.map(key=>({key,label:t(`rc_${key}`)}))} value={currentTab} onChange={key=>{setTab(key);}} label={t('rc_title')}/></div><main className="rc-page module-surface">
     {error && <div className="rc-alert rc-error" role="alert">{error}</div>}{message && <div className="rc-alert" role="status">{message}</div>}
     {loading ? <p>{t('loading')}</p> : <>
     {['pending','summary','productivity'].includes(currentTab) && <>
@@ -124,7 +125,7 @@ export default function Receiving({ access }) {
     </div>{receiptDraft.lines.map((line,index)=><div className="rc-product-row" key={index}>
       <SelectField label={t('rc_type')} value={line.category} options={['RAW','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))} onChange={category=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.map((l,i)=>i===index?{...l,category,item_id:''}:l)})}/>
       <SelectField label={t('rc_item')} value={line.item_id} options={options(data.items.filter(i=>i.active && i.category===line.category && ['RAW','PACKAGING'].includes(i.category)),itemLabel)} onChange={item_id=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.map((l,i)=>i===index?{...l,item_id}:l)})}/>
-      {['expected'].map(key=><Field key={key} required={key==='expected'} label={t(`rc_${key}`)} type={key==='expected'?'number':'text'} min={key==='expected'?0:undefined} step="any" value={line[key]} onChange={value=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.map((l,i)=>i===index?{...l,[key]:value}:l)})}/>)}
+      {line.category==='RAW' && line.item_id && <div className="rc-product-info">{(()=>{const item=data.items.find(i=>i.id===line.item_id),supplier=data.suppliers.find(i=>i.id===item?.supplier_id);return <><small>{t('rc_supplier')}: {supplier?.name||'—'}</small><small>{t('rc_supplier_location')}: {['street','exterior_number','interior_number','neighborhood','city','state','postal_code','country'].map(k=>supplier?.[k]).filter(Boolean).join(', ')||'—'}</small><small>{t('rc_lead_time')}: {item?.lead_time_days??'—'}</small></>;})()}</div>}{['expected'].map(key=><Field key={key} required={key==='expected'} label={t(`rc_${key}`)} type={key==='expected'?'number':'text'} min={key==='expected'?0:undefined} step="any" value={line[key]} onChange={value=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.map((l,i)=>i===index?{...l,[key]:value}:l)})}/>)}
       <BtnDanger type="button" disabled={receiptDraft.lines.length===1} onClick={()=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.filter((_,i)=>i!==index)})}>{t('rc_remove')}</BtnDanger>
     </div>)}<div className="rc-toolbar"><BtnSecondary type="button" onClick={()=>setReceiptDraft({...receiptDraft,lines:[...receiptDraft.lines,blankLine()]})}>{t('rc_add')}</BtnSecondary><BtnPrimary disabled={busy}>{t('rc_start')}</BtnPrimary><BtnSecondary type="button" disabled={busy} onClick={()=>setNewReceipt(false)}>{t('rc_close')}</BtnSecondary></div></form></section></div>}
     {receipt && <div className="rc-modal" role="dialog" aria-modal="true" aria-label={t('rc_details')}><section className="rc-dialog"><div className="rc-heading"><h2>{t('rc_receipt')} #{receipt.code}</h2><BtnSecondary onClick={()=>setSelected('')}>{t('rc_close')}</BtnSecondary></div>
@@ -149,5 +150,5 @@ export default function Receiving({ access }) {
     </section></div>}
     {holdLine && <div className="rc-modal" role="dialog" aria-modal="true" aria-label={t('rc_quarantine')}><section className="rc-dialog"><h2>{t('rc_quarantine')}</h2><p>{itemLabel(holdLine)} · {fmt(holdLine.received)} {holdLine.uom}</p><Field label={t('rc_reason')} value={reason} onChange={setReason}/><div className="rc-toolbar"><BtnDanger disabled={busy || !reason.trim()} onClick={()=>run(async()=>{await service.hold(holdLine.id,reason.trim());setHoldLine(null);})}>{t('rc_quarantine')}</BtnDanger><BtnSecondary disabled={busy} onClick={()=>setHoldLine(null)}>{t('rc_close')}</BtnSecondary></div></section></div>}
 
-  </main>;
+  </main></>;
 }
