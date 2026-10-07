@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { subscribeUpdates, inventoryTables } from '../realtime';
 import Catalogos from './Catalogos';
 import QualityHolds from '../components/QualityHolds';
-import InventoryReference from '../components/InventoryReference';
+import PhysicalCounts from '../components/PhysicalCounts';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import Papa from 'papaparse';
@@ -13,9 +13,9 @@ import './Inventarios.css';
 
 const sections = [
   ['overview', 'inv_overview'], ['RAW', 'inv_area_RAW'], ['WIP', 'inv_area_WIP'],
-  ['FG', 'inv_area_FG'], ['bom', 'inv_bom'], ['demand', 'inv_demand'],
+  ['FG', 'inv_area_FG'], ['demand', 'inv_demand'],
   ['PACKAGING', 'inv_area_PACKAGING'], ['quality', 'inv_quality'],
-  ['counts', 'inv_counts'], ['stations', 'inv_workstations'], ['dispatch', 'inv_dispatch'], ['catalog', 'inv_catalog'],
+  ['counts', 'inv_counts'], ['dispatch', 'inv_dispatch'], ['catalog', 'inv_catalog'],
 ];
 const areas = ['RAW', 'WIP', 'FG', 'PACKAGING', 'HOLD'];
 const n = value => Number(value || 0);
@@ -70,14 +70,10 @@ export default function Inventarios({ access }) {
   const fmt = value => n(value).toLocaleString(locale, { maximumFractionDigits: 3 });
   const sectionLabel = key => t(sections.find(section => section[0] === key)?.[1] || 'inv_overview');
   const areaLabel = area => t(`inv_area_${area}`);
-  const departmentLabel = department => t(`inv_dept_${department}`);
-  const statusLabel = status => t(`inv_status_${status}`);
   const [tab, setTab] = usePageSection('inventory', 'overview', sections.map(([key])=>key));
   const [items, setItems] = useState([]);
   const [balances, setBalances] = useState([]);
   const [counts, setCounts] = useState([]);
-  const [reports, setReports] = useState([]);
-  const [boms, setBoms] = useState([]);
   const [imports, setImports] = useState([]);
   const [demand, setDemand] = useState([]);
   const [dispatches, setDispatches] = useState([]);
@@ -85,14 +81,6 @@ export default function Inventarios({ access }) {
   const [finishedIdx, setFinishedIdx] = useState([]);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [move, setMove] = useState({ item: '', delta: '', note: '', lot: '', location: '', date: today() });
-  const [production, setProduction] = useState({ item: '', date: today(), good: '', waste: '', wip: '0', note: '' });
-  const [bomItem, setBomItem] = useState('');
-  const [bomId, setBomId] = useState('');
-  const [bomLine, setBomLine] = useState({ ingredient: '', quantity: '', waste: '0' });
-  const [countArea, setCountArea] = useState('FG');
-  const [countDepartment, setCountDepartment] = useState('inventory');
-  const [physical, setPhysical] = useState({});
   const [demandFilter, setDemandFilter] = useState('');
   const [demandMode, setDemandMode] = useState('all');
   const [selectedIdx, setSelectedIdx] = useState('');
@@ -104,22 +92,21 @@ export default function Inventarios({ access }) {
 
   const can = (dept, supervisor = false) => access.admin || access.memberships.some(m => m.department === dept && (!supervisor || m.role === 'supervisor'));
   async function refresh() {
-    const [i, b, c, p, bom, imp, ship, disp, lines, pendingRows] = await Promise.all([
-      unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active').order('part_number')),
+    const [i, b, c, imp, ship, disp, lines, pendingRows] = await Promise.all([
+      unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,productos(nombre,descripcion),category,uom,minimum_quantity,responsible_department,default_location,active').order('part_number')),
       unwrap(supabase.from('inventory_balances').select('item_id,area,quantity')),
       unwrap(supabase.from('inventory_counts').select('*,inventory_count_lines(*)').order('submitted_at', { ascending: false }).limit(50)),
-      unwrap(supabase.from('inventory_production_reports').select('*').order('created_at', { ascending: false }).limit(30)),
-      unwrap(supabase.from('inventory_boms').select('*,inventory_bom_lines(*)').order('version', { ascending: false })),
       unwrap(supabase.from('inventory_demand_imports').select('*').order('imported_at', { ascending: false }).limit(10)),
       can('shipping',true) ? unwrap(supabase.from('actividades').select('id,nombre').ilike('nombre','load')) : Promise.resolve([]),
       unwrap(supabase.from('inventory_dispatches').select('*').order('confirmed_at', { ascending: false }).limit(50)),
       can('shipping',true) ? unwrap(supabase.from('shipping_lines').select('id,idx,producto,cantidad_cajas,productos(part_number,nombre,cantidad_por_caja_retornable,cantidad_por_caja_expendable)').order('created_at', { ascending: false }).limit(500)) : Promise.resolve([]),
       unwrap(supabase.from('inventory_reference_rows').select('part_number,status').eq('batch_key','production-files-2026-10-07').eq('kind','inventory').limit(1000)),
     ]);
-    setPendingParts(new Set((pendingRows || []).filter(row => ['unit_conflict','missing_count'].includes(row.status)).map(row => row.part_number)));
-    setCountedParts(new Set((pendingRows || []).filter(row => row.status === 'loaded').map(row => row.part_number)));
-    setItems(i || []); setBalances(b || []); setCounts(c || []); setReports(p || []);
-    setBoms(bom || []); setImports(imp || []); setDispatches(disp || []);
+    const approvedRawParts=new Set((c||[]).filter(count=>count.area==='RAW'&&count.status==='approved').flatMap(count=>count.inventory_count_lines.map(line=>i.find(item=>item.id===line.item_id)?.part_number)));
+    setPendingParts(new Set((pendingRows || []).filter(row => ['unit_conflict','missing_count'].includes(row.status)&&!approvedRawParts.has(row.part_number)).map(row => row.part_number)));
+    setCountedParts(new Set([...(pendingRows || []).filter(row => row.status === 'loaded').map(row => row.part_number),...approvedRawParts]));
+    setItems((i || []).map(row=>({...row,part_name:row.productos?.nombre||row.part_name,description:row.productos?.descripcion??row.description}))); setBalances(b || []); setCounts(c || []);
+    setImports(imp || []); setDispatches(disp || []);
     setShippingLines(lines || []);
     if (ship?.[0]?.id && can('shipping',true)) {
       const completed = await unwrap(supabase.from('actividades_realizadas').select('idx')
@@ -136,7 +123,7 @@ export default function Inventarios({ access }) {
     finally { setBusy(false); }
   }
   const qty = (id, area) => n(balances.find(b => b.item_id === id && b.area === area)?.quantity);
-  const stockItems = area => area === 'WIP' ? items.filter(i => i.active && ['FG','SEMI'].includes(i.category)) : choose(items, area === 'WIP' ? 'FG' : area === 'PACKAGING' ? 'PACKAGING' : area === 'RAW' ? 'RAW' : area === 'FG' ? 'FG' : null);
+  const stockItems = area => area === 'WIP' ? [] : choose(items, area === 'WIP' ? 'FG' : area === 'PACKAGING' ? 'PACKAGING' : area === 'RAW' ? 'RAW' : area === 'FG' ? 'FG' : null);
   const verifiedAreas = new Set(counts.filter(c => c.status === 'approved').map(c => c.area));
   const warnings = items.filter(i => i.active &&
     (verifiedAreas.has(i.category) || balances.some(b => b.item_id === i.id && b.area === i.category)) &&
@@ -201,10 +188,7 @@ export default function Inventarios({ access }) {
   const pendingIdx = useMemo(() => [...new Set(shippingLines.map(l => l.idx))]
     .filter(idx => finishedIdx.includes(idx) && !dispatches.some(d => d.idx === idx)), [shippingLines,dispatches,finishedIdx]);
   const selectedLines = shippingLines.filter(l => l.idx === selectedIdx);
-  const countable = stockItems(countArea).filter(i => countArea === 'WIP'
-    ? countDepartment === 'production'
-    : countArea === 'HOLD' ? countDepartment === 'quality' && balances.some(b => b.item_id === i.id && b.area === 'HOLD')
-      : i.responsible_department === countDepartment);
+
 
   return <><div className="module-department-nav">
     <ModuleHeading title={t('inv_title')}/>
@@ -228,79 +212,13 @@ export default function Inventarios({ access }) {
     {['RAW','WIP','FG','PACKAGING'].includes(tab) && <section className="inv-card">
       <h2>{sectionLabel(tab)}</h2>
       <p className="inv-muted">{t('inv_negative_hint')}</p>
-      <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th><th>{t('inv_description')}</th><th>{t('inv_unit')}</th><th>{t('inv_balance')}</th><th>{t('inv_minimum')}</th><th>{t('inv_location')}</th></tr></thead>
-        <tbody>{stockItems(tab).map(i => <tr key={i.id}><td>{i.part_number}</td><td>{i.description}</td><td>{i.uom}</td>
-          <td className={qty(i.id,tab)<0 ? 'inv-negative' : qty(i.id,tab)<=n(i.minimum_quantity) ? 'inv-low' : ''}>{(pendingParts.has(i.part_number) || (['RAW','SEMI'].includes(i.category) && !countedParts.has(i.part_number) && qty(i.id,tab) === 0)) ? (qty(i.id,tab) === 0 ? t('inv_ref_no_count') : `${fmt(qty(i.id,tab))} · ${t('inv_ref_balance_pending')}`) : fmt(qty(i.id,tab))}</td>
-          <td>{fmt(i.minimum_quantity)}</td><td>{i.default_location || '—'}</td></tr>)}</tbody></table></div>
-      {(tab === 'RAW' || tab === 'PACKAGING' || tab === 'WIP') && can(tab === 'WIP' ? 'production' : 'inventory') &&
-        <form className="inv-form" onSubmit={e => { e.preventDefault(); act(async () => {
-          const delta=Number(move.delta);
-          await unwrap(supabase.rpc('inventory_post_movement', { p_item: move.item,p_area:tab,p_delta:delta,
-            p_kind:tab==='WIP'?(delta>0?'WIP_IN':'WIP_OUT'):(delta>0?'RECEIPT':'CONSUMPTION'),
-            p_note:move.note,p_location:move.location,p_lot:move.lot,p_date:move.date }));
-          setMove({ ...move,delta:'',note:'' });
-        }, t('inv_movement_saved')); }}>
-          <h3>{t('inv_record_movement')}</h3><select required value={move.item} onChange={e => setMove({...move,item:e.target.value})}><option value="">{t('inv_select_part')}</option>
-            {stockItems(tab).map(i => <option key={i.id} value={i.id}>{i.part_number} · {i.description}</option>)}</select>
-          <input type="number" step="any" required value={move.delta} placeholder={t('inv_signed_change')} onChange={e => setMove({...move,delta:e.target.value})}/>
-          <input type="date" required value={move.date} onChange={e => setMove({...move,date:e.target.value})}/>
-          <input placeholder={t('inv_lot')} value={move.lot} onChange={e => setMove({...move,lot:e.target.value})}/>
-          <input placeholder={t('inv_location')} value={move.location} onChange={e => setMove({...move,location:e.target.value})}/>
-          <input required placeholder={t('inv_reason')} value={move.note} onChange={e => setMove({...move,note:e.target.value})}/>
-          <button disabled={busy}>{t('inv_save_movement')}</button>
-        </form>}
-      {tab === 'WIP' && can('production') && <form className="inv-form" onSubmit={e => {e.preventDefault();act(async () => {
-        await unwrap(supabase.rpc('inventory_record_production', { p_item:production.item,p_date:production.date,
-          p_good:Number(production.good),p_waste:Number(production.waste),p_wip_completed:Number(production.wip),p_note:production.note }));
-        setProduction({...production,good:'',waste:'',wip:'0',note:''});
-      },boms.some(b=>b.finished_item_id===production.item && b.active)
-        ? t('inv_production_bom_saved') : t('inv_production_no_bom'));}}>
-        <h3>{t('inv_daily_production')}</h3>
-        <select required value={production.item} onChange={e => setProduction({...production,item:e.target.value})}><option value="">{t('inv_finished_product')}</option>
-          {choose(items,'FG').map(i => <option key={i.id} value={i.id}>{i.part_number} · {i.description}</option>)}</select>
-        <input type="date" required value={production.date} onChange={e => setProduction({...production,date:e.target.value})}/>
-        <input type="number" min="0" step="any" required placeholder={t('inv_good_pieces')} value={production.good} onChange={e => setProduction({...production,good:e.target.value})}/>
-        <input type="number" min="0" step="any" required placeholder={t('inv_waste_pieces')} value={production.waste} onChange={e => setProduction({...production,waste:e.target.value})}/>
-        <input type="number" min="0" step="any" placeholder={t('inv_wip_completed')} value={production.wip} onChange={e => setProduction({...production,wip:e.target.value})}/>
-        <input placeholder={t('inv_notes')} value={production.note} onChange={e => setProduction({...production,note:e.target.value})}/>
-        <button disabled={busy}>{t('inv_record_close')}</button>
-      </form>}
-      {tab === 'WIP' && <div className="inv-table-wrap"><h3>{t('inv_recent_reports')}</h3><table><thead><tr><th>{t('inv_day')}</th><th>{t('inv_part')}</th><th>{t('inv_good')}</th><th>{t('inv_waste')}</th><th>{t('inv_wip_completed')}</th><th>{t('inv_recipe')}</th></tr></thead><tbody>
-        {reports.map(r => <tr key={r.id}><td>{r.production_date}</td><td>{items.find(i => i.id===r.item_id)?.part_number}</td><td>{fmt(r.good_quantity)}</td><td>{fmt(r.waste_quantity)}</td><td>{fmt(r.wip_completed)}</td>
-          <td>{t(r.bom_id ? 'inv_consumption_recorded' : 'inv_consumption_pending')}</td></tr>)}</tbody></table></div>}
+      <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th>{tab==='FG'&&<th>{t('name')}</th>}<th>{t('inv_description')}</th><th>{t('inv_unit')}</th><th>{t('inv_balance')}</th><th>{t('inv_minimum')}</th><th>{t('inv_location')}</th>{tab==='RAW'&&<th>{t('inv_notes')}</th>}</tr></thead>
+        <tbody>{stockItems(tab).map(i => <tr key={i.id}><td>{i.part_number}</td>{tab==='FG'&&<td>{i.part_name||'—'}</td>}<td>{i.description}</td><td>{i.uom}</td>
+          <td className={qty(i.id,tab)<0 ? 'inv-negative' : qty(i.id,tab)<=n(i.minimum_quantity) ? 'inv-low' : ''}>{fmt(qty(i.id,tab))}</td>
+          <td>{fmt(i.minimum_quantity)}</td><td>{i.default_location || '—'}</td>{tab==='RAW'&&<td>{pendingParts.has(i.part_number)?t(qty(i.id,tab)===0?'inv_ref_missing_count':'inv_ref_balance_pending'):!countedParts.has(i.part_number)&&qty(i.id,tab)===0?t('inv_ref_missing_count'):'—'}</td>}</tr>)}</tbody></table></div>
+      {tab==='WIP'&&<p className="inv-muted">{t('inv_wip_empty')}</p>}
     </section>}
-
     {tab === 'catalog' && <Catalogos access={access}/>}
-    {tab === 'stations' && <InventoryReference mode="stations" />}
-    {tab === 'RAW' && <InventoryReference mode="raw" />}
-    {tab === 'WIP' && <InventoryReference mode="semi" />}
-    {tab === 'bom' && <InventoryReference mode="bom" />}
-
-    {tab === 'bom' && <section className="inv-card"><h2>{t('inv_bom_title')}</h2>
-      {can('production',true) || canCatalog ? <><form className="inv-form" onSubmit={e => {e.preventDefault();act(async () => {
-        const version = 1 + Math.max(0,...boms.filter(b => b.finished_item_id === bomItem).map(b => b.version));
-        const row = await unwrap(supabase.from('inventory_boms').insert({finished_item_id:bomItem,version}).select('id').single());
-        setBomId(row.id);
-      },t('inv_bom_created'));}}>
-        <h3>{t('inv_new_version')}</h3><select required value={bomItem} onChange={e => setBomItem(e.target.value)}><option value="">{t('inv_finished_product')}</option>{choose(items,'FG').map(i => <option key={i.id} value={i.id}>{i.part_number}</option>)}</select>
-        <button disabled={busy}>{t('inv_create_version')}</button></form>
-        <form className="inv-form" onSubmit={e => {e.preventDefault();act(async () => {
-          await unwrap(supabase.from('inventory_bom_lines').insert({bom_id:bomId,ingredient_id:bomLine.ingredient,
-            quantity_per_unit:Number(bomLine.quantity),waste_rate:Number(bomLine.waste)/100}));
-          setBomLine({ingredient:'',quantity:'',waste:'0'});
-        },t('inv_ingredient_added'));}}>
-          <h3>{t('inv_add_ingredient')}</h3><select required value={bomId} onChange={e => setBomId(e.target.value)}><option value="">{t('inv_select_version')}</option>
-            {boms.map(b => <option key={b.id} value={b.id}>{items.find(i=>i.id===b.finished_item_id)?.part_number} · v{b.version}</option>)}</select>
-          <select required value={bomLine.ingredient} onChange={e => setBomLine({...bomLine,ingredient:e.target.value})}><option value="">{t('inv_select_raw_packaging')}</option>
-            {items.filter(i => i.category !== 'FG').map(i => <option key={i.id} value={i.id}>{i.part_number} ({i.uom})</option>)}</select>
-          <input type="number" required min="0.000001" step="any" placeholder={t('inv_qty_per_fg')} value={bomLine.quantity} onChange={e => setBomLine({...bomLine,quantity:e.target.value})}/>
-          <input type="number" required min="0" max="99.99" step="any" placeholder={t('inv_standard_waste')} value={bomLine.waste} onChange={e => setBomLine({...bomLine,waste:e.target.value})}/>
-          <button disabled={busy}>{t('inv_add_ingredient')}</button></form></> : null}
-      {boms.map(b => <div key={b.id} className="inv-bom"><h3>{items.find(i=>i.id===b.finished_item_id)?.part_number} · {t('inv_version')} {b.version} · {t(b.active ? 'inv_active' : 'inv_draft')}</h3>
-        <ul>{b.inventory_bom_lines?.map(l => <li key={l.id}>{items.find(i=>i.id===l.ingredient_id)?.part_number}: {t('inv_bom_line', { quantity: fmt(l.quantity_per_unit), waste: fmt(n(l.waste_rate)*100) })}</li>)}</ul>
-        {!b.active && (can('production',true) || canCatalog) && <button disabled={busy} onClick={() => act(() => unwrap(supabase.rpc('inventory_publish_bom',{p_bom:b.id})),t('inv_recipe_published'))}>{t('inv_publish_version')}</button>}
-      </div>)}</section>}
-
     {tab === 'demand' && <section className="inv-card"><h2>{t('inv_demand_title')}</h2>
       <p>{t('inv_demand_intro')}</p>
       <p>{t('inv_current_file')}: <strong className="inv-inline-strong">{currentImport?.file_name || t('inv_none')}</strong> {currentImport ? `(${t('inv_rows_backlog', { count: currentImport.expected_rows, date: currentImport.backlog_cutoff || t('inv_no_matrix') })})` : ''}</p>
@@ -317,48 +235,7 @@ export default function Inventarios({ access }) {
         {demand.map((r,index) => <tr key={index}><td>{r.ship_date}</td><td>{r.po} / {r.po_line}</td><td>{r.part_number}</td><td>{r.destination}</td><td>{fmt(r.quantity)} {r.uom}</td>
           <td>{t(items.some(i=>i.part_number===r.part_number) ? 'inv_linked' : 'inv_review_part')}</td></tr>)}</tbody></table></div></section>}
 
-    {tab === 'counts' && <section className="inv-card"><h2>{t('inv_counts_title')}</h2>
-      <p>{t('inv_counts_intro')}</p>
-      <div className="inv-form"><select value={countDepartment} onChange={e=>setCountDepartment(e.target.value)}>
-        {['inventory','receiving','production','shipping','quality'].filter(d=>can(d)).map(d=><option key={d} value={d}>{departmentLabel(d)}</option>)}</select>
-        <select value={countArea} onChange={e=>setCountArea(e.target.value)}>{areas.map(a=><option key={a} value={a}>{areaLabel(a)}</option>)}</select>
-        <button onClick={() => saveCsv('plantilla_conteo.csv', countable.map(i=>({ [t('inv_part')]:i.part_number,[t('inv_physical')]:'' })))}>{t('inv_download_template')}</button>
-        <label className="inv-file">{t('inv_upload_count')}<input type="file" accept=".csv,.xlsx" onChange={async e=>{
-          const file=e.target.files?.[0];if(!file)return;
-          try {const rows=await fileRows(file, undefined, t);const next={...physical};
-            for(const row of rows){const pn=clean(row['Part Number'] ?? row.part_number ?? row.Parte ?? row.Part ?? row[t('inv_part')]);
-              const match=countable.find(i=>i.part_number===pn);
-              if(!match)throw Error(t('inv_unknown_part', { part: pn }));
-              next[match.id]=clean(row['Physical Quantity'] ?? row.physical_quantity ?? row.Fisico ?? row.Físico ?? row.Physical ?? row[t('inv_physical')]);
-            }setPhysical(next);setMessage(t('inv_count_rows_loaded', { count: rows.length }));
-          }catch(error){setMessage(error.message);}e.target.value='';
-        }}/></label></div>
-      <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th><th>{t('inv_expected')}</th><th>{t('inv_physical')}</th><th>{t('inv_difference')}</th></tr></thead><tbody>
-        {countable.map(i=><tr key={i.id}><td>{i.part_number}</td><td>{fmt(qty(i.id,countArea))}</td>
-          <td><input type="number" min="0" step="any" value={physical[i.id] ?? ''} onChange={e=>setPhysical({...physical,[i.id]:e.target.value})}/></td>
-          <td className={physical[i.id] !== undefined && n(physical[i.id])-qty(i.id,countArea)<0 ? 'inv-negative':''}>
-            {physical[i.id] === undefined || physical[i.id] === '' ? '—' : fmt(n(physical[i.id])-qty(i.id,countArea))}</td></tr>)}</tbody></table></div>
-      {can(countDepartment) && <button disabled={busy || !countable.some(i=>physical[i.id] !== undefined && physical[i.id] !== '')}
-        onClick={() => act(async () => {const rows=countable.filter(i=>physical[i.id] !== undefined && physical[i.id] !== '')
-          .map(i=>({item_id:i.id,physical_quantity:Number(physical[i.id])}));
-          if(rows.some(r=>!Number.isFinite(r.physical_quantity)||r.physical_quantity<0))throw Error(t('inv_review_quantities'));
-          await unwrap(supabase.rpc('inventory_submit_count',{p_department:countDepartment,p_area:countArea,p_lines:rows}));
-          setPhysical({});
-        },t('inv_count_submitted'))}>{t('inv_submit_count')}</button>}
-      <h3>{t('inv_count_reports')}</h3>
-      {counts.map(c=><div className="inv-bom" key={c.id}><strong>{areaLabel(c.area)} · {departmentLabel(c.department)} · {statusLabel(c.status)} · {new Date(c.submitted_at).toLocaleString(locale)}</strong>
-        <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th><th>{t('inv_expected')}</th><th>{t('inv_physical')}</th><th>{t('inv_difference')}</th></tr></thead><tbody>
-          {c.inventory_count_lines?.map(l=><tr key={l.item_id}><td>{items.find(i=>i.id===l.item_id)?.part_number}</td>
-            <td>{fmt(l.expected_quantity)}</td><td>{fmt(l.physical_quantity)}</td>
-            <td className={n(l.physical_quantity)-n(l.expected_quantity)<0 ? 'inv-negative':''}>{fmt(n(l.physical_quantity)-n(l.expected_quantity))}</td></tr>)}</tbody></table></div>
-        <button onClick={()=>saveCsv(`conteo_${c.id}.csv`,c.inventory_count_lines?.map(l=>({
-          [t('inv_part')]:items.find(i=>i.id===l.item_id)?.part_number,[t('inv_expected')]:l.expected_quantity,
-          [t('inv_physical')]:l.physical_quantity,[t('inv_difference')]:n(l.physical_quantity)-n(l.expected_quantity),[t('inv_status')]:statusLabel(c.status) }))||[])}>{t('inv_download_report')}</button>
-        {c.status==='submitted' && can(c.department,true) && <>
-          <button disabled={busy} onClick={()=>act(()=>unwrap(supabase.rpc('inventory_review_count',{p_count:c.id,p_approve:true,p_note:t('inv_mobile_approved_note')})),t('inv_count_approved'))}>{t('inv_approve_apply')}</button>
-          <button disabled={busy} className="inv-danger" onClick={()=>act(()=>unwrap(supabase.rpc('inventory_review_count',{p_count:c.id,p_approve:false,p_note:t('inv_mobile_rejected_note')})),t('inv_count_rejected'))}>{t('inv_reject')}</button>
-        </>}</div>)}</section>}
-
+    {tab === 'counts' && <PhysicalCounts items={items} balances={balances} counts={counts} access={access} fileRows={fileRows} saveCsv={saveCsv} onChanged={refresh}/>}
     {tab === 'dispatch' && <section className="inv-card"><h2>{t('inv_dispatch_title')}</h2>
       <p>{t('inv_dispatch_intro')}</p>
       {can('shipping',true) && <><div className="inv-form"><select value={selectedIdx} onChange={e=>{setSelectedIdx(e.target.value);setPerBox({});}}>

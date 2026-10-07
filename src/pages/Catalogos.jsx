@@ -1,4 +1,5 @@
 import './Catalogos.css';
+import ProductionCatalog from '../components/ProductionCatalog';
 import { usePageSection } from '../usePageSection';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabase/client";
@@ -56,7 +57,7 @@ Modal.setAppElement("#root");
 export default function Catalogos({ access }) {
   const { t } = useTranslation();
 
-  const [tab, setTab] = usePageSection('catalog', 'productos', ['productos', ...Object.keys(catalogKinds), 'pos', 'shipper', 'actividades']);
+  const [tab, setTab] = usePageSection('catalog', 'productos', ['productos', ...Object.keys(catalogKinds), 'pos', 'shipper', 'actividades', 'bom', 'stations']);
   const [snapshot, setSnapshot] = useState({ tab: null, rows: [] });
   const rows = snapshot.tab === tab ? snapshot.rows : [];
   const request = useRef(0), currentTab = useRef(tab);
@@ -167,6 +168,7 @@ export default function Catalogos({ access }) {
   const simpleDefaults = { nombre: "", activo: true };
 
   async function load() {
+    if (tab==='bom' || tab==='stations') { setLoading(false); return; }
     const version = ++request.current;
     const current = () => version === request.current && currentTab.current === tab;
     setLoading(true);
@@ -181,7 +183,7 @@ export default function Catalogos({ access }) {
         unwrap(supabase.from('receiving_suppliers').select('*').order('name')),
       ]);
       if (!current()) return;
-      setLocations(locs);setMaterials(types);setSuppliers(supplierRows);
+      setLocations(locs.filter(r=>!r.archived));setMaterials(types.filter(r=>!r.archived));setSuppliers(supplierRows.filter(r=>!r.archived));
       if(tab==='productos') {
         const metadata=i=>({inventory_id:i?.id,producto_id:i?.producto_id,supplier_id:i?.supplier_id||'',lead_time_days:i?.lead_time_days??'',category:i?.category||'FG',material_type:itemTypes.find(m=>m.item_id===i?.id)?.material_type||i?.category||'FG',uom:i?.uom||'EA',minimum_quantity:i?.minimum_quantity??0,responsible_department:i?.responsible_department||'inventory',default_location:i?.default_location||'',locations:assignments.filter(a=>a.item_id===i?.id).map(a=>a.location_id)});
         setRows([...products.map(p=>({...p,...metadata(stock.find(i=>i.producto_id===p.id))})),...stock.filter(i=>!i.producto_id).map(i=>({id:i.id,nombre:i.part_name||i.description,descripcion:i.description,part_number:i.part_number,activo:i.active,...metadata(i)}))]);
@@ -189,7 +191,7 @@ export default function Catalogos({ access }) {
         const table=kind==='supplier'?'receiving_suppliers':kind==='location'?'receiving_locations':kind==='material'?'receiving_material_types':tableName;
         const data=await unwrap(supabase.from(table).select('*').order(kind?'code':tab==='pos'||tab==='shipper'?'id':'nombre'));
         if (!current()) return;
-        setRows(kind==='location'?data.filter(l=>!l.is_system_stage):data);
+        setRows(kind ? data.filter(r=>!r.archived && (kind!=='location'||!r.is_system_stage)) : data);
       }
     } catch (e) {
       if (!current()) return;
@@ -378,8 +380,10 @@ async function save() {
   async function remove(row) {
     try {
       if(!canManage)return;
+      if(!window.confirm(t('cat_confirm_delete')))return;
+      if(kind) { await unwrap(supabase.rpc('catalog_remove',{p_kind:kind,p_key:kind==='material'?row.code:row.id})); toast.success(t('delete_success')); await load(); return; }
       if(tab==='productos') {
-        await unwrap(supabase.rpc('shared_catalog',{p_kind:'item',p_data:{id:row.inventory_id,producto_id:row.producto_id||(!row.inventory_id?row.id:undefined),part_number:row.part_number,description:row.descripcion||row.nombre,material_type:row.material_type,uom:row.uom,minimum_quantity:row.minimum_quantity,responsible_department:row.responsible_department,default_location:row.default_location,locations:row.locations,active:false}}));
+        await unwrap(supabase.rpc('shared_catalog',{p_kind:'item',p_data:{id:row.inventory_id,producto_id:row.producto_id||(!row.inventory_id?row.id:undefined),part_number:row.part_number,description:row.descripcion||row.nombre,material_type:row.material_type,uom:row.uom,minimum_quantity:row.minimum_quantity,responsible_department:row.responsible_department,default_location:row.default_location,locations:row.locations,part_name:row.nombre,shipping:{nombre:row.nombre,descripcion:row.descripcion},active:false}}));
         toast.info(t('item_in_use'));await load();return;
       }
       if (tab === "operadores") {
@@ -423,7 +427,7 @@ async function save() {
       }
       load();
     } catch (e) {
-      toast.error(e.message || t("error_deleting") || "Error al eliminar.");
+      toast.error(t(e.message,{defaultValue:e.message || t("error_deleting")}));
     }
   }
 
@@ -506,6 +510,10 @@ async function save() {
   const endIndex = startIndex + pageSize;
   const filasPagina = filtered.slice(startIndex, endIndex);
 
+  if(tab==='bom'||tab==='stations') return <div className="page-container page-container--fluid catalog-page"><div className="card">
+    <div className="catalog-toolbar"><h2 className="module-title">{t('catalogs')}</h2><div className="catalog-actions">
+    {[['productos','products'],['suppliers','rc_suppliers'],['locations','rc_locations'],['materials','rc_material_types'],['pos','po'],['shipper','shipper'],['actividades','activities'],['bom','inv_bom'],['stations','inv_workstations']].map(([key,label])=><BtnSecondary key={key} onClick={()=>setTab(key)}>{t(label)}</BtnSecondary>)}
+    </div></div><ProductionCatalog key={tab} mode={tab} access={access}/></div></div>;
   return (
     <div className="page-container page-container--fluid catalog-page">
       <div className="card">
@@ -517,6 +525,8 @@ async function save() {
           <BtnSecondary onClick={() => setTab("pos")}>{t("po")}</BtnSecondary>
           <BtnSecondary onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
           <BtnSecondary onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
+          <BtnSecondary onClick={()=>setTab("bom")}>{t("inv_bom")}</BtnSecondary>
+          <BtnSecondary onClick={()=>setTab("stations")}>{t("inv_workstations")}</BtnSecondary>
           <BtnSecondary onClick={() => {setFilter('');setTypeFilter('');setHideInactive(true);setPage(1);}}>{t("clear_filters")}</BtnSecondary>
           <BtnSecondary onClick={exportCSV}>{t("export_csv")}</BtnSecondary>
           <BtnPrimary disabled={!canManage} onClick={openNew}>➕ {t("add")}</BtnPrimary>
@@ -662,7 +672,7 @@ async function save() {
                         </td>
                       </>
                     )}
-                    {kind && <><td>{r.code}</td><td>{kind==='material'?materialLabel(r,t):r.name}</td>{kind==='supplier'?<><td>{addressFields.filter(k=>k!=='phone').map(k=>r[k]).filter(Boolean).join(', ')}</td><td>{r.phone}</td></>:<td>{kind==='material'?t(`rc_${r.category}`):materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>}<td>{t(r.active?'rc_active':'rc_inactive')}</td><td><BtnEditDark disabled={!canManage} onClick={()=>{setEdit({...r,id:kind==='material'?r.code:r.id});setIsNew(false);}}>{t('edit')}</BtnEditDark></td></>}
+                    {kind && <><td>{r.code}</td><td>{kind==='material'?materialLabel(r,t):r.name}</td>{kind==='supplier'?<><td>{addressFields.filter(k=>k!=='phone').map(k=>r[k]).filter(Boolean).join(', ')}</td><td>{r.phone}</td></>:<td>{kind==='material'?t(`rc_${r.category}`):materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>}<td>{t(r.active?'rc_active':'rc_inactive')}</td><td><BtnEditDark disabled={!canManage} onClick={()=>{setEdit({...r,id:kind==='material'?r.code:r.id});setIsNew(false);}}>{t('edit')}</BtnEditDark> <BtnDanger disabled={!canManage} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></td></>}
                     {isSimple && (
                       <>
                         <td>{r.nombre}</td>

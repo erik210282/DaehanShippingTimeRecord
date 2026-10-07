@@ -59,3 +59,5 @@
   .inv-grid { grid-template-columns: minmax(0, 1fr); }
   .inv-head button { padding: 9px 10px; }
 }
+
+.inv-page .count-quantity { width: 140px; max-width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #0f172a; }
