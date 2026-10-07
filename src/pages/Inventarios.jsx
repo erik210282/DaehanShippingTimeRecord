@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { subscribeUpdates, inventoryTables } from '../realtime';
 import Catalogos from './Catalogos';
 import QualityHolds from '../components/QualityHolds';
+import InventoryReference from '../components/InventoryReference';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import Papa from 'papaparse';
@@ -14,7 +15,7 @@ const sections = [
   ['overview', 'inv_overview'], ['RAW', 'inv_area_RAW'], ['WIP', 'inv_area_WIP'],
   ['FG', 'inv_area_FG'], ['bom', 'inv_bom'], ['demand', 'inv_demand'],
   ['PACKAGING', 'inv_area_PACKAGING'], ['quality', 'inv_quality'],
-  ['counts', 'inv_counts'], ['dispatch', 'inv_dispatch'], ['catalog', 'inv_catalog'],
+  ['counts', 'inv_counts'], ['stations', 'inv_workstations'], ['dispatch', 'inv_dispatch'], ['catalog', 'inv_catalog'],
 ];
 const areas = ['RAW', 'WIP', 'FG', 'PACKAGING', 'HOLD'];
 const n = value => Number(value || 0);
@@ -97,11 +98,13 @@ export default function Inventarios({ access }) {
   const [selectedIdx, setSelectedIdx] = useState('');
   const [dispatchDate, setDispatchDate] = useState(today());
   const [perBox, setPerBox] = useState({});
+  const [pendingParts, setPendingParts] = useState(new Set());
+  const [countedParts, setCountedParts] = useState(new Set());
   useEffect(() => { setMessage(''); }, [i18n.language]);
 
   const can = (dept, supervisor = false) => access.admin || access.memberships.some(m => m.department === dept && (!supervisor || m.role === 'supervisor'));
   async function refresh() {
-    const [i, b, c, p, bom, imp, ship, disp, lines] = await Promise.all([
+    const [i, b, c, p, bom, imp, ship, disp, lines, pendingRows] = await Promise.all([
       unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active').order('part_number')),
       unwrap(supabase.from('inventory_balances').select('item_id,area,quantity')),
       unwrap(supabase.from('inventory_counts').select('*,inventory_count_lines(*)').order('submitted_at', { ascending: false }).limit(50)),
@@ -111,7 +114,10 @@ export default function Inventarios({ access }) {
       can('shipping',true) ? unwrap(supabase.from('actividades').select('id,nombre').ilike('nombre','load')) : Promise.resolve([]),
       unwrap(supabase.from('inventory_dispatches').select('*').order('confirmed_at', { ascending: false }).limit(50)),
       can('shipping',true) ? unwrap(supabase.from('shipping_lines').select('id,idx,producto,cantidad_cajas,productos(part_number,nombre,cantidad_por_caja_retornable,cantidad_por_caja_expendable)').order('created_at', { ascending: false }).limit(500)) : Promise.resolve([]),
+      unwrap(supabase.from('inventory_reference_rows').select('part_number,status').eq('batch_key','production-files-2026-10-07').eq('kind','inventory').limit(1000)),
     ]);
+    setPendingParts(new Set((pendingRows || []).filter(row => ['unit_conflict','missing_count'].includes(row.status)).map(row => row.part_number)));
+    setCountedParts(new Set((pendingRows || []).filter(row => row.status === 'loaded').map(row => row.part_number)));
     setItems(i || []); setBalances(b || []); setCounts(c || []); setReports(p || []);
     setBoms(bom || []); setImports(imp || []); setDispatches(disp || []);
     setShippingLines(lines || []);
@@ -130,7 +136,7 @@ export default function Inventarios({ access }) {
     finally { setBusy(false); }
   }
   const qty = (id, area) => n(balances.find(b => b.item_id === id && b.area === area)?.quantity);
-  const stockItems = area => choose(items, area === 'WIP' ? 'FG' : area === 'PACKAGING' ? 'PACKAGING' : area === 'RAW' ? 'RAW' : area === 'FG' ? 'FG' : null);
+  const stockItems = area => area === 'WIP' ? items.filter(i => i.active && ['FG','SEMI'].includes(i.category)) : choose(items, area === 'WIP' ? 'FG' : area === 'PACKAGING' ? 'PACKAGING' : area === 'RAW' ? 'RAW' : area === 'FG' ? 'FG' : null);
   const verifiedAreas = new Set(counts.filter(c => c.status === 'approved').map(c => c.area));
   const warnings = items.filter(i => i.active &&
     (verifiedAreas.has(i.category) || balances.some(b => b.item_id === i.id && b.area === i.category)) &&
@@ -224,7 +230,7 @@ export default function Inventarios({ access }) {
       <p className="inv-muted">{t('inv_negative_hint')}</p>
       <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th><th>{t('inv_description')}</th><th>{t('inv_unit')}</th><th>{t('inv_balance')}</th><th>{t('inv_minimum')}</th><th>{t('inv_location')}</th></tr></thead>
         <tbody>{stockItems(tab).map(i => <tr key={i.id}><td>{i.part_number}</td><td>{i.description}</td><td>{i.uom}</td>
-          <td className={qty(i.id,tab)<0 ? 'inv-negative' : qty(i.id,tab)<=n(i.minimum_quantity) ? 'inv-low' : ''}>{fmt(qty(i.id,tab))}</td>
+          <td className={qty(i.id,tab)<0 ? 'inv-negative' : qty(i.id,tab)<=n(i.minimum_quantity) ? 'inv-low' : ''}>{(pendingParts.has(i.part_number) || (['RAW','SEMI'].includes(i.category) && !countedParts.has(i.part_number) && qty(i.id,tab) === 0)) ? (qty(i.id,tab) === 0 ? t('inv_ref_no_count') : `${fmt(qty(i.id,tab))} · ${t('inv_ref_balance_pending')}`) : fmt(qty(i.id,tab))}</td>
           <td>{fmt(i.minimum_quantity)}</td><td>{i.default_location || '—'}</td></tr>)}</tbody></table></div>
       {(tab === 'RAW' || tab === 'PACKAGING' || tab === 'WIP') && can(tab === 'WIP' ? 'production' : 'inventory') &&
         <form className="inv-form" onSubmit={e => { e.preventDefault(); act(async () => {
@@ -265,6 +271,10 @@ export default function Inventarios({ access }) {
     </section>}
 
     {tab === 'catalog' && <Catalogos access={access}/>}
+    {tab === 'stations' && <InventoryReference mode="stations" />}
+    {tab === 'RAW' && <InventoryReference mode="raw" />}
+    {tab === 'WIP' && <InventoryReference mode="semi" />}
+    {tab === 'bom' && <InventoryReference mode="bom" />}
 
     {tab === 'bom' && <section className="inv-card"><h2>{t('inv_bom_title')}</h2>
       {can('production',true) || canCatalog ? <><form className="inv-form" onSubmit={e => {e.preventDefault();act(async () => {
