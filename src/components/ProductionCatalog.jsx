@@ -1,3 +1,4 @@
+import ErrorPopup from './ErrorPopup';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplication';
 import Modal from 'react-modal';
@@ -109,7 +110,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    <BtnSecondary onClick={exportCSV}>{t('export_csv')}</BtnSecondary>
    <BtnPrimary disabled={!manage||busy} onClick={add}>{t('add')}</BtnPrimary>
   </div>}
-  {error&&<p className="inv-message" role="alert">{error}</p>}
+  <ErrorPopup message={error} onClose={()=>setError('')}/>
   {!stations&&<div className="catalog-recipe-notices">
    <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('description')}</th></tr></thead><tbody>{missing.map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td></tr>)}</tbody></table></div></details>
    <details><summary>{t('pr_missing_packing',{count:missingPacking.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th></tr></thead><tbody>{missingPacking.map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td></tr>)}</tbody></table></div></details>
@@ -161,7 +162,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
      <RecipePackingFields packing={edit.packing} setPacking={packing=>setEdit({...edit,packing})} items={items}/>
     </>}
     </fieldset>
-    {error&&<p role="alert" className="inv-message">{error}</p>}
+    
     <div className="catalog-actions catalog-recipe-footer"><BtnPrimary disabled={busy||!manage||!edit[stations?'code':'product_part_number']?.trim()||(edit.isNew&&hasDuplicateIdentifier(rows,stations?'code':'product_part_number',edit[stations?'code':'product_part_number']))} type="submit">{t('save')}</BtnPrimary><BtnSecondary disabled={busy} type="button" onClick={()=>setEdit(null)}>{t('cancel')}</BtnSecondary></div>
    </form>}
   </Modal>

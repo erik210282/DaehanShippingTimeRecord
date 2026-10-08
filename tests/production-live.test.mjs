@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {localStart,liveKpis} from './../src/production/live.mjs';
+assert.equal(localStart('2026-02-30','08:00'),null);
+assert.equal(localStart('2026-10-08','25:00'),null);
+assert.equal(localStart('2026-10-08','8:00'),null);
+assert.equal(new Date(localStart('2026-10-08','08:00')).getHours(),8);
+const run={started_at:'2026-10-08T08:00:00Z',latest_at:'2026-10-08T10:00:00Z',interval_hours:2,latest_quantity:150,expected_quantity:200,attainment:75};
+assert.deepEqual(liveKpis(run),{expected:200,attainment:75,gap:50,rate:75,due:'2026-10-08T12:00:00.000Z'});
+assert.equal(liveKpis({...run,latest_quantity:210}).gap,0);
+const night={...run,started_at:'2026-10-08T23:00:00Z',latest_at:'2026-10-09T01:00:00Z',interval_hours:3};
+assert.equal(liveKpis(night).due,'2026-10-09T04:00:00.000Z');
+assert.equal(liveKpis(night).rate,75);
+console.log('PASS: local dates, invalid times, attainment, rate, gap, overnight schedule');

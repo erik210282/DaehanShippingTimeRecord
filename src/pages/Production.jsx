@@ -1,3 +1,5 @@
+import ProductionLive from '../production/ProductionLive';
+import ErrorPopup from '../components/ErrorPopup';
 
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import { Navigate,useNavigate } from 'react-router-dom';
@@ -33,7 +35,7 @@ export default function Production({access}) {
  const allowed=access.admin||access.memberships.some(m=>m.department==='production');
  const supervisor=access.admin||access.memberships.some(m=>m.department==='production'&&m.role==='supervisor');
  const manage=supervisor||access.memberships.some(m=>m.department==='production'&&m.role==='lider');
- const [tab,setTab]=usePageSection('production','records',['records','summary']);
+ const [tab,setTab]=usePageSection('production','records',['records','summary','partial','dashboard','targets']);
  const [data,setData]=useState({reports:[],items:[],stations:[],boms:[],balances:[],consumptions:[]});
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [filter,setFilter]=useState(''),[stationFilter,setStationFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState('');
@@ -123,9 +125,9 @@ export default function Production({access}) {
   {preview(r).map(c=>{const i=data.items.find(i=>i.id===c.ingredient_id);return <tr key={c.ingredient_id+c.area+c.source}><td>{i?.part_number}</td><td>{i?.part_name}</td><td>{t('inv_area_'+c.area)}</td><td>{fmt(c.quantity)}</td><td>{i?.uom}</td>{r.status!=='posted'&&<td className={stock(c.ingredient_id,c.area)<c.quantity?'production-short':''}>{fmt(stock(c.ingredient_id,c.area))}</td>}</tr>;})}
  </tbody></table></div>;
  if(!allowed)return <Navigate to="/inicio" replace/>;
- return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav value={tab} onChange={key=>key==='catalog'?navigate('/catalogos'):key==='inventory'?navigate('/inventarios'):setTab(key)} label={t('global_production')} items={[{key:'records',label:t('records')},{key:'summary',label:t('summary')},{key:'catalog',label:t('catalogs')},{key:'inventory',label:t('inv_title')}].map(x=>({...x}))} /></div>
+ return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav value={tab} onChange={key=>key==='catalog'?navigate('/catalogos'):key==='inventory'?navigate('/inventarios'):setTab(key)} label={t('global_production')} items={[{key:'partial',label:t('pl_partial')},...(supervisor?[{key:'dashboard',label:t('pl_dashboard')},{key:'targets',label:t('pl_targets')}]:[]),{key:'records',label:t('records')},{key:'summary',label:t('summary')},{key:'catalog',label:t('catalogs')},{key:'inventory',label:t('inv_title')}].map(x=>({...x}))} /></div>
  <main className="page-container page-container--fluid production-page">
-  <section className="card">
+  {['partial','dashboard','targets'].includes(tab)?<ProductionLive key={tab} items={data.items} stations={data.stations} supervisor={supervisor} mode={supervisor?tab:'partial'}/>:<section className="card">
    <div className="catalog-toolbar"><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2>
    <div className="catalog-filters production-filters">
     <CatalogInput label={t('pr_from')} type="date" value={from} onChange={ev=>setFrom(ev.target.value)}/>
@@ -138,7 +140,7 @@ export default function Production({access}) {
     <BtnSecondary onClick={exportCsv}>{t('export_csv')}</BtnSecondary>
     <BtnPrimary disabled={busy||loading} onClick={()=>{setError('');setEdit(blank());}}>➕ {t('pr_new_report')}</BtnPrimary>
    </div></div>
-   {error&&<p role="alert" className="inv-message">{error}</p>}{message&&<p role="status" className="inv-message">{message}</p>}
+   {message&&<p role="status" className="inv-message">{message}</p>}
    <p className="inv-muted">{t('pr_workflow_hint')}</p>
    {loading?<p>{t('loading')}</p>:tab==='summary'?<>
     <p className="inv-muted">{t('pr_summary_hint')}</p><div className="production-metrics">{[['pr_machine_quantity',totals.machine_quantity],['pr_good',totals.good_quantity],['pr_scrap',totals.scrap_quantity],['pr_rework',totals.rework_quantity],['pr_boxes',totals.full_boxes],['pr_labor_hours',totals.labor]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
@@ -150,8 +152,7 @@ export default function Production({access}) {
     </div></td></tr>)}
     {!filtered.length&&<tr><td colSpan="18">{t('no_results_found')}</td></tr>}
    </tbody></table><TablePagination totalRows={filtered.length} page={Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}}/></div>}
-  </section>
- </main>
+  </section>}</main>
  <Modal className="production-modal" isOpen={!!edit} contentLabel={t('pr_new_report')} onRequestClose={()=>!busy&&setEdit(null)} style={productionModalStyle}>
  {edit&&<form ref={form} className="production-form production-dialog" onSubmit={ev=>{ev.preventDefault();action('save',edit);}}>
   <header className="production-dialog-header"><h2>{t('pr_new_report')}</h2></header>
@@ -186,7 +187,7 @@ export default function Production({access}) {
   <section className="production-section production-calculated"><h3>{t('pr_hours')}</h3><div className="production-metrics">{[['pr_total_hours',metrics.elapsed/60],['pr_total_downtime',metrics.totalDowntime],['pr_machine_minutes',metrics.machine],['pr_labor_hours',metrics.laborHours]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{Number.isFinite(value)?fmt(value):'—'}</strong></div>)}</div></section>
   <details className="production-section production-consumption"><summary>{t('pr_consumption_preview')}</summary>{consumptionTable({...edit,bom_id:eBom?.id,pieces_per_box:eProfile?.pieces_per_box||0})}</details>
   <section className="production-section"><CatalogInput label={t('inv_notes')} value={edit.note} onChange={ev=>setEdit({...edit,note:ev.target.value})}/></section>
-  </fieldset>{error&&<p role="alert" className="inv-message">{error}</p>}
+  </fieldset>
   <footer className="catalog-actions production-dialog-actions">
    <BtnSecondary disabled={busy} type="submit">{t('pr_save_draft')}</BtnSecondary>
    <BtnPrimary disabled={busy||!eBom} type="button" onClick={()=>{if(form.current.reportValidity())action('submit',edit);}}>{t('pr_submit')}</BtnPrimary>
@@ -202,12 +203,13 @@ export default function Production({access}) {
   <p>{t('pr_packing_type')}: {packingName(review)||'—'} · {t('pr_pallets')}: {review.pallets} · {t('pr_turns')}: {review.turns??'—'}</p>
   <section className="production-section"><h3>{t('pr_downtime_section')}</h3>{reportDowntimes(review).length?<ul>{reportDowntimes(review).map((d,k)=><li key={k}>{t('pr_downtime_'+d.type)}{d.start_time&&d.end_time?' · '+d.start_time+' — '+d.end_time:''} · {fmt(d.minutes)} min{d.note?' · '+d.note:''}</li>)}</ul>:<p>{t('pr_downtime_empty')}</p>}</section>{review.staff_names&&<p>{t('pr_staff_names')}: {review.staff_names}</p>}<p>{t('inv_notes')}: {review.note||'—'}</p>
   <h3>{t(review.status==='posted'?'pr_consumed':'pr_consumption_preview')}</h3>{consumptionTable(review)}
-  {confirming&&<p className="inv-message">{t('pr_confirm_post')}</p>}{error&&<p role="alert" className="inv-message">{error}</p>}
+  {confirming&&<p className="inv-message">{t('pr_confirm_post')}</p>}
   <div className="catalog-actions">
    {review.status==='submitted'&&supervisor&&<><BtnPrimary disabled={busy} onClick={()=>confirming?action('post',review):setConfirming(true)}>{t(confirming?'pr_confirm_inventory':'pr_post_inventory')}</BtnPrimary><BtnSecondary disabled={busy} onClick={()=>action('return',review)}>{t('pr_return_draft')}</BtnSecondary></>}
    <BtnDanger style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} onClick={()=>{setReview(null);setConfirming(false);}}>{t('cancel')}</BtnDanger>
   </div>
  </div>}
  </Modal>
+ <ErrorPopup message={error} onClose={()=>setError('')}/>
  </>;
 }

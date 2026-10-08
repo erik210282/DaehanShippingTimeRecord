@@ -1,3 +1,4 @@
+import ErrorPopup from '../components/ErrorPopup';
 import ModuleHeading from '../components/ModuleHeading';
 import { usePageSection } from '../usePageSection';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -57,7 +58,7 @@ export default function Receiving({ access }) {
     finally { lock.current=false; setBusy(false); }
   }
   if (!allowed) return <Navigate to="/inicio" replace />;
-  if(!loading && !ready) return <main className="rc-page"><h1>{t('rc_title')}</h1><p role="alert">{error}</p><BtnPrimary onClick={refresh}>{t('global_retry')}</BtnPrimary></main>;
+  if(!loading && !ready) return <main className="rc-page"><h1>{t('rc_title')}</h1><ErrorPopup message={error} onClose={()=>setError('')}/><BtnPrimary onClick={refresh}>{t('global_retry')}</BtnPrimary></main>;
   const options = (rows, label) => rows.map(row => ({ value: row.id, label: label(row) }));
   const ownLines = id => data.lines.filter(line => line.receipt_id === id);
   const canTask = task => supervisor || task.operator_id === access.userId || task.additional_operator_ids?.includes(access.userId);
@@ -84,7 +85,7 @@ export default function Receiving({ access }) {
   return <><div className="module-department-nav">
     <ModuleHeading title={t('rc_title')}/>
     <DepartmentNav items={tabs.map(key=>({key,label:t(`rc_${key}`)}))} value={currentTab} onChange={key=>{setTab(key);}} label={t('rc_title')}/></div><main className="rc-page module-surface">
-    {error && <div className="rc-alert rc-error" role="alert">{error}</div>}{message && <div className="rc-alert" role="status">{message}</div>}
+    <ErrorPopup message={error} onClose={()=>setError('')}/>{message && <div className="rc-alert" role="status">{message}</div>}
     {loading ? <p>{t('loading')}</p> : <>
     {['pending','summary','productivity'].includes(currentTab) && <>
       <div className="rc-filters"><Field label={t('rc_from')} type="date" value={from} onChange={setFrom}/><Field label={t('rc_to')} type="date" value={to} onChange={setTo}/>

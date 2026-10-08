@@ -1,0 +1,5 @@
+import React from 'react';
+import Modal from 'react-modal';
+import {useTranslation} from 'react-i18next';
+import {BtnDanger} from './controls';
+export default function ErrorPopup({message,onClose,title}){const {t}=useTranslation();return <Modal isOpen={!!message} onRequestClose={onClose} contentLabel={title||t('pl_error_title',{defaultValue:'Error'})} role="alertdialog" aria={{labelledby:'error-popup-title',describedby:'error-popup-message'}} style={{overlay:{position:'fixed',inset:0,zIndex:20000,backgroundColor:'#0f172a99',display:'flex',alignItems:'center',justifyContent:'center',padding:20},content:{position:'relative',inset:'auto',width:'min(480px,100%)',maxHeight:'calc(100dvh - 40px)',overflow:'auto',borderRadius:14,padding:24,boxSizing:'border-box'}}}><h2 id="error-popup-title">{title||t('pl_error_title',{defaultValue:'Error'})}</h2><p id="error-popup-message" style={{whiteSpace:'pre-wrap',lineHeight:1.6,overflowWrap:'anywhere'}}>{message}</p><BtnDanger onClick={onClose} style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}}>{t('pl_ack',{defaultValue:'OK'})}</BtnDanger></Modal>;}
