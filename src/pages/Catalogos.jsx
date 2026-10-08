@@ -68,6 +68,7 @@ export default function Catalogos({ access }) {
   const [typeFilter,setTypeFilter]=useState(''),[hideInactive,setHideInactive]=useState(true);
   const canManage=access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role));
   const kind=catalogKinds[tab];
+  const sectionLabel=t(kind?(kind==='material'?'rc_material_types':kind==='supplier'?'rc_suppliers':'rc_locations'):({productos:'products',pos:'po',shipper:'shipper',actividades:'activities',bom:'inv_bom',stations:'inv_workstations'})[tab]);
   const [filter, setFilter] = useState("");
   const productionRef=useRef(null);
   const production=tab==='bom'||tab==='stations';
@@ -548,7 +549,7 @@ async function save() {
   return (
     <div className="page-container page-container--fluid catalog-page">
       <div className="card">
-        <div className="catalog-toolbar"><h2 className="module-title">{t("catalogs")}</h2>
+        <div className="catalog-toolbar"><h2 className="module-title catalog-current-title">{t("catalogs")} <span>· {sectionLabel}</span></h2>
         <div className="catalog-actions">
           <DSInput placeholder={t("search")} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ marginTop: 12 }}/>
           <BtnSecondary onClick={() => setTab("productos")}>{t("products")}</BtnSecondary>
