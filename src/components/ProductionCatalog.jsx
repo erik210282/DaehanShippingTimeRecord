@@ -59,8 +59,7 @@ export default function ProductionCatalog({ mode, access }) {
    else await unwrap(supabase.rpc('inventory_catalog_recipe',{p_action:'delete',p_data:{id:r.id}}));});
  }
  function updateLine(index,field,value){setEdit({...edit,lines:edit.lines.map((l,k)=>k===index?{...l,[field]:value}:l)});}
- const missing=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.inventory_bom_lines?.length));
- const inactive=rows.filter(r=>r.finished_item_id&&productFor(r)?.activo===false);
+ const missing=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_lines?.length));
  const editProduct=edit&&!stations?products.find(p=>p.part_number===edit.product_part_number):null;
  return <div className="catalog-production">
   <div className="catalog-actions">
@@ -70,8 +69,7 @@ export default function ProductionCatalog({ mode, access }) {
   </div>
   {error&&<p className="inv-message" role="alert">{error}</p>}
   {!stations&&<div className="catalog-recipe-notices">
-   <details><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><ul>{missing.map(p=><li key={p.id}>{p.part_number} · {p.nombre}</li>)}</ul></details>
-   <details><summary>{t('cat_inactive_recipes',{count:inactive.length})}</summary><ul>{inactive.map(r=><li key={r.id}>{r.product_part_number} · {nameFor(r)}</li>)}</ul></details>
+   <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('description')}</th></tr></thead><tbody>{missing.map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td></tr>)}</tbody></table></div></details>
   </div>}
   <div className="table-wrap catalog-table-scroll"><table className="table"><thead><tr>
    {stations?<><th>{t('inv_station_code')}</th><th>{t('name')}</th><th>{t('inv_station_type')}</th><th>{t('inv_station_materials')}</th></>:<><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('inv_version')}</th><th>{t('inv_recipe')}</th></>}
