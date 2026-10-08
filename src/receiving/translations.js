@@ -68,6 +68,7 @@ const phrases = {
  membership: ['Acceso A Receiving', 'Receiving Access', '입고 접근'],
 };
 Object.assign(phrases, {
+ packing_weight:['Peso (kg)','Weight (kg)','무게 (kg)'],packing_measures:['Medidas','Measures','치수'],packing_measures_example:['Ej. 120 × 100 × 15 cm','E.g. 120 × 100 × 15 cm','예: 120 × 100 × 15 cm'],preassigned_location:['Ubicación preasignada','Preassigned location','사전 지정 위치'],
  release:['Liberar','Release','해제'],
  receiving_operator_busy:phrases.operator_busy,
  catalog_duplicate_part:['Este Número De Parte Ya Existe En El Catálogo. Edita El Producto Existente.','This Part Number Already Exists In The Catalog. Edit The Existing Product.','이 부품 번호는 이미 카탈로그에 있습니다. 기존 제품을 편집하세요.'],
@@ -88,8 +89,6 @@ export function receivingError(error, t) {
   if (error?.code === '23505') return t('rc_duplicate');
   if (['23514','23502','22P02','23503'].includes(error?.code)) return t('rc_receiving_invalid');
   const message = error?.message || '';
-  const direct = (message.startsWith('receiving_') || message.startsWith('catalog_')) ? t(message, {defaultValue:''}) : '';
-  if (direct && direct !== message) return direct;
   const key = (message.startsWith('receiving_') || message.startsWith('catalog_')) ? `rc_${message}` : '';
   return key && t(key) !== key ? t(key) : t('rc_error');
 }
