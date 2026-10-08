@@ -5,3 +5,24 @@
 @media(max-width:1100px){.production-page .production-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:900px){.production-page .production-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.production-page .production-filters{grid-template-columns:1fr}}
+
+.production-dialog-header h2{margin:0 0 24px;font-size:24px;line-height:1.3;color:#0f172a}
+.production-form .production-section{padding:22px;margin:0 0 18px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+.production-form .production-section h3{margin:0 0 16px;font-size:17px;line-height:1.4;color:#0f172a}
+.production-form .production-section .inv-muted{margin:0 0 16px;line-height:1.5}
+.production-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.production-form-grid-four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.production-dialog .catalog-field input{width:100%;max-width:none!important;box-sizing:border-box;margin:0!important;min-height:42px}
+.production-dialog .catalog-field>span{min-height:0;line-height:1.4}
+.production-dialog .catalog-checkbox{margin-top:16px}
+.production-section-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+.production-form .production-section-heading h3{margin:0}
+.production-downtime-row{display:grid;grid-template-columns:minmax(160px,1fr) 130px minmax(200px,1.3fr) auto;gap:16px;align-items:end;padding:16px 0;border-top:1px solid #e2e8f0}
+.production-empty{padding:16px;background:#f8fafc;color:#64748b;border-radius:6px}
+.production-form .production-calculated{background:#f8fafc}
+.production-calculated .production-metrics{margin:0}
+.production-consumption summary{font-weight:600;color:#334155;cursor:pointer}
+.production-consumption[open] summary{margin-bottom:16px}
+.production-dialog-actions{position:sticky;bottom:-20px;background:white;padding:18px 0 8px;border-top:1px solid #e2e8f0;justify-content:flex-end}
+@media(max-width:850px){.production-form-grid-four{grid-template-columns:repeat(2,minmax(0,1fr))}.production-downtime-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media(max-width:600px){.production-form .production-section{padding:16px}.production-form-grid,.production-form-grid-four,.production-downtime-row{grid-template-columns:1fr}.production-section-heading{align-items:flex-start;flex-direction:column}.production-dialog-actions{justify-content:flex-start}}
