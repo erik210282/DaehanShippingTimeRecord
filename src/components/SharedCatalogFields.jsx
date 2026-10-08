@@ -31,14 +31,15 @@ export function supplierAddress(supplier) {
  return ['street','exterior_number','interior_number','neighborhood','city','state','postal_code','country'].map(key=>supplier?.[key]).filter(Boolean).join(', ');
 }
 export function ProductCatalogFields({edit,setEdit,materials,locations,suppliers}) {
- const {t}=useTranslation();const raw=edit.category==='RAW',fg=edit.category==='FG';
+ const {t}=useTranslation();const raw=edit.category==='RAW',fg=edit.category==='FG',packing=edit.category==='PACKAGING';
  const input=(key,label,numeric=false)=><CatalogInput key={key} label={t(label)} type={numeric?'number':'text'} min={numeric?0:undefined} step={numeric?'any':undefined} value={edit[key]??''} onChange={e=>setEdit({...edit,[key]:e.target.value})}/>;
  return <div className="catalog-fields">
  <CatalogSelect label={t('rc_type')} value={edit.material_type} onChange={material_type=>setEdit({...edit,material_type,category:materials.find(type=>type.code===material_type)?.category})} options={materials.filter(type=>(type.active||type.code===edit.material_type)&&type.category!=='HOLD'&&(!edit.producto_id||type.category==='FG')).map(type=>({value:type.code,label:materialLabel(type,t)}))}/>
- {input('part_number','part_number')}{input('nombre',raw?'rc_part_name':'name')}{input('descripcion','description')}
+ {packing?<>{input('nombre','name')}{input('part_number','part_number')}</>:<>{input('part_number','part_number')}{input('nombre',raw?'rc_part_name':'name')}</>}{input('descripcion','description')}
+ {packing&&<>{input('packing_weight','rc_packing_weight',true)}<CatalogInput label={t('rc_packing_measures')} placeholder={t('rc_packing_measures_example')} value={edit.packing_measures||''} onChange={e=>setEdit({...edit,packing_measures:e.target.value})}/></>}
  {input('minimum_quantity','inv_min_stock',true)}{input('uom','rc_uom')}
  <CatalogSelect multi label={t('rc_allowed')} value={edit.locations||[]} onChange={locations=>setEdit({...edit,locations})} options={locations.filter(location=>location.active&&!location.is_system_stage).map(location=>({value:location.id,label:location.code+' · '+location.name}))}/>
- {input('default_location','inv_location')}
+ {input('default_location',packing?'rc_preassigned_location':'inv_location')}
  {raw && <><CatalogSelect label={t('rc_supplier')} value={edit.supplier_id||''} onChange={supplier_id=>setEdit({...edit,supplier_id})} options={suppliers.filter(supplier=>supplier.active||supplier.id===edit.supplier_id).map(supplier=>({value:supplier.id,label:supplier.code+' · '+supplier.name}))}/>
  <CatalogInput label={t('rc_supplier_location')} readOnly value={supplierAddress(suppliers.find(supplier=>supplier.id===edit.supplier_id))}/>
  <CatalogInput label={t('rc_lead_time')} type="number" min="0" step="1" value={edit.lead_time_days??''} onChange={e=>setEdit({...edit,lead_time_days:e.target.value})}/></>}

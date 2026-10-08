@@ -100,7 +100,7 @@ export default function Catalogos({ access }) {
     peso_caja_expendable: "",
     cantidad_por_caja_retornable: "",
     cantidad_por_caja_expendable: "",
-    activo: true, category:'FG', material_type:'FG',uom:'EA',minimum_quantity:'0',responsible_department:'shipping',default_location:'',locations:[],supplier_id:'',lead_time_days:'',
+    activo: true, category:'FG', material_type:'FG',uom:'EA',minimum_quantity:'0',responsible_department:'shipping',default_location:'',locations:[],supplier_id:'',lead_time_days:'',packing_weight:'',packing_measures:'',
   };
 
   const poDefaults = {
@@ -179,7 +179,7 @@ export default function Catalogos({ access }) {
     setLoading(true);
     try {
       const [stock,products,locs,types,assignments,itemTypes,supplierRows] = await Promise.all([
-        unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active,part_name,supplier_id,lead_time_days').order('part_number')),
+        unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active,part_name,supplier_id,lead_time_days,packing_weight,packing_measures').order('part_number')),
         unwrap(supabase.from('productos').select('*').order('nombre')),
         unwrap(supabase.from('receiving_locations').select('*').order('code')),
         unwrap(supabase.from('receiving_material_types').select('*').order('code')),
@@ -190,7 +190,7 @@ export default function Catalogos({ access }) {
       if (!current()) return;
       setLocations(locs.filter(r=>!r.archived));setMaterials(types.filter(r=>!r.archived));setSuppliers(supplierRows.filter(r=>!r.archived));
       if(tab==='productos') {
-        const metadata=i=>({inventory_id:i?.id,producto_id:i?.producto_id,supplier_id:i?.supplier_id||'',lead_time_days:i?.lead_time_days??'',category:i?.category||'FG',material_type:itemTypes.find(m=>m.item_id===i?.id)?.material_type||i?.category||'FG',uom:i?.uom||'EA',minimum_quantity:i?.minimum_quantity??0,responsible_department:i?.responsible_department||'inventory',default_location:i?.default_location||'',locations:assignments.filter(a=>a.item_id===i?.id).map(a=>a.location_id)});
+        const metadata=i=>({inventory_id:i?.id,packing_weight:i?.packing_weight??'',packing_measures:i?.packing_measures||'',producto_id:i?.producto_id,supplier_id:i?.supplier_id||'',lead_time_days:i?.lead_time_days??'',category:i?.category||'FG',material_type:itemTypes.find(m=>m.item_id===i?.id)?.material_type||i?.category||'FG',uom:i?.uom||'EA',minimum_quantity:i?.minimum_quantity??0,responsible_department:i?.responsible_department||'inventory',default_location:i?.default_location||'',locations:assignments.filter(a=>a.item_id===i?.id).map(a=>a.location_id)});
         setRows([...products.map(p=>({...p,...metadata(stock.find(i=>i.producto_id===p.id))})),...stock.filter(i=>!i.producto_id).map(i=>({id:i.id,nombre:i.part_name||i.description,descripcion:i.description,part_number:i.part_number,activo:i.active,...metadata(i)}))]);
       } else {
         const table=kind==='supplier'?'receiving_suppliers':kind==='location'?'receiving_locations':kind==='material'?'receiving_material_types':tableName;
@@ -265,7 +265,7 @@ async function save() {
         if(!edit.part_number?.trim())throw Error(t('fill_all_fields'));
         const shipping={...edit};
         for(const key of ['peso_por_pieza','peso_caja_retornable','peso_caja_expendable','cantidad_por_caja_retornable','cantidad_por_caja_expendable'])shipping[key]=shipping[key]===''?null:shipping[key];
-        data={id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,part_name:edit.nombre,supplier_id:edit.supplier_id||null,lead_time_days:edit.lead_time_days===''?null:Number(edit.lead_time_days),material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.category==='FG'?'shipping':'receiving',default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
+        data={...(edit.category==='PACKAGING'?{packing_weight:edit.packing_weight===''?null:quantity(edit.packing_weight,true),packing_measures:edit.packing_measures||null}:{}),id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,part_name:edit.nombre,supplier_id:edit.supplier_id||null,lead_time_days:edit.lead_time_days===''?null:Number(edit.lead_time_days),material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.category==='FG'?'shipping':'receiving',default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
       } else if(kind==='material')data={...edit,id:undefined};
       data={...data,is_new:isNew,...(tab==='productos'&&edit.category==='FG'&&edit.copyRecipe?{copy_recipe_from_part:edit.sourcePart}:{})};
       await unwrap(supabase.rpc('shared_catalog',{p_kind:kind||'item',p_data:data}));
@@ -471,11 +471,13 @@ async function save() {
     const data = (filtered || []).map((r) => {
       if(kind)return {Code:r.code,Name:kind==='material'?materialLabel(r,t):r.name,...(kind==='supplier'?Object.fromEntries(addressFields.map(k=>[k,r[k]||''])):{Type:kind==='material'?r.category:r.material_type}),Status:t(r.active?'active':'inactive')};
       if (tab === "productos") {
+        if(typeFilter==='PACKAGING')return {Name:r.nombre,'Part Number':r.part_number,Description:r.descripcion,Type:r.material_type,'Weight (kg)':r.packing_weight,Measures:r.packing_measures,'Minimum Stock':r.minimum_quantity,Unit:r.uom,'Preassigned location':r.default_location,Status:t(r.activo?'active':'inactive')};
         return {
           [t("name")]: r.nombre || "",
           PartNumber: r.part_number || "",Type:r.material_type,Minimum:r.minimum_quantity,Unit:r.uom,Locations:(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', '),
           [t("description")]: r.descripcion || "",
           "Weight/Piece": r.peso_por_pieza ?? "",
+          "Packing Weight (kg)":r.packing_weight??"",Measures:r.packing_measures||"",'Preassigned location':r.default_location||"",
           "bin_type": r.bin_type?? "",
           "Returnable Type": r.tipo_empaque_retornable || "",
           "Expendable Type": r.tipo_empaque_expendable || "",
@@ -568,7 +570,7 @@ async function save() {
          <label className="catalog-checkbox"><input type="checkbox" checked={hideInactive} onChange={e=>{setHideInactive(e.target.checked);setPage(1);}}/>{t('rc_hide_inactive')}</label>
         </div></div>
         {production ? <ProductionCatalog ref={productionRef} key={tab} mode={tab} access={access} filter={filter} hideInactive={hideInactive} externalControls/> : <><div className="table-wrap catalog-table-scroll">
-          <table className="table">
+          <table className={typeFilter==='PACKAGING'?'table catalog-packing-table':'table'}>
             <thead>
               <tr>
                 {tab === "productos" && (
@@ -576,7 +578,7 @@ async function save() {
                     <th>{t("name")}</th>
                     <th>{t("part_number")}</th>
                     <th>{t("description")}</th>
-                    <th>{t('rc_type')}</th><th>{t('inv_min_stock')}</th><th>{t('rc_uom')}</th><th>{t('rc_allowed')}</th>
+                    <th>{t('rc_type')}</th>{(!typeFilter||typeFilter==='PACKAGING')&&<><th>{t('rc_packing_weight')}</th><th>{t('rc_packing_measures')}</th></>}<th>{t('inv_min_stock')}</th><th>{t('rc_uom')}</th><th>{t(typeFilter==='PACKAGING'?'rc_preassigned_location':'rc_allowed')}</th>
                     {typeFilter!=='FG'&&typeFilter!=='PACKAGING'&&<><th>{t('rc_supplier')}</th><th>{t('rc_supplier_location')}</th><th>{t('rc_lead_time')}</th></>}{(!typeFilter||typeFilter==='FG')&&<><th>{t("weight_piece")}</th>
                     <th>{t("bin_type")}</th>
                     <th>{t("returnablebox")}</th>
@@ -635,7 +637,7 @@ async function save() {
                         <td>{r.nombre}</td>
                         <td>{r.part_number}</td>
                         <td>{r.descripcion}</td>
-                        <td>{materialLabel(materials.find(m=>m.code===r.material_type),t)}</td><td>{r.minimum_quantity}</td><td>{r.uom}</td><td>{(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', ')||t('rc_all')}</td>
+                        <td>{materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>{(!typeFilter||typeFilter==='PACKAGING')&&<><td>{r.packing_weight??'—'}</td><td>{r.packing_measures||'—'}</td></>}<td>{r.minimum_quantity}</td><td>{r.uom}</td><td>{typeFilter==='PACKAGING'?(r.default_location||'—'):(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', ')||t('rc_all')}</td>
                         {typeFilter!=='FG'&&typeFilter!=='PACKAGING'&&<><td>{suppliers.find(s=>s.id===r.supplier_id)?.name||'—'}</td><td>{supplierAddress(suppliers.find(s=>s.id===r.supplier_id))||'—'}</td><td>{r.lead_time_days??'—'}</td></>}{(!typeFilter||typeFilter==='FG')&&<><td>{r.peso_por_pieza}</td>
                         <td>{r.bin_type}</td>
                         <td>{r.tipo_empaque_retornable}</td>
