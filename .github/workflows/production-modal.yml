@@ -4,6 +4,9 @@ on:
     paths:
       - 'src/pages/Production.jsx'
       - 'src/pages/Production.css'
+      - 'src/pages/Catalogos.css'
+      - 'src/components/ProductionCatalog.jsx'
+      - 'src/components/RecipePackingFields.jsx'
       - 'tests/production-modal.test.mjs'
       - '.github/workflows/production-modal.yml'
 permissions:

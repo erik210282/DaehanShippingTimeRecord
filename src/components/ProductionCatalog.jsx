@@ -130,8 +130,8 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    </React.Fragment>)}
    {!visible.length&&<tr><td colSpan="6">{t('no_results_found')}</td></tr>}
   </tbody></table><TablePagination totalRows={visible.length} page={currentPage} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}}/></div>
-  <Modal isOpen={!!edit} onRequestClose={()=>!busy&&setEdit(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0008'},content:{width:'min(1100px, calc(100vw - 32px))',maxHeight:'88vh',inset:'50% auto auto 50%',transform:'translate(-50%,-50%)'}}}>
-   {edit&&<form className="catalog-page" onSubmit={e=>{e.preventDefault();perform(save);}}>
+  <Modal isOpen={!!edit} onRequestClose={()=>!busy&&setEdit(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0008',display:'flex',alignItems:'center',justifyContent:'center',padding:16,boxSizing:'border-box'},content:{position:'relative',top:'auto',right:'auto',bottom:'auto',left:'auto',width:'min(1100px, 100%)',maxHeight:'calc(100dvh - 32px)',transform:'none',boxSizing:'border-box',borderRadius:14,padding:24}}}>
+   {edit&&<form className="catalog-page catalog-dialog catalog-recipe-dialog" onSubmit={e=>{e.preventDefault();perform(save);}}>
     <h2>{t(stations?'inv_workstations':'inv_bom_title')} · {t(edit.isNew?'add':'edit')}</h2>
     {edit.duplicated&&<p>{t('cat_duplicate_help')}</p>}
     {edit.isNew&&edit[stations?'code':'product_part_number']?.trim()&&hasDuplicateIdentifier(rows,stations?'code':'product_part_number',edit[stations?'code':'product_part_number'])&&<p role="alert" className="inv-message">{t('catalog_duplicate_identifier')}</p>}
@@ -162,7 +162,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
     </>}
     </fieldset>
     {error&&<p role="alert" className="inv-message">{error}</p>}
-    <div className="catalog-actions"><BtnPrimary disabled={busy||!manage||!edit[stations?'code':'product_part_number']?.trim()||(edit.isNew&&hasDuplicateIdentifier(rows,stations?'code':'product_part_number',edit[stations?'code':'product_part_number']))} type="submit">{t('save')}</BtnPrimary><BtnSecondary disabled={busy} type="button" onClick={()=>setEdit(null)}>{t('cancel')}</BtnSecondary></div>
+    <div className="catalog-actions catalog-recipe-footer"><BtnPrimary disabled={busy||!manage||!edit[stations?'code':'product_part_number']?.trim()||(edit.isNew&&hasDuplicateIdentifier(rows,stations?'code':'product_part_number',edit[stations?'code':'product_part_number']))} type="submit">{t('save')}</BtnPrimary><BtnSecondary disabled={busy} type="button" onClick={()=>setEdit(null)}>{t('cancel')}</BtnSecondary></div>
    </form>}
   </Modal>
  </div>;
