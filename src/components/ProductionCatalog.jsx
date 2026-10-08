@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplication';
 import Modal from 'react-modal';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
@@ -41,7 +42,15 @@ export default function ProductionCatalog({ mode, access }) {
  function editRow(r){
   setEdit(stations?{...r,materials:r.materials.map(m=>({...m})),isNew:false}:{...r,lines:r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})),isNew:false});
  }
+ function duplicate(r){
+  if(!manage||busy)return;
+  const copy=duplicateCatalogRow(r,stations?'code':'product_part_number');
+  setEdit(stations?{...copy,materials:r.materials.map(m=>({...m})),isNew:true,duplicated:true}:{...copy,version:'',lines:r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})),isNew:true,duplicated:true});
+ }
  async function save(){
+  const key=stations?'code':'product_part_number';
+  if(!edit[key]?.trim())throw Error('catalog_identifier_required');
+  if(edit.isNew&&hasDuplicateIdentifier(rows,key,edit[key]))throw Error('catalog_duplicate_identifier');
   if(stations){
    if(!edit.code.trim()||!edit.name.trim()||!edit.machine_type.trim())throw Error('fill_all_fields');
    const payload={code:edit.code.trim().toUpperCase(),name:edit.name.trim(),machine_type:edit.machine_type.trim(),materials:edit.materials,active:!!edit.active};
@@ -78,7 +87,7 @@ export default function ProductionCatalog({ mode, access }) {
    {visible.slice((currentPage-1)*pageSize,currentPage*pageSize).map(r=><React.Fragment key={r.id||r.code}><tr>
     {stations?<><td>{r.code}</td><td>{r.name}</td><td>{t(({Assembly:'inv_machine_ASY',Foaming:'inv_machine_FOA','WaterJet / Forming':'inv_machine_WAT','Press / Trim':'inv_machine_PRE',Forming:'inv_machine_PET'})[r.machine_type]||r.machine_type)}</td><td>{r.materials.map(m=>[m.erp_material,m.product||m.operation].filter(Boolean).join(' · ')).join(' / ')}</td></>:<><td>{r.product_part_number}</td><td>{nameFor(r)}</td><td>{r.version}</td><td><BtnSecondary onClick={()=>setExpanded(expanded===r.id?null:r.id)}>{t('cat_ingredients',{count:r.inventory_bom_lines.length})}</BtnSecondary></td></>}
     <td>{t(stations?(r.active?'active':'inactive'):status(r))}</td>
-    <td><BtnEditDark disabled={!manage||busy} onClick={()=>editRow(r)}>{t('edit')}</BtnEditDark> <BtnDanger disabled={!manage||busy} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></td>
+    <td><BtnEditDark disabled={!manage||busy} onClick={()=>editRow(r)}>{t('edit')}</BtnEditDark> <BtnSecondary disabled={!manage||busy} onClick={()=>duplicate(r)}>{t('cat_duplicate')}</BtnSecondary> <BtnDanger disabled={!manage||busy} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></td>
    </tr>
    {!stations&&expanded===r.id&&<tr><td colSpan="6"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('name')}</th><th>{t('inv_qty_per_fg')}</th><th>{t('inv_unit')}</th><th>{t('cat_waste')}</th></tr></thead><tbody>
     {r.inventory_bom_lines.map(l=>{const i=items.find(x=>x.id===l.ingredient_id);return <tr key={l.id}><td>{i?.part_number}</td><td>{i?.part_name||i?.description}</td><td>{fmt(l.quantity_per_unit)}</td><td>{i?.uom}</td><td>{fmt(Number(l.waste_rate)*100)}</td></tr>;})}
@@ -89,6 +98,8 @@ export default function ProductionCatalog({ mode, access }) {
   <Modal isOpen={!!edit} onRequestClose={()=>!busy&&setEdit(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0008'},content:{width:'min(1100px, calc(100vw - 32px))',maxHeight:'88vh',inset:'50% auto auto 50%',transform:'translate(-50%,-50%)'}}}>
    {edit&&<form className="catalog-page" onSubmit={e=>{e.preventDefault();perform(save);}}>
     <h2>{t(stations?'inv_workstations':'inv_bom_title')} · {t(edit.isNew?'add':'edit')}</h2>
+    {edit.duplicated&&<p>{t('cat_duplicate_help')}</p>}
+    {edit.isNew&&edit[stations?'code':'product_part_number']?.trim()&&hasDuplicateIdentifier(rows,stations?'code':'product_part_number',edit[stations?'code':'product_part_number'])&&<p role="alert" className="inv-message">{t('catalog_duplicate_identifier')}</p>}
     <fieldset disabled={busy}><div className="catalog-fields">
     {stations?<><CatalogInput required label={t('inv_station_code')} disabled={!edit.isNew} value={edit.code} onChange={e=>setEdit({...edit,code:e.target.value})}/>
      <CatalogInput required label={t('name')} value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})}/>
@@ -115,7 +126,7 @@ export default function ProductionCatalog({ mode, access }) {
     </>}
     </fieldset>
     {error&&<p role="alert" className="inv-message">{error}</p>}
-    <div className="catalog-actions"><BtnPrimary disabled={busy||!manage} type="submit">{t('save')}</BtnPrimary><BtnSecondary disabled={busy} type="button" onClick={()=>setEdit(null)}>{t('cancel')}</BtnSecondary></div>
+    <div className="catalog-actions"><BtnPrimary disabled={busy||!manage||!edit[stations?'code':'product_part_number']?.trim()||(edit.isNew&&hasDuplicateIdentifier(rows,stations?'code':'product_part_number',edit[stations?'code':'product_part_number']))} type="submit">{t('save')}</BtnPrimary><BtnSecondary disabled={busy} type="button" onClick={()=>setEdit(null)}>{t('cancel')}</BtnSecondary></div>
    </form>}
   </Modal>
  </div>;

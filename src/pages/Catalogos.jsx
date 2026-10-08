@@ -1,4 +1,5 @@
 import './Catalogos.css';
+import { catalogIdentifier, duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplication';
 import ProductionCatalog from '../components/ProductionCatalog';
 import { usePageSection } from '../usePageSection';
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -70,6 +71,7 @@ export default function Catalogos({ access }) {
   const [filter, setFilter] = useState("");
   const [edit, setEdit] = useState(null);
   const [isNew, setIsNew] = useState(false);
+  const [saving,setSaving]=useState(false),[duplicating,setDuplicating]=useState(false);
   const [loading, setLoading] = useState(false);
 
   const [page, setPage] = useState(1);
@@ -217,13 +219,43 @@ export default function Catalogos({ access }) {
     else setEdit({ ...simpleDefaults });
   };
 
+  async function duplicate(row) {
+    if(!canManage || saving || duplicating)return;
+    setDuplicating(true);
+    const sourceTab=tab;
+    try {
+      const copy=duplicateCatalogRow(row,catalogIdentifier(tab,kind));
+      copy.duplicated=true;
+      if(tab==='productos' && row.category==='FG') {
+        const recipes=await unwrap(supabase.from('inventory_boms').select('id,inventory_bom_lines(id)').eq('product_part_number',row.part_number).eq('active',true).eq('archived',false));
+        copy.sourcePart=row.part_number;
+        copy.sourceHasRecipe=recipes.some(r=>r.inventory_bom_lines?.length);
+        copy.copyRecipe=false;
+      }
+      if(tab==='pos') {
+        const bill=await unwrap(supabase.from('bill_charges_to').select('*').eq('po',row.po).maybeSingle());
+        if(currentTab.current!==sourceTab)return;
+        setBillTo(Object.fromEntries(Object.keys(billToDefaults).map(k=>[k,bill?.[k]||''])));
+        copy.consignee_contact_email=emailsToInput(row.consignee_contact_email);
+      }
+      if(tab==='shipper')copy.shipper_contact_email=emailsToInput(row.shipper_contact_email);
+      if(currentTab.current!==sourceTab)return;
+      setIsNew(true);setEdit(copy);
+    } catch(e){toast.error(e.message || t('error_loading'));}
+    finally{setDuplicating(false);}
+  }
+
   // 🔧 Helper para filtrar solo las columnas válidas de cada tabla
 const pick = (obj, keys) =>
   keys.reduce((acc, k) => (k in obj ? { ...acc, [k]: obj[k] } : acc), {});
 
 async function save() {
+  if (!edit || !canManage || saving) return;
   try {
-    if (!edit || !canManage) return;
+    setSaving(true);
+    const identifier=catalogIdentifier(tab,kind);
+    if(!String(edit[identifier]??'').trim())throw Error(t('catalog_identifier_required'));
+    if(isNew && hasDuplicateIdentifier(rows,identifier,edit[identifier]))throw Error(t('catalog_duplicate_identifier'));
     if(kind || tab==='productos') {
       let data=edit;
       if(tab==='productos') {
@@ -232,6 +264,7 @@ async function save() {
         for(const key of ['peso_por_pieza','peso_caja_retornable','peso_caja_expendable','cantidad_por_caja_retornable','cantidad_por_caja_expendable'])shipping[key]=shipping[key]===''?null:shipping[key];
         data={id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,part_name:edit.nombre,supplier_id:edit.supplier_id||null,lead_time_days:edit.lead_time_days===''?null:Number(edit.lead_time_days),material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.category==='FG'?'shipping':'receiving',default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
       } else if(kind==='material')data={...edit,id:undefined};
+      data={...data,is_new:isNew,...(tab==='productos'&&edit.category==='FG'&&edit.copyRecipe?{copy_recipe_from_part:edit.sourcePart}:{})};
       await unwrap(supabase.rpc('shared_catalog',{p_kind:kind||'item',p_data:data}));
       toast.success(t('save_success'));setEdit(null);setIsNew(false);await load();return;
     }
@@ -373,7 +406,7 @@ async function save() {
     if (tab === "pos") setBillTo({ ...billToDefaults });
   } catch (e) {
     toast.error(e.message?.startsWith('receiving_') || e.message?.startsWith('catalog_') ? receivingError(e,t) : e.message || t("error_saving"));
-  }
+  } finally {setSaving(false);}
 }
 
 
@@ -614,6 +647,7 @@ async function save() {
                           <BtnEditDark disabled={!canManage} onClick={() => { setEdit(r); setIsNew(false); }}>
                             {t("edit")}
                           </BtnEditDark>
+                          <BtnSecondary disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
                           <BtnDanger disabled={!canManage} onClick={() => remove(r)}>
                             {t("delete")}
                           </BtnDanger>
@@ -644,6 +678,7 @@ async function save() {
                           >
                             {t("edit")}
                           </BtnEditDark>
+                          <BtnSecondary disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
                           <BtnDanger disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
@@ -668,11 +703,12 @@ async function save() {
                           >
                             {t("edit")}
                           </BtnEditDark>
+                          <BtnSecondary disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
                           <BtnDanger disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
                     )}
-                    {kind && <><td>{r.code}</td><td>{kind==='material'?materialLabel(r,t):r.name}</td>{kind==='supplier'?<><td>{addressFields.filter(k=>k!=='phone').map(k=>r[k]).filter(Boolean).join(', ')}</td><td>{r.phone}</td></>:<td>{kind==='material'?t(`rc_${r.category}`):materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>}<td>{t(r.active?'rc_active':'rc_inactive')}</td><td><BtnEditDark disabled={!canManage} onClick={()=>{setEdit({...r,id:kind==='material'?r.code:r.id});setIsNew(false);}}>{t('edit')}</BtnEditDark> <BtnDanger disabled={!canManage} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></td></>}
+                    {kind && <><td>{r.code}</td><td>{kind==='material'?materialLabel(r,t):r.name}</td>{kind==='supplier'?<><td>{addressFields.filter(k=>k!=='phone').map(k=>r[k]).filter(Boolean).join(', ')}</td><td>{r.phone}</td></>:<td>{kind==='material'?t(`rc_${r.category}`):materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>}<td>{t(r.active?'rc_active':'rc_inactive')}</td><td><BtnEditDark disabled={!canManage} onClick={()=>{setEdit({...r,id:kind==='material'?r.code:r.id});setIsNew(false);}}>{t('edit')}</BtnEditDark> <BtnSecondary disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary> <BtnDanger disabled={!canManage} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></td></>}
                     {isSimple && (
                       <>
                         <td>{r.nombre}</td>
@@ -681,6 +717,7 @@ async function save() {
                           <BtnEditDark disabled={!canManage} onClick={() => { setEdit(r); setIsNew(false); }}>
                             {t("edit")}
                           </BtnEditDark>
+                          <BtnSecondary disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
                           <BtnDanger disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
@@ -704,7 +741,7 @@ async function save() {
 
         <Modal
           isOpen={!!edit}
-          onRequestClose={() => { setEdit(null); setIsNew(false); setBillTo({ ...billToDefaults }); }}
+          onRequestClose={() => { if(saving)return;setEdit(null); setIsNew(false); setBillTo({ ...billToDefaults }); }}
           style={{
             overlay:{zIndex:10000,backgroundColor:'#0008'},
             content: {
@@ -713,6 +750,10 @@ async function save() {
           }}
         >
           <div className="catalog-dialog">
+            {edit?.duplicated&&<p>{t('cat_duplicate_help')}</p>}
+            {edit?.duplicated&&tab==='productos'&&edit.category==='FG'&&(
+              edit.sourceHasRecipe?<label className="catalog-checkbox"><input type="checkbox" disabled={saving} checked={!!edit.copyRecipe} onChange={e=>setEdit({...edit,copyRecipe:e.target.checked})}/>{t('cat_copy_recipe')}</label>:<p>{t('cat_source_no_recipe')}</p>
+            )}
             <h3>{isNew ? t('add') : t('edit')} · {t(kind?`rc_${kind==='material'?'material_types':kind}`:tab==='productos'?'products':tab==='pos'?'po':tab==='shipper'?'shipper':'activities')}</h3>
             {kind && edit && <SharedCatalogFields kind={kind} edit={edit} setEdit={setEdit} materials={materials}/>}
 
@@ -956,9 +997,10 @@ async function save() {
               </div>
             )}
 
+            {isNew&&String(edit?.[catalogIdentifier(tab,kind)]??'').trim()&&hasDuplicateIdentifier(rows,catalogIdentifier(tab,kind),edit?.[catalogIdentifier(tab,kind)])&&<p role="alert" className="inv-message">{t('catalog_duplicate_identifier')}</p>}
             <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-              <BtnPrimary disabled={!canManage} onClick={save}>{t("save")}</BtnPrimary>
-              <BtnSecondary onClick={() => { setEdit(null); setIsNew(false); }}>
+              <BtnPrimary disabled={!canManage||saving||duplicating||!String(edit?.[catalogIdentifier(tab,kind)]??'').trim()||(isNew&&hasDuplicateIdentifier(rows,catalogIdentifier(tab,kind),edit?.[catalogIdentifier(tab,kind)]))} onClick={save}>{t("save")}</BtnPrimary>
+              <BtnSecondary disabled={saving} onClick={() => { setEdit(null); setIsNew(false); }}>
                 {t("cancel")}
               </BtnSecondary>
             </div>

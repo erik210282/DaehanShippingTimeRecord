@@ -603,5 +603,12 @@
   "country": "국가",
   "contact_name": "담당자 이름",
   "contact_email": "담당자 이메일",
-  "contact_phone": "담당자 전화번호"
+  "contact_phone": "담당자 전화번호",
+  "cat_duplicate": "복제",
+  "catalog_identifier_required": "저장하기 전에 새 식별자를 입력하세요.",
+  "catalog_duplicate_identifier": "이미 존재하는 식별자입니다. 다른 식별자를 입력하세요.",
+  "cat_duplicate_help": "정보가 복사되었습니다. 저장하려면 새 식별자를 입력하세요.",
+  "cat_copy_recipe": "원래 제품과 동일한 레시피 사용",
+  "cat_source_no_recipe": "원래 제품에 복사할 활성 레시피가 없습니다.",
+  "catalog_source_recipe_missing": "원래 레시피를 사용할 수 없어 제품이 저장되지 않았습니다."
 }
