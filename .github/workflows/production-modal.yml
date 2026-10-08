@@ -5,7 +5,8 @@ on:
       - 'src/pages/Production.jsx'
       - 'src/pages/Production.css'
       - 'src/components/ProductionCaptureFields.jsx'
-      - 'src/production/capture.mjs'
+      - 'src/production/**'
+      - 'src/components/ErrorPopup.jsx'
       - 'src/production/translations.js'
       - 'src/pages/Catalogos.css'
       - 'src/components/ProductionCatalog.jsx'
@@ -27,6 +28,8 @@ jobs:
       - run: npm ci
       - run: npm install --no-save --package-lock=false playwright@1.55.1
       - run: npx playwright install --with-deps chromium
+      - run: node tests/production-live.test.mjs
+      - run: node tests/production-live-ui.test.mjs
       - run: node tests/production-capture.test.mjs
       - run: node tests/production-modal.test.mjs
       - run: npm run build
