@@ -24,6 +24,7 @@ import { AnnouncementNotice, GlobalAnnouncements, useAnnouncementGate } from './
 import { useParams, Navigate } from 'react-router-dom';
 import Inventarios from './pages/Inventarios';
 import Receiving from './pages/Receiving';
+import Production from './pages/Production';
 // IMPORTANTE: El ToastContainer y CSS SOLO deben estar aquí en App.jsx
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -227,6 +228,7 @@ const Navbar = () => {
 function DepartmentRoute({ access }) {
   const { name } = useParams();
   if (name === 'receiving') return <Receiving access={access} />;
+  if (name === 'production') return <Production access={access} />;
   return <DepartmentLanding name={name} access={access} />;
 }
 

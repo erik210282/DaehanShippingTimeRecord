@@ -1,0 +1,56 @@
+
+export const blankIngredient=()=>({ingredient_id:'',quantity_per_unit:'',waste:'0'});
+export const blankPackingLine=()=>({ingredient_id:'',quantity:'',basis:'box',waste:'0'});
+export function recipePacking(bom,products=[]) {
+ const product=products.find(p=>p.part_number===bom.product_part_number);
+ return ['returnable','expendable'].map(type=>{
+  const profile=bom.inventory_bom_packaging?.find(p=>p.packaging_type===type);
+  return {packaging_type:type,enabled:!!profile,pieces_per_box:profile?.pieces_per_box??product?.[type==='returnable'?'cantidad_por_caja_retornable':'cantidad_por_caja_expendable']??'',box_name:profile?.box_name??product?.[type==='returnable'?'tipo_empaque_retornable':'tipo_empaque_expendable']??'',lines:profile?(bom.inventory_bom_packaging_lines||[]).filter(l=>l.packaging_type===type).map(l=>({...l,waste:String(Number(l.waste_rate)*100)})):[]};
+ });
+}
+export function isRepack(bom,itemId) {return !!itemId&&bom?.inventory_bom_lines?.length===1&&bom.inventory_bom_lines[0].ingredient_id===itemId;}
+export function isTurntable(station) {return /turn\s?table|t\/t/i.test(station?.name||'');}
+export function reportMetrics(r,profile) {
+ const clock=s=>{const [h,m]=String(s||'').split(':').map(Number);return h*60+m;};
+ const elapsed=clock(r.end_time)-clock(r.start_time)+(r.ends_next_day?1440:0);
+ const good=Number(r.machine_quantity||0)-Number(r.scrap_quantity||0)-Number(r.rework_quantity||0);
+ const packed=Number(r.full_boxes||0)*Number(profile?.pieces_per_box??r.pieces_per_box??0);
+ const worked=elapsed-Number(r.break_minutes||0);
+ return {elapsed,good,packed,wip:Math.max(0,good-packed),worked,laborHours:worked*Number(r.people||0)/60,idle:worked-Number(r.downtime_minutes||0)-Number(r.machine_minutes||0)};
+}
+export function validateReport(r,{station,bom,profile,forSubmit=true}={}) {
+ const m=reportMetrics(r,profile);
+ if(!station?.active)return 'pr_station_required';
+ if(!r.item_id)return 'pr_item_required';
+ const numbers=['machine_minutes','downtime_minutes','break_minutes','break_count','people','machine_quantity','scrap_quantity','rework_quantity','full_boxes','pallets'];
+ if(numbers.some(key=>r[key]===''||r[key]==null||!Number.isFinite(Number(r[key]))||Number(r[key])<0))return 'pr_invalid';
+ if(!Number.isFinite(m.elapsed)||m.elapsed<=0||m.elapsed>1440||Number(r.people)<1||m.idle<0||
+   (Number(r.break_count)===0)!==(Number(r.break_minutes)===0)||
+   (Number(r.downtime_minutes)>0&&!r.downtime_reason?.trim()))return 'pr_time_invalid';
+ if(['break_count','people','machine_quantity','scrap_quantity','rework_quantity','full_boxes','pallets'].some(key=>!Number.isInteger(Number(r[key])))||m.good<0||m.packed>m.good)return 'pr_quantity_invalid';
+ if(isTurntable(station)&&(r.turns===''||r.turns==null||!Number.isInteger(Number(r.turns))||Number(r.turns)<0))return 'pr_turns_required';
+ if(Number(r.full_boxes)>0&&!profile)return 'pr_pack_missing';
+ if(Number(r.full_boxes)===0&&Number(r.pallets)!==0)return 'pr_quantity_invalid';
+ if(Number(r.full_boxes)>0&&bom?.inventory_bom_packaging_lines?.some(l=>l.packaging_type===r.packaging_type&&l.basis==='pallet')&&Number(r.pallets)<=0)return 'pr_pallets_required';
+ if(forSubmit&&r.report_mode==='packing'&&(isRepack(bom,r.item_id)||Number(r.scrap_quantity)!==0||Number(r.rework_quantity)!==0||m.good!==m.packed||m.packed<=0))return 'pr_packing_only_invalid';
+ if(forSubmit&&isRepack(bom,r.item_id)&&(m.good!==m.packed||Number(r.rework_quantity)!==0))return 'pr_repack_boxes';
+ return null;
+}
+export function consumptionPreview(r,bom,items,profile) {
+ const metrics=reportMetrics(r,profile),self=isRepack(bom,r.item_id),total=Number(r.machine_quantity||0),map=new Map();
+ const add=(id,area,source,quantity)=>{
+  if(!(quantity>0))return;const key=id+':'+area+':'+source;
+  map.set(key,{ingredient_id:id,area,source,quantity:(map.get(key)?.quantity||0)+quantity});
+ };
+ if(r.report_mode==='packing')add(r.item_id,'WIP','wip',metrics.packed);
+ else if(self)add(r.item_id,'FG','repack',total);
+ else for(const l of bom?.inventory_bom_lines||[]){
+  const item=items.find(i=>i.id===l.ingredient_id);add(l.ingredient_id,item?.category==='SEMI'?'WIP':item?.category,'manufacturing',total*Number(l.quantity_per_unit)*(1+Number(l.waste_rate)));
+ }
+ if(metrics.packed>0)for(const l of bom?.inventory_bom_packaging_lines||[]){
+  if(l.packaging_type!==r.packaging_type)continue;
+  const base=l.basis==='piece'?metrics.packed:l.basis==='box'?Number(r.full_boxes):Number(r.pallets);
+  add(l.ingredient_id,'PACKAGING','packing',base*Number(l.quantity)*(1+Number(l.waste_rate)));
+ }
+ return [...map.values()];
+}

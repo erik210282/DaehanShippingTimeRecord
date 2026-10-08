@@ -2,6 +2,11 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useStat
 import { duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplication';
 import Modal from 'react-modal';
 import Papa from 'papaparse';
+import RecipePackingFields from './RecipePackingFields';
+import { blankIngredient,recipePacking } from '../production/model.mjs';
+import { registerProduction } from '../production/translations';
+import i18nInstance from '../i18n/i18n';
+registerProduction(i18nInstance);
 import { productionExport } from '../catalog/productionExport.mjs';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
@@ -19,14 +24,14 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  const stations=mode==='stations';
  const refresh=useCallback(async()=>{
   const [r,i,p]=await Promise.all([
-   unwrap(supabase.from(stations?'inventory_workstations':'inventory_boms').select(stations?'*':'*,inventory_bom_lines(*)').order(stations?'code':'product_part_number')),
+   unwrap(supabase.from(stations?'inventory_workstations':'inventory_boms').select(stations?'*':'*,inventory_bom_lines(*),inventory_bom_packaging(*),inventory_bom_packaging_lines(*)').order(stations?'code':'product_part_number')),
    unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active').order('part_number')),
-   unwrap(supabase.from('productos').select('id,part_number,nombre,descripcion,activo')),
+   unwrap(supabase.from('productos').select('id,part_number,nombre,descripcion,activo,tipo_empaque_retornable,tipo_empaque_expendable,cantidad_por_caja_retornable,cantidad_por_caja_expendable')),
   ]);
   setRows((r||[]).filter(x=>!x.archived));setItems(i||[]);setProducts(p||[]);
  },[stations]);
  useEffect(()=>{let live=true;const load=()=>live&&refresh().catch(e=>setError(e.message));load();setEdit(null);setSearch('');setExpanded(null);
-  const off=subscribeUpdates(supabase,'production-catalog-'+mode,['inventory_workstations','inventory_boms','inventory_bom_lines','catalog_updates','productos'],load);
+  const off=subscribeUpdates(supabase,'production-catalog-'+mode,['inventory_workstations','inventory_boms','inventory_bom_lines','inventory_bom_packaging','inventory_bom_packaging_lines','catalog_updates','productos'],load);
   return()=>{live=false;off();};},[mode,refresh]);
  const productFor=r=>products.find(p=>p.id===items.find(i=>i.id===r.finished_item_id)?.producto_id || (p.part_number===r.product_part_number && p.part_number!=='NA'));
  const nameFor=r=>productFor(r)?.nombre||'—';
@@ -42,15 +47,15 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  }
  function add(){
   if(!manage||busy)return;
-  setEdit(stations?{code:'',name:'',machine_type:'',materials:[],active:true,isNew:true}:{product_part_number:'',version:'',active:true,notes:'',lines:[{ingredient_id:'',quantity_per_unit:'',waste:'0'}],isNew:true});
+  setEdit(stations?{code:'',name:'',machine_type:'',materials:[],active:true,isNew:true}:{product_part_number:'',version:'',active:true,notes:'',lines:[blankIngredient()],packing:recipePacking({}),isNew:true});
  }
  function editRow(r){
-  setEdit(stations?{...r,materials:r.materials.map(m=>({...m})),isNew:false}:{...r,lines:r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})),isNew:false});
+  setEdit(stations?{...r,materials:r.materials.map(m=>({...m})),isNew:false}:{...r,lines:r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})),packing:recipePacking(r,products),isNew:false});
  }
  function duplicate(r){
   if(!manage||busy)return;
   const copy=duplicateCatalogRow(r,stations?'code':'product_part_number');
-  setEdit(stations?{...copy,materials:r.materials.map(m=>({...m})),isNew:true,duplicated:true}:{...copy,version:'',lines:r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})),isNew:true,duplicated:true});
+  setEdit(stations?{...copy,materials:r.materials.map(m=>({...m})),isNew:true,duplicated:true}:{...copy,version:'',lines:r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})),packing:recipePacking(r,products),isNew:true,duplicated:true});
  }
  async function save(){
   const key=stations?'code':'product_part_number';
@@ -64,7 +69,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   }else{
    const lines=edit.lines.map(l=>({ingredient_id:l.ingredient_id,quantity_per_unit:Number(l.quantity_per_unit),waste_rate:Number(l.waste)/100}));
    if(!edit.product_part_number.trim()||!lines.length||lines.some(l=>!l.ingredient_id||!Number.isFinite(l.quantity_per_unit)||l.quantity_per_unit<=0||!Number.isFinite(l.waste_rate)||l.waste_rate<0||l.waste_rate>=1))throw Error('catalog_recipe_required');
-   await unwrap(supabase.rpc('inventory_catalog_recipe',{p_action:'save',p_data:{id:edit.id,product_part_number:edit.product_part_number,version:edit.version||null,active:edit.active,notes:edit.notes,lines}}));
+   await unwrap(supabase.rpc('inventory_catalog_recipe',{p_action:'save',p_data:{id:edit.id,product_part_number:edit.product_part_number,version:edit.version||null,active:edit.active,notes:edit.notes,lines,packaging:edit.packing.filter(p=>p.enabled).map(p=>({packaging_type:p.packaging_type,box_name:p.box_name,pieces_per_box:Number(p.pieces_per_box),lines:p.lines.map(l=>({ingredient_id:l.ingredient_id,quantity:Number(l.quantity),basis:l.basis,waste_rate:Number(l.waste)/100}))}))}}));
   }
  }
  function remove(r){
@@ -72,8 +77,20 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   perform(async()=>{if(stations){const deleted=await unwrap(supabase.from('inventory_workstations').delete().eq('code',r.code).select('code'));if(!deleted.length)throw Error('receiving_forbidden');}
    else await unwrap(supabase.rpc('inventory_catalog_recipe',{p_action:'delete',p_data:{id:r.id}}));});
  }
- function updateLine(index,field,value){setEdit({...edit,lines:edit.lines.map((l,k)=>k===index?{...l,[field]:value}:l)});}
+ function updateLine(index,field,value){
+  if(field==='ingredient_id'&&items.find(i=>i.id===value)?.category==='FG'){
+   setEdit({...edit,lines:[{ingredient_id:value,quantity_per_unit:'1',waste:'0'}]});return;
+  }
+  setEdit({...edit,lines:edit.lines.map((l,k)=>k===index?{...l,[field]:value}:l)});
+ }
+ const outputFor=part=>items.find(i=>i.part_number===part&&['FG','SEMI'].includes(i.category));
+ const repackEdit=!!edit&&!stations&&edit.lines.some(l=>items.find(i=>i.id===l.ingredient_id)?.category==='FG');
+ function changeOutput(part){
+  const item=outputFor(part);
+  setEdit({...edit,product_part_number:part,...(repackEdit?{lines:[{ingredient_id:item?.category==='FG'?item.id:'',quantity_per_unit:'1',waste:'0'}]}:{}),...(edit.isNew&&!edit.packing.some(p=>p.enabled)?{packing:recipePacking({product_part_number:part},products)}:{})});
+ }
  const missing=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_lines?.length));
+ const missingPacking=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_packaging?.length));
  const editProduct=edit&&!stations?products.find(p=>p.part_number===edit.product_part_number):null;
  function clearFilters(){setSearch('');setPage(1);setExpanded(null);}
  function exportCSV(){
@@ -94,6 +111,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   {error&&<p className="inv-message" role="alert">{error}</p>}
   {!stations&&<div className="catalog-recipe-notices">
    <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('description')}</th></tr></thead><tbody>{missing.map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td></tr>)}</tbody></table></div></details>
+   <details><summary>{t('pr_missing_packing',{count:missingPacking.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th></tr></thead><tbody>{missingPacking.map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td></tr>)}</tbody></table></div></details>
   </div>}
   <div className="table-wrap catalog-table-scroll"><table className="table"><thead><tr>
    {stations?<><th>{t('inv_station_code')}</th><th>{t('name')}</th><th>{t('inv_station_type')}</th><th>{t('inv_station_materials')}</th></>:<><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('inv_version')}</th><th>{t('inv_recipe')}</th></>}
@@ -104,8 +122,9 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
     <td>{t(stations?(r.active?'active':'inactive'):status(r))}</td>
     <td><BtnEditDark disabled={!manage||busy} onClick={()=>editRow(r)}>{t('edit')}</BtnEditDark> <BtnSecondary disabled={!manage||busy} onClick={()=>duplicate(r)}>{t('cat_duplicate')}</BtnSecondary> <BtnDanger disabled={!manage||busy} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></td>
    </tr>
-   {!stations&&expanded===r.id&&<tr><td colSpan="6"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('name')}</th><th>{t('inv_qty_per_fg')}</th><th>{t('inv_unit')}</th><th>{t('cat_waste')}</th></tr></thead><tbody>
-    {r.inventory_bom_lines.map(l=>{const i=items.find(x=>x.id===l.ingredient_id);return <tr key={l.id}><td>{i?.part_number}</td><td>{i?.part_name||i?.description}</td><td>{fmt(l.quantity_per_unit)}</td><td>{i?.uom}</td><td>{fmt(Number(l.waste_rate)*100)}</td></tr>;})}
+   {!stations&&expanded===r.id&&<tr><td colSpan="6"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('name')}</th><th>{t('inv_qty_per_fg')}</th><th>{t('inv_unit')}</th><th>{t('cat_waste')}</th><th>{t('pr_packing_type')}</th><th>{t('pr_basis')}</th></tr></thead><tbody>
+    {r.inventory_bom_lines.map(l=>{const i=items.find(x=>x.id===l.ingredient_id);return <tr key={l.id}><td>{i?.part_number}</td><td>{i?.part_name||i?.description}</td><td>{fmt(l.quantity_per_unit)}</td><td>{i?.uom}</td><td>{fmt(Number(l.waste_rate)*100)}</td><td>—</td><td>{t('pr_per_piece')}</td></tr>;})}
+    {(r.inventory_bom_packaging_lines||[]).map(l=>{const i=items.find(x=>x.id===l.ingredient_id),profile=r.inventory_bom_packaging.find(p=>p.packaging_type===l.packaging_type);return <tr key={l.id}><td>{i?.part_number}</td><td>{i?.part_name||i?.description}</td><td>{fmt(l.quantity)}</td><td>{i?.uom}</td><td>{fmt(Number(l.waste_rate)*100)}</td><td>{t('pr_'+l.packaging_type)} · {profile?.box_name} · {profile?.pieces_per_box} {t('pr_pieces_per_box')}</td><td>{t('pr_per_'+l.basis)}</td></tr>;})}
    </tbody></table></td></tr>}
    </React.Fragment>)}
    {!visible.length&&<tr><td colSpan="6">{t('no_results_found')}</td></tr>}
@@ -119,8 +138,8 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
     {stations?<><CatalogInput required label={t('inv_station_code')} disabled={!edit.isNew} value={edit.code} onChange={e=>setEdit({...edit,code:e.target.value})}/>
      <CatalogInput required label={t('name')} value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})}/>
      <CatalogInput required label={t('inv_station_type')} value={edit.machine_type} onChange={e=>setEdit({...edit,machine_type:e.target.value})}/></>:<>
-     <CatalogInput required label={t('inv_ref_fg')} list="recipe-products" value={edit.product_part_number} onChange={e=>setEdit({...edit,product_part_number:e.target.value.toUpperCase()})}/>
-     <datalist id="recipe-products">{items.filter(i=>i.category==='FG').map(i=><option key={i.id} value={i.part_number}>{products.find(p=>p.id===i.producto_id)?.nombre}</option>)}</datalist>
+     <CatalogInput required label={t('inv_ref_fg')} list="recipe-products" value={edit.product_part_number} onChange={e=>changeOutput(e.target.value.toUpperCase())}/>
+     <datalist id="recipe-products">{items.filter(i=>['FG','SEMI'].includes(i.category)).map(i=><option key={i.id} value={i.part_number}>{products.find(p=>p.id===i.producto_id)?.nombre}</option>)}</datalist>
      <CatalogInput label={t('name')} readOnly value={editProduct?.nombre||t('cat_pending_product')}/>
      <CatalogInput label={t('inv_version')} type="number" min="1" step="1" value={edit.version} onChange={e=>setEdit({...edit,version:e.target.value})}/>
      <CatalogInput label={t('inv_notes')} value={edit.notes||''} onChange={e=>setEdit({...edit,notes:e.target.value})}/></>}
@@ -131,13 +150,14 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
      <CatalogInput label={t('name')} value={m.product||m.operation||''} onChange={e=>setEdit({...edit,materials:edit.materials.map((x,j)=>j===k?{...x,product:e.target.value}:x)})}/>
      <BtnDanger type="button" onClick={()=>setEdit({...edit,materials:edit.materials.filter((_,j)=>j!==k)})}>{t('delete')}</BtnDanger>
     </div>)}<BtnSecondary type="button" onClick={()=>setEdit({...edit,materials:[...edit.materials,{erp_material:'',product:''}]})}>{t('add')}</BtnSecondary></>:<>
-     <h3>{t('inv_recipe')}</h3><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('inv_qty_per_fg')}</th><th>{t('cat_waste')}</th><th>{t('actions')}</th></tr></thead><tbody>
-     {edit.lines.map((l,k)=><tr key={k}><td><CatalogSelect label={t('inv_part')} value={l.ingredient_id} onChange={v=>updateLine(k,'ingredient_id',v)} options={items.filter(i=>['RAW','PACKAGING'].includes(i.category)&&(i.active||i.id===l.ingredient_id)).map(i=>({value:i.id,label:i.part_number+' · '+(i.part_name||i.description)+' ('+i.uom+')'}))}/></td>
-      <td><CatalogInput required label={t('inv_qty_per_fg')} type="number" min="0.000001" step="any" value={l.quantity_per_unit} onChange={e=>updateLine(k,'quantity_per_unit',e.target.value)}/></td>
-      <td><CatalogInput required label={t('cat_waste')} type="number" min="0" max="99.99" step="any" value={l.waste} onChange={e=>updateLine(k,'waste',e.target.value)}/></td>
+     <h3>{t('inv_recipe')}</h3><p className="inv-muted">{t('pr_repack_hint')}</p>{repackEdit&&<p className="inv-message">{t('pr_repack_exclusive')}</p>}<div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('inv_qty_per_fg')}</th><th>{t('cat_waste')}</th><th>{t('actions')}</th></tr></thead><tbody>
+     {edit.lines.map((l,k)=><tr key={k}><td><CatalogSelect label={t('inv_part')} value={l.ingredient_id} onChange={v=>updateLine(k,'ingredient_id',v)} options={items.filter(i=>(['RAW','PACKAGING','SEMI'].includes(i.category)||(i.category==='FG'&&i.id===outputFor(edit.product_part_number)?.id))&&(i.active||i.id===l.ingredient_id)).map(i=>({value:i.id,label:i.part_number+' · '+(i.part_name||i.description)+' ('+i.uom+')'}))}/></td>
+      <td><CatalogInput required disabled={repackEdit} label={t('inv_qty_per_fg')} type="number" min="0.000001" step="any" value={l.quantity_per_unit} onChange={e=>updateLine(k,'quantity_per_unit',e.target.value)}/></td>
+      <td><CatalogInput required disabled={repackEdit} label={t('cat_waste')} type="number" min="0" max="99.99" step="any" value={l.waste} onChange={e=>updateLine(k,'waste',e.target.value)}/></td>
       <td><BtnDanger type="button" onClick={()=>setEdit({...edit,lines:edit.lines.filter((_,j)=>j!==k)})}>{t('delete')}</BtnDanger></td></tr>)}
      </tbody></table></div>
-     <BtnSecondary type="button" onClick={()=>setEdit({...edit,lines:[...edit.lines,{ingredient_id:'',quantity_per_unit:'',waste:'0'}]})}>{t('inv_add_ingredient')}</BtnSecondary>
+     <BtnSecondary disabled={repackEdit} type="button" onClick={()=>setEdit({...edit,lines:[...edit.lines,blankIngredient()]})}>{t('inv_add_ingredient')}</BtnSecondary>
+     <RecipePackingFields packing={edit.packing} setPacking={packing=>setEdit({...edit,packing})} items={items} product={editProduct}/>
     </>}
     </fieldset>
     {error&&<p role="alert" className="inv-message">{error}</p>}
