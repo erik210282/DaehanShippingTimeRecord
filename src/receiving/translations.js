@@ -68,6 +68,7 @@ const phrases = {
  membership: ['Acceso A Receiving', 'Receiving Access', '입고 접근'],
 };
 Object.assign(phrases, {
+ box_type:['Tipo de caja','Box type','박스 유형'],returnable:['Retornable','Returnable','반납용'],expendable:['Expendable','Expendable','소모용'],packing_material_only:['Material de empaque (sin caja)','Packing material (not a box)','포장 자재 (박스 아님)'],
  packing_weight:['Peso','Weight','무게'],weight_unit:['Unidad de peso','Weight unit','무게 단위'],packing_measures:['Medidas','Measures','치수'],packing_measures_example:['Ej. 120 × 100 × 15 cm','E.g. 120 × 100 × 15 cm','예: 120 × 100 × 15 cm'],preassigned_location:['Ubicación preasignada','Preassigned location','사전 지정 위치'],
  release:['Liberar','Release','해제'],
  receiving_operator_busy:phrases.operator_busy,

@@ -64,7 +64,7 @@ export default function Catalogos({ access }) {
   const request = useRef(0), currentTab = useRef(tab);
   currentTab.current = tab;
   const setRows = next => setSnapshot({ tab, rows: next });
-  const [locations,setLocations]=useState([]),[materials,setMaterials]=useState([]),[suppliers,setSuppliers]=useState([]);
+  const [locations,setLocations]=useState([]),[materials,setMaterials]=useState([]),[suppliers,setSuppliers]=useState([]),[packingItems,setPackingItems]=useState([]);
   const [typeFilter,setTypeFilter]=useState(''),[hideInactive,setHideInactive]=useState(true);
   const canManage=access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role));
   const kind=catalogKinds[tab];
@@ -100,7 +100,7 @@ export default function Catalogos({ access }) {
     peso_caja_expendable: "",
     cantidad_por_caja_retornable: "",
     cantidad_por_caja_expendable: "",
-    activo: true, category:'FG', material_type:'FG',uom:'EA',minimum_quantity:'0',responsible_department:'shipping',default_location:'',locations:[],supplier_id:'',lead_time_days:'',packing_weight:'',packing_weight_unit:'kg',packing_measures:'',
+    activo: true, category:'FG', material_type:'FG',uom:'EA',minimum_quantity:'0',responsible_department:'shipping',default_location:'',locations:[],supplier_id:'',lead_time_days:'',packing_type:'',packing_weight:'',packing_weight_unit:'kg',packing_measures:'',
   };
 
   const poDefaults = {
@@ -179,7 +179,7 @@ export default function Catalogos({ access }) {
     setLoading(true);
     try {
       const [stock,products,locs,types,assignments,itemTypes,supplierRows] = await Promise.all([
-        unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active,part_name,supplier_id,lead_time_days,packing_weight,packing_weight_unit,packing_measures').order('part_number')),
+        unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active,part_name,supplier_id,lead_time_days,packing_type,packing_weight,packing_weight_unit,packing_measures').order('part_number')),
         unwrap(supabase.from('productos').select('*').order('nombre')),
         unwrap(supabase.from('receiving_locations').select('*').order('code')),
         unwrap(supabase.from('receiving_material_types').select('*').order('code')),
@@ -188,9 +188,9 @@ export default function Catalogos({ access }) {
         unwrap(supabase.from('receiving_suppliers').select('*').order('name')),
       ]);
       if (!current()) return;
-      setLocations(locs.filter(r=>!r.archived));setMaterials(types.filter(r=>!r.archived));setSuppliers(supplierRows.filter(r=>!r.archived));
+      setPackingItems(stock.filter(i=>i.category==='PACKAGING'));setLocations(locs.filter(r=>!r.archived));setMaterials(types.filter(r=>!r.archived));setSuppliers(supplierRows.filter(r=>!r.archived));
       if(tab==='productos') {
-        const metadata=i=>({inventory_id:i?.id,packing_weight:i?.packing_weight??'',packing_weight_unit:i?.packing_weight_unit||'kg',packing_measures:i?.packing_measures||'',producto_id:i?.producto_id,supplier_id:i?.supplier_id||'',lead_time_days:i?.lead_time_days??'',category:i?.category||'FG',material_type:itemTypes.find(m=>m.item_id===i?.id)?.material_type||i?.category||'FG',uom:i?.uom||'EA',minimum_quantity:i?.minimum_quantity??0,responsible_department:i?.responsible_department||'inventory',default_location:i?.default_location||'',locations:assignments.filter(a=>a.item_id===i?.id).map(a=>a.location_id)});
+        const metadata=i=>({inventory_id:i?.id,packing_type:i?.packing_type||'',packing_weight:i?.packing_weight??'',packing_weight_unit:i?.packing_weight_unit||'kg',packing_measures:i?.packing_measures||'',producto_id:i?.producto_id,supplier_id:i?.supplier_id||'',lead_time_days:i?.lead_time_days??'',category:i?.category||'FG',material_type:itemTypes.find(m=>m.item_id===i?.id)?.material_type||i?.category||'FG',uom:i?.uom||'EA',minimum_quantity:i?.minimum_quantity??0,responsible_department:i?.responsible_department||'inventory',default_location:i?.default_location||'',locations:assignments.filter(a=>a.item_id===i?.id).map(a=>a.location_id)});
         setRows([...products.map(p=>({...p,...metadata(stock.find(i=>i.producto_id===p.id))})),...stock.filter(i=>!i.producto_id).map(i=>({id:i.id,nombre:i.part_name||i.description,descripcion:i.description,part_number:i.part_number,activo:i.active,...metadata(i)}))]);
       } else {
         const table=kind==='supplier'?'receiving_suppliers':kind==='location'?'receiving_locations':kind==='material'?'receiving_material_types':tableName;
@@ -265,7 +265,7 @@ async function save() {
         if(!edit.part_number?.trim())throw Error(t('fill_all_fields'));
         const shipping={...edit};
         for(const key of ['peso_por_pieza','peso_caja_retornable','peso_caja_expendable','cantidad_por_caja_retornable','cantidad_por_caja_expendable'])shipping[key]=shipping[key]===''?null:shipping[key];
-        data={...(edit.category==='PACKAGING'?{packing_weight:edit.packing_weight===''?null:quantity(edit.packing_weight,true),packing_weight_unit:edit.packing_weight_unit||'kg',packing_measures:edit.packing_measures||null}:{}),id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,part_name:edit.nombre,supplier_id:edit.supplier_id||null,lead_time_days:edit.lead_time_days===''?null:Number(edit.lead_time_days),material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.category==='FG'?'shipping':'receiving',default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
+        data={...(edit.category==='PACKAGING'?{packing_type:edit.packing_type||null,packing_weight:edit.packing_weight===''?null:quantity(edit.packing_weight,true),packing_weight_unit:edit.packing_weight_unit||'kg',packing_measures:edit.packing_measures||null}:{}),id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,part_name:edit.nombre,supplier_id:edit.supplier_id||null,lead_time_days:edit.lead_time_days===''?null:Number(edit.lead_time_days),material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.category==='FG'?'shipping':'receiving',default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
       } else if(kind==='material')data={...edit,id:undefined};
       data={...data,is_new:isNew,...(tab==='productos'&&edit.category==='FG'&&edit.copyRecipe?{copy_recipe_from_part:edit.sourcePart}:{})};
       await unwrap(supabase.rpc('shared_catalog',{p_kind:kind||'item',p_data:data}));
@@ -471,7 +471,7 @@ async function save() {
     const data = (filtered || []).map((r) => {
       if(kind)return {Code:r.code,Name:kind==='material'?materialLabel(r,t):r.name,...(kind==='supplier'?Object.fromEntries(addressFields.map(k=>[k,r[k]||''])):{Type:kind==='material'?r.category:r.material_type}),Status:t(r.active?'active':'inactive')};
       if (tab === "productos") {
-        if(typeFilter==='PACKAGING')return {Name:r.nombre,'Part Number':r.part_number,Description:r.descripcion,Type:r.material_type,Weight:r.packing_weight,'Weight unit':r.packing_weight_unit||'kg',Measures:r.packing_measures,'Minimum Stock':r.minimum_quantity,Unit:r.uom,'Preassigned location':r.default_location,Status:t(r.activo?'active':'inactive')};
+        if(typeFilter==='PACKAGING')return {Name:r.nombre,'Part Number':r.part_number,Description:r.descripcion,Type:r.packing_type?t('rc_'+r.packing_type):r.material_type,Weight:r.packing_weight,'Weight unit':r.packing_weight_unit||'kg',Measures:r.packing_measures,'Minimum Stock':r.minimum_quantity,Unit:r.uom,'Preassigned location':r.default_location,Status:t(r.activo?'active':'inactive')};
         return {
           [t("name")]: r.nombre || "",
           PartNumber: r.part_number || "",Type:r.material_type,Minimum:r.minimum_quantity,Unit:r.uom,Locations:(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', '),
@@ -637,7 +637,7 @@ async function save() {
                         <td>{r.nombre}</td>
                         <td>{r.part_number}</td>
                         <td>{r.descripcion}</td>
-                        <td>{materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>{(!typeFilter||typeFilter==='PACKAGING')&&<><td>{r.packing_weight!==''&&r.packing_weight!=null?r.packing_weight+' '+(r.packing_weight_unit||'kg'):'—'}</td><td>{r.packing_measures||'—'}</td></>}<td>{r.minimum_quantity}</td><td>{r.uom}</td><td>{typeFilter==='PACKAGING'?(r.default_location||'—'):(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', ')||t('rc_all')}</td>
+                        <td>{materialLabel(materials.find(m=>m.code===r.material_type),t)}{r.category==='PACKAGING'&&r.packing_type&&<> · {t('rc_'+r.packing_type)}</>}</td>{(!typeFilter||typeFilter==='PACKAGING')&&<><td>{r.packing_weight!==''&&r.packing_weight!=null?r.packing_weight+' '+(r.packing_weight_unit||'kg'):'—'}</td><td>{r.packing_measures||'—'}</td></>}<td>{r.minimum_quantity}</td><td>{r.uom}</td><td>{typeFilter==='PACKAGING'?(r.default_location||'—'):(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', ')||t('rc_all')}</td>
                         {typeFilter!=='FG'&&typeFilter!=='PACKAGING'&&<><td>{suppliers.find(s=>s.id===r.supplier_id)?.name||'—'}</td><td>{supplierAddress(suppliers.find(s=>s.id===r.supplier_id))||'—'}</td><td>{r.lead_time_days??'—'}</td></>}{(!typeFilter||typeFilter==='FG')&&<><td>{r.peso_por_pieza}</td>
                         <td>{r.bin_type}</td>
                         <td>{r.tipo_empaque_retornable}</td>
@@ -759,7 +759,7 @@ async function save() {
             <h3>{isNew ? t('add') : t('edit')} · {t(kind?`rc_${kind==='material'?'material_types':kind}`:tab==='productos'?'products':tab==='pos'?'po':tab==='shipper'?'shipper':'activities')}</h3>
             {kind && edit && <SharedCatalogFields kind={kind} edit={edit} setEdit={setEdit} materials={materials}/>}
 
-            {tab === 'productos' && edit && <ProductCatalogFields edit={edit} setEdit={setEdit} materials={materials} locations={locations} suppliers={suppliers}/>}
+            {tab === 'productos' && edit && <ProductCatalogFields edit={edit} setEdit={setEdit} materials={materials} locations={locations} suppliers={suppliers} packingItems={packingItems}/>}
 
             {tab === "pos" && (
               <div
