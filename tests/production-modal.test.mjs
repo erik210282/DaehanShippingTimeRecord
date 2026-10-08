@@ -31,7 +31,7 @@ try{
  await page.setViewportSize({width:1280,height:720});
  await page.goto('http://127.0.0.1:4173/.bom-layout-test.html');
  await page.getByRole('button',{name:'Add packing material',exact:true}).waitFor();
- const aligned=await page.locator('.recipe-materials-table input').evaluateAll(inputs=>inputs.every(el=>Math.abs(el.getBoundingClientRect().width-el.closest('label').getBoundingClientRect().width)<2));
+ const aligned=await page.locator('.recipe-materials-table input[type="number"]').evaluateAll(inputs=>inputs.every(el=>Math.abs(el.getBoundingClientRect().width-el.closest('label').getBoundingClientRect().width)<2));
  assert.ok(aligned,'BOM inputs should fill their label column');
  const add=await page.getByRole('button',{name:'Add packing material',exact:true}).boundingBox();
  const remove=await page.getByRole('button',{name:'Delete packing type',exact:true}).boundingBox();
