@@ -13,14 +13,14 @@ import {subscribeUpdates} from '../realtime';
 import {usePageSection} from '../usePageSection';
 import {registerProduction} from '../production/translations';
 import {recipeSelect,normalizeRecipes} from '../production/queries.mjs';
-import {reportMetrics,consumptionPreview,isRepack,isTurntable,validateReport,prepareReport,reportDowntimes,blankDowntime,downtimeTypes,automaticPallets} from '../production/model.mjs';
+import {reportMetrics,consumptionPreview,isRepack,isTurntable,validateReport,prepareReport,reportDowntimes,blankDowntime,downtimeTypes,automaticPallets,packingProfiles} from '../production/model.mjs';
 import i18n from '../i18n/i18n';
 import './Production.css';
 import './Catalogos.css';
 registerProduction(i18n);
 const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return data;};
 const day=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
-const blank=()=>({id:crypto.randomUUID(),production_date:day(),station_code:'',item_id:'',start_time:'',end_time:'',ends_next_day:false,machine_minutes:'',downtime_minutes:'0',downtime_reason:'',break_count:'0',break_minutes:'0',people:'',machine_quantity:'0',scrap_quantity:'0',rework_quantity:'0',packaging_type:'',full_boxes:'0',pallets:'0',pieces_per_box:0,turns:'',report_mode:'production',note:'',status:'draft',downtime_events:[]});
+const blank=()=>({id:crypto.randomUUID(),production_date:day(),station_code:'',item_id:'',start_time:'',end_time:'',ends_next_day:false,machine_minutes:'',downtime_minutes:'0',downtime_reason:'',break_count:'0',break_minutes:'0',people:'',machine_quantity:'0',scrap_quantity:'0',rework_quantity:'0',packaging_type:'',full_boxes:'0',pallets:'0',pieces_per_box:0,turns:'',report_mode:'production',note:'',status:'draft',downtime_events:[],rework_completed:true,catalog_packing:true});
 const tables=['production_station_reports','production_station_consumptions','inventory_production_reports','inventory_workstations','inventory_items','inventory_boms','inventory_bom_lines','inventory_bom_packaging','inventory_bom_packaging_lines','inventory_movements','catalog_updates','productos'];
 export default function Production({access}) {
  const {t,i18n:lang}=useTranslation(),navigate=useNavigate();
@@ -40,7 +40,7 @@ export default function Production({access}) {
   const version=++request.current;
   const [reports,items,stations,boms,balances,consumptions]=await Promise.all([
    unwrap(supabase.from('production_station_reports').select('*').order('production_date',{ascending:false}).order('created_at',{ascending:false})),
-   unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active,productos(nombre,descripcion)').order('part_number')),
+   unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active,packing_type,productos(nombre,descripcion,tipo_empaque_retornable,tipo_empaque_expendable,cantidad_por_caja_retornable,cantidad_por_caja_expendable)').order('part_number')),
    unwrap(supabase.from('inventory_workstations').select('*').order('code')),
    unwrap(supabase.from('inventory_boms').select(recipeSelect).eq('archived',false)),
    unwrap(supabase.from('inventory_balances').select('item_id,area,quantity')),
@@ -51,7 +51,8 @@ export default function Production({access}) {
  useEffect(()=>{live.current=true;refresh().catch(e=>{if(live.current){setError(e.message);setLoading(false);}});const off=subscribeUpdates(supabase,'production-web',tables,()=>refresh().catch(e=>live.current&&setError(e.message)));return()=>{live.current=false;++request.current;off();};},[refresh]);
  const itemFor=r=>data.items.find(i=>i.id===r.item_id),stationFor=r=>data.stations.find(s=>s.code===r.station_code);
  const bomFor=r=>data.boms.find(b=>b.id===r.bom_id)||data.boms.find(b=>b.finished_item_id===r.item_id&&b.active);
- const profileFor=(r,bom=bomFor(r))=>bom?.inventory_bom_packaging?.find(p=>p.packaging_type===r.packaging_type);
+ const profilesFor=(r,bom=bomFor(r))=>r.catalog_packing===false?(bom?.inventory_bom_packaging||[]):packingProfiles(itemFor(r),bom,data.items);
+ const profileFor=(r,bom=bomFor(r))=>profilesFor(r,bom).find(p=>p.packaging_type===r.packaging_type);
  const editable=r=>r.status==='draft'&&(manage||r.created_by===access.userId);
  const filtered=useMemo(()=>data.reports.filter(r=>{
   const i=data.items.find(i=>i.id===r.item_id),s=data.stations.find(s=>s.code===r.station_code);
@@ -107,7 +108,7 @@ export default function Production({access}) {
  const repack=edit&&isRepack(eBom,edit.item_id);
  const preview=r=>r.status==='posted'?data.consumptions.filter(c=>c.report_id===r.id):consumptionPreview(r,bomFor(r),data.items,profileFor(r));
  const stock=(id,area)=>Number(data.balances.find(b=>b.item_id===id&&b.area===area)?.quantity||0);
- const numeric=(key,label,{min=0,step='1',required=true}={})=><CatalogInput key={key} label={t(label)} required={required} type="number" min={min} step={step} value={edit[key]??''} onChange={ev=>setEdit({...edit,[key]:ev.target.value})}/>;
+ const numeric=(key,label,{min=0,step='1',required=true}={})=><CatalogInput key={key} label={t(label)} required={required} inputMode={step==='1'?'numeric':'decimal'} type="number" min={min} step={step} value={edit[key]??''} onChange={ev=>setEdit({...edit,[key]:ev.target.value})}/>;
  const consumptionTable=r=><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('name')}</th><th>{t('inv_area')}</th><th>{t('pr_consume')}</th><th>{t('inv_unit')}</th>{r.status!=='posted'&&<th>{t('inv_balance')}</th>}</tr></thead><tbody>
   {preview(r).map(c=>{const i=data.items.find(i=>i.id===c.ingredient_id);return <tr key={c.ingredient_id+c.area+c.source}><td>{i?.part_number}</td><td>{i?.part_name}</td><td>{t('inv_area_'+c.area)}</td><td>{fmt(c.quantity)}</td><td>{i?.uom}</td>{r.status!=='posted'&&<td className={stock(c.ingredient_id,c.area)<c.quantity?'production-short':''}>{fmt(stock(c.ingredient_id,c.area))}</td>}</tr>;})}
  </tbody></table></div>;
@@ -141,7 +142,7 @@ export default function Production({access}) {
    </tbody></table><TablePagination totalRows={filtered.length} page={Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}}/></div>}
   </section>
  </main>
- <Modal isOpen={!!edit} contentLabel={t('pr_new_report')} onRequestClose={()=>!busy&&setEdit(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0f172a99'},content:{width:'min(1040px, calc(100vw - 32px))',maxHeight:'90vh',inset:'50% auto auto 50%',transform:'translate(-50%,-50%)',borderRadius:14}}}>
+ <Modal className="production-modal" isOpen={!!edit} contentLabel={t('pr_new_report')} onRequestClose={()=>!busy&&setEdit(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0f172a99'},content:{width:'min(1040px, calc(100vw - 32px))',maxHeight:'90vh',inset:'50% auto auto 50%',transform:'translate(-50%,-50%)',borderRadius:14}}}>
  {edit&&<form ref={form} className="production-form production-dialog" onSubmit={ev=>{ev.preventDefault();action('save',edit);}}>
   <header className="production-dialog-header"><h2>{t('pr_new_report')}</h2></header>
   <fieldset disabled={busy} className="production-editor">
@@ -170,11 +171,11 @@ export default function Production({access}) {
    {numeric('machine_quantity','pr_machine_quantity')}{numeric('scrap_quantity','pr_scrap')}{numeric('rework_quantity','pr_rework')}<CatalogInput label={t('pr_good')} readOnly value={fmt(metrics.good)}/>
   </div></section>
   <section className="production-section"><h3>{t('pr_packing')}</h3><p className="inv-muted">{t('pr_packing_capture_hint')}</p><div className="production-form-grid production-form-grid-four">
-   <CatalogSelect label={t('pr_packing_type')} value={edit.packaging_type} onChange={packaging_type=>setEdit({...edit,packaging_type})} options={(eBom?.inventory_bom_packaging||[]).map(p=>({value:p.packaging_type,label:t('pr_'+p.packaging_type)+' · '+p.box_name}))}/>
+   <CatalogSelect label={t('pr_packing_type')} value={edit.packaging_type} onChange={packaging_type=>setEdit({...edit,packaging_type})} options={profilesFor(edit,eBom).map(p=>({value:p.packaging_type,label:t('pr_'+p.packaging_type)+' · '+p.box_name}))}/>
    {numeric('full_boxes','pr_boxes')}<CatalogInput label={t('pr_pieces_per_box')} readOnly value={eProfile?.pieces_per_box||'—'}/><CatalogInput label={t('pr_packed')} readOnly value={fmt(metrics.packed)}/>
   </div><p className="inv-muted">{t('pr_pallet_auto_hint')}</p>
    {!eBom&&edit.item_id&&<p className="inv-message">{t('pr_recipe_missing')}</p>}
-   {eBom&&!eBom.inventory_bom_packaging?.length&&<p className="inv-message">{t('pr_pack_missing')}</p>}
+   {edit.item_id&&!profilesFor(edit,eBom).length&&<p className="inv-message">{t('pr_pack_catalog_required')}</p>}
    {automaticPallets(edit,eBom,eProfile)===null&&<p role="alert" className="inv-message">{t('pr_pallet_capacity')}</p>}
    {repack&&<p className="inv-message">{t('pr_repack_boxes')}</p>}
    {edit.report_mode==='packing'&&<p className="inv-muted">{t('pr_packing_only_hint')}</p>}
@@ -190,7 +191,7 @@ export default function Production({access}) {
   </footer>
  </form>}
  </Modal>
- <Modal isOpen={!!review} onRequestClose={()=>!busy&&setReview(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0008'},content:{width:'min(1000px, calc(100vw - 32px))',maxHeight:'88vh',inset:'50% auto auto 50%',transform:'translate(-50%,-50%)'}}}>
+ <Modal className="production-modal" isOpen={!!review} onRequestClose={()=>!busy&&setReview(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0008'},content:{width:'min(1000px, calc(100vw - 32px))',maxHeight:'88vh',inset:'50% auto auto 50%',transform:'translate(-50%,-50%)'}}}>
  {review&&<div className="production-form"><h2>{t('pr_details')} · {review.production_date}</h2>
   <p><strong>{review.station_code} · {stationFor(review)?.name}</strong></p><p>{itemFor(review)?.part_number} · {itemFor(review)?.part_name}</p>
   <div className="production-metrics">{[['pr_machine_quantity',review.machine_quantity],['pr_good',review.good_quantity],['pr_scrap',review.scrap_quantity],['pr_rework',review.rework_quantity],['pr_boxes',review.full_boxes],['pr_packed',review.packed_quantity],['pr_total_hours',review.elapsed_minutes/60],['pr_machine_minutes',review.machine_minutes],['pr_total_downtime',reportMetrics(review).totalDowntime],['pr_people',review.people],['pr_labor_hours',reportMetrics(review).laborHours]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
