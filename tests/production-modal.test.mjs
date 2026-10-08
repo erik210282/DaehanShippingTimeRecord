@@ -11,6 +11,8 @@ fs.writeFileSync(fixture+'.html','<html><head><meta name="viewport" content="wid
 fs.writeFileSync(fixture+'.jsx',`import React from 'react';import {createRoot} from 'react-dom/client';import Modal from 'react-modal';import './src/pages/Production.css';Modal.setAppElement('#root');const styles=${JSON.stringify(styles)};createRoot(document.getElementById('root')).render(<Modal isOpen style={styles} contentLabel="New production report"><form className="production-form production-dialog"><h2>New production report</h2>{Array.from({length:12},(_,i)=><section className="production-section" key={i}><h3>Section {i+1}</h3><div className="production-form-grid"><label>Station<input/></label><label>Product<input/></label></div></section>)}<footer className="catalog-actions production-dialog-actions"><button type="button">Save draft</button><button type="button">Submit for review</button><button type="button">Cancel</button></footer></form></Modal>);`);
 fs.writeFileSync('.bom-layout-test.html','<html><head><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0"><div id="root"></div><script type="module" src="/.bom-layout-test.jsx"></script></body></html>');
 fs.writeFileSync('.bom-layout-test.jsx',"import React,{useState} from 'react';import {createRoot} from 'react-dom/client';import i18n from 'i18next';import {initReactI18next} from 'react-i18next';import RecipePackingFields from './src/components/RecipePackingFields';import {registerProduction} from './src/production/translations';import './src/pages/Catalogos.css';i18n.use(initReactI18next).init({lng:'en',resources:{en:{translation:{quantity:'Quantity',delete:'Delete',actions:'Actions',inv_part:'Part',cat_waste:'Waste (%)',rc_select:'Select...'}}}});registerProduction(i18n);function Fixture(){const [packing,setPacking]=useState([{packaging_type:'1',box_name:'Expendable',pieces_per_box:7,lines:[{ingredient_id:'box',quantity:1,basis:'box',waste:0}]}]);return <form className=\"catalog-page catalog-dialog catalog-recipe-dialog\" style={{padding:24,maxWidth:1050,margin:'auto'}}><RecipePackingFields packing={packing} setPacking={setPacking} items={[{id:'box',category:'PACKAGING',active:true,part_number:'BOX',part_name:'Cardboard',uom:'PCS'}]}/></form>;}createRoot(document.getElementById('root')).render(<Fixture/>);");
+fs.writeFileSync('.production-capture-test.html','<html><head><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body><div id="root"></div><script type="module" src="/.production-capture-test.jsx"></script></body></html>');
+fs.writeFileSync('.production-capture-test.jsx',"import React,{useState} from 'react';import {createRoot} from 'react-dom/client';import i18n from 'i18next';import {initReactI18next} from 'react-i18next';import {CatalogInput} from './src/components/SharedCatalogFields';import {ProductionClockInput,ProductionStaffNames,ProductionDowntimes,ProductionCompleteBoxes} from './src/components/ProductionCaptureFields';import {normalizeCapture} from './src/production/capture.mjs';import {reportMetrics} from './src/production/model.mjs';import {registerProduction} from './src/production/translations';import './src/pages/Production.css';import './src/pages/Catalogos.css';i18n.use(initReactI18next).init({lng:'en',resources:{en:{translation:{rc_select:'Select...',delete:'Delete'}}}});registerProduction(i18n);function Fixture(){const [report,setReport]=useState({people:'',staff_names:'',start_time:'',end_time:'',full_boxes:'0',machine_quantity:60,scrap_quantity:0,rework_quantity:0,rework_completed:true,downtime_events:[]});const captured=normalizeCapture(report),profile={pieces_per_box:12},metrics=reportMetrics(captured,profile);return <form className=\"production-form production-dialog\" style={{padding:24}}><CatalogInput label=\"People\" type=\"number\" value={report.people} onChange={e=>setReport({...report,people:e.target.value})}/><ProductionStaffNames report={report} onChange={setReport}/><ProductionClockInput label=\"Shift start\" value={report.start_time} onChange={start_time=>setReport({...report,start_time})}/><ProductionClockInput label=\"Shift end\" value={report.end_time} onChange={end_time=>setReport({...report,end_time})}/><ProductionDowntimes report={report} captured={captured} onChange={setReport}/><ProductionCompleteBoxes report={report} profile={profile} good={metrics.good} onChange={setReport}/><output aria-label=\"Packed pieces\">{metrics.packed}</output><output aria-label=\"Effective minutes\">{metrics.machine}</output></form>;}createRoot(document.getElementById('root')).render(<Fixture/>);");
 const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','4173'],{stdio:'ignore'});
 let browser;
 try{
@@ -39,5 +41,25 @@ try{
  const pieces=await page.getByRole('spinbutton',{name:'Pieces per box',exact:true}).boundingBox();
  const label=await page.locator('.recipe-packing-fields .catalog-field').nth(1).boundingBox();
  assert.ok(Math.abs(pieces.width-label.width)<2,'Pieces per box should fill its grid column');
- console.log('Production modal stays centered, within viewport and scrollable at desktop and phone sizes');
-}finally{await browser?.close();server.kill();fs.rmSync(fixture+'.html',{force:true});fs.rmSync(fixture+'.jsx',{force:true});fs.rmSync('.bom-layout-test.html',{force:true});fs.rmSync('.bom-layout-test.jsx',{force:true});}
+ await page.goto('http://127.0.0.1:4173/.production-capture-test.html');
+ await page.getByLabel('People',{exact:true}).waitFor();
+ assert.equal(await page.getByLabel('Comment: staff names (optional)',{exact:true}).count(),0);
+ await page.getByLabel('People',{exact:true}).fill('2');
+ await page.getByLabel('Comment: staff names (optional)',{exact:true}).fill('Ana, Luis');
+ await page.getByLabel('Shift start',{exact:true}).fill('0800');
+ await page.getByLabel('Shift end',{exact:true}).fill('1600');
+ assert.equal(await page.getByLabel('Shift start',{exact:true}).inputValue(),'08:00');
+ await page.getByRole('button',{name:'Add downtime',exact:true}).click();
+ await page.getByLabel('Downtime start',{exact:true}).fill('1000');
+ await page.getByLabel('Downtime end',{exact:true}).fill('1015');
+ assert.equal(await page.getByLabel('Duration (min)',{exact:true}).inputValue(),'15');
+ assert.equal(await page.getByLabel('Note (optional)',{exact:true}).evaluate(el=>el.required),false);
+ assert.equal(await page.getByLabel('Effective minutes',{exact:true}).textContent(),'465');
+ const boxes=page.getByLabel('Full boxes',{exact:true});
+ await boxes.fill('6');
+ assert.equal(await boxes.evaluate(el=>el.validity.rangeOverflow),true);
+ await boxes.fill('5');
+ assert.equal(await boxes.evaluate(el=>el.checkValidity()),true);
+ assert.equal(await page.getByLabel('Packed pieces',{exact:true}).textContent(),'60');
+ console.log('Production capture parity and modal stays centered, within viewport and scrollable at desktop and phone sizes');
+}finally{await browser?.close();server.kill();fs.rmSync(fixture+'.html',{force:true});fs.rmSync(fixture+'.jsx',{force:true});fs.rmSync('.bom-layout-test.html',{force:true});fs.rmSync('.bom-layout-test.jsx',{force:true});fs.rmSync('.production-capture-test.html',{force:true});fs.rmSync('.production-capture-test.jsx',{force:true});}

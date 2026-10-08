@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {maximumCompleteBoxes,downtimeSchedule,normalizeCapture,formatTimeInput} from '../src/production/capture.mjs';
+import {reportMetrics,validateReport} from '../src/production/model.mjs';
+assert.equal(maximumCompleteBoxes(60,12),5);assert.equal(maximumCompleteBoxes(59,12),4);assert.equal(maximumCompleteBoxes(-1,12),0);
+assert.equal(formatTimeInput('08 a:30'),'08:30');
+const report={item_id:'fg',start_time:'08:00',end_time:'16:00',people:2,machine_quantity:60,scrap_quantity:0,rework_quantity:0,rework_completed:true,full_boxes:5,pallets:0,packaging_type:'a',turns:0,report_mode:'production',downtime_events:[{type:'break',start_time:'10:00',end_time:'10:15',note:''}],staff_names:'Ana, Luis'};
+const profile={pieces_per_box:12},station={active:true},bom={inventory_bom_packaging_lines:[]};
+const normalized=normalizeCapture(report);
+assert.equal(normalized.downtime_events[0].minutes,15);assert.equal(normalized.staff_names,'Ana, Luis');assert.equal(reportMetrics(normalized,profile).machine,465);
+assert.equal(validateReport(normalized,{station,bom,profile}),null);assert.equal(validateReport({...normalized,full_boxes:6},{station,bom,profile}),'pr_quantity_invalid');
+assert.equal(downtimeSchedule({...report,downtime_events:[...report.downtime_events,{type:'lunch',start_time:'10:05',end_time:'10:30'}]}).error,'pr_downtime_overlap');
+const overnight={...report,start_time:'22:00',end_time:'06:00',ends_next_day:true,downtime_events:[{type:'lunch',start_time:'23:50',end_time:'00:20',note:''}]};
+assert.equal(downtimeSchedule(overnight).events[0].minutes,30);
+console.log('Capture parity: staff, timed/overnight downtime, overlap and full-box limits passed');
