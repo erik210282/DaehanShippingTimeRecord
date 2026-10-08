@@ -1,0 +1,25 @@
+name: Production modal layout
+on:
+  pull_request:
+    paths:
+      - 'src/pages/Production.jsx'
+      - 'src/pages/Production.css'
+      - 'tests/production-modal.test.mjs'
+      - '.github/workflows/production-modal.yml'
+permissions:
+  contents: read
+jobs:
+  layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --package-lock=false playwright@1.55.1
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/production-modal.test.mjs
+      - run: npm run build
