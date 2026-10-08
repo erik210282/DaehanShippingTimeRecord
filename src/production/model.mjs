@@ -1,13 +1,10 @@
 
 export const blankIngredient=()=>({ingredient_id:'',quantity_per_unit:'',waste:'0'});
 export const blankPackingLine=()=>({ingredient_id:'',quantity:'',basis:'box',waste:'0'});
-export function recipePacking(bom,products=[]) {
- const product=products.find(p=>p.part_number===bom.product_part_number);
- return ['returnable','expendable'].map(type=>{
-  const profile=bom.inventory_bom_packaging?.find(p=>p.packaging_type===type);
-  return {packaging_type:type,enabled:!!profile,boxes_per_pallet:profile?.boxes_per_pallet??'',pieces_per_box:product?.[type==='returnable'?'cantidad_por_caja_retornable':'cantidad_por_caja_expendable']??profile?.pieces_per_box??'',box_name:product?.[type==='returnable'?'tipo_empaque_retornable':'tipo_empaque_expendable']||profile?.box_name||'',lines:profile?(bom.inventory_bom_packaging_lines||[]).filter(l=>l.packaging_type===type).map(l=>({...l,waste:String(Number(l.waste_rate)*100)})):[]};
- });
+export function recipePacking(bom) {
+ return (bom.inventory_bom_packaging||[]).map(profile=>({...profile,enabled:true,boxes_per_pallet:profile.boxes_per_pallet??'',lines:(bom.inventory_bom_packaging_lines||[]).filter(l=>l.packaging_type===profile.packaging_type).map(l=>({...l,waste:String(Number(l.waste_rate)*100)}))}));
 }
+export function packingLabel(profile){return profile?.box_name||'';}
 export function isRepack(bom,itemId) {return !!itemId&&bom?.inventory_bom_lines?.length===1&&bom.inventory_bom_lines[0].ingredient_id===itemId;}
 export function isTurntable(station) {return /turn\s?table|t\/t/i.test(station?.name||'');}
 
@@ -86,17 +83,6 @@ export function consumptionPreview(r,bom,items,profile) {
  return [...map.values()];
 }
 
-export function packingProfiles(item,bom,items=[]) {
- const product=item?.productos||item;
- return ['returnable','expendable'].flatMap(type=>{
-  const old=bom?.inventory_bom_packaging?.find(p=>p.packaging_type===type);
-  const boxRef=product?.[type==='returnable'?'tipo_empaque_retornable':'tipo_empaque_expendable'];
-  const configured=Number(product?.[type==='returnable'?'cantidad_por_caja_retornable':'cantidad_por_caja_expendable']);
-  const norm=x=>String(x||'').trim().toUpperCase();
-  const box=items.find(i=>i.category==='PACKAGING'&&i.active&&i.packing_type===type&&(norm(i.part_number)===norm(boxRef)||i.id===boxRef||norm(i.part_name)===norm(boxRef)));
-  if(boxRef&&(!Number.isInteger(configured)||configured<=0))return [];
-  if(boxRef&&!box&&!old)return [];
-  if(!boxRef&&!old)return [];
-  return [{...old,packaging_type:type,pieces_per_box:boxRef?configured:Number(old.pieces_per_box),box_name:box?.part_name||boxRef||old?.box_name,packing_item_id:box?.id||null}];
- });
+export function packingProfiles(item,bom) {
+ return (bom?.inventory_bom_packaging||[]).map(p=>({...p,packing_item_id:null}));
 }

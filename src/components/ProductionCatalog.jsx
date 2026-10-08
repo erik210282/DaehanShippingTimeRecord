@@ -56,7 +56,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  function duplicate(r){
   if(!manage||busy)return;
   const copy=duplicateCatalogRow(r,stations?'code':'product_part_number');
-  setEdit(stations?{...copy,materials:r.materials.map(m=>({...m})),isNew:true,duplicated:true}:{...copy,version:'',lines:r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})),packing:recipePacking(r,products),isNew:true,duplicated:true});
+  setEdit(stations?{...copy,materials:r.materials.map(m=>({...m})),isNew:true,duplicated:true}:{...copy,version:'',lines:r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})),packing:recipePacking(r).map(p=>({...p,packaging_type:crypto.randomUUID()})),isNew:true,duplicated:true});
  }
  async function save(){
   const key=stations?'code':'product_part_number';
@@ -125,7 +125,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    </tr>
    {!stations&&expanded===r.id&&<tr><td colSpan="6"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('name')}</th><th>{t('inv_qty_per_fg')}</th><th>{t('inv_unit')}</th><th>{t('cat_waste')}</th><th>{t('pr_packing_type')}</th><th>{t('pr_basis')}</th></tr></thead><tbody>
     {r.inventory_bom_lines.map(l=>{const i=items.find(x=>x.id===l.ingredient_id);return <tr key={l.id}><td>{i?.part_number}</td><td>{i?.part_name||i?.description}</td><td>{fmt(l.quantity_per_unit)}</td><td>{i?.uom}</td><td>{fmt(Number(l.waste_rate)*100)}</td><td>—</td><td>{t('pr_per_piece')}</td></tr>;})}
-    {(r.inventory_bom_packaging_lines||[]).map(l=>{const i=items.find(x=>x.id===l.ingredient_id),profile=r.inventory_bom_packaging.find(p=>p.packaging_type===l.packaging_type);return <tr key={l.id}><td>{i?.part_number}</td><td>{i?.part_name||i?.description}</td><td>{fmt(l.quantity)}</td><td>{i?.uom}</td><td>{fmt(Number(l.waste_rate)*100)}</td><td>{t('pr_'+l.packaging_type)} · {profile?.box_name} · {profile?.pieces_per_box} {t('pr_pieces_per_box')}</td><td>{t('pr_per_'+l.basis)}</td></tr>;})}
+    {(r.inventory_bom_packaging_lines||[]).map(l=>{const i=items.find(x=>x.id===l.ingredient_id),profile=r.inventory_bom_packaging.find(p=>p.packaging_type===l.packaging_type);return <tr key={l.id}><td>{i?.part_number}</td><td>{i?.part_name||i?.description}</td><td>{fmt(l.quantity)}</td><td>{i?.uom}</td><td>{fmt(Number(l.waste_rate)*100)}</td><td>{profile?.box_name} · {profile?.pieces_per_box} {t('pr_pieces_per_box')}</td><td>{t('pr_per_'+l.basis)}</td></tr>;})}
    </tbody></table></td></tr>}
    </React.Fragment>)}
    {!visible.length&&<tr><td colSpan="6">{t('no_results_found')}</td></tr>}
@@ -158,7 +158,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
       <td><BtnDanger type="button" onClick={()=>setEdit({...edit,lines:edit.lines.filter((_,j)=>j!==k)})}>{t('delete')}</BtnDanger></td></tr>)}
      </tbody></table></div>
      <BtnSecondary disabled={repackEdit} type="button" onClick={()=>setEdit({...edit,lines:[...edit.lines,blankIngredient()]})}>{t('inv_add_ingredient')}</BtnSecondary>
-     <RecipePackingFields packing={edit.packing} setPacking={packing=>setEdit({...edit,packing})} items={items} product={editProduct}/>
+     <RecipePackingFields packing={edit.packing} setPacking={packing=>setEdit({...edit,packing})} items={items}/>
     </>}
     </fieldset>
     {error&&<p role="alert" className="inv-message">{error}</p>}

@@ -13,14 +13,14 @@ import {subscribeUpdates} from '../realtime';
 import {usePageSection} from '../usePageSection';
 import {registerProduction} from '../production/translations';
 import {recipeSelect,normalizeRecipes} from '../production/queries.mjs';
-import {reportMetrics,consumptionPreview,isRepack,isTurntable,validateReport,prepareReport,reportDowntimes,blankDowntime,downtimeTypes,automaticPallets,packingProfiles} from '../production/model.mjs';
+import {reportMetrics,consumptionPreview,isRepack,isTurntable,validateReport,prepareReport,reportDowntimes,blankDowntime,downtimeTypes,automaticPallets,packingProfiles,packingLabel} from '../production/model.mjs';
 import i18n from '../i18n/i18n';
 import './Production.css';
 import './Catalogos.css';
 registerProduction(i18n);
 const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return data;};
 const day=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
-const blank=()=>({id:crypto.randomUUID(),production_date:day(),station_code:'',item_id:'',start_time:'',end_time:'',ends_next_day:false,machine_minutes:'',downtime_minutes:'0',downtime_reason:'',break_count:'0',break_minutes:'0',people:'',machine_quantity:'0',scrap_quantity:'0',rework_quantity:'0',packaging_type:'',full_boxes:'0',pallets:'0',pieces_per_box:0,turns:'',report_mode:'production',note:'',status:'draft',downtime_events:[],rework_completed:true,catalog_packing:true});
+const blank=()=>({id:crypto.randomUUID(),production_date:day(),station_code:'',item_id:'',start_time:'',end_time:'',ends_next_day:false,machine_minutes:'',downtime_minutes:'0',downtime_reason:'',break_count:'0',break_minutes:'0',people:'',machine_quantity:'0',scrap_quantity:'0',rework_quantity:'0',packaging_type:'',full_boxes:'0',pallets:'0',pieces_per_box:0,turns:'',report_mode:'production',note:'',status:'draft',downtime_events:[],rework_completed:true,catalog_packing:false});
 const tables=['production_station_reports','production_station_consumptions','inventory_production_reports','inventory_workstations','inventory_items','inventory_boms','inventory_bom_lines','inventory_bom_packaging','inventory_bom_packaging_lines','inventory_movements','catalog_updates','productos'];
 export default function Production({access}) {
  const {t,i18n:lang}=useTranslation(),navigate=useNavigate();
@@ -53,6 +53,7 @@ export default function Production({access}) {
  const bomFor=r=>data.boms.find(b=>b.id===r.bom_id)||data.boms.find(b=>b.finished_item_id===r.item_id&&b.active);
  const profilesFor=(r,bom=bomFor(r))=>r.catalog_packing===false?(bom?.inventory_bom_packaging||[]):packingProfiles(itemFor(r),bom,data.items);
  const profileFor=(r,bom=bomFor(r))=>profilesFor(r,bom).find(p=>p.packaging_type===r.packaging_type);
+ const packingName=r=>r.packing_box_name||packingLabel(profileFor(r))||(['returnable','expendable'].includes(r.packaging_type)?t('pr_'+r.packaging_type):'');
  const editable=r=>r.status==='draft'&&(manage||r.created_by===access.userId);
  const filtered=useMemo(()=>data.reports.filter(r=>{
   const i=data.items.find(i=>i.id===r.item_id),s=data.stations.find(s=>s.code===r.station_code);
@@ -97,7 +98,7 @@ export default function Production({access}) {
    [t('pr_total_hours')]:r.elapsed_minutes/60,[t('pr_worked_hours')]:reportMetrics(r).worked/60,[t('pr_labor_hours')]:reportMetrics(r).laborHours,
    [t('pr_machine_minutes')]:r.machine_minutes,[t('pr_total_downtime')]:reportMetrics(r).totalDowntime,[t('pr_downtime_section')]:reportDowntimes(r).map(d=>t('pr_downtime_'+d.type)+': '+d.minutes+' '+(d.note||'')).join(' / '),[t('pr_people')]:r.people,
    [t('pr_machine_quantity')]:r.machine_quantity,[t('pr_good')]:r.good_quantity,[t('pr_scrap')]:r.scrap_quantity,[t('pr_rework')]:r.rework_quantity,
-   [t('pr_packing_type')]:r.packaging_type?t('pr_'+r.packaging_type):'',[t('pr_boxes')]:r.full_boxes,[t('pr_pallets')]:r.pallets,[t('pr_packed')]:r.packed_quantity,
+   [t('pr_packing_type')]:packingName(r),[t('pr_boxes')]:r.full_boxes,[t('pr_pallets')]:r.pallets,[t('pr_packed')]:r.packed_quantity,
    [t('pr_turns')]:r.turns??'',[t('status')]:t('pr_'+r.status),[t('inv_notes')]:r.note
   })),{escapeFormulae:true});
   const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='production.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -134,7 +135,7 @@ export default function Production({access}) {
     <p className="inv-muted">{t('pr_summary_hint')}</p><div className="production-metrics">{[['pr_machine_quantity',totals.machine_quantity],['pr_good',totals.good_quantity],['pr_scrap',totals.scrap_quantity],['pr_rework',totals.rework_quantity],['pr_boxes',totals.full_boxes],['pr_labor_hours',totals.labor]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
     <div className="table-wrap"><table className="table"><thead><tr>{['inv_station_code','name','pr_machine_quantity','pr_scrap','pr_rework','pr_boxes','pr_machine_minutes','pr_downtime','pr_labor_hours'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>{byStation.map(s=><tr key={s.code}><td>{s.code}</td><td>{data.stations.find(x=>x.code===s.code)?.name}</td>{['pieces','scrap','rework','boxes','machine','downtime','labor'].map(k=><td key={k}>{fmt(s[k])}</td>)}</tr>)}</tbody></table></div>
    </>:<div className="table-wrap catalog-table-scroll"><table className="table"><thead><tr>{['pr_date','inv_station_code','inv_part','name','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_packing_type','pr_machine_minutes','pr_downtime','pr_people','pr_total_hours','pr_labor_hours','pr_turns','status','actions'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>
-    {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))-1)*pageSize,Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))*pageSize).map(r=><tr key={r.id}><td>{r.production_date}</td><td title={stationFor(r)?.name}>{r.station_code}</td><td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{r.packaging_type?t('pr_'+r.packaging_type):'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td><td><div className="production-row-actions">
+    {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))-1)*pageSize,Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))*pageSize).map(r=><tr key={r.id}><td>{r.production_date}</td><td title={stationFor(r)?.name}>{r.station_code}</td><td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{packingName(r)||'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td><td><div className="production-row-actions">
      <BtnSecondary disabled={busy} onClick={()=>{setError('');setConfirming(false);setReview(r);}}>{t('pr_details')}</BtnSecondary>
      {editable(r)&&<><BtnEditDark disabled={busy} onClick={()=>{setError('');setEdit({...r,turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})});}}>{t('edit')}</BtnEditDark><BtnDanger disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',r)}>{t('delete')}</BtnDanger></>}
     </div></td></tr>)}
@@ -171,11 +172,11 @@ export default function Production({access}) {
    {numeric('machine_quantity','pr_machine_quantity')}{numeric('scrap_quantity','pr_scrap')}{numeric('rework_quantity','pr_rework')}<CatalogInput label={t('pr_good')} readOnly value={fmt(metrics.good)}/>
   </div></section>
   <section className="production-section"><h3>{t('pr_packing')}</h3><p className="inv-muted">{t('pr_packing_capture_hint')}</p><div className="production-form-grid production-form-grid-four">
-   <CatalogSelect label={t('pr_packing_type')} value={edit.packaging_type} onChange={packaging_type=>setEdit({...edit,packaging_type})} options={profilesFor(edit,eBom).map(p=>({value:p.packaging_type,label:t('pr_'+p.packaging_type)+' · '+p.box_name}))}/>
+   <CatalogSelect label={t('pr_packing_type')} value={edit.packaging_type} onChange={packaging_type=>setEdit({...edit,packaging_type})} options={profilesFor(edit,eBom).map(p=>({value:p.packaging_type,label:packingLabel(p)+' · '+p.pieces_per_box+' '+t('pr_pieces_per_box')}))}/>
    {numeric('full_boxes','pr_boxes')}<CatalogInput label={t('pr_pieces_per_box')} readOnly value={eProfile?.pieces_per_box||'—'}/><CatalogInput label={t('pr_packed')} readOnly value={fmt(metrics.packed)}/>
   </div><p className="inv-muted">{t('pr_pallet_auto_hint')}</p>
    {!eBom&&edit.item_id&&<p className="inv-message">{t('pr_recipe_missing')}</p>}
-   {edit.item_id&&!profilesFor(edit,eBom).length&&<p className="inv-message">{t('pr_pack_catalog_required')}</p>}
+   {edit.item_id&&!profilesFor(edit,eBom).length&&<p className="inv-message">{t('pr_pack_missing')}</p>}
    {automaticPallets(edit,eBom,eProfile)===null&&<p role="alert" className="inv-message">{t('pr_pallet_capacity')}</p>}
    {repack&&<p className="inv-message">{t('pr_repack_boxes')}</p>}
    {edit.report_mode==='packing'&&<p className="inv-muted">{t('pr_packing_only_hint')}</p>}
@@ -196,7 +197,7 @@ export default function Production({access}) {
   <p><strong>{review.station_code} · {stationFor(review)?.name}</strong></p><p>{itemFor(review)?.part_number} · {itemFor(review)?.part_name}</p>
   <div className="production-metrics">{[['pr_machine_quantity',review.machine_quantity],['pr_good',review.good_quantity],['pr_scrap',review.scrap_quantity],['pr_rework',review.rework_quantity],['pr_boxes',review.full_boxes],['pr_packed',review.packed_quantity],['pr_total_hours',review.elapsed_minutes/60],['pr_machine_minutes',review.machine_minutes],['pr_total_downtime',reportMetrics(review).totalDowntime],['pr_people',review.people],['pr_labor_hours',reportMetrics(review).laborHours]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
   <p>{t('pr_start')}: {review.start_time} · {t('pr_end')}: {review.end_time}{review.ends_next_day?' (+1)':''}</p>
-  <p>{t('pr_packing_type')}: {review.packaging_type?t('pr_'+review.packaging_type):'—'} · {t('pr_pallets')}: {review.pallets} · {t('pr_turns')}: {review.turns??'—'}</p>
+  <p>{t('pr_packing_type')}: {packingName(review)||'—'} · {t('pr_pallets')}: {review.pallets} · {t('pr_turns')}: {review.turns??'—'}</p>
   <section className="production-section"><h3>{t('pr_downtime_section')}</h3>{reportDowntimes(review).length?<ul>{reportDowntimes(review).map((d,k)=><li key={k}>{t('pr_downtime_'+d.type)} · {fmt(d.minutes)} min{d.note?' · '+d.note:''}</li>)}</ul>:<p>{t('pr_downtime_empty')}</p>}</section><p>{t('inv_notes')}: {review.note||'—'}</p>
   <h3>{t(review.status==='posted'?'pr_consumed':'pr_consumption_preview')}</h3>{consumptionTable(review)}
   {confirming&&<p className="inv-message">{t('pr_confirm_post')}</p>}{error&&<p role="alert" className="inv-message">{error}</p>}
