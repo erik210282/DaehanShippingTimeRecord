@@ -4,17 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { CatalogInput,CatalogSelect } from './SharedCatalogFields';
 import { BtnSecondary,BtnDanger } from './controls';
 import { blankPackingLine } from '../production/model.mjs';
-export default function RecipePackingFields({packing,setPacking,items,product}) {
+export default function RecipePackingFields({packing,setPacking,items}) {
  const {t}=useTranslation();
  const update=(index,patch)=>setPacking(packing.map((p,k)=>k===index?{...p,...patch}:p));
  return <section className="recipe-packing"><h3>{t('pr_packing_recipe')}</h3><p className="inv-muted">{t('pr_packing_hint')}</p>
  {!items.some(i=>i.category==='PACKAGING'&&i.active)&&<p className="inv-message">{t('pr_no_packing_items')}</p>}
  {packing.map((p,index)=><fieldset key={p.packaging_type} className="recipe-packing-variant">
-  <legend><label className="catalog-checkbox"><input type="checkbox" checked={p.enabled} onChange={e=>update(index,{enabled:e.target.checked,lines:e.target.checked&&!p.lines.length?[blankPackingLine()]:p.lines})}/>{t('pr_'+p.packaging_type)}</label></legend>
-  {p.enabled&&<><div className="catalog-fields">
+  <legend>{p.box_name||t('pr_new_packing')}</legend>
+  <><div className="catalog-fields">
    <CatalogInput label={t('pr_box_name')} required value={p.box_name} onChange={e=>update(index,{box_name:e.target.value})}/>
    <CatalogInput label={t('pr_pieces_per_box')} required type="number" min="1" step="1" value={p.pieces_per_box} onChange={e=>update(index,{pieces_per_box:e.target.value})}/>
-   <CatalogInput label={t('pr_catalog_box')} readOnly value={product?.[p.packaging_type==='returnable'?'tipo_empaque_retornable':'tipo_empaque_expendable']||'—'}/>
    {p.lines.some(l=>l.basis==='pallet')&&<CatalogInput label={t('pr_boxes_per_pallet')} required type="number" min="1" step="1" value={p.boxes_per_pallet??''} onChange={e=>update(index,{boxes_per_pallet:e.target.value})}/>}
   </div><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('quantity')}</th><th>{t('pr_basis')}</th><th>{t('cat_waste')}</th><th>{t('actions')}</th></tr></thead><tbody>
   {p.lines.map((l,k)=>{const set=(field,value)=>update(index,{lines:p.lines.map((x,j)=>j===k?{...x,[field]:value}:x)});return <tr key={k}>
@@ -25,6 +24,9 @@ export default function RecipePackingFields({packing,setPacking,items,product}) 
    <td><BtnDanger type="button" onClick={()=>update(index,{lines:p.lines.filter((_,j)=>j!==k)})}>{t('delete')}</BtnDanger></td>
   </tr>;})}</tbody></table></div>
   <BtnSecondary type="button" onClick={()=>update(index,{lines:[...p.lines,blankPackingLine()]})}>{t('pr_add_packing')}</BtnSecondary>
-  </>}
- </fieldset>)}</section>;
+  <BtnDanger type="button" onClick={()=>setPacking(packing.filter((_,k)=>k!==index))}>{t('pr_delete_packing')}</BtnDanger>
+  </>
+ </fieldset>)}
+ <BtnSecondary type="button" onClick={()=>setPacking([...packing,{packaging_type:crypto.randomUUID(),enabled:true,box_name:'',pieces_per_box:'',boxes_per_pallet:'',lines:[blankPackingLine()]}])}>{t('pr_add_packing_type')}</BtnSecondary>
+ </section>;
 }

@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const path=fs.existsSync('src/production/model.mjs')?'src/production/model.mjs':'production/model.js';
+const sandbox={};vm.createContext(sandbox);vm.runInContext(fs.readFileSync(path,'utf8').replace(/export /g,'')+';this.api={recipePacking,packingProfiles,reportMetrics,consumptionPreview,automaticPallets};',sandbox);
+const {recipePacking,packingProfiles,reportMetrics,consumptionPreview,automaticPallets}=sandbox.api;
+const bom={inventory_bom_lines:[],inventory_bom_packaging:[{packaging_type:'seven',box_name:'Cartón 7',pieces_per_box:7,boxes_per_pallet:5},{packaging_type:'one',box_name:'Cartón 1',pieces_per_box:1}],inventory_bom_packaging_lines:[{packaging_type:'seven',ingredient_id:'box7',quantity:1,basis:'box',waste_rate:0},{packaging_type:'seven',ingredient_id:'separator',quantity:1,basis:'piece',waste_rate:0},{packaging_type:'seven',ingredient_id:'pallet',quantity:1,basis:'pallet',waste_rate:0},{packaging_type:'one',ingredient_id:'box1',quantity:1,basis:'box',waste_rate:0}]};
+const item={productos:{tipo_empaque_expendable:'wrong catalog box',cantidad_por_caja_expendable:99}};
+const profiles=packingProfiles(item,bom,[]);assert.equal(profiles.length,2);assert.equal(profiles[0].pieces_per_box,7);assert.equal(profiles[1].pieces_per_box,1);assert.equal(profiles[0].packing_item_id,null);
+const edit=recipePacking(bom,[item.productos]);assert.equal(edit[0].pieces_per_box,7);assert.equal(edit[0].lines.length,3);assert.equal(edit[1].lines.length,1);
+const report={item_id:'fg',packaging_type:'seven',full_boxes:6,rework_completed:true,machine_quantity:42,scrap_quantity:0,rework_quantity:0,report_mode:'packing',downtime_events:[],start_time:'08:00',end_time:'09:00'};
+assert.equal(reportMetrics(report,profiles[0]).packed,42);assert.equal(automaticPallets(report,bom,profiles[0]),2);
+const packing=consumptionPreview(report,bom,[],profiles[0]);assert.equal(packing.find(c=>c.ingredient_id==='box7').quantity,6);assert.equal(packing.find(c=>c.ingredient_id==='separator').quantity,42);assert.equal(packing.find(c=>c.ingredient_id==='pallet').quantity,2);assert.equal(packing.some(c=>c.ingredient_id==='box1'),false);
+const single={...report,packaging_type:'one',machine_quantity:6};
+assert.equal(reportMetrics(single,profiles[1]).packed,6);assert.equal(automaticPallets(single,bom,profiles[1]),0);
+const singlePacking=consumptionPreview(single,bom,[],profiles[1]);assert.equal(singlePacking.find(c=>c.ingredient_id==='box1').quantity,6);assert.equal(singlePacking.some(c=>c.ingredient_id==='box7'),false);assert.equal(singlePacking.some(c=>c.ingredient_id==='separator'),false);
+assert.equal(packingProfiles(item,null,[]).length,0);
+console.log('Named packaging variants: 7-piece / 1-piece isolation, BOM capacity and pallet tests passed');

@@ -12,7 +12,7 @@ export function productionExport({stations,rows,items,nameFor,status,t}) {
    return [r.product_part_number,nameFor(r),r.version||'',item?.part_number||'',item?.part_name||item?.description||'',l.quantity_per_unit??'',item?.uom||'',l.waste_rate==null?'':Number(l.waste_rate)*100,t(status(r)),r.notes||'','',t('pr_per_piece'),'',''];
   }),...(r.inventory_bom_packaging_lines||[]).map(l=>{
    const item=items.find(i=>i.id===l.ingredient_id),profile=r.inventory_bom_packaging.find(p=>p.packaging_type===l.packaging_type);
-   return [r.product_part_number,nameFor(r),r.version||'',item?.part_number||'',item?.part_name||item?.description||'',l.quantity,item?.uom||'',Number(l.waste_rate)*100,t(status(r)),r.notes||'',t('pr_'+l.packaging_type),t('pr_per_'+l.basis),profile?.pieces_per_box||'',profile?.box_name||''];
+   return [r.product_part_number,nameFor(r),r.version||'',item?.part_number||'',item?.part_name||item?.description||'',l.quantity,item?.uom||'',Number(l.waste_rate)*100,t(status(r)),r.notes||'',profile?.box_name||'',t('pr_per_'+l.basis),profile?.pieces_per_box||'',profile?.box_name||''];
   })];
  });
  return {fields,data};

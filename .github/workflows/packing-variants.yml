@@ -1,0 +1,25 @@
+name: Named packing validation
+on:
+  pull_request:
+    paths:
+      - 'src/production/**'
+      - 'src/components/RecipePackingFields.jsx'
+      - 'src/components/ProductionCatalog.jsx'
+      - 'src/pages/Production.jsx'
+      - 'src/catalog/productionExport.mjs'
+      - 'tests/packing-variants.test.mjs'
+      - '.github/workflows/packing-variants.yml'
+permissions:
+  contents: read
+jobs:
+  packing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: node tests/packing-variants.test.mjs
+      - run: npm run build
