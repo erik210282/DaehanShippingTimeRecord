@@ -69,6 +69,8 @@ export default function Catalogos({ access }) {
   const canManage=access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role));
   const kind=catalogKinds[tab];
   const [filter, setFilter] = useState("");
+  const productionRef=useRef(null);
+  const production=tab==='bom'||tab==='stations';
   const [edit, setEdit] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [saving,setSaving]=useState(false),[duplicating,setDuplicating]=useState(false);
@@ -543,10 +545,6 @@ async function save() {
   const endIndex = startIndex + pageSize;
   const filasPagina = filtered.slice(startIndex, endIndex);
 
-  if(tab==='bom'||tab==='stations') return <div className="page-container page-container--fluid catalog-page"><div className="card">
-    <div className="catalog-toolbar"><h2 className="module-title">{t('catalogs')}</h2><div className="catalog-actions">
-    {[['productos','products'],['suppliers','rc_suppliers'],['locations','rc_locations'],['materials','rc_material_types'],['pos','po'],['shipper','shipper'],['actividades','activities'],['bom','inv_bom'],['stations','inv_workstations']].map(([key,label])=><BtnSecondary key={key} onClick={()=>setTab(key)}>{t(label)}</BtnSecondary>)}
-    </div></div><ProductionCatalog key={tab} mode={tab} access={access}/></div></div>;
   return (
     <div className="page-container page-container--fluid catalog-page">
       <div className="card">
@@ -560,14 +558,15 @@ async function save() {
           <BtnSecondary onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
           <BtnSecondary onClick={()=>setTab("bom")}>{t("inv_bom")}</BtnSecondary>
           <BtnSecondary onClick={()=>setTab("stations")}>{t("inv_workstations")}</BtnSecondary>
-          <BtnSecondary onClick={() => {setFilter('');setTypeFilter('');setHideInactive(true);setPage(1);}}>{t("clear_filters")}</BtnSecondary>
-          <BtnSecondary onClick={exportCSV}>{t("export_csv")}</BtnSecondary>
-          <BtnPrimary disabled={!canManage} onClick={openNew}>➕ {t("add")}</BtnPrimary>
+          <BtnSecondary onClick={() => {setFilter('');setTypeFilter('');setHideInactive(true);setPage(1);productionRef.current?.clearFilters();}}>{t("clear_filters")}</BtnSecondary>
+          <BtnSecondary onClick={()=>production?productionRef.current?.exportCSV():exportCSV()}>{t("export_csv")}</BtnSecondary>
+          <BtnPrimary disabled={!canManage} onClick={()=>production?productionRef.current?.add():openNew()}>➕ {t("add")}</BtnPrimary>
         </div>
         <div className="catalog-filters">
          {tab==='productos'&&<CatalogSelect label={t('rc_type')} value={typeFilter} onChange={value=>{setTypeFilter(value);setPage(1);}} options={[{value:'',label:t('rc_all')},...['RAW','FG','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))]}/>}
          <label className="catalog-checkbox"><input type="checkbox" checked={hideInactive} onChange={e=>{setHideInactive(e.target.checked);setPage(1);}}/>{t('rc_hide_inactive')}</label>
-        </div></div><div className="table-wrap catalog-table-scroll">
+        </div></div>
+        {production ? <ProductionCatalog ref={productionRef} key={tab} mode={tab} access={access} filter={filter} hideInactive={hideInactive} externalControls/> : <><div className="table-wrap catalog-table-scroll">
           <table className="table">
             <thead>
               <tr>
@@ -1007,6 +1006,7 @@ async function save() {
           </div>
         </Modal>
 
+        </>}
         <ToastContainer position="top-center" autoClose={1800} />
       </div>
     </div>

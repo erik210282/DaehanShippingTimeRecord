@@ -1,6 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplication';
 import Modal from 'react-modal';
+import Papa from 'papaparse';
+import { productionExport } from '../catalog/productionExport.mjs';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { subscribeUpdates } from '../realtime';
@@ -8,7 +10,7 @@ import { CatalogInput, CatalogSelect } from './SharedCatalogFields';
 import { BtnPrimary, BtnSecondary, BtnEditDark, BtnDanger, TablePagination } from './controls';
 
 const unwrap = async query => { const { data, error } = await query; if(error) throw error; return data; };
-export default function ProductionCatalog({ mode, access }) {
+const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, filter='', hideInactive=false, externalControls=false }, ref) {
  const {t,i18n}=useTranslation();
  const [rows,setRows]=useState([]),[items,setItems]=useState([]),[products,setProducts]=useState([]);
  const [search,setSearch]=useState(''),[edit,setEdit]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -29,7 +31,9 @@ export default function ProductionCatalog({ mode, access }) {
  const productFor=r=>products.find(p=>p.id===items.find(i=>i.id===r.finished_item_id)?.producto_id || (p.part_number===r.product_part_number && p.part_number!=='NA'));
  const nameFor=r=>productFor(r)?.nombre||'—';
  const status=r=>!r.finished_item_id?'cat_pending_product':productFor(r)?.activo===false?'cat_inactive_product':r.active?'inv_active':'inv_draft';
- const visible=rows.filter(r=>JSON.stringify(r).toLowerCase().includes(search.trim().toLowerCase()) || (!stations&&nameFor(r).toLowerCase().includes(search.trim().toLowerCase())));
+ const query=(externalControls?filter:search).trim().toLowerCase();
+ const visible=rows.filter(r=>(!hideInactive||(r.active&&(stations||productFor(r)?.activo!==false)))&&(JSON.stringify(r).toLowerCase().includes(query)||(!stations&&nameFor(r).toLowerCase().includes(query))));
+ useEffect(()=>{setPage(1);},[filter,hideInactive]);
  const totalPages=Math.max(1,Math.ceil(visible.length/pageSize)),currentPage=Math.min(page,totalPages);
  const fmt=value=>Number(value||0).toLocaleString(i18n.language,{maximumFractionDigits:6});
  async function perform(action){
@@ -37,6 +41,7 @@ export default function ProductionCatalog({ mode, access }) {
   try{await action();await refresh();setEdit(null);}catch(e){setError(t(e.message,{defaultValue:e.message}));}finally{setBusy(false);}
  }
  function add(){
+  if(!manage||busy)return;
   setEdit(stations?{code:'',name:'',machine_type:'',materials:[],active:true,isNew:true}:{product_part_number:'',version:'',active:true,notes:'',lines:[{ingredient_id:'',quantity_per_unit:'',waste:'0'}],isNew:true});
  }
  function editRow(r){
@@ -70,12 +75,22 @@ export default function ProductionCatalog({ mode, access }) {
  function updateLine(index,field,value){setEdit({...edit,lines:edit.lines.map((l,k)=>k===index?{...l,[field]:value}:l)});}
  const missing=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_lines?.length));
  const editProduct=edit&&!stations?products.find(p=>p.part_number===edit.product_part_number):null;
+ function clearFilters(){setSearch('');setPage(1);setExpanded(null);}
+ function exportCSV(){
+  const data=productionExport({stations,rows:visible,items,nameFor,status,t});
+  const csv=Papa.unparse(data,{escapeFormulae:true});
+  const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+  const a=document.createElement('a');a.href=url;a.download=stations?'workstations.csv':'bom.csv';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+ }
+ useImperativeHandle(ref,()=>({add,clearFilters,exportCSV}));
  return <div className="catalog-production">
-  <div className="catalog-actions">
+  {!externalControls&&<div className="catalog-actions">
    <CatalogInput label={t('search')} value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}/>
-   <BtnSecondary onClick={()=>{setSearch('');setPage(1);}}>{t('clear_filters')}</BtnSecondary>
+   <BtnSecondary onClick={clearFilters}>{t('clear_filters')}</BtnSecondary>
+   <BtnSecondary onClick={exportCSV}>{t('export_csv')}</BtnSecondary>
    <BtnPrimary disabled={!manage||busy} onClick={add}>{t('add')}</BtnPrimary>
-  </div>
+  </div>}
   {error&&<p className="inv-message" role="alert">{error}</p>}
   {!stations&&<div className="catalog-recipe-notices">
    <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('description')}</th></tr></thead><tbody>{missing.map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td></tr>)}</tbody></table></div></details>
@@ -130,4 +145,5 @@ export default function ProductionCatalog({ mode, access }) {
    </form>}
   </Modal>
  </div>;
-}
+});
+export default ProductionCatalog;
