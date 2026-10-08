@@ -21,6 +21,10 @@ registerProduction(i18n);
 const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return data;};
 const day=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const blank=()=>({id:crypto.randomUUID(),production_date:day(),station_code:'',item_id:'',start_time:'',end_time:'',ends_next_day:false,machine_minutes:'',downtime_minutes:'0',downtime_reason:'',break_count:'0',break_minutes:'0',people:'',machine_quantity:'0',scrap_quantity:'0',rework_quantity:'0',packaging_type:'',full_boxes:'0',pallets:'0',pieces_per_box:0,turns:'',report_mode:'production',note:'',status:'draft',downtime_events:[],rework_completed:true,catalog_packing:false});
+const productionModalStyle={
+ overlay:{position:'fixed',top:0,right:0,bottom:0,left:0,zIndex:10000,backgroundColor:'#0f172a99',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px',boxSizing:'border-box'},
+ content:{position:'relative',top:'auto',right:'auto',bottom:'auto',left:'auto',transform:'none',width:'min(1040px, 100%)',maxHeight:'calc(100dvh - 32px)',overflow:'auto',boxSizing:'border-box',padding:'20px',background:'#fff',border:'1px solid #cbd5e1',borderRadius:14}
+};
 const tables=['production_station_reports','production_station_consumptions','inventory_production_reports','inventory_workstations','inventory_items','inventory_boms','inventory_bom_lines','inventory_bom_packaging','inventory_bom_packaging_lines','inventory_movements','catalog_updates','productos'];
 export default function Production({access}) {
  const {t,i18n:lang}=useTranslation(),navigate=useNavigate();
@@ -143,7 +147,7 @@ export default function Production({access}) {
    </tbody></table><TablePagination totalRows={filtered.length} page={Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}}/></div>}
   </section>
  </main>
- <Modal className="production-modal" isOpen={!!edit} contentLabel={t('pr_new_report')} onRequestClose={()=>!busy&&setEdit(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0f172a99'},content:{width:'min(1040px, calc(100vw - 32px))',maxHeight:'90vh',inset:'50% auto auto 50%',transform:'translate(-50%,-50%)',borderRadius:14}}}>
+ <Modal className="production-modal" isOpen={!!edit} contentLabel={t('pr_new_report')} onRequestClose={()=>!busy&&setEdit(null)} style={productionModalStyle}>
  {edit&&<form ref={form} className="production-form production-dialog" onSubmit={ev=>{ev.preventDefault();action('save',edit);}}>
   <header className="production-dialog-header"><h2>{t('pr_new_report')}</h2></header>
   <fieldset disabled={busy} className="production-editor">
@@ -192,7 +196,7 @@ export default function Production({access}) {
   </footer>
  </form>}
  </Modal>
- <Modal className="production-modal" isOpen={!!review} onRequestClose={()=>!busy&&setReview(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0008'},content:{width:'min(1000px, calc(100vw - 32px))',maxHeight:'88vh',inset:'50% auto auto 50%',transform:'translate(-50%,-50%)'}}}>
+ <Modal className="production-modal" isOpen={!!review} onRequestClose={()=>!busy&&setReview(null)} style={productionModalStyle}>
  {review&&<div className="production-form"><h2>{t('pr_details')} · {review.production_date}</h2>
   <p><strong>{review.station_code} · {stationFor(review)?.name}</strong></p><p>{itemFor(review)?.part_number} · {itemFor(review)?.part_name}</p>
   <div className="production-metrics">{[['pr_machine_quantity',review.machine_quantity],['pr_good',review.good_quantity],['pr_scrap',review.scrap_quantity],['pr_rework',review.rework_quantity],['pr_boxes',review.full_boxes],['pr_packed',review.packed_quantity],['pr_total_hours',review.elapsed_minutes/60],['pr_machine_minutes',review.machine_minutes],['pr_total_downtime',reportMetrics(review).totalDowntime],['pr_people',review.people],['pr_labor_hours',reportMetrics(review).laborHours]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>

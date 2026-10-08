@@ -47,3 +47,25 @@
 .catalog-packing-table td:last-child {min-width:240px;}
 
 .catalog-weight-fields {display:grid;grid-template-columns:minmax(0,1fr) 100px;gap:12px;align-items:start;}
+
+/* BOM editor: full-width controls, aligned columns and separate actions. */
+.catalog-recipe-dialog .catalog-fields{margin-bottom:20px;align-items:end}
+.catalog-recipe-dialog .recipe-packing{margin-top:24px}
+.catalog-recipe-dialog .recipe-packing>h3{margin-bottom:12px}
+.catalog-recipe-dialog .recipe-packing>.inv-muted{margin-bottom:20px;line-height:1.6}
+.catalog-recipe-dialog .recipe-packing-variant{border:1px solid #cbd5e1!important;border-radius:10px;padding:20px!important;margin:20px 0!important;min-width:0}
+.catalog-recipe-dialog .recipe-packing-variant legend{padding:0 8px;font-weight:600}
+.catalog-recipe-dialog .recipe-packing-fields{grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:20px}
+.catalog-recipe-dialog .recipe-materials-table{table-layout:fixed;width:100%;min-width:880px}
+.recipe-materials-table .recipe-material{width:34%}
+.recipe-materials-table .recipe-quantity{width:14%}
+.recipe-materials-table .recipe-basis{width:22%}
+.recipe-materials-table .recipe-waste{width:14%}
+.recipe-materials-table .recipe-actions{width:16%}
+.catalog-recipe-dialog .recipe-materials-table th,.catalog-recipe-dialog .recipe-materials-table td{padding:14px;vertical-align:bottom}
+.catalog-recipe-dialog .recipe-materials-table th{vertical-align:middle}
+.catalog-recipe-dialog .recipe-materials-table .catalog-field>span{min-height:40px;display:flex;align-items:end}
+.catalog-recipe-dialog .recipe-packing-actions{gap:14px;padding-top:18px}
+.catalog-recipe-dialog .recipe-packing-add{margin:20px 0 24px}
+.catalog-recipe-footer{border-top:1px solid #e2e8f0;padding-top:20px;margin-top:24px;gap:14px;justify-content:flex-end}
+@media(max-width:700px){.catalog-recipe-dialog .recipe-packing-fields{grid-template-columns:1fr}.catalog-recipe-dialog .recipe-packing-variant{padding:14px!important}.catalog-recipe-footer{justify-content:flex-start}}
