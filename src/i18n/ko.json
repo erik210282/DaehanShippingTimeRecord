@@ -610,5 +610,6 @@
   "cat_duplicate_help": "정보가 복사되었습니다. 저장하려면 새 식별자를 입력하세요.",
   "cat_copy_recipe": "원래 제품과 동일한 레시피 사용",
   "cat_source_no_recipe": "원래 제품에 복사할 활성 레시피가 없습니다.",
-  "catalog_source_recipe_missing": "원래 레시피를 사용할 수 없어 제품이 저장되지 않았습니다."
+  "catalog_source_recipe_missing": "원래 레시피를 사용할 수 없어 제품이 저장되지 않았습니다.",
+  "catalog_target_recipe_differs": "새 부품 번호에 이미 다른 레시피가 있습니다. 기존 레시피를 유지하려면 원래 제품의 레시피 사용을 해제하세요."
 }

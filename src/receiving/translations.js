@@ -88,6 +88,8 @@ export function receivingError(error, t) {
   if (error?.code === '23505') return t('rc_duplicate');
   if (['23514','23502','22P02','23503'].includes(error?.code)) return t('rc_receiving_invalid');
   const message = error?.message || '';
+  const direct = (message.startsWith('receiving_') || message.startsWith('catalog_')) ? t(message, {defaultValue:''}) : '';
+  if (direct && direct !== message) return direct;
   const key = (message.startsWith('receiving_') || message.startsWith('catalog_')) ? `rc_${message}` : '';
   return key && t(key) !== key ? t(key) : t('rc_error');
 }

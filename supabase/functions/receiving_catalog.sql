@@ -4,7 +4,7 @@ CREATE OR REPLACE FUNCTION rls_internal.receiving_catalog(p_kind text, p_data js
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
-declare v_recipe public.inventory_boms%rowtype; v_recipe_lines jsonb; v_type public.receiving_material_types%rowtype; v_code text; v_product public.productos%rowtype; v_product_id uuid; v_min numeric; v_supplier uuid; v_lead integer; v_name text; v_existing public.inventory_items%rowtype; v_shipping jsonb; v_key text; v_id uuid := coalesce(nullif(p_data->>'id','')::uuid,gen_random_uuid());
+declare v_target_recipe public.inventory_boms%rowtype; v_recipe public.inventory_boms%rowtype; v_recipe_lines jsonb; v_type public.receiving_material_types%rowtype; v_code text; v_product public.productos%rowtype; v_product_id uuid; v_min numeric; v_supplier uuid; v_lead integer; v_name text; v_existing public.inventory_items%rowtype; v_shipping jsonb; v_key text; v_id uuid := coalesce(nullif(p_data->>'id','')::uuid,gen_random_uuid());
 begin
  if not rls_internal.catalog_access(true) then raise exception 'receiving_forbidden'; end if;
  if p_kind in ('material','supplier','location') then
@@ -96,10 +96,25 @@ begin
 
  if v_recipe.id is not null then
   if v_type.category<>'FG' then raise exception 'receiving_invalid'; end if;
-  if exists(select 1 from public.inventory_boms b where b.product_part_number=upper(btrim(p_data->>'part_number')) and b.active and not b.archived and exists(select 1 from public.inventory_bom_lines l where l.bom_id=b.id)) then raise exception 'catalog_duplicate_identifier'; end if;
-  perform rls_internal.inventory_catalog_recipe('save',jsonb_build_object(
-   'product_part_number',upper(btrim(p_data->>'part_number')),'active',true,
-   'notes','Receta duplicada desde '||v_recipe.product_part_number,'lines',v_recipe_lines));
+  select b.* into v_target_recipe from public.inventory_boms b
+   where b.product_part_number=upper(btrim(p_data->>'part_number')) and b.active and not b.archived
+   and exists(select 1 from public.inventory_bom_lines l where l.bom_id=b.id)
+   order by b.version desc limit 1 for update;
+  if v_target_recipe.id is not null then
+   if exists(
+    (select ingredient_id,quantity_per_unit,waste_rate from public.inventory_bom_lines where bom_id=v_recipe.id)
+    except (select ingredient_id,quantity_per_unit,waste_rate from public.inventory_bom_lines where bom_id=v_target_recipe.id)
+   ) or exists(
+    (select ingredient_id,quantity_per_unit,waste_rate from public.inventory_bom_lines where bom_id=v_target_recipe.id)
+    except (select ingredient_id,quantity_per_unit,waste_rate from public.inventory_bom_lines where bom_id=v_recipe.id)
+   ) then raise exception 'catalog_target_recipe_differs'; end if;
+   if v_target_recipe.finished_item_id is not null and v_target_recipe.finished_item_id<>v_id then raise exception 'catalog_duplicate_identifier'; end if;
+   update public.inventory_boms set finished_item_id=v_id where id=v_target_recipe.id;
+  else
+   perform rls_internal.inventory_catalog_recipe('save',jsonb_build_object(
+    'product_part_number',upper(btrim(p_data->>'part_number')),'active',true,
+    'notes','Receta duplicada desde '||v_recipe.product_part_number,'lines',v_recipe_lines));
+  end if;
  end if;
  return v_id;
 end $function$

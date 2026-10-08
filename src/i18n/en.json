@@ -610,5 +610,6 @@
   "cat_duplicate_help": "The details were copied. Enter the new identifier to save.",
   "cat_copy_recipe": "Use the original product’s recipe",
   "cat_source_no_recipe": "The original product has no active recipe to copy.",
-  "catalog_source_recipe_missing": "The original recipe is no longer available. The product was not saved."
+  "catalog_source_recipe_missing": "The original recipe is no longer available. The product was not saved.",
+  "catalog_target_recipe_differs": "The new part number already has a different recipe. Uncheck “Use the original product’s recipe” to keep its specific recipe."
 }

@@ -610,5 +610,6 @@
   "cat_duplicate_help": "Los datos se copiaron. Completa el identificador nuevo para guardar.",
   "cat_copy_recipe": "Usar la misma receta del producto original",
   "cat_source_no_recipe": "El producto original no tiene una receta activa para copiar.",
-  "catalog_source_recipe_missing": "La receta original ya no está disponible. No se guardó el producto."
+  "catalog_source_recipe_missing": "La receta original ya no está disponible. No se guardó el producto.",
+  "catalog_target_recipe_differs": "El número de parte nuevo ya tiene una receta diferente. Desmarca «Usar la misma receta» para conservar su receta específica."
 }
