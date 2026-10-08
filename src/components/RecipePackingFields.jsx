@@ -12,7 +12,7 @@ export default function RecipePackingFields({packing,setPacking,items}) {
  {packing.map((p,index)=><fieldset key={p.packaging_type} className="recipe-packing-variant">
   <legend>{p.box_name||t('pr_new_packing')}</legend>
   <><div className="catalog-fields">
-   <CatalogInput label={t('pr_box_name')} required value={p.box_name} onChange={e=>update(index,{box_name:e.target.value})}/>
+   <CatalogSelect label={t('pr_packing_type')} value={p.box_name} onChange={box_name=>update(index,{box_name})} options={['Returnable','Expendable'].map(value=>({value,label:t('pr_'+value.toLowerCase())}))}/>
    <CatalogInput label={t('pr_pieces_per_box')} required type="number" min="1" step="1" value={p.pieces_per_box} onChange={e=>update(index,{pieces_per_box:e.target.value})}/>
    {p.lines.some(l=>l.basis==='pallet')&&<CatalogInput label={t('pr_boxes_per_pallet')} required type="number" min="1" step="1" value={p.boxes_per_pallet??''} onChange={e=>update(index,{boxes_per_pallet:e.target.value})}/>}
   </div><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('quantity')}</th><th>{t('pr_basis')}</th><th>{t('cat_waste')}</th><th>{t('actions')}</th></tr></thead><tbody>
