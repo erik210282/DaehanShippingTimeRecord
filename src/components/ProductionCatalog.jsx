@@ -3,6 +3,7 @@ import { duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplicat
 import Modal from 'react-modal';
 import Papa from 'papaparse';
 import RecipePackingFields from './RecipePackingFields';
+import { recipeSelect, normalizeRecipes } from '../production/queries.mjs';
 import { blankIngredient,recipePacking } from '../production/model.mjs';
 import { registerProduction } from '../production/translations';
 import i18nInstance from '../i18n/i18n';
@@ -24,11 +25,11 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  const stations=mode==='stations';
  const refresh=useCallback(async()=>{
   const [r,i,p]=await Promise.all([
-   unwrap(supabase.from(stations?'inventory_workstations':'inventory_boms').select(stations?'*':'*,inventory_bom_lines(*),inventory_bom_packaging(*),inventory_bom_packaging_lines(*)').order(stations?'code':'product_part_number')),
+   unwrap(supabase.from(stations?'inventory_workstations':'inventory_boms').select(stations?'*':recipeSelect).order(stations?'code':'product_part_number')),
    unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active').order('part_number')),
    unwrap(supabase.from('productos').select('id,part_number,nombre,descripcion,activo,tipo_empaque_retornable,tipo_empaque_expendable,cantidad_por_caja_retornable,cantidad_por_caja_expendable')),
   ]);
-  setRows((r||[]).filter(x=>!x.archived));setItems(i||[]);setProducts(p||[]);
+  setRows((stations?(r||[]):normalizeRecipes(r)).filter(x=>!x.archived));setItems(i||[]);setProducts(p||[]);setError('');
  },[stations]);
  useEffect(()=>{let live=true;const load=()=>live&&refresh().catch(e=>setError(e.message));load();setEdit(null);setSearch('');setExpanded(null);
   const off=subscribeUpdates(supabase,'production-catalog-'+mode,['inventory_workstations','inventory_boms','inventory_bom_lines','inventory_bom_packaging','inventory_bom_packaging_lines','catalog_updates','productos'],load);
@@ -113,14 +114,14 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('description')}</th></tr></thead><tbody>{missing.map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td></tr>)}</tbody></table></div></details>
    <details><summary>{t('pr_missing_packing',{count:missingPacking.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th></tr></thead><tbody>{missingPacking.map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td></tr>)}</tbody></table></div></details>
   </div>}
-  <div className="table-wrap catalog-table-scroll"><table className="table"><thead><tr>
+  <div className="table-wrap catalog-table-scroll"><table className={'table '+(stations?'catalog-workstations-table':'catalog-bom-table')}>{stations&&<colgroup><col className="station-code"/><col className="station-name"/><col className="station-type"/><col className="station-materials"/><col className="station-status"/><col className="station-actions"/></colgroup>}<thead><tr>
    {stations?<><th>{t('inv_station_code')}</th><th>{t('name')}</th><th>{t('inv_station_type')}</th><th>{t('inv_station_materials')}</th></>:<><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('inv_version')}</th><th>{t('inv_recipe')}</th></>}
    <th>{t('status')}</th><th>{t('actions')}</th>
   </tr></thead><tbody>
    {visible.slice((currentPage-1)*pageSize,currentPage*pageSize).map(r=><React.Fragment key={r.id||r.code}><tr>
-    {stations?<><td>{r.code}</td><td>{r.name}</td><td>{t(({Assembly:'inv_machine_ASY',Foaming:'inv_machine_FOA','WaterJet / Forming':'inv_machine_WAT','Press / Trim':'inv_machine_PRE',Forming:'inv_machine_PET'})[r.machine_type]||r.machine_type)}</td><td>{r.materials.map(m=>[m.erp_material,m.product||m.operation].filter(Boolean).join(' · ')).join(' / ')}</td></>:<><td>{r.product_part_number}</td><td>{nameFor(r)}</td><td>{r.version}</td><td><BtnSecondary onClick={()=>setExpanded(expanded===r.id?null:r.id)}>{t('cat_ingredients',{count:r.inventory_bom_lines.length})}</BtnSecondary></td></>}
+    {stations?<><td>{r.code}</td><td>{r.name}</td><td>{t(({Assembly:'inv_machine_ASY',Foaming:'inv_machine_FOA','WaterJet / Forming':'inv_machine_WAT','Press / Trim':'inv_machine_PRE',Forming:'inv_machine_PET'})[r.machine_type]||r.machine_type)}</td><td><ul className="station-material-list">{(r.materials||[]).map((m,k)=><li key={k}><strong>{m.erp_material}</strong>{(m.product||m.operation)&&<> · {m.product||m.operation}</>}</li>)}</ul></td></>:<><td>{r.product_part_number}</td><td>{nameFor(r)}</td><td>{r.version}</td><td><BtnSecondary onClick={()=>setExpanded(expanded===r.id?null:r.id)}>{t('cat_ingredients',{count:r.inventory_bom_lines.length})}</BtnSecondary></td></>}
     <td>{t(stations?(r.active?'active':'inactive'):status(r))}</td>
-    <td><BtnEditDark disabled={!manage||busy} onClick={()=>editRow(r)}>{t('edit')}</BtnEditDark> <BtnSecondary disabled={!manage||busy} onClick={()=>duplicate(r)}>{t('cat_duplicate')}</BtnSecondary> <BtnDanger disabled={!manage||busy} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></td>
+    <td><div className="catalog-row-actions"><BtnEditDark disabled={!manage||busy} onClick={()=>editRow(r)}>{t('edit')}</BtnEditDark> <BtnSecondary disabled={!manage||busy} onClick={()=>duplicate(r)}>{t('cat_duplicate')}</BtnSecondary> <BtnDanger disabled={!manage||busy} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></div></td>
    </tr>
    {!stations&&expanded===r.id&&<tr><td colSpan="6"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('name')}</th><th>{t('inv_qty_per_fg')}</th><th>{t('inv_unit')}</th><th>{t('cat_waste')}</th><th>{t('pr_packing_type')}</th><th>{t('pr_basis')}</th></tr></thead><tbody>
     {r.inventory_bom_lines.map(l=>{const i=items.find(x=>x.id===l.ingredient_id);return <tr key={l.id}><td>{i?.part_number}</td><td>{i?.part_name||i?.description}</td><td>{fmt(l.quantity_per_unit)}</td><td>{i?.uom}</td><td>{fmt(Number(l.waste_rate)*100)}</td><td>—</td><td>{t('pr_per_piece')}</td></tr>;})}

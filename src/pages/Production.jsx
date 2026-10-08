@@ -7,11 +7,12 @@ import {useTranslation} from 'react-i18next';
 import ModuleHeading from '../components/ModuleHeading';
 import DepartmentNav from '../components/DepartmentNav';
 import {CatalogInput,CatalogSelect} from '../components/SharedCatalogFields';
-import {BtnPrimary,BtnSecondary,BtnEditDark,BtnDanger,DSInput,TablePagination} from '../components/controls';
+import {BtnPrimary,BtnSecondary,BtnEditDark,BtnDanger,TablePagination} from '../components/controls';
 import {supabase} from '../supabase/client';
 import {subscribeUpdates} from '../realtime';
 import {usePageSection} from '../usePageSection';
 import {registerProduction} from '../production/translations';
+import {recipeSelect,normalizeRecipes} from '../production/queries.mjs';
 import {reportMetrics,consumptionPreview,isRepack,isTurntable,validateReport} from '../production/model.mjs';
 import i18n from '../i18n/i18n';
 import './Production.css';
@@ -41,11 +42,11 @@ export default function Production({access}) {
    unwrap(supabase.from('production_station_reports').select('*').order('production_date',{ascending:false}).order('created_at',{ascending:false})),
    unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active,productos(nombre,descripcion)').order('part_number')),
    unwrap(supabase.from('inventory_workstations').select('*').order('code')),
-   unwrap(supabase.from('inventory_boms').select('*,inventory_bom_lines(*),inventory_bom_packaging(*),inventory_bom_packaging_lines(*)').eq('archived',false)),
+   unwrap(supabase.from('inventory_boms').select(recipeSelect).eq('archived',false)),
    unwrap(supabase.from('inventory_balances').select('item_id,area,quantity')),
    unwrap(supabase.from('production_station_consumptions').select('*'))
   ]);
-  if(live.current&&version===request.current){setData({reports,items:items.map(i=>({...i,part_name:i.productos?.nombre||i.part_name,description:i.productos?.descripcion??i.description})),stations,boms,balances,consumptions});setLoading(false);}
+  if(live.current&&version===request.current){setData({reports,items:items.map(i=>({...i,part_name:i.productos?.nombre||i.part_name,description:i.productos?.descripcion??i.description})),stations,boms:normalizeRecipes(boms),balances,consumptions});setError('');setLoading(false);}
  },[allowed]);
  useEffect(()=>{live.current=true;refresh().catch(e=>{if(live.current){setError(e.message);setLoading(false);}});const off=subscribeUpdates(supabase,'production-web',tables,()=>refresh().catch(e=>live.current&&setError(e.message)));return()=>{live.current=false;++request.current;off();};},[refresh]);
  const itemFor=r=>data.items.find(i=>i.id===r.item_id),stationFor=r=>data.stations.find(s=>s.code===r.station_code);
@@ -111,18 +112,17 @@ export default function Production({access}) {
  return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav value={tab} onChange={key=>key==='catalog'?navigate('/catalogos'):key==='inventory'?navigate('/inventarios'):setTab(key)} label={t('global_production')} items={[{key:'records',label:t('records')},{key:'summary',label:t('summary')},{key:'catalog',label:t('catalogs')},{key:'inventory',label:t('inv_title')}].map(x=>({...x}))} /></div>
  <main className="page-container page-container--fluid production-page">
   <section className="card">
-   <div className="catalog-toolbar"><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2><div className="catalog-actions">
-    <DSInput aria-label={t('search')} placeholder={t('search')} value={filter} onChange={ev=>setFilter(ev.target.value)}/>
-    <BtnSecondary onClick={()=>{setFilter('');setStationFilter('');setStatusFilter('');setFrom('');setTo('');}}>{t('clear_filters')}</BtnSecondary>
-    <BtnSecondary onClick={exportCsv}>{t('export_csv')}</BtnSecondary>
-    <BtnPrimary disabled={busy||loading} onClick={()=>{setError('');setEdit(blank());}}>➕ {t('pr_new_report')}</BtnPrimary>
-    <BtnSecondary onClick={()=>navigate('/catalogos?catalog=bom')}>{t('inv_bom')}</BtnSecondary>
-    <BtnSecondary onClick={()=>navigate('/catalogos?catalog=stations')}>{t('inv_workstations')}</BtnSecondary>
-   </div><div className="production-filters">
+   <div className="catalog-toolbar"><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2>
+   <div className="catalog-filters production-filters">
     <CatalogInput label={t('pr_from')} type="date" value={from} onChange={ev=>setFrom(ev.target.value)}/>
     <CatalogInput label={t('pr_to')} type="date" value={to} onChange={ev=>setTo(ev.target.value)}/>
     <CatalogSelect label={t('inv_station_code')} value={stationFilter} onChange={setStationFilter} options={[{value:'',label:t('rc_all')},...data.stations.map(s=>({value:s.code,label:s.code+' · '+s.name}))]}/>
     <CatalogSelect label={t('status')} value={statusFilter} onChange={setStatusFilter} options={[{value:'',label:t('rc_all')},...['draft','submitted','posted'].map(value=>({value,label:t('pr_'+value)}))]}/>
+    <CatalogInput label={t('search')} value={filter} onChange={ev=>setFilter(ev.target.value)}/>
+   </div><div className="catalog-actions production-actions">
+    <BtnSecondary onClick={()=>{setFilter('');setStationFilter('');setStatusFilter('');setFrom('');setTo('');}}>{t('clear_filters')}</BtnSecondary>
+    <BtnSecondary onClick={exportCsv}>{t('export_csv')}</BtnSecondary>
+    <BtnPrimary disabled={busy||loading} onClick={()=>{setError('');setEdit(blank());}}>➕ {t('pr_new_report')}</BtnPrimary>
    </div></div>
    {error&&<p role="alert" className="inv-message">{error}</p>}{message&&<p role="status" className="inv-message">{message}</p>}
    <p className="inv-muted">{t('pr_workflow_hint')}</p>
