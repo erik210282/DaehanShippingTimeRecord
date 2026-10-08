@@ -45,3 +45,5 @@
 .catalog-packing-table th,.catalog-packing-table td {vertical-align:top;white-space:normal;}
 .catalog-packing-table th:nth-child(1),.catalog-packing-table th:nth-child(3),.catalog-packing-table th:nth-child(6) {min-width:150px;}
 .catalog-packing-table td:last-child {min-width:240px;}
+
+.catalog-weight-fields {display:grid;grid-template-columns:minmax(0,1fr) 100px;gap:12px;align-items:start;}
