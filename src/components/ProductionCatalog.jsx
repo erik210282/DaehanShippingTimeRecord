@@ -52,7 +52,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   setEdit(stations?{code:'',name:'',machine_type:'',materials:[],active:true,isNew:true}:{product_part_number:'',version:'',active:true,notes:'',lines:[blankIngredient()],packing:recipePacking({}),isNew:true});
  }
  function editRow(r){
-  setEdit(stations?{...r,materials:r.materials.map(m=>({...m})),isNew:false}:{...r,lines:r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})),packing:recipePacking(r,products),isNew:false});
+  setEdit(stations?{...r,materials:r.materials.map(m=>({...m})),isNew:false}:{...r,lines:r.inventory_bom_lines.length?r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})):[blankIngredient()],packing:recipePacking(r,products),isNew:false});
  }
  function duplicate(r){
   if(!manage||busy)return;
@@ -91,6 +91,10 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   const item=outputFor(part);
   setEdit({...edit,product_part_number:part,...(repackEdit?{lines:[{ingredient_id:item?.category==='FG'?item.id:'',quantity_per_unit:'1',waste:'0'}]}:{}),...(edit.isNew&&!edit.packing.some(p=>p.enabled)?{packing:recipePacking({product_part_number:part},products)}:{})});
  }
+ const existingFor=part=>rows.filter(r=>r.product_part_number.trim().toUpperCase()===part.trim().toUpperCase()).sort((a,b)=>Number(b.active)-Number(a.active)||b.version-a.version)[0];
+ const openRecipe=p=>{const existing=existingFor(p.part_number);if(existing){editRow(existing);return;}setEdit({product_part_number:p.part_number,version:'',active:true,notes:'',lines:[blankIngredient()],packing:recipePacking({}),isNew:true});};
+ const duplicateRecipe=edit?.isNew&&!stations?existingFor(edit.product_part_number||''):null;
+ const noticeMatch=p=>!query||[p.part_number,p.nombre,p.descripcion].join(' ').toLowerCase().includes(query);
  const missing=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_lines?.length));
  const missingPacking=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_packaging?.length));
  const editProduct=edit&&!stations?products.find(p=>p.part_number===edit.product_part_number):null;
@@ -112,8 +116,8 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   </div>}
   <ErrorPopup message={error} onClose={()=>setError('')}/>
   {!stations&&<div className="catalog-recipe-notices">
-   <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('description')}</th></tr></thead><tbody>{missing.map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td></tr>)}</tbody></table></div></details>
-   <details><summary>{t('pr_missing_packing',{count:missingPacking.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th></tr></thead><tbody>{missingPacking.map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td></tr>)}</tbody></table></div></details>
+   <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('description')}</th><th>{t('actions')}</th></tr></thead><tbody>{missing.filter(noticeMatch).map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td><td><BtnEditDark disabled={!manage||busy} onClick={()=>openRecipe(p)}>{t(existingFor(p.part_number)?'edit':'add')}</BtnEditDark></td></tr>)}</tbody></table></div></details>
+   <details><summary>{t('pr_missing_packing',{count:missingPacking.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('actions')}</th></tr></thead><tbody>{missingPacking.filter(noticeMatch).map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td><BtnEditDark disabled={!manage||busy} onClick={()=>openRecipe(p)}>{t(existingFor(p.part_number)?'edit':'add')}</BtnEditDark></td></tr>)}</tbody></table></div></details>
   </div>}
   <div className="table-wrap catalog-table-scroll"><table className={'table '+(stations?'catalog-workstations-table':'catalog-bom-table')}>{stations&&<colgroup><col className="station-code"/><col className="station-name"/><col className="station-type"/><col className="station-materials"/><col className="station-status"/><col className="station-actions"/></colgroup>}<thead><tr>
    {stations?<><th>{t('inv_station_code')}</th><th>{t('name')}</th><th>{t('inv_station_type')}</th><th>{t('inv_station_materials')}</th></>:<><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('inv_version')}</th><th>{t('inv_recipe')}</th></>}
@@ -136,6 +140,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
     <h2>{t(stations?'inv_workstations':'inv_bom_title')} · {t(edit.isNew?'add':'edit')}</h2>
     {edit.duplicated&&<p>{t('cat_duplicate_help')}</p>}
     {edit.isNew&&edit[stations?'code':'product_part_number']?.trim()&&hasDuplicateIdentifier(rows,stations?'code':'product_part_number',edit[stations?'code':'product_part_number'])&&<p role="alert" className="inv-message">{t('catalog_duplicate_identifier')}</p>}
+    {duplicateRecipe&&<div className="catalog-existing-recipe" role="status"><span>{t('pr_existing_recipe')}</span><BtnEditDark type="button" disabled={busy} onClick={()=>editRow(duplicateRecipe)}>{t('pr_edit_existing_recipe')}</BtnEditDark></div>}
     <fieldset disabled={busy}><div className="catalog-fields">
     {stations?<><CatalogInput required label={t('inv_station_code')} disabled={!edit.isNew} value={edit.code} onChange={e=>setEdit({...edit,code:e.target.value})}/>
      <CatalogInput required label={t('name')} value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})}/>
@@ -163,7 +168,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
     </>}
     </fieldset>
     
-    <div className="catalog-actions catalog-recipe-footer"><BtnPrimary disabled={busy||!manage||!edit[stations?'code':'product_part_number']?.trim()||(edit.isNew&&hasDuplicateIdentifier(rows,stations?'code':'product_part_number',edit[stations?'code':'product_part_number']))} type="submit">{t('save')}</BtnPrimary><BtnSecondary disabled={busy} type="button" onClick={()=>setEdit(null)}>{t('cancel')}</BtnSecondary></div>
+    <div className="catalog-actions catalog-recipe-footer"><BtnPrimary disabled={busy||!manage||!edit[stations?'code':'product_part_number']?.trim()||(edit.isNew&&hasDuplicateIdentifier(rows,stations?'code':'product_part_number',edit[stations?'code':'product_part_number']))} type="submit">{t('save')}</BtnPrimary><BtnDanger style={{background:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} type="button" onClick={()=>setEdit(null)}>{t('cancel')}</BtnDanger></div>
    </form>}
   </Modal>
  </div>;

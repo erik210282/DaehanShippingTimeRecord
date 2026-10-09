@@ -35,7 +35,7 @@ export default function Production({access}) {
  const allowed=access.admin||access.memberships.some(m=>m.department==='production');
  const supervisor=access.admin||access.memberships.some(m=>m.department==='production'&&m.role==='supervisor');
  const manage=supervisor||access.memberships.some(m=>m.department==='production'&&m.role==='lider');
- const [tab,setTab]=usePageSection('production','records',['records','summary','partial','dashboard','targets']);
+ const [tab,setTab]=usePageSection('production',supervisor?'dashboard':'partial',['records','summary','partial','dashboard','targets']);
  const [data,setData]=useState({reports:[],items:[],stations:[],boms:[],balances:[],consumptions:[]});
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [filter,setFilter]=useState(''),[stationFilter,setStationFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState('');
@@ -125,7 +125,7 @@ export default function Production({access}) {
   {preview(r).map(c=>{const i=data.items.find(i=>i.id===c.ingredient_id);return <tr key={c.ingredient_id+c.area+c.source}><td>{i?.part_number}</td><td>{i?.part_name}</td><td>{t('inv_area_'+c.area)}</td><td>{fmt(c.quantity)}</td><td>{i?.uom}</td>{r.status!=='posted'&&<td className={stock(c.ingredient_id,c.area)<c.quantity?'production-short':''}>{fmt(stock(c.ingredient_id,c.area))}</td>}</tr>;})}
  </tbody></table></div>;
  if(!allowed)return <Navigate to="/inicio" replace/>;
- return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav value={tab} onChange={key=>key==='catalog'?navigate('/catalogos'):key==='inventory'?navigate('/inventarios'):setTab(key)} label={t('global_production')} items={[{key:'partial',label:t('pl_partial')},...(supervisor?[{key:'dashboard',label:t('pl_dashboard')},{key:'targets',label:t('pl_targets')}]:[]),{key:'records',label:t('records')},{key:'summary',label:t('summary')},{key:'catalog',label:t('catalogs')},{key:'inventory',label:t('inv_title')}].map(x=>({...x}))} /></div>
+ return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav value={tab} onChange={setTab} label={t('global_production')} items={[...(supervisor?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),{key:'summary',label:t('pr_summary')}]} /></div>
  <main className="page-container page-container--fluid production-page">
   {['partial','dashboard','targets'].includes(tab)?<ProductionLive key={tab} items={data.items} stations={data.stations} supervisor={supervisor} mode={supervisor?tab:'partial'}/>:<section className="card">
    <div className="catalog-toolbar"><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2>

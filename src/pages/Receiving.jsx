@@ -11,7 +11,6 @@ import { api, emptyData, newId, number, quantity, activeTask, allowedLocations, 
 import { registerReceiving, receivingError } from '../receiving/translations';
 import DepartmentNav from '../components/DepartmentNav';
 import './Receiving.css';
-import Catalogos from './Catalogos';
 import { subscribeUpdates, receivingTables } from '../realtime';
 registerReceiving(i18n);
 const service = api(supabase);
@@ -32,7 +31,7 @@ export default function Receiving({ access }) {
   const { t, i18n } = useTranslation();
   const [data, setData] = useState(emptyData), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
   const [ready,setReady]=useState(false);
-  const [tab, setTab] = usePageSection('receiving', 'pending', ['pending','summary','productivity','catalogs']), [from, setFrom] = useState(''), [to, setTo] = useState(''), [filter, setFilter] = useState(''), [search, setSearch] = useState('');
+  const [tab, setTab] = usePageSection('receiving', 'pending', ['pending','summary','productivity']), [from, setFrom] = useState(''), [to, setTo] = useState(''), [filter, setFilter] = useState(''), [search, setSearch] = useState('');
   const [newReceipt, setNewReceipt] = useState(false), [receiptDraft, setReceiptDraft] = useState(blankReceipt), [selected, setSelected] = useState('');
   const [finishTask, setFinishTask] = useState(null), [actual, setActual] = useState({});
   const [putLine, setPutLine] = useState(null), [putLocation, setPutLocation] = useState(''), [putQuantity, setPutQuantity] = useState('');
@@ -81,7 +80,7 @@ export default function Receiving({ access }) {
   }
   function openPut(line) { setPutAdditional([]);setPutLine(line); setPutLocation(''); setPutQuantity(String(line.available_to_store)); putId.current=newId(); }
   const currentTab=receiver?tab:'summary';
-  const tabs = receiver ? ['pending','summary','productivity', ...(manage?['catalogs']:[])] : ['summary'];
+  const tabs = receiver ? ['pending','summary','productivity'] : ['summary'];
   return <><div className="module-department-nav">
     <ModuleHeading title={t('rc_title')}/>
     <DepartmentNav items={tabs.map(key=>({key,label:t(`rc_${key}`)}))} value={currentTab} onChange={key=>{setTab(key);}} label={t('rc_title')}/></div><main className="rc-page module-surface">
@@ -114,7 +113,6 @@ export default function Receiving({ access }) {
       {productivity(tasks,data.lines).map(row=><tr key={`${row.operator_id}:${row.kind}:${row.uom}`}><td>{data.users.find(u=>u.uid===row.operator_id)?.nombre || row.operator_id}</td><td>{t(`rc_${row.kind}`)}</td><td>{row.uom==='mixed'?t('rc_mixed'):row.uom}</td><td>{row.activities}</td><td>{row.uom==='mixed'?'—':fmt(row.quantity)}</td><td>{fmt(row.seconds/60)}</td><td>{row.uph===null?'—':fmt(row.uph)}</td></tr>)}</tbody></table></div>
       <div className="rc-table-wrap"><table><thead><tr>{['receipt','operator','activity','started','ended','pauses','minutes'].map(key=><th key={key}>{t(`rc_${key}`)}</th>)}</tr></thead><tbody>{tasks.map(task=><tr key={task.id}><td>#{data.receipts.find(r=>r.id===task.receipt_id)?.code}</td><td>{data.users.find(u=>u.uid===task.operator_id)?.nombre || task.operator_id}</td><td>{t(`rc_${task.kind}`)}<small>{t(`rc_${task.status}`)}</small></td><td>{date(task.started_at)}</td><td>{date(task.finished_at)}</td><td>{fmt(task.pause_seconds/60)}</td><td>{task.status==='finished'?fmt(effectiveSeconds(task)/60):'—'}</td></tr>)}</tbody></table></div>
     </>}
-    {tab==='catalogs' && manage && <Catalogos access={access}/>}
     </>}
     {newReceipt && <div className="rc-modal" role="dialog" aria-modal="true" aria-label={t('rc_new')}><section className="rc-dialog"><h2>{t('rc_new')}</h2><p>{t('rc_start_before')}</p><form onSubmit={e=>{e.preventDefault();run(async()=>{
       if(!receiptDraft.supplier_id)throw Error('receiving_invalid');

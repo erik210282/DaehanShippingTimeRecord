@@ -212,7 +212,7 @@ const Navbar = () => {
     navigate("/");
   };
 
-  const shippingItems = [['/tareas-pendientes','pending_tasks'],['/resumen','summary'],['/registros','records'],['/generarbol','generate_bol'],['/comunicaciones','communications'],['/productividad','productivity'],['/catalogos','catalogs']].map(([key,label])=>({key,label:t(label),badge:key==='/comunicaciones'?unreadCount:0}));
+  const shippingItems = [['/tareas-pendientes','pending_tasks'],['/resumen','summary'],['/registros','records'],['/generarbol','generate_bol'],['/comunicaciones','communications'],['/productividad','productivity']].map(([key,label])=>({key,label:t(label),badge:key==='/comunicaciones'?unreadCount:0}));
   return <>
     <header className="navbar app-header">
       <div className="app-header-left">{location.pathname !== '/inicio' && <button className="app-header-button" onClick={() => navigate('/inicio')}>{t('global_back')}</button>}
