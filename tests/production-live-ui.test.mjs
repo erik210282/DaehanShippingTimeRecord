@@ -26,6 +26,14 @@ try{
  await page.getByRole('button',{name:'Record progress',exact:true}).waitFor();
  await page.getByText('70%',{exact:true}).waitFor();
  assert.equal(await page.locator('.live-line').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 241, 242)');
+ await page.getByRole('button',{name:'Edit',exact:true}).first().click();
+ const assertSolidDialog=async()=>{assert.equal(await page.locator('.live-dialog').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');assert.equal(await page.locator('.live-dialog').evaluate(el=>getComputedStyle(el).opacity),'1');};
+ await assertSolidDialog();
+ assert.equal(await page.locator('.live-dialog [aria-hidden=true]').filter({hasText:'▾'}).first().evaluate(el=>getComputedStyle(el).color),'rgb(100, 116, 139)');
+ await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ await page.getByRole('button',{name:'Delete',exact:true}).first().click();await assertSolidDialog();
+ assert.equal(await page.locator('.live-dialog').getByRole('button',{name:'Delete',exact:true}).evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(220, 53, 69)');
+ await page.getByRole('button',{name:'Cancel',exact:true}).click();
  const date=page.locator('input[type=date]').first();
  const request=page.waitForRequest(req=>req.url().endsWith('production_live_snapshot_range')&&req.postDataJSON().p_from.includes('2026-09-15'));
  await date.fill('2026-09-15');await request;
@@ -33,6 +41,7 @@ try{
  for(const width of [1280,390]){await page.setViewportSize({width,height:720});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}
  await page.getByRole('button',{name:'Record progress',exact:true}).click();
  const quantity=page.getByLabel('Cumulative produced pieces',{exact:true});
+ await assertSolidDialog();
  await quantity.fill('130');
  await page.getByRole('button',{name:'Save',exact:true}).click();
  const popup=page.getByRole('alertdialog');
@@ -53,9 +62,9 @@ try{
  await page.getByText('90%',{exact:true}).waitFor();
  await page.goto('http://127.0.0.1:4174/'+name+'.html?mode=targets');
  await page.getByRole('button',{name:/Add/}).click();
- await page.getByLabel('8-hour target (pcs)',{exact:true}).waitFor();
+ await page.getByLabel('8-hour target (pcs)',{exact:true}).waitFor();await assertSolidDialog();
  await page.getByLabel('10-hour target (pcs)',{exact:true}).waitFor();
  for(const width of [1280,390]){await page.setViewportSize({width,height:720});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const boxes=await page.locator('.live-dialog input').evaluateAll(es=>es.map(el=>el.getBoundingClientRect().height));assert.ok(boxes.every(h=>h>=44));}
  assert.equal(await page.getByText('Reporting interval',{exact:true}).count(),0);
- console.log('PASS: dashboard at desktop/phone widths, checkpoint capture, centered error above form, values retained after error, successful server-time report');
+ console.log('PASS: opaque edit/delete/capture/target dialogs, visible dropdown arrows, dashboard at desktop/phone widths, checkpoint capture, centered error above form, values retained after error, successful server-time report');
 }finally{await browser?.close();server.kill();fs.rmSync(name+'.html',{force:true});fs.rmSync(name+'.jsx',{force:true});}
