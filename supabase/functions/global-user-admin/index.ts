@@ -93,6 +93,9 @@ Deno.serve(async (req: Request) => {
 
     if (action === 'link') {
       if (!target.activo) return response(req, { error: 'Inactive user' }, 400);
+      // Older accounts can remain banned after their application profile is reactivated.
+      const { error: unbanError } = await db.auth.admin.updateUserById(userId, { ban_duration: 'none' });
+      if (unbanError) throw unbanError;
       return response(req, { link: await setupLink(target.email) });
     }
     if (!isAdmin || userId === caller.id) return response(req, { error: 'Forbidden' }, 403);
@@ -102,6 +105,8 @@ Deno.serve(async (req: Request) => {
       return response(req, { action: 'deactivated' });
     }
     if (action === 'reactivate') {
+      const { error: unbanError } = await db.auth.admin.updateUserById(userId, { ban_duration: 'none' });
+      if (unbanError) throw unbanError;
       const { error } = await db.from('operadores').update({ activo: true, inactive_since: null }).eq('uid', userId);
       if (error) throw error;
       return response(req, { action: 'reactivated' });
