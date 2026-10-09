@@ -58,6 +58,7 @@ begin
   for v_pack in select value from jsonb_array_elements(p_data->'packaging') loop
    if (v_pack->>'packaging_type' is null or (v_pack->>'packaging_type' not in ('returnable','expendable') and v_pack->>'packaging_type' !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')) or (v_pack->>'box_name' is null or v_pack->>'box_name' not in ('Returnable','Expendable')) or coalesce((v_pack->>'pieces_per_box')::integer,0)<=0 or jsonb_typeof(v_pack->'lines') is distinct from 'array' or jsonb_array_length(v_pack->'lines')=0 then raise exception 'pr_pack_invalid';end if;
    if exists(select 1 from jsonb_array_elements(v_pack->'lines') l where l->>'basis'='pallet') and coalesce(nullif(v_pack->>'boxes_per_pallet','')::integer,0)<=0 then raise exception 'pr_pallet_capacity';end if;
+   if exists(select 1 from jsonb_array_elements(v_pack->'lines') l group by (l->>'ingredient_id')::uuid having count(*)>1) then raise exception 'pr_pack_material_duplicate';end if;
    insert into public.inventory_bom_packaging(bom_id,packaging_type,pieces_per_box,box_name,boxes_per_pallet) values(v_id,v_pack->>'packaging_type',(v_pack->>'pieces_per_box')::integer,btrim(v_pack->>'box_name'),nullif(v_pack->>'boxes_per_pallet','')::integer);
    for v_line in select value from jsonb_array_elements(v_pack->'lines') loop
     v_qty:=(v_line->>'quantity')::numeric;v_waste:=coalesce((v_line->>'waste_rate')::numeric,0);

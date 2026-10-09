@@ -17,7 +17,7 @@ export default function RecipePackingFields({packing,setPacking,items}) {
    {p.lines.some(l=>l.basis==='pallet')&&<CatalogInput label={t('pr_boxes_per_pallet')} required type="number" min="1" step="1" value={p.boxes_per_pallet??''} onChange={e=>update(index,{boxes_per_pallet:e.target.value})}/>}
   </div><div className="recipe-materials-grid">
   {p.lines.map((l,k)=>{const set=(field,value)=>update(index,{lines:p.lines.map((x,j)=>j===k?{...x,[field]:value}:x)});return <div className="recipe-material-row" key={k}>
-   <div><CatalogSelect label={t('pr_packing_material')} value={l.ingredient_id} onChange={v=>set('ingredient_id',v)} options={items.filter(i=>i.category==='PACKAGING'&&(i.active||i.id===l.ingredient_id)).map(i=>({value:i.id,label:i.part_number+' · '+(i.part_name||i.description)+' ('+i.uom+')'}))}/></div>
+   <div><CatalogSelect label={t('pr_packing_material')} value={l.ingredient_id} onChange={v=>set('ingredient_id',v)} options={items.filter(i=>i.category==='PACKAGING'&&(i.active||i.id===l.ingredient_id)&&(i.id===l.ingredient_id||!p.lines.some((other,j)=>j!==k&&other.ingredient_id===i.id))).map(i=>({value:i.id,label:i.part_number+' · '+(i.part_name||i.description)+' ('+i.uom+')'}))}/></div>
    <div><CatalogInput label={t('quantity')} required type="number" min="0.000001" step="any" value={l.quantity} onChange={e=>set('quantity',e.target.value)}/></div>
    <div><CatalogSelect label={t('pr_basis')} value={l.basis} onChange={v=>set('basis',v)} options={['piece','box','pallet'].map(value=>({value,label:t('pr_per_'+value)}))}/></div>
    <div><CatalogInput label={t('cat_waste')} required type="number" min="0" max="99.99" step="any" value={l.waste} onChange={e=>set('waste',e.target.value)}/></div>
