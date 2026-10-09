@@ -94,7 +94,14 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  }
  const existingFor=part=>rows.filter(r=>r.product_part_number.trim().toUpperCase()===part.trim().toUpperCase()).sort((a,b)=>Number(b.active)-Number(a.active)||b.version-a.version)[0];
  const openRecipe=p=>{const existing=existingFor(p.part_number);if(existing){editRow(existing);return;}setEdit({product_part_number:p.part_number,version:'',active:true,notes:'',lines:[blankIngredient()],packing:recipePacking({}),isNew:true});};
- const recipeActions=p=>{const existing=existingFor(p.part_number);return <div className="catalog-row-actions"><BtnEditDark disabled={!manage||busy} onClick={()=>openRecipe(p)}>{t(existing?'edit':'add')}</BtnEditDark>{existing&&<><BtnSecondary disabled={!manage||busy} onClick={()=>duplicate(existing)}>{t('cat_duplicate')}</BtnSecondary><BtnDanger style={{background:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={!manage||busy} onClick={()=>remove(existing)}>{t('delete')}</BtnDanger></>}</div>;};
+ function removeUnconfiguredProduct(p){
+  if(!manage||busy||!window.confirm(t('pr_delete_unconfigured_product',{part:p.part_number})))return;
+  perform(async()=>{
+   const updated=await unwrap(supabase.from('productos').update({activo:false}).eq('id',p.id).select('id'));
+   if(!updated?.length)throw Error('receiving_forbidden');
+  });
+ }
+ const recipeActions=p=>{const existing=existingFor(p.part_number);return <div className="catalog-row-actions"><BtnEditDark disabled={!manage||busy} onClick={()=>openRecipe(p)}>{t(existing?'edit':'add')}</BtnEditDark>{existing&&<BtnSecondary disabled={!manage||busy} onClick={()=>duplicate(existing)}>{t('cat_duplicate')}</BtnSecondary>}<BtnDanger style={{background:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={!manage||busy} onClick={()=>existing?remove(existing):removeUnconfiguredProduct(p)}>{t('delete')}</BtnDanger></div>;};
  const duplicateRecipe=edit?.isNew&&!stations?existingFor(edit.product_part_number||''):null;
  const noticeMatch=p=>!query||[p.part_number,p.nombre,p.descripcion].join(' ').toLowerCase().includes(query);
  const missing=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_lines?.length));

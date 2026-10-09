@@ -12,7 +12,7 @@ try{
  browser=await chromium.launch();
  const page=await browser.newPage({viewport:{width:1280,height:800}});
  const bom={id:'existing-bom',product_part_number:'1586486-81-C',finished_item_id:'fg',version:1,active:false,archived:false,inventory_bom_lines:[],inventory_bom_packaging:[]};
- let saved, deleted=false;
+ let saved, deleted=false, productActive=true, productUpdate, failProductUpdate=false;
  await page.route('**/rest/v1/**',async route=>{
   const url=new URL(route.request().url());
   if(url.pathname.endsWith('/rpc/inventory_catalog_recipe')){
@@ -21,7 +21,13 @@ try{
    return route.fulfill({json:'existing-bom'});
   }
   const table=url.pathname.split('/').pop();
-  const data=table==='inventory_boms'?(deleted?[]:[bom]):table==='inventory_items'?[{id:'fg',producto_id:1,part_number:bom.product_part_number,part_name:'MS Headliner',category:'FG',uom:'PCS',active:true},{id:'raw',part_number:'RAW-01',part_name:'Foam',category:'RAW',uom:'PCS',active:true}]:table==='productos'?[{id:1,part_number:bom.product_part_number,nombre:'MS Headliner',descripcion:'MSP2. HEADLINER ASY',activo:true}]:[];
+  if(table==='productos'&&route.request().method()==='PATCH'){
+   productUpdate={body:route.request().postDataJSON(),id:url.searchParams.get('id')};
+   if(failProductUpdate)return route.fulfill({status:403,json:{message:'receiving_forbidden'}});
+   productActive=productUpdate.body.activo;
+   return route.fulfill({json:[{id:1}]});
+  }
+  const data=table==='inventory_boms'?(deleted?[]:[bom]):table==='inventory_items'?[{id:'fg',producto_id:1,part_number:bom.product_part_number,part_name:'MS Headliner',category:'FG',uom:'PCS',active:true},{id:'raw',part_number:'RAW-01',part_name:'Foam',category:'RAW',uom:'PCS',active:true}]:table==='productos'?[{id:1,part_number:bom.product_part_number,nombre:'MS Headliner',descripcion:'MSP2. HEADLINER ASY',activo:productActive}]:[];
   return route.fulfill({json:data});
  });
  await page.goto('http://127.0.0.1:4176/'+name+'.html');
@@ -65,6 +71,23 @@ try{
  await missing.getByRole('button',{name:'Add',exact:true}).waitFor();
  assert.equal(saved.p_action,'delete');
  assert.deepEqual(saved.p_data,{id:'existing-bom'});
- assert.equal(await missing.getByRole('button',{name:'Delete',exact:true}).count(),0,'A product without a recipe cannot delete the product from this list');
+ const deleteProduct=missing.getByRole('button',{name:'Delete',exact:true});
+ await deleteProduct.waitFor();
+ assert.equal(await deleteProduct.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(220, 53, 69)');
+ page.once('dialog',dialog=>dialog.dismiss());
+ await deleteProduct.click();
+ assert.equal(productUpdate,undefined,'Cancelling leaves the product active');
+ failProductUpdate=true;
+ page.once('dialog',dialog=>{assert.match(dialog.message(),/deactivated.*reactivated/);return dialog.accept();});
+ await deleteProduct.click();
+ await page.getByRole('alertdialog').waitFor();
+ assert.equal(productActive,true,'Failed updates preserve the product and surface a popup');
+ await page.getByRole('alertdialog').getByRole('button').click();
+ failProductUpdate=false;
+ page.once('dialog',dialog=>dialog.accept());
+ await deleteProduct.click();
+ await page.waitForFunction(()=>document.querySelector('.catalog-recipe-notices details').textContent.includes('Active products without a recipe: 0'));
+ assert.deepEqual(productUpdate,{body:{activo:false},id:'eq.1'},'Delete deactivates only the selected product');
+ assert.equal(saved.p_action,'delete','Deleting an unconfigured product never calls the BOM delete RPC');
  console.log('PASS: inactive empty BOM remains editable with Hide Inactive, duplicate notice opens the existing record, save updates original ID');
 }finally{await browser?.close();server.kill();fs.rmSync(name+'.html',{force:true});fs.rmSync(name+'.jsx',{force:true});}
