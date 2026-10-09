@@ -12,6 +12,13 @@ on:
       - 'src/components/ProductionCatalog.jsx'
       - 'src/components/RecipePackingFields.jsx'
       - 'tests/production-modal.test.mjs'
+      - 'tests/bom-existing-ui.test.mjs'
+      - 'src/components/SharedCatalogFields.jsx'
+      - 'src/components/styles.jsx'
+      - 'src/pages/Receiving.jsx'
+      - 'src/pages/Inventarios.jsx'
+      - 'src/App.jsx'
+      - 'src/GlobalPortal.jsx'
       - '.github/workflows/production-modal.yml'
 permissions:
   contents: read
@@ -32,4 +39,5 @@ jobs:
       - run: node tests/production-live-ui.test.mjs
       - run: node tests/production-capture.test.mjs
       - run: node tests/production-modal.test.mjs
+      - run: node tests/bom-existing-ui.test.mjs
       - run: npm run build

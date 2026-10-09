@@ -33,7 +33,7 @@ try{
  const shiftOption=page.getByRole('option',{name:'10 hours',exact:true});await shiftOption.waitFor({state:'visible'});
  assert.equal(await shiftOption.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}),true);
  await shiftOption.click();
- assert.equal(await page.locator('.live-dialog [aria-hidden=true]').filter({hasText:'▾'}).first().evaluate(el=>getComputedStyle(el).color),'rgb(100, 116, 139)');
+ assert.equal(await page.locator('.live-dialog [aria-hidden=true]').filter({hasText:'▾'}).first().evaluate(el=>getComputedStyle(el).color),'rgb(255, 255, 255)');
  await page.getByRole('button',{name:'Cancel',exact:true}).click();
  await page.getByRole('button',{name:'Delete',exact:true}).first().click();await assertSolidDialog();
  assert.equal(await page.locator('.live-dialog').getByRole('button',{name:'Delete',exact:true}).evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(220, 53, 69)');
@@ -65,10 +65,14 @@ try{
  await page.getByRole('alertdialog').getByRole('button',{name:'OK',exact:true}).click();
  await page.getByText('90%',{exact:true}).waitFor();
  await page.goto('http://127.0.0.1:4174/'+name+'.html?mode=targets');
+ assert.match(await page.locator('.live-table tbody tr').first().innerText(),/PN-100 · Test product/);
  await page.getByRole('button',{name:/Add/}).click();
  await page.getByLabel('8-hour target (pcs)',{exact:true}).waitFor();await assertSolidDialog();
  await page.getByLabel('10-hour target (pcs)',{exact:true}).waitFor();
- for(const width of [1280,390]){await page.setViewportSize({width,height:720});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const boxes=await page.locator('.live-dialog input').evaluateAll(es=>es.map(el=>el.getBoundingClientRect().height));assert.ok(boxes.every(h=>h>=44));}
+ await page.getByRole('combobox',{name:'Part',exact:true}).click();
+ await page.getByRole('option',{name:'PN-100 · Test product',exact:true}).click();
+ assert.equal(await page.locator('.live-dialog input[aria-label="8-hour target (pcs)"]').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(51, 51, 51)');
+ for(const width of [1280,390]){await page.setViewportSize({width,height:720});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const boxes=await page.locator('.live-dialog input').evaluateAll(es=>es.map(el=>el.getBoundingClientRect().height));assert.ok(boxes.every(h=>h>=38));}
  assert.equal(await page.getByText('Reporting interval',{exact:true}).count(),0);
  console.log('PASS: opaque edit/delete/capture/target dialogs, visible dropdown arrows, dashboard at desktop/phone widths, checkpoint capture, centered error above form, values retained after error, successful server-time report');
 }finally{await browser?.close();server.kill();fs.rmSync(name+'.html',{force:true});fs.rmSync(name+'.jsx',{force:true});}

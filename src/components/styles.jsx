@@ -55,11 +55,13 @@ export const RS_COMMON_STYLES = {
       alignItems: isMulti && hasValues ? "flex-start" : "center",
       flexWrap: isMulti && hasValues ? "wrap" : "nowrap",
       display: "flex",
+      minWidth: 0,
+      overflow: "hidden",
     };
   },
 
   placeholder: (base) => ({ ...base, color: "#bbb" }),
-  singleValue: (base) => ({ ...base, color: "#fff" }),
+  singleValue: (base) => ({ ...base, color: "#fff", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }),
   input: (base) => ({ ...base, color: "#fff" }),
   indicatorSeparator: () => ({ display: "none" }),
   dropdownIndicator: (base) => ({ 

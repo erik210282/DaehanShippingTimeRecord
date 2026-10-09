@@ -11,7 +11,7 @@ export function catalogDefaults(kind){
 export function materialLabel(type,t){return type?.builtin?t(`rc_${type.code}`):type?.name || '';}
 export function CatalogSelect({label,value,onChange,options,multi=false,disabled=false}){
  const {t}=useTranslation();
- return <label className="catalog-field"><span>{label}</span><DSSelect aria-label={label} isMulti={multi} isDisabled={disabled} options={options} placeholder={t('rc_select')} value={multi?options.filter(o=>(value||[]).includes(o.value)):options.find(o=>o.value===value)||null} onChange={option=>onChange(multi?(option||[]).map(o=>o.value):option?.value||'')} styles={{menuPortal:base=>({...base,zIndex:10002})}}/></label>;
+ return <label className="catalog-field"><span>{label}</span><DSSelect aria-label={label} isMulti={multi} isDisabled={disabled} options={options} placeholder={t('rc_select')} value={multi?options.filter(o=>(value||[]).includes(o.value)):options.find(o=>o.value===value)||null} onChange={option=>onChange(multi?(option||[]).map(o=>o.value):option?.value||'')} styles={{container:base=>({...base,width:'100%',minWidth:0}),menuPortal:base=>({...base,zIndex:11000})}}/></label>;
 }
 export function SharedCatalogFields({kind,edit,setEdit,materials}){
  const {t}=useTranslation();

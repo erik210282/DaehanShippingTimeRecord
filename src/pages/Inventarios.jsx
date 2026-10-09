@@ -2,7 +2,6 @@ import ModuleHeading from '../components/ModuleHeading';
 import { usePageSection } from '../usePageSection';
 import React, { useEffect, useMemo, useState } from 'react';
 import { subscribeUpdates, inventoryTables } from '../realtime';
-import Catalogos from './Catalogos';
 import QualityHolds from '../components/QualityHolds';
 import PhysicalCounts from '../components/PhysicalCounts';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +14,7 @@ const sections = [
   ['overview', 'inv_overview'], ['RAW', 'inv_area_RAW'], ['WIP', 'inv_area_WIP'],
   ['FG', 'inv_area_FG'], ['demand', 'inv_demand'],
   ['PACKAGING', 'inv_area_PACKAGING'], ['quality', 'inv_quality'],
-  ['counts', 'inv_counts'], ['dispatch', 'inv_dispatch'], ['catalog', 'inv_catalog'],
+  ['counts', 'inv_counts'], ['dispatch', 'inv_dispatch'],
 ];
 const areas = ['RAW', 'WIP', 'FG', 'PACKAGING', 'HOLD'];
 const n = value => Number(value || 0);
@@ -218,7 +217,6 @@ export default function Inventarios({ access }) {
           <td>{fmt(i.minimum_quantity)}</td><td>{i.default_location || '—'}</td>{tab==='RAW'&&<td>{pendingParts.has(i.part_number)?t(qty(i.id,tab)===0?'inv_ref_missing_count':'inv_ref_balance_pending'):!countedParts.has(i.part_number)&&qty(i.id,tab)===0?t('inv_ref_missing_count'):'—'}</td>}</tr>)}</tbody></table></div>
       {tab==='WIP'&&<p className="inv-muted">{t('inv_wip_empty')}</p>}
     </section>}
-    {tab === 'catalog' && <Catalogos access={access}/>}
     {tab === 'demand' && <section className="inv-card"><h2>{t('inv_demand_title')}</h2>
       <p>{t('inv_demand_intro')}</p>
       <p>{t('inv_current_file')}: <strong className="inv-inline-strong">{currentImport?.file_name || t('inv_none')}</strong> {currentImport ? `(${t('inv_rows_backlog', { count: currentImport.expected_rows, date: currentImport.backlog_cutoff || t('inv_no_matrix') })})` : ''}</p>

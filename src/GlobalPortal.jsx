@@ -67,6 +67,6 @@ export function DepartmentLanding({ name, access }) {
   if (!departmentKeys.includes(name) || (!access.admin && !access.memberships.some(m => m.department === name))) return <Navigate to="/inicio" replace />;
   return <main className="global-page">
     <div className="global-heading"><span>DAEHAN APP · {t('global_department')}</span><h1>{t(`global_${name}`)}</h1></div>
-    <div className="rc-toolbar"><button onClick={()=>navigate('/catalogos')}>{t('catalogs')}</button><button onClick={()=>navigate('/inventarios')}>{t('inv_title')}</button></div><section className="global-panel">{t('global_pending')}</section>
+    <section className="global-panel">{t('global_pending')}</section>
   </main>;
 }
