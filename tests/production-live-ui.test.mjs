@@ -29,6 +29,10 @@ try{
  await page.getByRole('button',{name:'Edit',exact:true}).first().click();
  const assertSolidDialog=async()=>{assert.equal(await page.locator('.live-dialog').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');assert.equal(await page.locator('.live-dialog').evaluate(el=>getComputedStyle(el).opacity),'1');};
  await assertSolidDialog();
+ await page.getByRole('combobox',{name:'Reference shift',exact:true}).click();
+ const shiftOption=page.getByRole('option',{name:'10 hours',exact:true});await shiftOption.waitFor({state:'visible'});
+ assert.equal(await shiftOption.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}),true);
+ await shiftOption.click();
  assert.equal(await page.locator('.live-dialog [aria-hidden=true]').filter({hasText:'▾'}).first().evaluate(el=>getComputedStyle(el).color),'rgb(100, 116, 139)');
  await page.getByRole('button',{name:'Cancel',exact:true}).click();
  await page.getByRole('button',{name:'Delete',exact:true}).first().click();await assertSolidDialog();
