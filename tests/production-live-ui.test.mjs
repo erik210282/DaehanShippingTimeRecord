@@ -4,7 +4,7 @@ import {spawn} from 'node:child_process';
 import {chromium} from 'playwright';
 const name='.production-live-test';
 fs.writeFileSync(name+'.html','<html><head><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0"><div id="root"></div><script type="module" src="/'+name+'.jsx"></script></body></html>');
-fs.writeFileSync(name+'.jsx',`import React from 'react';import {createRoot} from 'react-dom/client';import Modal from 'react-modal';import ProductionLive from './src/production/ProductionLive';import i18n from './src/i18n/i18n';import {registerProduction} from './src/production/translations';import './src/App.css';import './src/pages/Catalogos.css';import './src/pages/Production.css';i18n.changeLanguage('en');registerProduction(i18n);Modal.setAppElement('#root');createRoot(document.getElementById('root')).render(<ProductionLive supervisor items={[{id:'item',active:true,category:'FG',part_number:'PN-100',part_name:'Test product'}]} stations={[{code:'M-01',name:'Assembly',active:true}]} mode="dashboard"/>);`);
+fs.writeFileSync(name+'.jsx',`import React from 'react';import {createRoot} from 'react-dom/client';import Modal from 'react-modal';import ProductionLive from './src/production/ProductionLive';import i18n from './src/i18n/i18n';import {registerProduction} from './src/production/translations';import './src/App.css';import './src/pages/Catalogos.css';import './src/pages/Production.css';i18n.changeLanguage('en');registerProduction(i18n);Modal.setAppElement('#root');createRoot(document.getElementById('root')).render(<ProductionLive supervisor items={[{id:'item',active:true,category:'FG',part_number:'PN-100',part_name:'Test product'}]} stations={[{code:'M-01',name:'Assembly',active:true}]} mode={new URLSearchParams(location.search).get("mode")||"dashboard"}/>);`);
 const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','4174','--strictPort'],{stdio:'pipe'});
 let browser;
 try{
@@ -12,19 +12,24 @@ try{
  browser=await chromium.launch();
  const page=await browser.newPage({viewport:{width:1280,height:720}});
  const now=Date.now();
- let run={id:'run',station_code:'M-01',item_id:'item',started_at:new Date(now-2*3600000).toISOString(),latest_at:new Date(now).toISOString(),latest_quantity:140,pieces_per_hour:100,interval_hours:2,warning_percent:90,critical_percent:75,expected_quantity:200,attainment:70,performance:'critical',overdue:false};
+ let run={id:'run',station_code:'M-01',item_id:'item',started_at:new Date(now-2*3600000).toISOString(),latest_at:new Date(now).toISOString(),latest_quantity:140,pieces_per_hour:100,shift_hours:8,shift_target:800,period_quantity:140,period_at:new Date(now).toISOString(),warning_percent:90,critical_percent:75,expected_quantity:200,attainment:70,performance:'critical',overdue:false};
  let captured;
  await page.route('**/rest/v1/rpc/production_live_*',async route=>{
  const url=route.request().url();
- if(url.endsWith('production_live_snapshot'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',pieces_per_hour:100,interval_hours:2,warning_percent:90,critical_percent:75}],runs:[run],checkpoints:[]}});
+ if(url.endsWith('production_live_snapshot_range'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',target_8h:800,target_10h:1200,warning_percent:90,critical_percent:75}],runs:[run],checkpoints:[]}});
  const body=route.request().postDataJSON();captured=body;
  if(body.p_data.quantity==='130')return route.fulfill({status:400,json:{code:'P0001',message:'pl_quantity_invalid',details:null,hint:null}});
- run={...run,latest_quantity:Number(body.p_data.quantity),attainment:90,performance:'warning'};
+ run={...run,latest_quantity:Number(body.p_data.quantity),period_quantity:Number(body.p_data.quantity),attainment:90,performance:'warning'};
  return route.fulfill({json:{attainment:90,performance:'warning'}});
  });
  await page.goto('http://127.0.0.1:4174/'+name+'.html');
  await page.getByRole('button',{name:'Record progress',exact:true}).waitFor();
  await page.getByText('70%',{exact:true}).waitFor();
+ assert.equal(await page.locator('.live-line').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 241, 242)');
+ const date=page.locator('input[type=date]').first();
+ const request=page.waitForRequest(req=>req.url().endsWith('production_live_snapshot_range')&&req.postDataJSON().p_from.includes('2026-09-15'));
+ await date.fill('2026-09-15');await request;
+ await page.getByRole('button',{name:'Today',exact:true}).click();
  for(const width of [1280,390]){await page.setViewportSize({width,height:720});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}
  await page.getByRole('button',{name:'Record progress',exact:true}).click();
  const quantity=page.getByLabel('Cumulative produced pieces',{exact:true});
@@ -32,7 +37,7 @@ try{
  await page.getByRole('button',{name:'Save',exact:true}).click();
  const popup=page.getByRole('alertdialog');
  await popup.waitFor();
- assert.match(await popup.textContent(),/cannot decrease/);
+ assert.match(await popup.textContent(),/cumulative order/);
  assert.equal(await popup.evaluate(el=>{const b=el.getBoundingClientRect();return b.top>=0&&b.bottom<=innerHeight&&b.left>=0&&b.right<=innerWidth;}),true);
  await popup.getByRole('button',{name:'OK',exact:true}).click();
  assert.equal(await quantity.inputValue(),'130');
@@ -46,5 +51,11 @@ try{
  assert.equal(captured.p_data.started_at,undefined);
  await page.getByRole('alertdialog').getByRole('button',{name:'OK',exact:true}).click();
  await page.getByText('90%',{exact:true}).waitFor();
+ await page.goto('http://127.0.0.1:4174/'+name+'.html?mode=targets');
+ await page.getByRole('button',{name:/Add/}).click();
+ await page.getByLabel('8-hour target (pcs)',{exact:true}).waitFor();
+ await page.getByLabel('10-hour target (pcs)',{exact:true}).waitFor();
+ for(const width of [1280,390]){await page.setViewportSize({width,height:720});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const boxes=await page.locator('.live-dialog input').evaluateAll(es=>es.map(el=>el.getBoundingClientRect().height));assert.ok(boxes.every(h=>h>=44));}
+ assert.equal(await page.getByText('Reporting interval',{exact:true}).count(),0);
  console.log('PASS: dashboard at desktop/phone widths, checkpoint capture, centered error above form, values retained after error, successful server-time report');
 }finally{await browser?.close();server.kill();fs.rmSync(name+'.html',{force:true});fs.rmSync(name+'.jsx',{force:true});}
