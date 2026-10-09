@@ -31,14 +31,14 @@ try{
  await page.getByRole('dialog').waitFor();
  assert.equal(await page.getByLabel('Related product',{exact:true}).inputValue(),bom.product_part_number);
  assert.equal(await page.locator('.catalog-recipe-dialog input[type=checkbox]').isChecked(),false);
- assert.equal(await page.getByLabel('Quantity per FG',{exact:true}).count(),1,'Empty imported recipes start with one editable ingredient');
+ assert.equal(await page.getByLabel('Quantity per finished piece',{exact:true}).count(),1,'Empty imported recipes start with one editable ingredient');
  await page.getByRole('button',{name:'Cancel',exact:true}).click();
  await page.getByRole('button',{name:'Add',exact:true}).click();
  await page.getByLabel('Related product',{exact:true}).fill(bom.product_part_number);
  await page.getByRole('button',{name:'Edit existing recipe',exact:true}).click();
  await page.getByRole('combobox',{name:'Part',exact:true}).click();
  await page.getByRole('option',{name:'RAW-01 · Foam (PCS)',exact:true}).click();
- await page.getByLabel('Quantity per FG',{exact:true}).fill('1');
+ await page.getByLabel('Quantity per finished piece',{exact:true}).fill('1');
  await page.getByLabel('Waste (%)',{exact:true}).fill('0');
  await page.locator('.catalog-recipe-dialog input[type=checkbox]').check();
  await page.getByRole('button',{name:'Save',exact:true}).click();
