@@ -12,15 +12,16 @@ try{
  browser=await chromium.launch();
  const page=await browser.newPage({viewport:{width:1280,height:800}});
  const bom={id:'existing-bom',product_part_number:'1586486-81-C',finished_item_id:'fg',version:1,active:false,archived:false,inventory_bom_lines:[],inventory_bom_packaging:[]};
- let saved;
+ let saved, deleted=false;
  await page.route('**/rest/v1/**',async route=>{
   const url=new URL(route.request().url());
   if(url.pathname.endsWith('/rpc/inventory_catalog_recipe')){
    saved=route.request().postDataJSON();
+   if(saved.p_action==='delete')deleted=true;
    return route.fulfill({json:'existing-bom'});
   }
   const table=url.pathname.split('/').pop();
-  const data=table==='inventory_boms'?[bom]:table==='inventory_items'?[{id:'fg',producto_id:1,part_number:bom.product_part_number,part_name:'MS Headliner',category:'FG',uom:'PCS',active:true},{id:'raw',part_number:'RAW-01',part_name:'Foam',category:'RAW',uom:'PCS',active:true}]:table==='productos'?[{id:1,part_number:bom.product_part_number,nombre:'MS Headliner',descripcion:'MSP2. HEADLINER ASY',activo:true}]:[];
+  const data=table==='inventory_boms'?(deleted?[]:[bom]):table==='inventory_items'?[{id:'fg',producto_id:1,part_number:bom.product_part_number,part_name:'MS Headliner',category:'FG',uom:'PCS',active:true},{id:'raw',part_number:'RAW-01',part_name:'Foam',category:'RAW',uom:'PCS',active:true}]:table==='productos'?[{id:1,part_number:bom.product_part_number,nombre:'MS Headliner',descripcion:'MSP2. HEADLINER ASY',activo:true}]:[];
   return route.fulfill({json:data});
  });
  await page.goto('http://127.0.0.1:4176/'+name+'.html');
@@ -47,5 +48,23 @@ try{
  assert.equal(saved.p_data.id,'existing-bom');
  assert.equal(saved.p_data.active,true);
  assert.deepEqual(saved.p_data.lines,[{ingredient_id:'raw',quantity_per_unit:1,waste_rate:0}]);
+ await missing.getByRole('button',{name:'Duplicate',exact:true}).click();
+ await page.getByRole('dialog').waitFor();
+ assert.equal(await page.getByLabel('Related product',{exact:true}).inputValue(),'');
+ assert.equal(await page.getByLabel('Quantity per finished piece',{exact:true}).count(),1);
+ await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ await page.locator('.catalog-recipe-notices details').nth(1).locator('summary').click();
+ const packing=page.locator('.catalog-recipe-notices details').nth(1);
+ await packing.getByRole('button',{name:'Duplicate',exact:true}).waitFor();
+ await packing.getByRole('button',{name:'Delete',exact:true}).waitFor();
+ page.once('dialog',dialog=>dialog.dismiss());
+ await missing.getByRole('button',{name:'Delete',exact:true}).click();
+ assert.equal(deleted,false,'Cancelling deletion preserves the recipe');
+ page.once('dialog',dialog=>dialog.accept());
+ await missing.getByRole('button',{name:'Delete',exact:true}).click();
+ await missing.getByRole('button',{name:'Add',exact:true}).waitFor();
+ assert.equal(saved.p_action,'delete');
+ assert.deepEqual(saved.p_data,{id:'existing-bom'});
+ assert.equal(await missing.getByRole('button',{name:'Delete',exact:true}).count(),0,'A product without a recipe cannot delete the product from this list');
  console.log('PASS: inactive empty BOM remains editable with Hide Inactive, duplicate notice opens the existing record, save updates original ID');
 }finally{await browser?.close();server.kill();fs.rmSync(name+'.html',{force:true});fs.rmSync(name+'.jsx',{force:true});}

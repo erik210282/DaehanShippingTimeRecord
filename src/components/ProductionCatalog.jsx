@@ -57,7 +57,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  function duplicate(r){
   if(!manage||busy)return;
   const copy=duplicateCatalogRow(r,stations?'code':'product_part_number');
-  setEdit(stations?{...copy,materials:r.materials.map(m=>({...m})),isNew:true,duplicated:true}:{...copy,version:'',lines:r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})),packing:recipePacking(r).map(p=>({...p,packaging_type:crypto.randomUUID()})),isNew:true,duplicated:true});
+  setEdit(stations?{...copy,materials:r.materials.map(m=>({...m})),isNew:true,duplicated:true}:{...copy,version:'',lines:r.inventory_bom_lines.length?r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})):[blankIngredient()],packing:recipePacking(r).map(p=>({...p,packaging_type:crypto.randomUUID()})),isNew:true,duplicated:true});
  }
  async function save(){
   const key=stations?'code':'product_part_number';
@@ -93,6 +93,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  }
  const existingFor=part=>rows.filter(r=>r.product_part_number.trim().toUpperCase()===part.trim().toUpperCase()).sort((a,b)=>Number(b.active)-Number(a.active)||b.version-a.version)[0];
  const openRecipe=p=>{const existing=existingFor(p.part_number);if(existing){editRow(existing);return;}setEdit({product_part_number:p.part_number,version:'',active:true,notes:'',lines:[blankIngredient()],packing:recipePacking({}),isNew:true});};
+ const recipeActions=p=>{const existing=existingFor(p.part_number);return <div className="catalog-row-actions"><BtnEditDark disabled={!manage||busy} onClick={()=>openRecipe(p)}>{t(existing?'edit':'add')}</BtnEditDark>{existing&&<><BtnSecondary disabled={!manage||busy} onClick={()=>duplicate(existing)}>{t('cat_duplicate')}</BtnSecondary><BtnDanger style={{background:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={!manage||busy} onClick={()=>remove(existing)}>{t('delete')}</BtnDanger></>}</div>;};
  const duplicateRecipe=edit?.isNew&&!stations?existingFor(edit.product_part_number||''):null;
  const noticeMatch=p=>!query||[p.part_number,p.nombre,p.descripcion].join(' ').toLowerCase().includes(query);
  const missing=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_lines?.length));
@@ -116,8 +117,8 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   </div>}
   <ErrorPopup message={error} onClose={()=>setError('')}/>
   {!stations&&<div className="catalog-recipe-notices">
-   <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('description')}</th><th>{t('actions')}</th></tr></thead><tbody>{missing.filter(noticeMatch).map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td><td><BtnEditDark disabled={!manage||busy} onClick={()=>openRecipe(p)}>{t(existingFor(p.part_number)?'edit':'add')}</BtnEditDark></td></tr>)}</tbody></table></div></details>
-   <details><summary>{t('pr_missing_packing',{count:missingPacking.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('actions')}</th></tr></thead><tbody>{missingPacking.filter(noticeMatch).map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td><BtnEditDark disabled={!manage||busy} onClick={()=>openRecipe(p)}>{t(existingFor(p.part_number)?'edit':'add')}</BtnEditDark></td></tr>)}</tbody></table></div></details>
+   <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('description')}</th><th>{t('actions')}</th></tr></thead><tbody>{missing.filter(noticeMatch).map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td><td>{recipeActions(p)}</td></tr>)}</tbody></table></div></details>
+   <details><summary>{t('pr_missing_packing',{count:missingPacking.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('actions')}</th></tr></thead><tbody>{missingPacking.filter(noticeMatch).map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{recipeActions(p)}</td></tr>)}</tbody></table></div></details>
   </div>}
   <div className="table-wrap catalog-table-scroll"><table className={'table '+(stations?'catalog-workstations-table':'catalog-bom-table')}>{stations&&<colgroup><col className="station-code"/><col className="station-name"/><col className="station-type"/><col className="station-materials"/><col className="station-status"/><col className="station-actions"/></colgroup>}<thead><tr>
    {stations?<><th>{t('inv_station_code')}</th><th>{t('name')}</th><th>{t('inv_station_type')}</th><th>{t('inv_station_materials')}</th></>:<><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('inv_version')}</th><th>{t('inv_recipe')}</th></>}
