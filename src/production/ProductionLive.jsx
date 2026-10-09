@@ -13,6 +13,7 @@ import i18n from '../i18n/i18n';
 registerLive(i18n);
 const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return data;};
 const red={background:'#dc3545',color:'#fff',borderColor:'#dc3545'};
+// Custom ReactModal classes omit default content styles; keep the surface opaque.
 const modal={overlay:{position:'fixed',inset:0,zIndex:10000,backgroundColor:'#0f172a99',display:'flex',alignItems:'center',justifyContent:'center',padding:16},content:{position:'relative',inset:'auto',width:'min(760px,100%)',maxHeight:'calc(100dvh - 32px)',overflow:'auto',boxSizing:'border-box',border:'1px solid #e2e8f0',borderRadius:16,padding:0,backgroundColor:'#fff',boxShadow:'0 24px 60px rgba(15,23,42,.25)'}};
 const selectStyles={menuPortal:b=>({...b,zIndex:11000}),control:b=>({...b,minHeight:44,backgroundColor:'#fff',borderColor:'#cbd5e1',boxShadow:'none',borderRadius:8}),singleValue:b=>({...b,color:'#1e293b'}),input:b=>({...b,color:'#1e293b'}),placeholder:b=>({...b,color:'#64748b'}),menu:b=>({...b,backgroundColor:'#fff',color:'#1e293b',borderRadius:8}),option:(b,s)=>({...b,color:'#1e293b',backgroundColor:s.isSelected?'#e2e8f0':s.isFocused?'#f1f5f9':'#fff'}),dropdownIndicator:b=>({...b,color:'#64748b'})};
 const LightDropdownIndicator=props=><selectComponents.DropdownIndicator {...props}><span aria-hidden="true" style={{color:'#64748b',fontSize:15,lineHeight:1}}>▾</span></selectComponents.DropdownIndicator>;
