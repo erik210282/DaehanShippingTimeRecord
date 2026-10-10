@@ -145,7 +145,7 @@ begin
   batch_group:=(p_data->>'capture_group_id')::uuid;
   if batch_group is null then raise exception 'pr_invalid';end if;
   perform pg_advisory_xact_lock(hashtextextended('capture-group:'||batch_group,0));
-  if exists(select 1 from public.production_station_reports where capture_group_id=batch_group and created_by<>auth.uid()) and not public.inventory_access('production',true) then raise exception 'pr_forbidden';end if;
+  if exists(select 1 from public.production_station_reports where capture_group_id=batch_group and created_by<>auth.uid()) and not (public.inventory_access('production',true) or exists(select 1 from public.global_department_memberships where user_id=auth.uid() and department='production' and active and role='lider')) then raise exception 'pr_forbidden';end if;
   if (select count(distinct value->>'item_id') from jsonb_array_elements(p_data->'products'))<>jsonb_array_length(p_data->'products') or (select count(distinct value->>'id') from jsonb_array_elements(p_data->'products'))<>jsonb_array_length(p_data->'products') then raise exception 'pr_invalid';end if;
   common:=(select jsonb_object_agg(key,value) from jsonb_each((p_data->'products')->0) where key=any(array['station_code','production_date','start_time','end_time','ends_next_day','people','staff_names','turns','report_mode','downtime_events']));
   for entry in select value from jsonb_array_elements(p_data->'products') order by value->>'id' loop
