@@ -45,6 +45,8 @@ begin
   raise exception 'bad batch was allowed';
  exception when others then if sqlerrm<>'pl_quantity_invalid' then raise;end if;end;
  if (select count(*) from public.production_checkpoints where run_id in(select id from public.production_live_runs where session_id=session))<>2 then raise exception 'batch failure left partial writes';end if;
+ perform public.production_live_action('close_batch',jsonb_build_object('products',live_rows));
+ if exists(select 1 from public.production_live_runs where session_id=session and closed_at is null) then raise exception 'machine close left active products';end if;
 end $test$;
 select 'multi-product daily, inventory, progress, retry, overlap, permissions and atomic failure passed' as result;
 rollback;

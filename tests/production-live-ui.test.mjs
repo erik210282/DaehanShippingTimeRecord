@@ -14,7 +14,7 @@ try{
  page.on('pageerror',error=>console.error('Browser error:',error.message));
  const now=Date.now();
  let run={id:'run',station_code:'M-01',item_id:'item',started_at:new Date(now-2*3600000).toISOString(),latest_at:new Date(now).toISOString(),latest_quantity:140,pieces_per_hour:100,shift_hours:8,shift_target:800,period_quantity:140,period_at:new Date(now).toISOString(),warning_percent:90,critical_percent:75,expected_quantity:200,attainment:70,performance:'critical',overdue:false};
- let captured;
+ let captured,machineGroup=false;
 
  let dailyCaptured;
  await page.route('**/rest/v1/**',route=>{
@@ -25,8 +25,9 @@ try{
 
  await page.route('**/rest/v1/rpc/production_live_*',async route=>{
  const url=route.request().url();
- if(url.endsWith('production_live_snapshot_range'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',target_8h:800,target_10h:1200,warning_percent:90,critical_percent:75},{item_id:'item2',target_8h:400,target_10h:500,warning_percent:90,critical_percent:75}],runs:[run],checkpoints:[]}});
+ if(url.endsWith('production_live_snapshot_range'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',target_8h:800,target_10h:1200,warning_percent:90,critical_percent:75},{item_id:'item2',target_8h:400,target_10h:500,warning_percent:90,critical_percent:75}],runs:machineGroup?[{...run,session_id:'session'},{...run,id:'run2',item_id:'item2',session_id:'session'}]:[run],checkpoints:[]}});
  const body=route.request().postDataJSON();captured=body;
+ if(body.p_action==='close_batch')run={...run,closed_at:new Date().toISOString()};
  if(body.p_action.endsWith('_batch'))return route.fulfill({json:{saved:true,products:[]}});
  if(body.p_data.quantity==='130')return route.fulfill({status:400,json:{code:'P0001',message:'pl_quantity_invalid',details:null,hint:null}});
  run={...run,latest_quantity:Number(body.p_data.quantity),period_quantity:Number(body.p_data.quantity),attainment:90,performance:'warning'};
@@ -113,7 +114,17 @@ try{
  assert.notEqual(captured.p_data.products[0].run_id,captured.p_data.products[1].run_id);
  await page.getByRole('alertdialog').getByRole('button',{name:'OK',exact:true}).click();
 
- run={...run,can_manage:false};
+
+ machineGroup=true;
+ await page.reload();
+ await page.getByRole('button',{name:'End session',exact:true}).first().click();
+ await page.locator('.live-dialog').getByRole('button',{name:'End session',exact:true}).click();
+ await page.locator('.live-dialog').waitFor({state:'hidden'});
+ assert.equal(captured.p_action,'close_batch');
+ assert.deepEqual(captured.p_data.products.map(p=>p.run_id),['run','run2']);
+ machineGroup=false;
+
+ run={...run,closed_at:null,can_manage:false};
  await page.goto('http://127.0.0.1:4174/'+name+'.html?mode=partial');
  await page.getByText('This station has a session started by another user. Its owner or a supervisor can update it.',{exact:true}).waitFor();
  assert.equal(await page.locator('.live-line').count(),1);
