@@ -1,3 +1,4 @@
+import {useLiveVersion} from '../useLiveVersion';
 import React, { useEffect, useState } from "react";
 import Modal from "react-modal";
 import Papa from "papaparse";
@@ -37,6 +38,8 @@ const formatRecordDate = (date, language) => {
 };
 
 export default function Registros() {
+ const liveVersion=useLiveVersion('Registros');
+
   const { t, i18n } = useTranslation();
 
   const [registros, setRegistros] = useState([]);
@@ -224,7 +227,7 @@ const actualizarRegistros = async () => {
     window.removeEventListener("focus", refreshOperators);
     document.removeEventListener("visibilitychange", refreshOperators);
   };
-}, []);
+}, [liveVersion]);
 
   useEffect(() => {
   if (errorFecha) {

@@ -27,7 +27,7 @@ try{
  const url=route.request().url();
  if(url.endsWith('production_live_snapshot_range'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',target_8h:800,target_10h:1200,warning_percent:90,critical_percent:75},{item_id:'item2',target_8h:400,target_10h:500,warning_percent:90,critical_percent:75}],runs:machineGroup?[{...run,session_id:'session'},{...run,id:'run2',item_id:'item2',session_id:'session'}]:[run],checkpoints:[]}});
  const body=route.request().postDataJSON();captured=body;
- if(body.p_action==='close_batch')run={...run,closed_at:new Date().toISOString()};
+ if(body.p_action==='finish_batch')run={...run,closed_at:new Date().toISOString()};
  if(body.p_action.endsWith('_batch'))return route.fulfill({json:{saved:true,products:[]}});
  if(body.p_data.quantity==='130')return route.fulfill({status:400,json:{code:'P0001',message:'pl_quantity_invalid',details:null,hint:null}});
  run={...run,latest_quantity:Number(body.p_data.quantity),period_quantity:Number(body.p_data.quantity),attainment:90,performance:'warning'};
@@ -67,13 +67,12 @@ try{
  assert.equal(await quantity.inputValue(),'130');
  await quantity.fill('180');
  await page.getByRole('button',{name:'Save',exact:true}).click();
- await page.getByRole('alertdialog').waitFor();
- assert.match(await page.getByRole('alertdialog').textContent(),/Progress saved/);
+ await page.locator('.live-dialog').waitFor({state:'hidden'});
+ assert.equal(await page.getByRole('alertdialog').count(),0);
  assert.equal(captured.p_action,'checkpoint');
  assert.equal(captured.p_data.run_id,'run');
  assert.equal(captured.p_data.quantity,'180');
  assert.equal(captured.p_data.started_at,undefined);
- await page.getByRole('alertdialog').getByRole('button',{name:'OK',exact:true}).click();
  await page.getByText('90%',{exact:true}).waitFor();
  await page.goto('http://127.0.0.1:4174/'+name+'.html?mode=targets');
  assert.match(await page.locator('.live-table tbody tr').first().innerText(),/PN-100 · Test product/);
@@ -118,17 +117,19 @@ try{
  machineGroup=true;
  await page.reload();
  await page.getByRole('button',{name:'End session',exact:true}).first().click();
+ await page.getByLabel('Produced quantity · PN-100',{exact:true}).fill('190');
+ await page.getByLabel('Produced quantity · PN-200',{exact:true}).fill('100');
  await page.locator('.live-dialog').getByRole('button',{name:'End session',exact:true}).click();
  await page.locator('.live-dialog').waitFor({state:'hidden'});
- assert.equal(captured.p_action,'close_batch');
+ assert.equal(captured.p_action,'finish_batch');
  assert.deepEqual(captured.p_data.products.map(p=>p.run_id),['run','run2']);
  machineGroup=false;
 
  run={...run,closed_at:null,can_manage:false};
  await page.goto('http://127.0.0.1:4174/'+name+'.html?mode=partial');
- await page.getByText('This station has a session started by another user. Its owner or a supervisor can update it.',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Record progress',exact:true}).waitFor();
  assert.equal(await page.locator('.live-line').count(),1);
- for(const name of ['Record progress','End session','Edit','Delete'])assert.equal(await page.getByRole('button',{name,exact:true}).count(),0);
+ for(const name of ['Edit','Delete'])assert.equal(await page.getByRole('button',{name,exact:true}).count(),0);
 
  await page.goto('http://127.0.0.1:4174/'+name+'.html?daily=1&production=records');
  await page.getByRole('button',{name:/Record production/}).click({timeout:10000}).catch(async error=>{console.error('Daily screen:',await page.locator('body').innerText());throw error;});

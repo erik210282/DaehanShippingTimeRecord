@@ -36,7 +36,7 @@ export default function Production({access}) {
  const allowed=access.admin||access.memberships.some(m=>m.department==='production');
  const supervisor=access.admin||access.memberships.some(m=>m.department==='production'&&m.role==='supervisor');
  const manage=supervisor||access.memberships.some(m=>m.department==='production'&&m.role==='lider');
- const [tab,setTab]=usePageSection('production',supervisor?'dashboard':'partial',['records','summary','partial','dashboard','targets']);
+ const [tab,setTab]=usePageSection('production',manage?'dashboard':'partial',['records','summary','partial','dashboard','targets']);
  const [data,setData]=useState({reports:[],items:[],stations:[],boms:[],balances:[],consumptions:[]});
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [filter,setFilter]=useState(''),[stationFilter,setStationFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState('');
@@ -63,7 +63,7 @@ export default function Production({access}) {
  const profilesFor=(r,bom=bomFor(r))=>r.catalog_packing===false?(bom?.inventory_bom_packaging||[]):packingProfiles(itemFor(r),bom,data.items);
  const profileFor=(r,bom=bomFor(r))=>profilesFor(r,bom).find(p=>p.packaging_type===r.packaging_type);
  const packingName=r=>r.packing_box_name||packingLabel(profileFor(r))||(['returnable','expendable'].includes(r.packaging_type)?t('pr_'+r.packaging_type):'');
- const editable=r=>r.status==='draft'&&(manage||r.created_by===access.userId);
+ const editable=r=>r.status==='draft';
  const filtered=useMemo(()=>data.reports.filter(r=>{
   const i=data.items.find(i=>i.id===r.item_id),s=data.stations.find(s=>s.code===r.station_code);
   return (!stationFilter||r.station_code===stationFilter)&&(!statusFilter||r.status===statusFilter)&&(!from||r.production_date>=from)&&(!to||r.production_date<=to)&&(!filter.trim()||[i?.part_number,i?.part_name,s?.name,r.station_code,r.note].join(' ').toLowerCase().includes(filter.trim().toLowerCase()));
@@ -88,7 +88,7 @@ export default function Production({access}) {
     payload.packaging_type=payload.packaging_type||null;
    }
    await unwrap(supabase.rpc('production_station_action',{p_action:type,p_data:payload}));
-   await refresh();setEdit(null);setReview(null);setConfirming(false);setMessage(t(type==='post'?'pr_posted_help':type==='submit'?'pr_submitted_help':'global_saved'));
+   await refresh();setEdit(null);setReview(null);setConfirming(false);setMessage('');
   } catch(e){const translated=t(e.message,{defaultValue:''});setError(translated&&translated!==e.message?translated:t('pr_save_error'));}finally{lock.current=false;setBusy(false);}
  }
  async function saveProducts(type,edit){
@@ -107,7 +107,7 @@ export default function Production({access}) {
    }
    lock.current=true;setBusy(true);
    await unwrap(supabase.rpc('production_station_action',{p_action:type,p_data:{capture_group_id:edit.capture_group_id||edit.group_id,products}}));
-   await refresh();setEdit(null);setMessage(t(type==='submit'?'pr_submitted_help':'global_saved'));
+   await refresh();setEdit(null);setMessage('');
   }catch(e){setError(t(e.message,{defaultValue:t('pr_save_error')}));}finally{lock.current=false;setBusy(false);}
  }
  const timeRowIds=useMemo(()=>new Set(sharedTimeRows(filtered).map(r=>r.id)),[filtered]);
@@ -147,9 +147,9 @@ export default function Production({access}) {
   {preview(r).map(c=>{const i=data.items.find(i=>i.id===c.ingredient_id);return <tr key={c.ingredient_id+c.area+c.source}><td>{i?.part_number}</td><td>{i?.part_name}</td><td>{t('inv_area_'+c.area)}</td><td>{fmt(c.quantity)}</td><td>{i?.uom}</td>{r.status!=='posted'&&<td className={stock(c.ingredient_id,c.area)<c.quantity?'production-short':''}>{fmt(stock(c.ingredient_id,c.area))}</td>}</tr>;})}
  </tbody></table></div>;
  if(!allowed)return <Navigate to="/inicio" replace/>;
- return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav value={tab} onChange={setTab} label={t('global_production')} items={[...(supervisor?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),{key:'summary',label:t('pr_summary')}]} /></div>
+ return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav value={tab} onChange={setTab} label={t('global_production')} items={[...(manage?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),{key:'summary',label:t('pr_summary')}]} /></div>
  <main className="page-container page-container--fluid production-page">
-  {['partial','dashboard','targets'].includes(tab)?<ProductionLive key={tab} items={data.items} stations={data.stations} supervisor={supervisor} mode={supervisor?tab:'partial'}/>:<section className="card">
+  {['partial','dashboard','targets'].includes(tab)?<ProductionLive key={tab} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
    <div className="catalog-toolbar"><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2>
    <div className="catalog-filters production-filters">
     <CatalogInput label={t('pr_from')} type="date" value={from} onChange={ev=>setFrom(ev.target.value)}/>
@@ -170,7 +170,7 @@ export default function Production({access}) {
    </>:<div className="table-wrap catalog-table-scroll"><table className="table"><thead><tr>{['pr_date','inv_station_code','inv_part','name','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_packing_type','pr_machine_minutes','pr_downtime','pr_people','pr_total_hours','pr_labor_hours','pr_turns','status','actions'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>
     {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))-1)*pageSize,Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))*pageSize).map(r=><tr key={r.id}><td>{r.production_date}</td><td title={stationFor(r)?.name}>{r.station_code}</td><td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{packingName(r)||'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td><td><div className="production-row-actions">
      <BtnSecondary disabled={busy} onClick={()=>{setError('');setConfirming(false);setReview(r);}}>{t('pr_details')}</BtnSecondary>
-     {editable(r)&&<><BtnEditDark disabled={busy} onClick={()=>{setError('');setEdit({...openCapture(r,data.reports),start_time:String(r.start_time||'').slice(0,5),end_time:String(r.end_time||'').slice(0,5),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})});}}>{t('edit')}</BtnEditDark><BtnDanger disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',r)}>{t('delete')}</BtnDanger></>}
+     {editable(r)&&<><BtnEditDark disabled={busy} onClick={()=>{setError('');setEdit({...openCapture(r,data.reports),start_time:String(r.start_time||'').slice(0,5),end_time:String(r.end_time||'').slice(0,5),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})});}}>{t('edit')}</BtnEditDark>{(manage||r.created_by===access.userId)&&<BtnDanger disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',r)}>{t('delete')}</BtnDanger>}</>}
     </div></td></tr>)}
     {!filtered.length&&<tr><td colSpan="18">{t('no_results_found')}</td></tr>}
    </tbody></table><TablePagination totalRows={filtered.length} page={Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}}/></div>}

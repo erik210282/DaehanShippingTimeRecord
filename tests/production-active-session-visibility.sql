@@ -8,8 +8,8 @@ begin
  values(v_id,source.station_code,source.item_id,now()-interval '1 hour',source.created_by,source.pieces_per_hour,source.interval_hours,source.warning_percent,source.critical_percent,source.shift_hours,source.shift_target);
  perform set_config('request.jwt.claim.sub','9c45902c-ee83-4716-9f70-d8e7fe8e8b0d',true);
  snap:=public.production_live_snapshot_range(date_trunc('day',now()),date_trunc('day',now())+interval '1 day');
- assert exists(select 1 from jsonb_array_elements(snap->'runs') r where r->>'id'=v_id::text and r->>'can_manage'='false'),'Another production member must see the active station read-only';
- foreach action in array array['checkpoint','close','edit_run','delete_run'] loop
+ assert exists(select 1 from jsonb_array_elements(snap->'runs') r where r->>'id'=v_id::text and r->>'can_continue'='true'),'Another production member must see the active station with continuation access';
+ foreach action in array array['edit_run','delete_run'] loop
   begin
    perform public.production_live_action(action,jsonb_build_object('run_id',v_id,'id',gen_random_uuid(),'quantity','0'));
    raise exception 'Unexpected permission for %',action;
@@ -19,7 +19,7 @@ begin
  end loop;
  update public.production_live_runs set closed_at=now() where id=v_id;
  snap:=public.production_live_snapshot_range(date_trunc('day',now()),date_trunc('day',now())+interval '1 day');
- assert not exists(select 1 from jsonb_array_elements(snap->'runs') r where r->>'id'=v_id::text),'Other users cannot see closed sessions';
+ assert exists(select 1 from jsonb_array_elements(snap->'runs') r where r->>'id'=v_id::text),'Department members see closed sessions for handoff history';
  update public.production_live_runs set closed_at=null,created_by='9c45902c-ee83-4716-9f70-d8e7fe8e8b0d' where id=v_id;
  snap:=public.production_live_snapshot_range(date_trunc('day',now()),date_trunc('day',now())+interval '1 day');
  assert exists(select 1 from jsonb_array_elements(snap->'runs') r where r->>'id'=v_id::text and r->>'can_manage'='true'),'The owner retains management';
