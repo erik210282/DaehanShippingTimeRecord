@@ -106,12 +106,12 @@ try{
  await page.getByLabel('Produced quantity · PN-100',{exact:true}).fill('7');
  await page.getByLabel('Produced quantity · PN-200',{exact:true}).fill('11');
  await page.getByRole('button',{name:'Save',exact:true}).click();
- await page.getByRole('alertdialog').waitFor();
+ await page.locator('.live-dialog').waitFor({state:'hidden'});
+ assert.equal(await page.getByRole('alertdialog').count(),0);
  assert.equal(captured.p_action,'checkpoint_batch');
  assert.deepEqual(captured.p_data.products.map(p=>[p.item_id,p.quantity]),[['item','7'],['item2','11']]);
  assert.equal(captured.p_data.products[0].session_id,captured.p_data.products[1].session_id);
  assert.notEqual(captured.p_data.products[0].run_id,captured.p_data.products[1].run_id);
- await page.getByRole('alertdialog').getByRole('button',{name:'OK',exact:true}).click();
 
 
  machineGroup=true;
