@@ -1,3 +1,4 @@
+import {useLiveVersion} from '../useLiveVersion';
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../supabase/client";
@@ -9,6 +10,8 @@ const SHIPPING_PHASES = ["stage", "label", "scan", "load"];
 const labelLastFour = (value) => String(value || "").match(/\d{4}$/)?.[0] || "—";
 
 export default function Resumen() {
+ const liveVersion=useLiveVersion('Resumen');
+
   const { t } = useTranslation();
   const [resumenData, setResumenData] = useState([]);
   const [filtroIdx, setFiltroIdx] = useState("");
@@ -83,7 +86,7 @@ export default function Resumen() {
     };
 
     cargarCatalogosYActividades();
-  }, []);
+  }, [liveVersion]);
 
   useEffect(() => {
     const fetchResumen = async () => {
@@ -237,7 +240,7 @@ export default function Resumen() {
     };
 
     fetchResumen();
-   }, [productosDict, partesDict, operadoresDict, actividadesDict, filtroIdx, fechaInicio, fechaFin, t]);
+   }, [productosDict, partesDict, operadoresDict, actividadesDict, filtroIdx, fechaInicio, fechaFin, t,liveVersion]);
 
   // ==========================
   // Paginado: cálculo de filas

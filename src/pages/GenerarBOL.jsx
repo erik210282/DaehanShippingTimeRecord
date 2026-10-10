@@ -1,3 +1,4 @@
+import {useLiveVersion} from '../useLiveVersion';
 import React from "react";
 import { supabase } from "../supabase/client";
 import { useTranslation } from "react-i18next";
@@ -43,6 +44,8 @@ function poAddressKey(p) {
 
 /* ======================================================= */
 export default function GenerarBOL() {
+ const liveVersion=useLiveVersion('GenerarBOL');
+
   // wrapper seguro: si t no es función (por cualquier motivo), usa fallback
   const { t: maybeT } = useTranslation();
   const t = (key, fallback) =>
@@ -230,7 +233,7 @@ export default function GenerarBOL() {
         supabase.removeChannel(ch);
       } catch {}
     };
-  }, [cargarIdxOptions, cargarPoOptions, cargarShipperOptions]);
+  }, [cargarIdxOptions, cargarPoOptions, cargarShipperOptions,liveVersion]);
 
   // Prefer a verified LOAD; older IDX tasks may only have start-time trailer/door.
   // These fields remain editable when the IDX has no verified LOAD yet.

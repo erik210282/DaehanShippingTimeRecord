@@ -1,3 +1,4 @@
+import {useLiveVersion} from '../useLiveVersion';
 // Productividad.jsx (reemplazo completo)
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "../supabase/client";
@@ -20,6 +21,8 @@ import { DSDate, DSNativeSelect, BtnPrimary, BtnSecondary } from "../components/
 ChartJS.register(BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend);
 
 export default function Productividad() {
+ const liveVersion=useLiveVersion('Productividad');
+
   const { t } = useTranslation();
 
   const [registros, setRegistros] = useState([]);
@@ -90,7 +93,7 @@ export default function Productividad() {
       setActividades(mapById(actSnap));
     };
     cargarCatalogos();
-  }, []);
+  }, [liveVersion]);
 
   // --- Paginación y carga de registros (servidor) ---
   const actualizarRegistros = useCallback(
@@ -158,7 +161,7 @@ export default function Productividad() {
       supabase.removeChannel(canal);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // suscripción y primera carga una sola vez
+  }, [liveVersion]); // suscripción y primera carga una sola vez
 
   // Cada vez que cambian los filtros de fecha, recarga desde el servidor
   useEffect(() => {
@@ -166,7 +169,7 @@ export default function Productividad() {
     if (!ok) return;
     const { fromISO, toISO } = buildDayRangeISO(desde, hasta);
     actualizarRegistros({ fromISO, toISO });
-  }, [desde, hasta, validarFechas, buildDayRangeISO, actualizarRegistros]);
+  }, [desde, hasta, validarFechas, buildDayRangeISO, actualizarRegistros,liveVersion]);
 
   // --- Filtro en cliente (seguridad extra y coherencia con UI) ---
   const filtrarRegistros = () => {

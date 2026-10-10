@@ -1,3 +1,4 @@
+import {useLiveVersion} from '../useLiveVersion';
 import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from "../supabase/client";
 import Modal from "react-modal";
@@ -25,6 +26,8 @@ const SHIPPING_PHASES = ["stage", "label", "scan", "load"];
 const EMPTY_CONTAINER_PRODUCTS = new Set(["delivery", "empty crates", "empty"]);
 
 export default function TareasPendientes() {
+ const liveVersion=useLiveVersion('TareasPendientes');
+
   const location = useLocation();
   const [tareas, setTareas] = useState([]);
   const [actividades, setActividades] = useState({});
@@ -229,7 +232,7 @@ export default function TareasPendientes() {
       supabase.removeChannel(canalProductos);
       supabase.removeChannel(canalOperadores);
     };
-  }, [location.pathname]);
+  }, [location.pathname,liveVersion]);
 
   const abrirModal = async (tarea = null) => {
     if (!tarea) {

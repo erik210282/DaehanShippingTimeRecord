@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {uphTarget,synchronizedTargets,runHours,dashboardTable,progressCapture} from '../src/production/progress.mjs';
+const targets=synchronizedTargets({},'target_8h','750');
+assert.equal(Number(targets.target_10h),930);assert.equal(uphTarget(targets),100);
+const start=new Date(2026,9,10,8),end=new Date(2026,9,10,10);
+const run={id:'a',station_code:'M1',item_id:'A',started_at:start.toISOString(),closed_at:end.toISOString(),shift_hours:8,shift_target:750,downtime_events:[{type:'break',start_at:new Date(2026,9,10,8,15).toISOString(),end_at:new Date(2026,9,10,8,30).toISOString()},{type:'breakdown',start_at:new Date(2026,9,10,9).toISOString(),end_at:new Date(2026,9,10,9,10).toISOString()}]};
+assert.equal(runHours(run,end).elapsed,2);assert.equal(runHours(run,end).downtime,10);assert.ok(Math.abs(runHours(run,end).working-(2-25/60))<1e-9);
+const cps=[{id:'c1',run_id:'a',recorded_at:new Date(2026,9,10,9).toISOString(),quantity:75},{id:'c2',run_id:'a',recorded_at:end.toISOString(),quantity:150}];
+const table=dashboardTable([run],cps,'2026-10-10',end);assert.equal(table.columns[0].getHours(),8);assert.equal(table.columns[1].getHours(),10);assert.equal(table.rows[0].quantity,150);assert.equal(table.rows[0].efficiency,20);assert.equal(table.rows[0].target,100);assert.equal(table.rows[0].cells[0],75);assert.equal(table.rows[0].cells[1],150);assert.equal(table.rows[0].average,95);
+assert.equal(progressCapture({action:'finish',started_at:start.toISOString(),finish_date:'2026-10-10',finish_time:'10:00',downtime_events:[]},new Date(2026,9,10,11)).end,end.toISOString());
+assert.equal(progressCapture({action:'finish',started_at:start.toISOString(),finish_date:'2026-10-10',finish_time:'12:00',downtime_events:[]},new Date(2026,9,10,11)).error,'pl_finish_invalid');
+console.log('PASS: effective targets, final time, two-hour columns, cumulative results, interval UPH and downtime categories');

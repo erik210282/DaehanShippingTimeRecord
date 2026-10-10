@@ -13,7 +13,10 @@ begin
  rows:=jsonb_build_array(base||jsonb_build_object('id',r1,'item_id',a,'machine_quantity',7),base||jsonb_build_object('id',r2,'item_id',b,'machine_quantity',11));
  perform public.production_station_action('save',jsonb_build_object('capture_group_id',grp,'products',rows));
  if (select count(*) from public.production_station_reports where capture_group_id=grp)<>2 then raise exception 'batch save lost products';end if;
+ perform set_config('request.jwt.claim.sub','9c45902c-ee83-4716-9f70-d8e7fe8e8b0d',true);
  perform public.production_station_action('submit',jsonb_build_object('capture_group_id',grp,'products',rows));
+ if exists(select 1 from public.production_station_reports where capture_group_id=grp and created_by<> '270a4a29-8fe0-4eee-8267-9e797be33216'::uuid) then raise exception 'handoff changed creator';end if;
+ perform set_config('request.jwt.claim.sub','270a4a29-8fe0-4eee-8267-9e797be33216',true);
  if (select count(*) from public.production_station_reports where capture_group_id=grp and status='submitted')<>2 then raise exception 'parallel submission failed';end if;
  begin
   perform public.production_station_action('submit',base||jsonb_build_object('id',gen_random_uuid(),'item_id',a,'machine_quantity',5));
@@ -35,16 +38,19 @@ begin
   raise exception 'second session was allowed';
  exception when others then if sqlerrm<>'pl_station_busy' then raise;end if;end;
  perform set_config('request.jwt.claim.sub','9c45902c-ee83-4716-9f70-d8e7fe8e8b0d',true);
+ perform public.production_live_action('checkpoint_batch',jsonb_build_object('products',jsonb_build_array((live_rows->0)||jsonb_build_object('id',gen_random_uuid(),'quantity','71'),(live_rows->1)||jsonb_build_object('id',gen_random_uuid(),'quantity','91'))));
+ if (select count(*) from public.production_checkpoints where run_id in(select id from public.production_live_runs where session_id=session) and created_by=auth.uid())<>2 then raise exception 'handoff reporter attribution lost';end if;
  begin
-  perform public.production_live_action('checkpoint_batch',jsonb_build_object('products',jsonb_build_array((live_rows->0)||jsonb_build_object('id',gen_random_uuid(),'quantity','71'),(live_rows->1)||jsonb_build_object('id',gen_random_uuid(),'quantity','91'))));
-  raise exception 'foreign session mutation allowed';
+  perform public.production_live_action('delete_run',jsonb_build_object('run_id',live_rows->0->>'run_id'));
+  raise exception 'foreign destructive action allowed';
  exception when others then if sqlerrm<>'pr_forbidden' then raise;end if;end;
  perform set_config('request.jwt.claim.sub','270a4a29-8fe0-4eee-8267-9e797be33216',true);
  begin
   perform public.production_live_action('checkpoint_batch',jsonb_build_object('products',jsonb_build_array((live_rows->0)||jsonb_build_object('id',gen_random_uuid(),'quantity','80'),(live_rows->1)||jsonb_build_object('id',gen_random_uuid(),'quantity','invalid'))));
   raise exception 'bad batch was allowed';
  exception when others then if sqlerrm<>'pl_quantity_invalid' then raise;end if;end;
- if (select count(*) from public.production_checkpoints where run_id in(select id from public.production_live_runs where session_id=session))<>2 then raise exception 'batch failure left partial writes';end if;
+ if (select count(*) from public.production_checkpoints where run_id in(select id from public.production_live_runs where session_id=session))<>4 then raise exception 'batch failure left partial writes';end if;
+ perform set_config('request.jwt.claim.sub','9c45902c-ee83-4716-9f70-d8e7fe8e8b0d',true);
  perform public.production_live_action('close_batch',jsonb_build_object('products',live_rows));
  if exists(select 1 from public.production_live_runs where session_id=session and closed_at is null) then raise exception 'machine close left active products';end if;
 end $test$;

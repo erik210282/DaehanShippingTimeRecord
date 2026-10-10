@@ -1,3 +1,4 @@
+import {useLiveVersion} from '../useLiveVersion';
 import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import "../App.css";
@@ -8,6 +9,7 @@ const API_URL = "https://daehanshippingbackend.onrender.com";
 const API_KEY = "clave-super-secreta-$hipping*2025*";
 
 export default function Usuarios() {
+ const liveVersion=useLiveVersion('usuarios');
   const { t, i18n } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -123,8 +125,8 @@ export default function Usuarios() {
     }
   };
 
-      const cargarUsuarios = async () => {
-        setCargando(true);
+      const cargarUsuarios = async (silent=false) => {
+        if(!silent)setCargando(true);
         try {
           const { data: ops, error } = await supabase
             .from("operadores")
@@ -143,14 +145,14 @@ export default function Usuarios() {
           }));
 
           setUsuarios(lista);
-          setPage(1); 
-          setMensajeKey("");
-          setMensajeExtra("");
+          if(!silent)setPage(1); 
+          if(!silent)setMensajeKey("");
+          if(!silent)setMensajeExtra("");
         } catch (error) {
           setMensajeKey("network_error");
           setMensajeExtra(error.message || "");
         } finally {
-          setCargando(false);
+          if(!silent)setCargando(false);
         }
       };
  
@@ -233,7 +235,8 @@ export default function Usuarios() {
   const endIndex = startIndex + pageSize;
   const filasPagina = usuarios.slice(startIndex, endIndex);
 
-   return (
+   useEffect(()=>{if(mostrarUsuarios)cargarUsuarios(true);},[liveVersion,mostrarUsuarios]);
+  return (
     <div className="page-container page-container--fluid">
       <div className="card">
         <h2>{t("user_management")}</h2>
