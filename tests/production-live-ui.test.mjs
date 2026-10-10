@@ -11,6 +11,7 @@ try{
  for(let i=0;i<100;i++){try{const r=await fetch('http://127.0.0.1:4174/'+name+'.html');if(r.ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  browser=await chromium.launch();
  const page=await browser.newPage({viewport:{width:1280,height:720}});
+ page.on('pageerror',error=>console.error('Browser error:',error.message));
  const now=Date.now();
  let run={id:'run',station_code:'M-01',item_id:'item',started_at:new Date(now-2*3600000).toISOString(),latest_at:new Date(now).toISOString(),latest_quantity:140,pieces_per_hour:100,shift_hours:8,shift_target:800,period_quantity:140,period_at:new Date(now).toISOString(),warning_percent:90,critical_percent:75,expected_quantity:200,attainment:70,performance:'critical',overdue:false};
  let captured;
@@ -119,7 +120,7 @@ try{
  for(const name of ['Record progress','End session','Edit','Delete'])assert.equal(await page.getByRole('button',{name,exact:true}).count(),0);
 
  await page.goto('http://127.0.0.1:4174/'+name+'.html?daily=1&production=records');
- await page.getByRole('button',{name:'Record production',exact:true}).click();
+ await page.getByRole('button',{name:'Record production',exact:true}).click({timeout:10000}).catch(async error=>{console.error('Daily screen:',await page.locator('body').innerText());throw error;});
  const daily=page.locator('.production-modal');
  await daily.getByRole('combobox').nth(0).click();
  await page.getByRole('option',{name:'M-01 · Assembly',exact:true}).click();
