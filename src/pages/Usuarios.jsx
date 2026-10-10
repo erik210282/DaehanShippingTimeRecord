@@ -126,7 +126,7 @@ export default function Usuarios() {
   };
 
       const cargarUsuarios = async (silent=false) => {
-        setCargando(true);
+        if(!silent)setCargando(true);
         try {
           const { data: ops, error } = await supabase
             .from("operadores")
@@ -145,14 +145,14 @@ export default function Usuarios() {
           }));
 
           setUsuarios(lista);
-          setPage(1); 
-          setMensajeKey("");
-          setMensajeExtra("");
+          if(!silent)setPage(1); 
+          if(!silent)setMensajeKey("");
+          if(!silent)setMensajeExtra("");
         } catch (error) {
           setMensajeKey("network_error");
           setMensajeExtra(error.message || "");
         } finally {
-          setCargando(false);
+          if(!silent)setCargando(false);
         }
       };
  
@@ -389,7 +389,7 @@ export default function Usuarios() {
               onPageChange={setPage}
               onPageSizeChange={(size) => {
                 setPageSize(size);
-                if(!silent)setPage(1);
+                setPage(1);
               }}              
               pageSizeOptions={[25, 50, 100, 200]}
             />
