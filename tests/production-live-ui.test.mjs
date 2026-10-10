@@ -84,7 +84,15 @@ try{
  for(const width of [1280,390]){await page.setViewportSize({width,height:720});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const boxes=await page.locator('.live-dialog input').evaluateAll(es=>es.map(el=>el.getBoundingClientRect().height));assert.ok(boxes.every(h=>h>=38));}
  assert.equal(await page.getByText('Reporting interval',{exact:true}).count(),0);
 
- await page.getByRole('button',{name:'Cancel',exact:true}).click();
+
+ await page.getByRole('combobox',{name:'Part',exact:true}).click();
+ await page.getByRole('option',{name:'PN-200 · Second product',exact:true}).click();
+ await page.getByLabel('8-hour target (pcs)',{exact:true}).fill('800');
+ await page.getByLabel('10-hour target (pcs)',{exact:true}).fill('1000');
+ await page.getByRole('button',{name:'Save',exact:true}).click();
+ await page.locator('.live-dialog').waitFor({state:'hidden'});
+ assert.equal(captured.p_action,'target_batch');
+ assert.deepEqual(captured.p_data.products.map(p=>p.item_id),['item','item2']);
  await page.goto('http://127.0.0.1:4174/'+name+'.html?mode=partial');
  await page.getByRole('button',{name:/New machine session/}).click();
  await page.getByRole('combobox',{name:'Workstation',exact:true}).click();
