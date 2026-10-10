@@ -174,14 +174,14 @@ try{
 
  showReview=true;
  await page.reload();
- await page.getByRole('button',{name:'Details',exact:true}).click();
+ await page.getByRole('button',{name:'Details / review',exact:true}).click();
  await page.getByText('Reported by: Test Operator',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Post to inventory',exact:true}).click();
  const confirmation=page.getByRole('dialog',{name:'Confirm consumption and output',exact:true});
  await confirmation.waitFor();
  assert.match(await confirmation.innerText(),/negative inventory balance/);
  assert.equal(await confirmation.evaluate(el=>{const b=el.getBoundingClientRect();return b.top>=0&&b.bottom<=innerHeight;}),true);
- await confirmation.getByRole('button',{name:'Confirm inventory',exact:true}).click();
+ await confirmation.getByRole('button',{name:'Confirm consumption and output',exact:true}).click();
  await confirmation.waitFor({state:'hidden'});
  assert.equal(dailyCaptured.p_action,'post');
  console.log('PASS: opaque edit/delete/capture/target dialogs, visible dropdown arrows, dashboard at desktop/phone widths, checkpoint capture, centered error above form, values retained after error, successful server-time report');
