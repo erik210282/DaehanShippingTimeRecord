@@ -215,11 +215,11 @@ declare uid uuid:=auth.uid();manager boolean;v_now timestamptz:=clock_timestamp(
 begin
  if uid is null or not public.inventory_access('production') then raise exception 'pr_forbidden';end if;
  manager:=public.inventory_access('production',true);
- if p_action in ('checkpoint_batch','target_batch') then
+ if p_action in ('checkpoint_batch','target_batch','close_batch') then
   if jsonb_typeof(p_data->'products') is distinct from 'array' or jsonb_array_length(p_data->'products') not between 1 and 30 or (select count(distinct value->>'item_id') from jsonb_array_elements(p_data->'products'))<>jsonb_array_length(p_data->'products') then raise exception 'pr_invalid';end if;
   for entry in select value from jsonb_array_elements(p_data->'products') order by value->>'item_id' loop
    existed:=exists(select 1 from public.production_checkpoints where id=nullif(entry->>'id','')::uuid);
-   result:=rls_internal.production_live_action(case when p_action='target_batch' then 'target' else 'checkpoint' end,entry);
+   result:=rls_internal.production_live_action(case when p_action='target_batch' then 'target' when p_action='close_batch' then 'close' else 'checkpoint' end,entry);
    if p_action='checkpoint_batch' and not existed then
     update public.production_checkpoints set recorded_at=v_now where id=(entry->>'id')::uuid;
     perform rls_internal.production_live_recalculate((entry->>'run_id')::uuid);
