@@ -34,3 +34,8 @@ live.products[0].quantity='7';live.products[1].quantity='11';
 live=selectLiveProducts(live,['b','a'],newId);
 assert.deepEqual(live.products.map(p=>[p.item_id,p.quantity]),[['b','11'],['a','7']]);
 console.log('PASS: multi-product quantities, packing, switching, selection changes, reopened capture, independent checkpoint IDs and shared time deduplication');
+
+const deselected=selectProducts(capture,[],newId);assert.deepEqual(dailyProducts(deselected),[]);
+const oneLeft=selectLiveProducts(live,['b'],newId);assert.equal(oneLeft.quantity,'11');assert.equal(oneLeft.products.length,1);
+assert.equal(selectLiveProducts(oneLeft,[],newId).item_id,'');
+console.log('PASS: deselecting one product preserves the others and their quantities; all products can be removed');

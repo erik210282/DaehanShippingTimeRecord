@@ -72,6 +72,9 @@ try{
  await page.getByLabel('Shift end',{exact:true}).fill('1600');
  assert.equal(await page.getByLabel('Shift start',{exact:true}).inputValue(),'08:00');
  await page.getByRole('button',{name:'Add downtime',exact:true}).click();
+ assert.equal(await page.getByRole('combobox',{name:'Downtime type',exact:true}).inputValue(),'');
+ await page.getByRole('combobox',{name:'Downtime type',exact:true}).click();
+ await page.getByRole('option',{name:'Breaks',exact:true}).click();
  await page.getByLabel('Downtime start',{exact:true}).fill('1000');
  await page.getByLabel('Downtime end',{exact:true}).fill('1015');
  assert.equal(await page.getByLabel('Duration (min)',{exact:true}).inputValue(),'15');
