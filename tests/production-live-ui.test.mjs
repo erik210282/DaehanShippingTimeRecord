@@ -154,7 +154,7 @@ try{
 
  await daily.getByLabel('Production date',{exact:true}).fill(new Date().toISOString().slice(0,10));
  await daily.getByRole('combobox',{name:'Report mode',exact:true}).click();
- await page.getByRole('option',{name:'Production + packing / repacking',exact:true}).click();
+ await page.getByRole('option',{name:'Produce and pack / repack',exact:true}).click();
  await daily.getByLabel('Start time',{exact:true}).fill('0800');
  await daily.getByLabel('End time',{exact:true}).fill('1600');
  await daily.getByLabel('People at the station',{exact:true}).fill('2');
