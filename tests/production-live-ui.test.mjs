@@ -74,5 +74,10 @@ try{
  assert.equal(await page.locator('.live-dialog input[aria-label="8-hour target (pcs)"]').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(51, 51, 51)');
  for(const width of [1280,390]){await page.setViewportSize({width,height:720});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);const boxes=await page.locator('.live-dialog input').evaluateAll(es=>es.map(el=>el.getBoundingClientRect().height));assert.ok(boxes.every(h=>h>=38));}
  assert.equal(await page.getByText('Reporting interval',{exact:true}).count(),0);
+ run={...run,can_manage:false};
+ await page.goto('http://127.0.0.1:4174/'+name+'.html?mode=partial');
+ await page.getByText('This station has a session started by another user. Its owner or a supervisor can update it.',{exact:true}).waitFor();
+ assert.equal(await page.locator('.live-line').count(),1);
+ for(const name of ['Record progress','End session','Edit','Delete'])assert.equal(await page.getByRole('button',{name,exact:true}).count(),0);
  console.log('PASS: opaque edit/delete/capture/target dialogs, visible dropdown arrows, dashboard at desktop/phone widths, checkpoint capture, centered error above form, values retained after error, successful server-time report');
 }finally{await browser?.close();server.kill();fs.rmSync(name+'.html',{force:true});fs.rmSync(name+'.jsx',{force:true});}

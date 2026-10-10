@@ -22,7 +22,7 @@ export function LiveLineCard({run,item,station,t,onCapture,onClose,onEdit,onDele
  <div className="live-progress" role="progressbar" aria-label={t('pl_attainment')} aria-valuenow={Math.min(100,Math.round(k.attainment))} aria-valuemin={0} aria-valuemax={100}><div style={{width:Math.min(100,k.attainment)+'%'}}/></div>
  <dl className="live-card-metrics">{[['quantity',k.quantity],['expected',k.expected],['gap',k.gap],['actual_rate',k.rate]].map(([label,value])=><div key={label}><dt>{t('pl_'+label)}</dt><dd>{format(value)}</dd></div>)}</dl>
  <div className="live-card-meta"><span>{t('pl_shift')}: {run.shift_hours} h · {t('pl_shift_target')}: {format(run.shift_target)}</span><span>{t('pl_last')}: {k.at?new Date(k.at).toLocaleString(i18n.language):'—'}</span><span>{run.closed_at?t('pl_closed'):t('pl_active')}</span></div>
- <div className="live-row-actions">{!run.closed_at&&<><BtnPrimary onClick={onCapture}>{t('pl_capture')}</BtnPrimary><BtnSecondary onClick={onClose}>{t('pl_close_run')}</BtnSecondary></>}<BtnEditDark onClick={onEdit}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={onDelete}>{t('delete')}</BtnDanger></div>
+ {run.can_manage===false?<p>{t('pl_shared_run')}</p>:<div className="live-row-actions">{!run.closed_at&&<><BtnPrimary onClick={onCapture}>{t('pl_capture')}</BtnPrimary><BtnSecondary onClick={onClose}>{t('pl_close_run')}</BtnSecondary></>}<BtnEditDark onClick={onEdit}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={onDelete}>{t('delete')}</BtnDanger></div>}
  </article>;
 }
 export default function ProductionLive({items,stations,supervisor,mode='partial'}){
