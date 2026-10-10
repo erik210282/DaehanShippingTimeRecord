@@ -110,15 +110,16 @@ export default function Production({access}) {
    await refresh();setEdit(null);setMessage(t(type==='submit'?'pr_submitted_help':'global_saved'));
   }catch(e){setError(t(e.message,{defaultValue:t('pr_save_error')}));}finally{lock.current=false;setBusy(false);}
  }
+ const timeRowIds=useMemo(()=>new Set(sharedTimeRows(filtered).map(r=>r.id)),[filtered]);
  const totals=filtered.reduce((a,r)=>{
   const m=reportMetrics(r);
   for(const key of ['machine_quantity','scrap_quantity','rework_quantity','good_quantity','full_boxes','packed_quantity'])a[key]+=Number(r[key]||0);
-  if(sharedTimeRows(filtered).some(x=>x.id===r.id)){a.elapsed+=Number(r.elapsed_minutes||0);a.machine+=Number(r.machine_minutes||0);a.downtime+=m.totalDowntime;a.breaks+=Number(r.break_minutes||0);a.labor+=m.laborHours;}
+  if(timeRowIds.has(r.id)){a.elapsed+=Number(r.elapsed_minutes||0);a.machine+=Number(r.machine_minutes||0);a.downtime+=m.totalDowntime;a.breaks+=Number(r.break_minutes||0);a.labor+=m.laborHours;}
   return a;
  },{machine_quantity:0,scrap_quantity:0,rework_quantity:0,good_quantity:0,full_boxes:0,packed_quantity:0,elapsed:0,machine:0,downtime:0,breaks:0,labor:0});
  const byStation=Object.values(filtered.reduce((a,r)=>{
   const s=a[r.station_code]||(a[r.station_code]={code:r.station_code,pieces:0,scrap:0,rework:0,boxes:0,machine:0,downtime:0,labor:0});
-  s.pieces+=Number(r.machine_quantity);s.scrap+=Number(r.scrap_quantity);s.rework+=Number(r.rework_quantity);s.boxes+=Number(r.full_boxes);if(sharedTimeRows(filtered).some(x=>x.id===r.id)){s.machine+=Number(r.machine_minutes);s.downtime+=reportMetrics(r).totalDowntime;s.labor+=reportMetrics(r).laborHours;}return a;
+  s.pieces+=Number(r.machine_quantity);s.scrap+=Number(r.scrap_quantity);s.rework+=Number(r.rework_quantity);s.boxes+=Number(r.full_boxes);if(timeRowIds.has(r.id)){s.machine+=Number(r.machine_minutes);s.downtime+=reportMetrics(r).totalDowntime;s.labor+=reportMetrics(r).laborHours;}return a;
  },{}));
  function exportCsv() {
   const csv=Papa.unparse(filtered.map(r=>({
