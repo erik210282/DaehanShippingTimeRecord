@@ -14,7 +14,7 @@ import {BtnPrimary,BtnSecondary,BtnEditDark,BtnDanger,TablePagination} from '../
 import {supabase} from '../supabase/client';
 import {subscribeUpdates} from '../realtime';
 import {usePageSection} from '../usePageSection';
-import {registerProduction} from '../production/translations';
+import {registerProduction,registerCaptureHints} from '../production/translations';
 import {recipeSelect,normalizeRecipes} from '../production/queries.mjs';
 import {reportMetrics,consumptionPreview,isRepack,isTurntable,validateReport,prepareReport,reportDowntimes,automaticPallets,packingProfiles,packingLabel} from '../production/model.mjs';
 import {ProductionClockInput,ProductionStaffNames,ProductionDowntimes,ProductionCompleteBoxes} from '../components/ProductionCaptureFields';
@@ -22,10 +22,10 @@ import {downtimeSchedule,normalizeCapture} from '../production/capture.mjs';
 import i18n from '../i18n/i18n';
 import './Production.css';
 import './Catalogos.css';
-registerProduction(i18n);registerMulti(i18n);
+registerProduction(i18n);registerCaptureHints(i18n);registerMulti(i18n);
 const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return data;};
 const day=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
-const blank=()=>({id:crypto.randomUUID(),production_date:day(),station_code:'',item_id:'',start_time:'',end_time:'',ends_next_day:false,machine_minutes:'',downtime_minutes:'0',downtime_reason:'',break_count:'0',break_minutes:'0',people:'',machine_quantity:'0',scrap_quantity:'0',rework_quantity:'0',packaging_type:'',full_boxes:'0',pallets:'0',pieces_per_box:0,turns:'',report_mode:'production',note:'',staff_names:'',status:'draft',downtime_events:[],rework_completed:true,catalog_packing:false});
+const blank=()=>({id:crypto.randomUUID(),production_date:'',station_code:'',item_id:'',start_time:'',end_time:'',ends_next_day:false,machine_minutes:'',downtime_minutes:'0',downtime_reason:'',break_count:'0',break_minutes:'0',people:'',machine_quantity:'',scrap_quantity:'',rework_quantity:'',packaging_type:'',full_boxes:'',pallets:'0',pieces_per_box:0,turns:'',report_mode:'',note:'',staff_names:'',status:'draft',downtime_events:[],rework_completed:true,catalog_packing:false});
 const productionModalStyle={
  overlay:{position:'fixed',top:0,right:0,bottom:0,left:0,zIndex:10000,backgroundColor:'#0f172a99',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px',boxSizing:'border-box'},
  content:{position:'relative',top:'auto',right:'auto',bottom:'auto',left:'auto',transform:'none',width:'min(1040px, 100%)',maxHeight:'calc(100dvh - 32px)',overflow:'auto',boxSizing:'border-box',padding:'20px',background:'#fff',border:'1px solid #cbd5e1',borderRadius:14}
@@ -37,7 +37,7 @@ export default function Production({access}) {
  const supervisor=access.admin||access.memberships.some(m=>m.department==='production'&&m.role==='supervisor');
  const manage=supervisor||access.memberships.some(m=>m.department==='production'&&m.role==='lider');
  const [tab,setTab]=usePageSection('production',manage?'dashboard':'partial',['records','summary','partial','dashboard','targets']);
- const [data,setData]=useState({reports:[],items:[],stations:[],boms:[],balances:[],consumptions:[]});
+ const [data,setData]=useState({reports:[],items:[],stations:[],boms:[],balances:[],consumptions:[],reporters:[]});
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [filter,setFilter]=useState(''),[stationFilter,setStationFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState('');
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25),[edit,setEdit]=useState(null),[review,setReview]=useState(null);
@@ -47,17 +47,19 @@ export default function Production({access}) {
  const refresh=useCallback(async()=>{
   if(!allowed)return;
   const version=++request.current;
-  const [reports,items,stations,boms,balances,consumptions]=await Promise.all([
+  const [reports,items,stations,boms,balances,consumptions,reporters]=await Promise.all([
    unwrap(supabase.from('production_station_reports').select('*').order('production_date',{ascending:false}).order('created_at',{ascending:false})),
    unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active,packing_type,productos(nombre,descripcion,tipo_empaque_retornable,tipo_empaque_expendable,cantidad_por_caja_retornable,cantidad_por_caja_expendable)').order('part_number')),
    unwrap(supabase.from('inventory_workstations').select('*').order('code')),
    unwrap(supabase.from('inventory_boms').select(recipeSelect).eq('archived',false)),
    unwrap(supabase.from('inventory_balances').select('item_id,area,quantity')),
-   unwrap(supabase.from('production_station_consumptions').select('*'))
+   unwrap(supabase.from('production_station_consumptions').select('*')),
+   unwrap(supabase.from('operadores').select('uid,nombre'))
   ]);
-  if(live.current&&version===request.current){setData({reports,items:items.map(i=>({...i,part_name:i.productos?.nombre||i.part_name,description:i.productos?.descripcion??i.description})),stations,boms:normalizeRecipes(boms),balances,consumptions});setError('');setLoading(false);}
+  if(live.current&&version===request.current){setData({reports,items:items.map(i=>({...i,part_name:i.productos?.nombre||i.part_name,description:i.productos?.descripcion??i.description})),stations,boms:normalizeRecipes(boms),balances,consumptions,reporters});setError('');setLoading(false);}
  },[allowed]);
  useEffect(()=>{live.current=true;refresh().catch(e=>{if(live.current){setError(e.message);setLoading(false);}});const off=subscribeUpdates(supabase,'production-web',tables,()=>refresh().catch(e=>live.current&&setError(e.message)));return()=>{live.current=false;++request.current;off();};},[refresh]);
+ const reporterName=uid=>data.reporters.find(person=>person.uid===uid)?.nombre||'—';
  const itemFor=r=>data.items.find(i=>i.id===r.item_id),stationFor=r=>data.stations.find(s=>s.code===r.station_code);
  const bomFor=r=>data.boms.find(b=>b.id===r.bom_id)||data.boms.find(b=>b.finished_item_id===r.item_id&&b.active);
  const profilesFor=(r,bom=bomFor(r))=>r.catalog_packing===false?(bom?.inventory_bom_packaging||[]):packingProfiles(itemFor(r),bom,data.items);
@@ -142,14 +144,14 @@ export default function Production({access}) {
  const repack=edit&&isRepack(eBom,edit.item_id);
  const preview=r=>r.status==='posted'?data.consumptions.filter(c=>c.report_id===r.id):consumptionPreview(normalizeCapture(r),bomFor(r),data.items,profileFor(r));
  const stock=(id,area)=>Number(data.balances.find(b=>b.item_id===id&&b.area===area)?.quantity||0);
- const numeric=(key,label,{min=0,step='1',required=true}={})=><CatalogInput key={key} label={t(label)} required={required} inputMode={step==='1'?'numeric':'decimal'} type="number" min={min} step={step} value={edit[key]??''} onChange={ev=>setEdit({...edit,[key]:ev.target.value})}/>;
+ const numeric=(key,label,{min=0,step='1',required=true}={})=><CatalogInput key={key} label={t(label)} placeholder={t(key==='people'?'pr_enter_people':'pr_enter_value',{field:t(label)})} required={required} inputMode={step==='1'?'numeric':'decimal'} type="number" min={min} step={step} value={edit[key]??''} onChange={ev=>setEdit({...edit,[key]:ev.target.value})}/>;
  const consumptionTable=r=><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('name')}</th><th>{t('inv_area')}</th><th>{t('pr_consume')}</th><th>{t('inv_unit')}</th>{r.status!=='posted'&&<th>{t('inv_balance')}</th>}</tr></thead><tbody>
   {preview(r).map(c=>{const i=data.items.find(i=>i.id===c.ingredient_id);return <tr key={c.ingredient_id+c.area+c.source}><td>{i?.part_number}</td><td>{i?.part_name}</td><td>{t('inv_area_'+c.area)}</td><td>{fmt(c.quantity)}</td><td>{i?.uom}</td>{r.status!=='posted'&&<td className={stock(c.ingredient_id,c.area)<c.quantity?'production-short':''}>{fmt(stock(c.ingredient_id,c.area))}</td>}</tr>;})}
  </tbody></table></div>;
  if(!allowed)return <Navigate to="/inicio" replace/>;
  return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav value={tab} onChange={setTab} label={t('global_production')} items={[...(manage?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),{key:'summary',label:t('pr_summary')}]} /></div>
  <main className="page-container page-container--fluid production-page">
-  {['partial','dashboard','targets'].includes(tab)?<ProductionLive key={tab} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
+  {['partial','dashboard','targets'].includes(tab)?<ProductionLive key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
    <div className="catalog-toolbar"><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2>
    <div className="catalog-filters production-filters">
     <CatalogInput label={t('pr_from')} type="date" value={from} onChange={ev=>setFrom(ev.target.value)}/>
@@ -177,11 +179,11 @@ export default function Production({access}) {
   </section>}</main>
  <Modal className="production-modal" isOpen={!!edit} contentLabel={t('pr_new_report')} onRequestClose={()=>!busy&&setEdit(null)} style={productionModalStyle}>
  {edit&&<form ref={form} className="production-form production-dialog" onSubmit={ev=>{ev.preventDefault();action('save',edit);}}>
-  <header className="production-dialog-header"><h2>{t('pr_new_report')}</h2></header>
+  <header className="production-dialog-header"><h2>{t('pr_new_report')}</h2><p className="inv-muted">{t('pr_current_reporter')}: {reporterName(access.userId)}</p></header>
   <fieldset disabled={busy} className="production-editor">
   <section className="production-section"><h3>{t('pr_identity_section')}</h3><div className="production-form-grid">
    <CatalogSelect label={t('inv_station_code')} value={edit.station_code} onChange={station_code=>setEdit({...edit,station_code,turns:''})} options={data.stations.filter(s=>s.active||s.code===edit.station_code).map(s=>({value:s.code,label:s.code+' · '+s.name}))}/>
-   <CatalogSelect multi disabled={!!edit.created_at} label={t('inv_part')} value={dailyProducts(edit).map(r=>r.item_id)} onChange={ids=>setEdit(selectProducts(edit,ids,()=>crypto.randomUUID()))} options={data.items.filter(i=>i.active&&['FG','SEMI'].includes(i.category)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
+   <CatalogSelect multi disabled={!!edit.created_at} label={t('inv_part')} value={dailyProducts(edit).map(r=>r.item_id)} onChange={ids=>setEdit(current=>selectProducts(current,ids,()=>crypto.randomUUID()))} options={data.items.filter(i=>i.active&&['FG','SEMI'].includes(i.category)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
    <CatalogSelect label={t('pr_report_mode')} value={edit.report_mode} onChange={report_mode=>setEdit({...edit,report_mode})} options={['production','packing'].map(value=>({value,label:t('pr_mode_'+value)}))}/>
   </div></section>
   <section className="production-section"><h3>{t('pr_shift_section')}</h3><div className="production-form-grid production-form-grid-four">
@@ -221,16 +223,20 @@ export default function Production({access}) {
  {review&&<div className="production-form"><h2>{t('pr_details')} · {review.production_date}</h2>
   <p><strong>{review.station_code} · {stationFor(review)?.name}</strong></p><p>{itemFor(review)?.part_number} · {itemFor(review)?.part_name}</p>
   <div className="production-metrics">{[['pr_machine_quantity',review.machine_quantity],['pr_good',review.good_quantity],['pr_scrap',review.scrap_quantity],['pr_rework',review.rework_quantity],['pr_boxes',review.full_boxes],['pr_packed',review.packed_quantity],['pr_total_hours',review.elapsed_minutes/60],['pr_machine_minutes',review.machine_minutes],['pr_total_downtime',reportMetrics(review).totalDowntime],['pr_people',review.people],['pr_labor_hours',reportMetrics(review).laborHours]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
-  <p>{t('pr_start')}: {review.start_time} · {t('pr_end')}: {review.end_time}{review.ends_next_day?' (+1)':''}</p>
+  <p>{t('pr_reporter')}: {reporterName(review.created_by)}</p><p>{t('pr_start')}: {review.start_time} · {t('pr_end')}: {review.end_time}{review.ends_next_day?' (+1)':''}</p>
   <p>{t('pr_packing_type')}: {packingName(review)||'—'} · {t('pr_pallets')}: {review.pallets} · {t('pr_turns')}: {review.turns??'—'}</p>
   <section className="production-section"><h3>{t('pr_downtime_section')}</h3>{reportDowntimes(review).length?<ul>{reportDowntimes(review).map((d,k)=><li key={k}>{t('pr_downtime_'+d.type)}{d.start_time&&d.end_time?' · '+d.start_time+' — '+d.end_time:''} · {fmt(d.minutes)} min{d.note?' · '+d.note:''}</li>)}</ul>:<p>{t('pr_downtime_empty')}</p>}</section>{review.staff_names&&<p>{t('pr_staff_names')}: {review.staff_names}</p>}<p>{t('inv_notes')}: {review.note||'—'}</p>
   <h3>{t(review.status==='posted'?'pr_consumed':'pr_consumption_preview')}</h3>{consumptionTable(review)}
-  {confirming&&<p className="inv-message">{t('pr_confirm_post')}</p>}
+  
   <div className="catalog-actions">
-   {review.status==='submitted'&&supervisor&&<><BtnPrimary disabled={busy} onClick={()=>confirming?action('post',review):setConfirming(true)}>{t(confirming?'pr_confirm_inventory':'pr_post_inventory')}</BtnPrimary><BtnSecondary disabled={busy} onClick={()=>action('return',review)}>{t('pr_return_draft')}</BtnSecondary></>}
+   {review.status==='submitted'&&supervisor&&<><BtnPrimary disabled={busy} onClick={()=>setConfirming(true)}>{t('pr_post_inventory')}</BtnPrimary><BtnSecondary disabled={busy} onClick={()=>action('return',review)}>{t('pr_return_draft')}</BtnSecondary></>}
    <BtnDanger style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} onClick={()=>{setReview(null);setConfirming(false);}}>{t('cancel')}</BtnDanger>
   </div>
  </div>}
+ </Modal>
+ <Modal className="production-modal production-confirmation" isOpen={!!review&&confirming} contentLabel={t('pr_confirm_title')} onRequestClose={()=>!busy&&setConfirming(false)} style={{...productionModalStyle,overlay:{...productionModalStyle.overlay,zIndex:12000},content:{...productionModalStyle.content,width:'min(560px,100%)'}}}>
+  <h2>{t('pr_confirm_title')}</h2><p>{t('pr_confirm_post')}</p><p className="inv-message">{t('pr_negative_stock')}</p>
+  <div className="catalog-actions"><BtnPrimary disabled={busy} onClick={()=>action('post',review)}>{t('pr_confirm_inventory')}</BtnPrimary><BtnDanger disabled={busy} onClick={()=>setConfirming(false)}>{t('cancel')}</BtnDanger></div>
  </Modal>
  <ErrorPopup message={error} onClose={()=>setError('')}/>
  </>;

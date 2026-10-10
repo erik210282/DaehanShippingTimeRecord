@@ -2,12 +2,12 @@
 const productFields=['id','item_id','machine_quantity','scrap_quantity','rework_quantity','packaging_type','full_boxes','pallets','pieces_per_box','note','rework_completed','catalog_packing'];
 const pick=r=>Object.fromEntries(productFields.map(k=>[k,r[k]]));
 export function dailyProducts(edit){
- const rows=edit.products?.length?edit.products:edit.item_id?[pick(edit)]:[];
+ const rows=Array.isArray(edit.products)?edit.products:edit.item_id?[pick(edit)]:[];
  return rows.map(row=>({...edit,...row,...(row.item_id===edit.item_id?pick(edit):{}),products:undefined}));
 }
 export function selectProducts(edit,ids,newId){
  const saved=dailyProducts(edit);
- const products=ids.map(item_id=>pick(saved.find(r=>r.item_id===item_id)||{...edit,id:!saved.length&&item_id===ids[0]?edit.id:newId(),item_id,machine_quantity:'0',scrap_quantity:'0',rework_quantity:'0',packaging_type:'',full_boxes:'0',pallets:'0',pieces_per_box:0,note:''}));
+ const products=ids.map(item_id=>pick(saved.find(r=>r.item_id===item_id)||{...edit,id:!saved.length&&item_id===ids[0]?edit.id:newId(),item_id,machine_quantity:'',scrap_quantity:'',rework_quantity:'',packaging_type:'',full_boxes:'',pallets:'0',pieces_per_box:0,note:''}));
  const current=products.find(r=>r.item_id===edit.item_id)||products[0];
  return {...edit,...(current||{item_id:''}),products};
 }
@@ -23,9 +23,12 @@ export function sharedTimeRows(rows){
  const seen=new Set();
  return rows.filter(r=>{const key=r.capture_group_id||r.id;if(seen.has(key))return false;seen.add(key);return true;});
 }
+const savedSingle=edit=>!edit.products||edit.products.length<=1;
 export function selectLiveProducts(edit,ids,newId){
- const saved=edit.products||[{item_id:edit.item_id,id:edit.id,run_id:edit.run_id,quantity:edit.quantity}];
- return {...edit,products:ids.map(item_id=>saved.find(r=>r.item_id===item_id)||{item_id,id:newId(),run_id:newId(),quantity:''})};
+ const saved=(edit.products||[{item_id:edit.item_id,id:edit.id,run_id:edit.run_id,quantity:edit.quantity}]).map(row=>savedSingle(edit)&&row.item_id===edit.item_id?{...row,quantity:edit.quantity}:row);
+ const products=[...new Set(ids)].map(item_id=>saved.find(r=>r.item_id===item_id)||{item_id,id:newId(),run_id:newId(),quantity:''});
+ const current=products.find(row=>row.item_id===edit.item_id)||products[0];
+ return {...edit,products,item_id:current?.item_id||'',quantity:current?.quantity??''};
 }
 
 export function registerMulti(i18n){

@@ -7,7 +7,7 @@ export function clockMinutes(value) {
  if(!/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/.test(String(value??'')))return null;
  const [hour,minute]=value.split(':').map(Number);return hour*60+minute;
 }
-export const blankTimedDowntime=()=>({type:'break',start_time:'',end_time:'',minutes:'',note:''});
+export const blankTimedDowntime=()=>({type:'',start_time:'',end_time:'',minutes:'',note:''});
 export function downtimeSchedule(report) {
  const events=report.downtime_events||[],shiftStart=clockMinutes(report.start_time),shiftEnd=clockMinutes(report.end_time);
  if(shiftStart===null||shiftEnd===null)return {events,error:'pr_time_invalid'};

@@ -16,11 +16,11 @@ try{
  let run={id:'run',station_code:'M-01',item_id:'item',started_at:new Date(now-2*3600000).toISOString(),latest_at:new Date(now).toISOString(),latest_quantity:140,pieces_per_hour:100,shift_hours:8,shift_target:800,period_quantity:140,period_at:new Date(now).toISOString(),warning_percent:90,critical_percent:75,expected_quantity:200,attainment:70,performance:'critical',overdue:false};
  let captured,machineGroup=false;
 
- let dailyCaptured;
+ let dailyCaptured,showReview=false;
  await page.route('**/rest/v1/**',route=>{
   const table=new URL(route.request().url()).pathname.split('/').pop();
   if(table==='production_station_action'){dailyCaptured=route.request().postDataJSON();return route.fulfill({json:'group'});}
-  return route.fulfill({json:table==='inventory_items'?[{id:'item',active:true,category:'FG',part_number:'PN-100',part_name:'Test product'},{id:'item2',active:true,category:'FG',part_number:'PN-200',part_name:'Second product'}]:table==='inventory_workstations'?[{code:'M-01',name:'Assembly',active:true}]:[]});
+  return route.fulfill({json:table==='operadores'?[{uid:'test-user',nombre:'Test Operator'}]:table==='production_station_reports'&&showReview?[{id:'report',production_date:'2026-10-09',station_code:'M-01',item_id:'item',created_by:'test-user',status:'submitted',machine_quantity:10,good_quantity:10,packed_quantity:0,scrap_quantity:0,rework_quantity:0,full_boxes:0,people:2,elapsed_minutes:480,machine_minutes:480,start_time:'08:00',end_time:'16:00',downtime_events:[]}]:table==='inventory_items'?[{id:'item',active:true,category:'FG',part_number:'PN-100',part_name:'Test product'},{id:'item2',active:true,category:'FG',part_number:'PN-200',part_name:'Second product'}]:table==='inventory_workstations'?[{code:'M-01',name:'Assembly',active:true}]:[]});
  });
 
  await page.route('**/rest/v1/rpc/production_live_*',async route=>{
@@ -36,6 +36,7 @@ try{
  await page.goto('http://127.0.0.1:4174/'+name+'.html');
  await page.getByRole('button',{name:'Record progress',exact:true}).waitFor();
  await page.getByText('70%',{exact:true}).waitFor();
+ assert.equal(await page.locator('.live-table tbody tr').first().evaluate(el=>getComputedStyle(el.firstElementChild).backgroundColor),'rgb(255, 241, 242)');
  assert.equal(await page.locator('.live-line').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 241, 242)');
  await page.getByRole('button',{name:'Edit',exact:true}).first().click();
  const assertSolidDialog=async()=>{assert.equal(await page.locator('.live-dialog').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');assert.equal(await page.locator('.live-dialog').evaluate(el=>getComputedStyle(el).opacity),'1');};
@@ -102,6 +103,10 @@ try{
   await page.getByRole('combobox',{name:'Part',exact:true}).click();
   await page.getByRole('option',{name:label,exact:true}).click();
  }
+
+ await page.getByLabel('Start date',{exact:true}).fill(new Date().toISOString().slice(0,10));
+ await page.getByRole('combobox',{name:'Reference shift',exact:true}).click();
+ await page.getByRole('option',{name:'8 hours',exact:true}).click();
  await page.getByLabel('Start time',{exact:true}).fill('0000');
  await page.getByLabel('Produced quantity · PN-100',{exact:true}).fill('7');
  await page.getByLabel('Produced quantity · PN-200',{exact:true}).fill('11');
@@ -117,6 +122,9 @@ try{
  machineGroup=true;
  await page.reload();
  await page.getByRole('button',{name:'End session',exact:true}).first().click();
+ assert.equal(await page.getByLabel('Finish time',{exact:true}).inputValue(),'');
+ await page.getByLabel('Finish date',{exact:true}).fill(new Date().toISOString().slice(0,10));
+ await page.getByLabel('Finish time',{exact:true}).fill(new Date().toTimeString().slice(0,5));
  await page.getByLabel('Produced quantity · PN-100',{exact:true}).fill('190');
  await page.getByLabel('Produced quantity · PN-200',{exact:true}).fill('100');
  await page.locator('.live-dialog').getByRole('button',{name:'End session',exact:true}).click();
@@ -134,18 +142,28 @@ try{
  await page.goto('http://127.0.0.1:4174/'+name+'.html?daily=1&production=records');
  await page.getByRole('button',{name:/Record production/}).click({timeout:10000}).catch(async error=>{console.error('Daily screen:',await page.locator('body').innerText());throw error;});
  const daily=page.locator('.production-modal');
+ await daily.getByText('Reporting user: Test Operator',{exact:true}).waitFor();
+ assert.equal(await daily.getByLabel('Start time',{exact:true}).inputValue(),'');
+ assert.equal(await daily.getByLabel('People at the station',{exact:true}).inputValue(),'');
  await daily.getByRole('combobox').nth(0).click();
  await page.getByRole('option',{name:'M-01 · Assembly',exact:true}).click();
  for(const label of ['PN-100 · Test product','PN-200 · Second product']){
   await daily.getByRole('combobox').nth(1).click();
   await page.getByRole('option',{name:label,exact:true}).click();
  }
+
+ await daily.getByLabel('Production date',{exact:true}).fill(new Date().toISOString().slice(0,10));
+ await daily.getByRole('combobox',{name:'Report mode',exact:true}).click();
+ await page.getByRole('option',{name:'Production + packing / repacking',exact:true}).click();
  await daily.getByLabel('Start time',{exact:true}).fill('0800');
  await daily.getByLabel('End time',{exact:true}).fill('1600');
  await daily.getByLabel('People at the station',{exact:true}).fill('2');
+ assert.equal(await daily.getByLabel('People at the station',{exact:true}).getAttribute('placeholder'),'Enter number of people');
  await daily.getByLabel('Total machine output (pcs)',{exact:true}).fill('7');
+ for(const label of ["Scrap (pcs)","Reworked pieces (pcs)","Full boxes"])await daily.getByLabel(label,{exact:true}).fill('0');
  await daily.getByRole('button',{name:'PN-200',exact:true}).click();
  await daily.getByLabel('Total machine output (pcs)',{exact:true}).fill('11');
+ for(const label of ["Scrap (pcs)","Reworked pieces (pcs)","Full boxes"])await daily.getByLabel(label,{exact:true}).fill('0');
  await daily.getByRole('button',{name:'PN-100',exact:true}).click();
  assert.equal(await daily.getByLabel('Total machine output (pcs)',{exact:true}).inputValue(),'7');
  await daily.getByRole('button',{name:'Save draft',exact:true}).click();
@@ -153,5 +171,18 @@ try{
  assert.equal(dailyCaptured.p_action,'save');
  assert.deepEqual(dailyCaptured.p_data.products.map(p=>[p.item_id,p.machine_quantity,p.people]),[['item',7,2],['item2',11,2]]);
 
+
+ showReview=true;
+ await page.reload();
+ await page.getByRole('button',{name:'Details',exact:true}).click();
+ await page.getByText('Reported by: Test Operator',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Post to inventory',exact:true}).click();
+ const confirmation=page.getByRole('dialog',{name:'Confirm consumption and output',exact:true});
+ await confirmation.waitFor();
+ assert.match(await confirmation.innerText(),/negative inventory balance/);
+ assert.equal(await confirmation.evaluate(el=>{const b=el.getBoundingClientRect();return b.top>=0&&b.bottom<=innerHeight;}),true);
+ await confirmation.getByRole('button',{name:'Confirm inventory',exact:true}).click();
+ await confirmation.waitFor({state:'hidden'});
+ assert.equal(dailyCaptured.p_action,'post');
  console.log('PASS: opaque edit/delete/capture/target dialogs, visible dropdown arrows, dashboard at desktop/phone widths, checkpoint capture, centered error above form, values retained after error, successful server-time report');
 }finally{await browser?.close();server.kill();fs.rmSync(name+'.html',{force:true});fs.rmSync(name+'.jsx',{force:true});}
