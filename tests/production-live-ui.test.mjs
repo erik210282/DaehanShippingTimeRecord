@@ -120,7 +120,7 @@ try{
  for(const name of ['Record progress','End session','Edit','Delete'])assert.equal(await page.getByRole('button',{name,exact:true}).count(),0);
 
  await page.goto('http://127.0.0.1:4174/'+name+'.html?daily=1&production=records');
- await page.getByRole('button',{name:'Record production',exact:true}).click({timeout:10000}).catch(async error=>{console.error('Daily screen:',await page.locator('body').innerText());throw error;});
+ await page.getByRole('button',{name:/Record production/}).click({timeout:10000}).catch(async error=>{console.error('Daily screen:',await page.locator('body').innerText());throw error;});
  const daily=page.locator('.production-modal');
  await daily.getByRole('combobox').nth(0).click();
  await page.getByRole('option',{name:'M-01 · Assembly',exact:true}).click();
