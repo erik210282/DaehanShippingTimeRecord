@@ -1,3 +1,4 @@
+import {selectLiveProducts,registerMulti} from './multi.mjs';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import Modal from 'react-modal';
 import {useTranslation} from 'react-i18next';
@@ -9,7 +10,7 @@ import ErrorPopup from '../components/ErrorPopup';
 import {localStart,localDate,dayRange,liveKpis} from './live.mjs';
 import {registerLive} from './liveTranslations';
 import i18n from '../i18n/i18n';
-registerLive(i18n);
+registerLive(i18n);registerMulti(i18n);
 const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return data;};
 const red={background:'#dc3545',color:'#fff',borderColor:'#dc3545'};
 // Custom ReactModal classes omit default content styles; keep the surface opaque.
@@ -33,7 +34,10 @@ export default function ProductionLive({items,stations,supervisor,mode='partial'
  const format=v=>Number(v||0).toLocaleString(i18n.language,{maximumFractionDigits:1});
  const runs=snapshot.runs.filter(r=>!filter||r.station_code===filter),active=runs.filter(r=>!r.closed_at);
  const reports=snapshot.checkpoints.filter(c=>runs.some(r=>r.id===c.run_id));
- const open=(r,kind='checkpoint')=>setEdit({action:kind,id:crypto.randomUUID(),run_id:r?.id||crypto.randomUUID(),station_code:r?.station_code||'',item_id:r?.item_id||'',date:r?localDate(r.started_at):localDate(),time:r?new Date(r.started_at).toTimeString().slice(0,5):'',quantity:r?String(r.latest_quantity):'',shift_hours:String(r?.shift_hours||8),existing:!!r});
+ const open=(r,action='checkpoint')=>{
+  const siblings=r&&action==='checkpoint'?snapshot.runs.filter(x=>x.session_id&&x.session_id===r.session_id&&!x.closed_at&&x.can_manage!==false):[];
+  setEdit({action,id:crypto.randomUUID(),run_id:r?.id||crypto.randomUUID(),session_id:r?.session_id||crypto.randomUUID(),station_code:r?.station_code||'',item_id:r?.item_id||'',date:r?localDate(r.started_at):localDate(),time:r?new Date(r.started_at).toTimeString().slice(0,5):'',quantity:r?String(r.latest_quantity):'',shift_hours:String(r?.shift_hours||8),existing:!!r,...(siblings.length>1?{products:siblings.map(x=>({id:crypto.randomUUID(),run_id:x.id,item_id:x.item_id,quantity:String(x.latest_quantity)}))}:{})});
+ };
  const reportEdit=c=>setEdit({action:'edit_checkpoint',id:c.id,run_id:c.run_id,quantity:String(c.quantity),recorded_at:c.recorded_at,existing:true});
  const confirm=(action,payload)=>setConfirmation({action,payload});
  async function send(action,payload){if(lock.current)return;lock.current=true;setBusy(true);try{
@@ -41,14 +45,24 @@ export default function ProductionLive({items,stations,supervisor,mode='partial'
  setEdit(null);setTarget(null);setConfirmation(null);
  if(action.startsWith('delete_'))setUndo({action:action.replace('delete_','restore_'),payload});
  else if(action.startsWith('restore_'))setUndo(null);
+ if(action==='checkpoint_batch')setNotice(t('pl_saved'));
  if(action==='checkpoint')setNotice(t('pl_saved')+' · '+t('pl_status_'+result.performance)+' · '+format(result.attainment)+'%');
- if(action==='checkpoint'&&day!==localDate())setDay(localDate());
+ if(['checkpoint','checkpoint_batch'].includes(action)&&day!==localDate())setDay(localDate());
  else await refresh().catch(()=>setError(t('pr_load_error')));
  }catch(e){setError(t(e.message,{defaultValue:t('pr_save_error')}));}finally{lock.current=false;setBusy(false);}}
- function save(e){e.preventDefault();if(edit.action!=='edit_run'&&!/^\d{1,12}$/.test(edit.quantity)){setError(t('pl_quantity_invalid'));return;}
- const started_at=edit.action==='edit_run'||!edit.existing?localStart(edit.date,edit.time):undefined;
- if((edit.action==='edit_run'||!edit.existing)&&!started_at){setError(t('pl_start_invalid'));return;}
- send(edit.action,{...edit,started_at});}
+ function save(e){e.preventDefault();
+  if(edit.products?.length>1){
+   if(edit.products.some(p=>!/^\d{1,12}$/.test(p.quantity))){setError(t('pl_quantity_invalid'));return;}
+   const started_at=!edit.existing?localStart(edit.date,edit.time):undefined;
+   if(!edit.existing&&!started_at){setError(t('pl_start_invalid'));return;}
+   send('checkpoint_batch',{products:edit.products.map(p=>({...edit,...p,products:undefined,started_at}))});return;
+  }
+  if(edit.action!=='edit_run'&&!/^\d{1,12}$/.test(edit.quantity)){setError(t('pl_quantity_invalid'));return;}
+  const started_at=edit.action==='edit_run'||!edit.existing?localStart(edit.date,edit.time):undefined;
+  if((edit.action==='edit_run'||!edit.existing)&&!started_at){setError(t('pl_start_invalid'));return;}
+  send(edit.action,{...edit,started_at});
+ }
+ function saveTargets(){if(target.item_ids?.length>1)send('target_batch',{products:target.item_ids.map(item_id=>({...target,item_id}))});else send('target',target);}
  if(mode==='targets'&&!supervisor)return null;
  return <section className="card live-monitor">
  <header className="live-page-header"><div><p className="live-eyebrow">{t('global_production')}</p><h2>{t(mode==='targets'?'pl_targets':mode==='dashboard'?'pl_dashboard':'pl_partial')}</h2><p className="live-page-description">{t(mode==='targets'?'pl_target_hint':'pl_hint')}</p></div>
@@ -58,7 +72,7 @@ export default function ProductionLive({items,stations,supervisor,mode='partial'
  {!ready?<p>{t('loading')}</p>:mode==='targets'?<>
  <div className="table-wrap"><table className="table live-table"><thead><tr>{['inv_part','pl_target8','pl_target10','pl_warning','pl_critical','actions'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>{snapshot.targets.map(g=><tr key={g.item_id}><td><strong>{items.find(i=>i.id===g.item_id)?.part_number}</strong><span className="live-target-name"> · {items.find(i=>i.id===g.item_id)?.part_name||items.find(i=>i.id===g.item_id)?.description}</span></td><td>{format(g.target_8h)}</td><td>{format(g.target_10h)}</td><td>{format(g.warning_percent)}%</td><td>{format(g.critical_percent)}%</td><td><div className="live-row-actions"><BtnEditDark onClick={()=>setTarget({...g,existing:true})}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={()=>confirm('delete_target',{item_id:g.item_id})}>{t('delete')}</BtnDanger></div></td></tr>)}</tbody></table></div>{!snapshot.targets.length&&<p className="live-empty">{t('pl_no_targets')}</p>}
  </>:<>
- <div className="live-kpi-strip">{[['lines',runs.length],['active',active.length],['alerts',runs.filter(r=>['warning','critical'].includes(liveKpis(r).performance)).length]].map(([label,n])=><div key={label} className={'live-kpi live-kpi-'+label}><span>{t('pl_'+label)}</span><strong>{n}</strong></div>)}</div>
+ <div className="live-kpi-strip">{[['lines',new Set(runs.map(r=>r.station_code)).size],['active',new Set(active.map(r=>r.station_code)).size],['alerts',runs.filter(r=>['warning','critical'].includes(liveKpis(r).performance)).length]].map(([label,n])=><div key={label} className={'live-kpi live-kpi-'+label}><span>{t('pl_'+label)}</span><strong>{n}</strong></div>)}</div>
  <p className="live-legend">{t('pl_performance_hint')}</p>
  <div className="live-lines">{runs.map(r=><LiveLineCard key={r.id} run={r} item={items.find(i=>i.id===r.item_id)} station={stations.find(s=>s.code===r.station_code)} t={t} format={format} onCapture={()=>open(r)} onClose={()=>confirm('close',{run_id:r.id})} onEdit={()=>open(r,'edit_run')} onDelete={()=>confirm('delete_run',{run_id:r.id})}/>)}</div>
  {!runs.length&&<p className="live-empty">{t('pl_no_active')}</p>}
@@ -70,12 +84,12 @@ export default function ProductionLive({items,stations,supervisor,mode='partial'
  {edit&&<form onSubmit={save}><header className="live-dialog-header"><h2>{t(edit.action==='edit_run'?'pl_edit_run':edit.action==='edit_checkpoint'?'pl_edit_checkpoint':'pl_partial')}</h2><p>{t(edit.action==='edit_checkpoint'?'pl_edit_time_hint':'pl_hint')}</p></header><fieldset disabled={busy} className="live-dialog-body">
  {edit.action!=='edit_checkpoint'&&<><h3>{t('pl_section_details')}</h3><div className="live-form-grid">
  <Select disabled={edit.existing&&edit.action!=='edit_run'} label={t('pr_station')} value={edit.station_code} onChange={station_code=>setEdit({...edit,station_code})} options={stations.filter(s=>s.active||s.code===edit.station_code).map(s=>({value:s.code,label:s.code+' · '+s.name}))}/>
- <Select disabled={edit.existing&&edit.action!=='edit_run'} label={t('inv_part')} value={edit.item_id} onChange={item_id=>setEdit({...edit,item_id})} options={items.filter(i=>i.id===edit.item_id||i.active&&snapshot.targets.some(g=>g.item_id===i.id)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
+ <Select multi={edit.action==='checkpoint'} disabled={edit.existing&&edit.action!=='edit_run'} label={t('inv_part')} value={edit.action==='checkpoint'?(edit.products||[{item_id:edit.item_id}]).map(p=>p.item_id).filter(Boolean):edit.item_id} onChange={ids=>edit.action==='checkpoint'?setEdit({...selectLiveProducts(edit,ids,()=>crypto.randomUUID()),item_id:ids[0]||'',quantity:ids.length===1?(edit.products?.find(p=>p.item_id===ids[0])?.quantity||edit.quantity):edit.quantity}):setEdit({...edit,item_id:ids})} options={items.filter(i=>i.id===edit.item_id||i.active&&snapshot.targets.some(g=>g.item_id===i.id)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
  {(!edit.existing||edit.action==='edit_run')&&<><CatalogInput required type="date" label={t('pl_start_date')} value={edit.date} onChange={e=>setEdit({...edit,date:e.target.value})}/><ProductionClockInput label={t('pl_start_time')} value={edit.time} onChange={time=>setEdit({...edit,time})}/><Select label={t('pl_shift')} value={edit.shift_hours} onChange={shift_hours=>setEdit({...edit,shift_hours})} options={[8,10].map(n=>({value:String(n),label:t('pl_hours'+n)}))}/></>}
  </div></>}
- {edit.action!=='edit_run'&&<><h3>{t('pl_section_output')}</h3><div className="live-form-grid"><CatalogInput required type="text" inputMode="numeric" pattern="[0-9]{1,12}" label={t('pl_quantity')} value={edit.quantity} onChange={e=>setEdit({...edit,quantity:e.target.value.replace(/\D/g,'').slice(0,12)})}/>{edit.recorded_at&&<p className="live-original-time">{new Date(edit.recorded_at).toLocaleString(i18n.language)}</p>}</div></>}
+ {edit.action!=='edit_run'&&<><h3>{t('pl_section_output')}</h3><div className="live-form-grid">{edit.products?.length>1?edit.products.map(p=><CatalogInput key={p.item_id} required type="text" inputMode="numeric" pattern="[0-9]{1,12}" label={t('pm_quantity_for',{part:items.find(i=>i.id===p.item_id)?.part_number})} value={p.quantity} onChange={e=>setEdit({...edit,products:edit.products.map(row=>row.item_id===p.item_id?{...row,quantity:e.target.value.replace(/\D/g,'').slice(0,12)}:row)})}/>):<CatalogInput required type="text" inputMode="numeric" pattern="[0-9]{1,12}" label={t('pl_quantity')} value={edit.quantity} onChange={e=>setEdit({...edit,quantity:e.target.value.replace(/\D/g,'').slice(0,12)})}/>}{edit.recorded_at&&<p className="live-original-time">{new Date(edit.recorded_at).toLocaleString(i18n.language)}</p>}</div></>}
  </fieldset><footer className="live-dialog-footer"><BtnPrimary style={{background:'#28a745'}} disabled={busy} type="submit">{t(busy?'loading':'save')}</BtnPrimary><BtnDanger style={red} type="button" disabled={busy} onClick={()=>setEdit(null)}>{t('cancel')}</BtnDanger></footer></form>}
- {target&&<form onSubmit={e=>{e.preventDefault();send('target',target);}}><header className="live-dialog-header"><h2>{t('pl_targets')}</h2><p>{t('pl_target_hint')}</p></header><fieldset disabled={busy} className="live-dialog-body"><div className="live-form-grid"><div className="live-field-wide"><Select disabled={target.existing} label={t('inv_part')} value={target.item_id} onChange={item_id=>setTarget({...target,item_id})} options={items.filter(i=>i.active&&['FG','SEMI'].includes(i.category)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/></div></div><h3>{t('pl_section_goals')}</h3><div className="live-form-grid">{['target_8h','target_10h'].map(key=><CatalogInput required type="number" step="1" min="1" max="100000000" key={key} label={t(key==='target_8h'?'pl_target8':'pl_target10')} value={target[key]} onChange={e=>setTarget({...target,[key]:e.target.value})}/>)}</div><h3>{t('pl_section_alerts')}</h3><div className="live-form-grid">{['warning_percent','critical_percent'].map(key=><CatalogInput required type="number" step="0.1" min="0.1" max="100" key={key} label={t(key==='warning_percent'?'pl_warning':'pl_critical')} value={target[key]} onChange={e=>setTarget({...target,[key]:e.target.value})}/>)}</div></fieldset><footer className="live-dialog-footer"><BtnPrimary style={{background:'#28a745'}} disabled={busy} type="submit">{t('save')}</BtnPrimary><BtnDanger style={red} disabled={busy} type="button" onClick={()=>setTarget(null)}>{t('cancel')}</BtnDanger></footer></form>}
+ {target&&<form onSubmit={e=>{e.preventDefault();saveTargets();}}><header className="live-dialog-header"><h2>{t('pl_targets')}</h2><p>{t('pl_target_hint')}</p></header><fieldset disabled={busy} className="live-dialog-body"><div className="live-form-grid"><div className="live-field-wide"><Select multi={!target.existing} disabled={target.existing} label={t('inv_part')} value={target.existing?target.item_id:target.item_ids||[]} onChange={ids=>setTarget({...target,item_ids:ids,item_id:ids[0]||''})} options={items.filter(i=>i.active&&['FG','SEMI'].includes(i.category)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/></div></div><h3>{t('pl_section_goals')}</h3><div className="live-form-grid">{['target_8h','target_10h'].map(key=><CatalogInput required type="number" step="1" min="1" max="100000000" key={key} label={t(key==='target_8h'?'pl_target8':'pl_target10')} value={target[key]} onChange={e=>setTarget({...target,[key]:e.target.value})}/>)}</div><h3>{t('pl_section_alerts')}</h3><div className="live-form-grid">{['warning_percent','critical_percent'].map(key=><CatalogInput required type="number" step="0.1" min="0.1" max="100" key={key} label={t(key==='warning_percent'?'pl_warning':'pl_critical')} value={target[key]} onChange={e=>setTarget({...target,[key]:e.target.value})}/>)}</div></fieldset><footer className="live-dialog-footer"><BtnPrimary style={{background:'#28a745'}} disabled={busy} type="submit">{t('save')}</BtnPrimary><BtnDanger style={red} disabled={busy} type="button" onClick={()=>setTarget(null)}>{t('cancel')}</BtnDanger></footer></form>}
  {confirmation&&<><header className="live-dialog-header"><h2>{t(confirmation.action==='close'?'pl_close_run':'pl_delete_title')}</h2></header><div className="live-dialog-body"><p>{t(confirmation.action==='close'?'pl_close_confirm':'pl_delete_confirm')}</p></div><footer className="live-dialog-footer"><BtnPrimary style={confirmation.action.startsWith('delete_')?red:undefined} disabled={busy} onClick={()=>send(confirmation.action,confirmation.payload)}>{t(confirmation.action==='close'?'pl_close_run':'delete')}</BtnPrimary><BtnDanger style={red} disabled={busy} onClick={()=>setConfirmation(null)}>{t('cancel')}</BtnDanger></footer></>}
  </Modal><ErrorPopup message={error} onClose={()=>setError('')}/><ErrorPopup title={t('pl_saved')} message={notice} onClose={()=>setNotice('')}/>
  </section>;
