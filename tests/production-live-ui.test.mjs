@@ -218,6 +218,13 @@ try{
  await supplyDialog.getByRole('combobox',{name:'Part',exact:true}).click();await page.getByRole('option',{name:'PN-100 · Test product',exact:true}).click();
  await supplyDialog.getByRole('button',{name:'Save',exact:true}).click();await supplyDialog.waitFor({state:'hidden'});
  assert.equal(supplyCaptured.p_action,'start');assert.deepEqual(supplyCaptured.p_data.stations,[{station_code:'M-01',item_ids:['item']}]);
+
+ supplyState={materials:[],runs:[{...run,session_id:'session',closed_at:null}],wip:[],loads:[],baselines:[]};
+ await page.reload();await page.getByRole('button',{name:'Start shifts',exact:true}).click();
+ await page.getByRole('button',{name:'End session',exact:true}).click();
+ await page.getByLabel('Finish time',{exact:true}).waitFor();
+ assert.equal(await page.getByLabel('Finish time',{exact:true}).inputValue(),'');
+ await page.getByRole('button',{name:'Cancel',exact:true}).click();
  supplyState={materials:[{station_code:'M-01',item_id:'raw',loaded_quantity:10,tracked_at:new Date(now-7200000).toISOString(),alert_minutes:60}],runs:[{...run,raw_recipe:[{item_id:'raw',per_unit:2}]}],wip:[{station_code:'M-01',item_id:'item',quantity:25}],loads:[],baselines:[]};
  await page.reload();
  const materialAlert=page.getByRole('dialog',{name:'Raw material replenishment needed',exact:true});

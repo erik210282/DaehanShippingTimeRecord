@@ -42,7 +42,7 @@ begin
   if run is not null then
    select * into lr from public.production_live_runs where id=run;
    if lr.id is null or lr.station_code is distinct from p_data->>'station_code' or lr.item_id is distinct from (p_data->>'item_id')::uuid or lr.deleted_at is not null then raise exception 'pr_invalid';end if;
-   select id into existing_draft from public.production_station_reports where live_run_id=run and report_mode='production' and status='draft' and progress_draft;
+   select id into existing_draft from public.production_station_reports where live_run_id=run and report_mode='production' and status='draft';
    if existing_draft is not null then p_data:=jsonb_set(p_data,'{id}',to_jsonb(existing_draft));end if;
    if p_action='submit' and p_data->>'report_mode'='production' and lr.closed_at is null then raise exception 'ps_finish_first';end if;
   end if;
@@ -70,3 +70,36 @@ create or replace function public.production_delete_shift(p_session uuid)
 returns boolean language sql set search_path='' as $$ select rls_internal.production_delete_shift(p_session) $$;
 revoke all on function rls_internal.production_delete_shift(uuid),public.production_delete_shift(uuid) from public,anon;
 grant execute on function rls_internal.production_delete_shift(uuid),public.production_delete_shift(uuid) to authenticated;
+
+
+alter function rls_internal.production_station_action(text,jsonb) rename to production_station_action_capture_base;
+create or replace function rls_internal.production_station_action(p_action text,p_data jsonb)
+returns uuid language plpgsql security definer set search_path='' as $$
+declare entry jsonb; entries jsonb:='[]'; draft public.production_station_reports; capture uuid; all_existing boolean:=true;
+begin
+ if auth.uid() is null or not public.inventory_access('production') then raise exception 'pr_forbidden';end if;
+ if p_action in ('save','submit') then
+  if p_data ? 'products' then
+   if jsonb_typeof(p_data->'products') is distinct from 'array' then raise exception 'pr_invalid';end if;
+   for entry in select value from jsonb_array_elements(p_data->'products') loop
+    select * into draft from public.production_station_reports where live_run_id=nullif(entry->>'live_run_id','')::uuid and report_mode='production' and status='draft';
+    if draft.id is not null then
+     entry:=entry||jsonb_build_object('id',draft.id);
+     if capture is null then capture:=draft.capture_group_id;
+     elsif capture is distinct from draft.capture_group_id then raise exception 'pr_invalid';end if;
+    else all_existing:=false;
+    end if;
+    entries:=entries||jsonb_build_array(entry);
+   end loop;
+   p_data:=p_data||jsonb_build_object('products',entries);
+   if all_existing and capture is not null then p_data:=p_data||jsonb_build_object('capture_group_id',capture);end if;
+  else
+   select * into draft from public.production_station_reports where live_run_id=nullif(p_data->>'live_run_id','')::uuid and report_mode='production' and status='draft';
+   if draft.id is not null then p_data:=p_data||jsonb_build_object('id',draft.id);end if;
+  end if;
+ end if;
+ return rls_internal.production_station_action_capture_base(p_action,p_data);
+end $$;
+revoke all on function rls_internal.production_station_action_capture_base(text,jsonb) from public,anon,authenticated;
+revoke all on function rls_internal.production_station_action(text,jsonb) from public,anon;
+grant execute on function rls_internal.production_station_action(text,jsonb) to authenticated;
