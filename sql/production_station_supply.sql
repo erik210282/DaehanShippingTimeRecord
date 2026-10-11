@@ -4,7 +4,7 @@ create table public.production_material_loads (
  id uuid primary key, station_code text not null references public.inventory_workstations(code),
  item_id uuid not null references public.inventory_items(id), quantity numeric not null check(quantity>0),
  alert_minutes numeric not null check(alert_minutes between 1 and 480),
- created_by uuid not null references auth.users(id), created_at timestamptz not null default clock_timestamp()
+ created_by uuid not null references auth.users(id), created_at timestamptz not null default now()
 );
 alter table public.production_material_loads enable row level security;
 revoke all on public.production_material_loads from anon,authenticated;
@@ -167,3 +167,23 @@ end $$;
 revoke all on function rls_internal.production_station_action_core(text,jsonb),rls_internal.production_station_action_supply_base(text,jsonb) from public,anon;
 grant execute on function rls_internal.production_station_action_core(text,jsonb) to authenticated;
 notify pgrst,'reload schema';
+CREATE OR REPLACE FUNCTION rls_internal.production_live_snapshot_range(p_from timestamp with time zone, p_to timestamp with time zone)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare manager boolean;
+begin
+ if auth.uid() is null or not public.inventory_access('production') then raise exception 'pr_forbidden';end if;
+ if p_from is null or p_to is null or p_to<=p_from or p_to-p_from>interval '48 hours' then raise exception 'pr_invalid';end if;
+ manager:=public.inventory_access('production',true);
+ return jsonb_build_object('server_now',now(),'targets',coalesce((select jsonb_agg(to_jsonb(t)) from public.production_targets t where deleted_at is null),'[]'::jsonb),
+ 'runs',coalesce((select jsonb_agg(to_jsonb(x) order by x.started_at desc) from
+ (select r.*,coalesce((select jsonb_agg(to_jsonb(z)) from (select distinct pc.created_by as uid,o.nombre as name from public.production_checkpoints pc left join public.operadores o on o.uid=pc.created_by where pc.run_id=r.id and pc.deleted_at is null) z),'[]'::jsonb) as contributors,(manager or r.created_by=auth.uid()) as can_manage,true as can_continue,c.expected_quantity,c.attainment,c.performance,c.quantity as period_quantity,c.recorded_at as period_at,false as overdue
+ from public.production_live_runs r left join lateral(select c.* from public.production_checkpoints c where c.run_id=r.id and c.deleted_at is null and c.recorded_at<p_to order by c.recorded_at desc,c.id desc limit 1)c on true
+ where r.deleted_at is null  and
+ (exists(select 1 from public.production_checkpoints pc where pc.run_id=r.id and pc.deleted_at is null and pc.recorded_at>=p_from and pc.recorded_at<p_to)
+ or(r.started_at<p_to and coalesce(r.closed_at,now())>=p_from)))x),'[]'::jsonb),
+ 'checkpoints',coalesce((select jsonb_agg(to_jsonb(c)||jsonb_build_object('reporter_name',(select o.nombre from public.operadores o where o.uid=c.created_by)) order by c.recorded_at desc,c.id desc) from public.production_checkpoints c join public.production_live_runs r on r.id=c.run_id where c.deleted_at is null and r.deleted_at is null  and c.recorded_at>=p_from and c.recorded_at<p_to),'[]'::jsonb));
+end $function$

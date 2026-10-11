@@ -4,7 +4,7 @@ import {spawn} from 'node:child_process';
 import {chromium} from 'playwright';
 const name='.production-live-test';
 fs.writeFileSync(name+'.html','<html><head><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0"><div id="root"></div><script type="module" src="/'+name+'.jsx"></script></body></html>');
-fs.writeFileSync(name+'.jsx',`import React from 'react';import {createRoot} from 'react-dom/client';import Modal from 'react-modal';import ProductionLive from './src/production/ProductionLive';import Production from './src/pages/Production';import {BrowserRouter} from 'react-router-dom';import i18n from './src/i18n/i18n';import {registerProduction} from './src/production/translations';import './src/App.css';import './src/pages/Catalogos.css';import './src/pages/Production.css';i18n.changeLanguage('en');registerProduction(i18n);Modal.setAppElement('#root');createRoot(document.getElementById('root')).render(new URLSearchParams(location.search).has('daily')?<BrowserRouter><Production access={{admin:true,userId:'test-user',memberships:[]}}/></BrowserRouter>:<ProductionLive supervisor items={[{id:'item',active:true,category:'FG',part_number:'PN-100',part_name:'Test product'},{id:'item2',active:true,category:'FG',part_number:'PN-200',part_name:'Second product'}]} stations={[{code:'M-01',name:'Assembly',active:true}]} mode={new URLSearchParams(location.search).get("mode")||"dashboard"}/>);`);
+fs.writeFileSync(name+'.jsx',`import React from 'react';import {createRoot} from 'react-dom/client';import Modal from 'react-modal';import ProductionLive from './src/production/ProductionLive';import Production from './src/pages/Production';import {BrowserRouter} from 'react-router-dom';import i18n from './src/i18n/i18n';import {registerProduction} from './src/production/translations';import './src/App.css';import './src/pages/Catalogos.css';import './src/pages/Production.css';i18n.changeLanguage('en');registerProduction(i18n);Modal.setAppElement('#root');createRoot(document.getElementById('root')).render(new URLSearchParams(location.search).has('daily')?<BrowserRouter><Production access={{admin:true,userId:'test-user',memberships:[]}}/></BrowserRouter>:<ProductionLive supervisor items={[{id:'item',active:true,category:'FG',part_number:'PN-100',part_name:'Test product'},{id:'item2',active:true,category:'FG',part_number:'PN-200',part_name:'Second product'},{id:'raw',active:true,category:'RAW',part_number:'RAW-100',part_name:'Steel',uom:'kg'}]} stations={[{code:'M-01',name:'Assembly',active:true}]} mode={new URLSearchParams(location.search).get("mode")||"dashboard"}/>);`);
 const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','4174','--strictPort'],{stdio:'pipe'});
 let browser;
 try{
@@ -16,9 +16,11 @@ try{
  let run={id:'run',station_code:'M-01',item_id:'item',started_at:new Date(now-2*3600000).toISOString(),latest_at:new Date(now).toISOString(),latest_quantity:140,pieces_per_hour:100,shift_hours:8,shift_target:800,period_quantity:140,period_at:new Date(now).toISOString(),warning_percent:90,critical_percent:75,expected_quantity:200,attainment:70,performance:'critical',overdue:false};
  let captured,machineGroup=false;
 
- let dailyCaptured,showReview=false;
+ let dailyCaptured,showReview=false,supplyCaptured;let supplyState={runs:[],materials:[],wip:[],loads:[],baselines:[]};
  await page.route('**/rest/v1/**',route=>{
   const table=new URL(route.request().url()).pathname.split('/').pop();
+  if(table==='production_supply_snapshot')return route.fulfill({json:supplyState});
+  if(table==='production_supply_action'){supplyCaptured=route.request().postDataJSON();return route.fulfill({json:{saved:true}});}
   if(table==='production_station_action'){dailyCaptured=route.request().postDataJSON();return route.fulfill({json:'group'});}
   return route.fulfill({json:table==='operadores'?[{uid:'test-user',nombre:'Test Operator'}]:table==='production_station_reports'&&showReview?[{id:'report',production_date:'2026-10-09',station_code:'M-01',item_id:'item',created_by:'test-user',status:'submitted',machine_quantity:10,good_quantity:10,packed_quantity:0,scrap_quantity:0,rework_quantity:0,full_boxes:0,people:2,elapsed_minutes:480,machine_minutes:480,start_time:'08:00',end_time:'16:00',downtime_events:[]}]:table==='inventory_items'?[{id:'item',active:true,category:'FG',part_number:'PN-100',part_name:'Test product'},{id:'item2',active:true,category:'FG',part_number:'PN-200',part_name:'Second product'}]:table==='inventory_workstations'?[{code:'M-01',name:'Assembly',active:true}]:[]});
  });
@@ -184,5 +186,34 @@ try{
  await confirmation.getByRole('button',{name:'Confirm consumption and output',exact:true}).click();
  await confirmation.waitFor({state:'hidden'});
  assert.equal(dailyCaptured.p_action,'post');
+
+ await page.getByRole('button',{name:'Station raw materials',exact:true}).click();
+ await page.getByRole('button',{name:'Load / replenish material',exact:true}).first().click();
+ let supplyDialog=page.getByRole('dialog',{name:'Load / replenish material',exact:true});
+ await supplyDialog.getByRole('combobox',{name:'Workstation',exact:true}).click();await page.getByRole('option',{name:'M-01 · Assembly',exact:true}).click();
+ await supplyDialog.getByRole('combobox',{name:'Part',exact:true}).click();await page.getByRole('option',{name:'RAW-100 · Steel · kg',exact:true}).click();
+ assert.equal(await supplyDialog.getByLabel('Loaded quantity',{exact:true}).inputValue(),'');
+ await supplyDialog.getByLabel('Loaded quantity',{exact:true}).fill('1000');
+ await supplyDialog.getByLabel('Alert lead time (minutes)',{exact:true}).fill('60');
+ await supplyDialog.getByRole('button',{name:'Save',exact:true}).click();await supplyDialog.waitFor({state:'hidden'});
+ assert.equal(supplyCaptured.p_action,'load');assert.equal(supplyCaptured.p_data.quantity,'1000');
+ await page.getByRole('button',{name:'Start shifts',exact:true}).click();
+ await page.getByRole('button',{name:'Start selected machines',exact:true}).click();
+ supplyDialog=page.getByRole('dialog',{name:'Start selected machines',exact:true});
+ await supplyDialog.getByLabel('Start date',{exact:true}).fill(new Date().toISOString().slice(0,10));
+ await supplyDialog.getByLabel('Start time',{exact:true}).fill('0800');
+ await supplyDialog.getByRole('combobox',{name:'Reference shift',exact:true}).click();await page.getByRole('option',{name:'8 hours',exact:true}).click();
+ await supplyDialog.getByRole('combobox',{name:'Workstation',exact:true}).click();await page.getByRole('option',{name:'M-01 · Assembly',exact:true}).click();
+ await supplyDialog.getByRole('combobox',{name:'Part',exact:true}).click();await page.getByRole('option',{name:'PN-100 · Test product',exact:true}).click();
+ await supplyDialog.getByRole('button',{name:'Save',exact:true}).click();await supplyDialog.waitFor({state:'hidden'});
+ assert.equal(supplyCaptured.p_action,'start');assert.deepEqual(supplyCaptured.p_data.stations,[{station_code:'M-01',item_ids:['item']}]);
+ supplyState={materials:[{station_code:'M-01',item_id:'raw',loaded_quantity:10,tracked_at:new Date(now-7200000).toISOString(),alert_minutes:60}],runs:[{...run,raw_recipe:[{item_id:'raw',per_unit:2}]}],wip:[{station_code:'M-01',item_id:'item',quantity:25}],loads:[],baselines:[]};
+ await page.reload();
+ const materialAlert=page.getByRole('dialog',{name:'Raw material replenishment needed',exact:true});
+ await materialAlert.waitFor();await materialAlert.getByRole('button',{name:'OK',exact:true}).click();await materialAlert.waitFor({state:'hidden'});
+ await page.getByRole('button',{name:'Station raw materials',exact:true}).click();
+ await page.getByText('Unpacked product · carryover',{exact:true}).waitFor();
+ await page.getByRole('cell',{name:'25',exact:true}).waitFor();
+
  console.log('PASS: opaque edit/delete/capture/target dialogs, visible dropdown arrows, dashboard at desktop/phone widths, checkpoint capture, centered error above form, values retained after error, successful server-time report');
 }finally{await browser?.close();server.kill();fs.rmSync(name+'.html',{force:true});fs.rmSync(name+'.jsx',{force:true});}

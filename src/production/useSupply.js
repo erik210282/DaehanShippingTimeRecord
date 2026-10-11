@@ -5,7 +5,7 @@ import {supplyRows} from './supply.mjs';
 export function useSupply(){
  const [data,setData]=useState({materials:[],runs:[],loads:[],wip:[],baselines:[]}),[error,setError]=useState(''),[ready,setReady]=useState(false),[now,setNow]=useState(new Date());
  const live=useRef(false),sequence=useRef(0);
- const refresh=useCallback(async()=>{const n=++sequence.current;const {data:value,error:failure}=await supabase.rpc('production_supply_snapshot');if(failure)throw failure;if(live.current&&n===sequence.current){setData(value);setNow(new Date());setReady(true);setError('');}},[]);
+ const refresh=useCallback(async()=>{const n=++sequence.current;const {data:value,error:failure}=await supabase.rpc('production_supply_snapshot');if(failure)throw failure;if(live.current&&n===sequence.current){setData({materials:[],runs:[],loads:[],wip:[],baselines:[],...value});setNow(new Date());setReady(true);setError('');}},[]);
  useEffect(()=>{live.current=true;const update=()=>refresh().catch(e=>live.current&&setError(e.message));update();const off=subscribeUpdates(supabase,'production-supply',['catalog_updates'],update);const timer=setInterval(update,15000);return()=>{live.current=false;++sequence.current;clearInterval(timer);off();};},[refresh]);
  const rows=useMemo(()=>supplyRows(data,now),[data,now]);
  return {data,rows,error,setError,ready,refresh};

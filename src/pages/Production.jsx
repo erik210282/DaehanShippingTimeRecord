@@ -187,10 +187,10 @@ export default function Production({access}) {
  {edit&&<form ref={form} className="production-form production-dialog" onSubmit={ev=>{ev.preventDefault();action('save',edit);}}>
   <header className="production-dialog-header"><h2>{t('pr_new_report')}</h2><p className="inv-muted">{t('pr_current_reporter')}: {reporterName(access.userId)}</p></header>
   <fieldset disabled={busy} className="production-editor">
- <CatalogSelect label={t('ps_session')} disabled={!!edit.created_at} value={edit.shift_session_id||supply.data.runs.find(r=>r.id===edit.live_run_id)?.session_id||''} onChange={session=>setEdit(v=>shiftCapture(v,session,supply.data.runs,()=>crypto.randomUUID()))} options={[{value:'',label:t('ps_manual')},...shiftOptions(supply.data.runs,data.items)]}/>
   <section className="production-section"><h3>{t('pr_identity_section')}</h3><div className="production-form-grid">
    <CatalogSelect disabled={!!edit.shift_session_id||!!edit.live_run_id} label={t('inv_station_code')} value={edit.station_code} onChange={station_code=>setEdit({...edit,station_code,turns:''})} options={data.stations.filter(s=>s.active||s.code===edit.station_code).map(s=>({value:s.code,label:s.code+' · '+s.name}))}/>
    <CatalogSelect multi disabled={!!edit.created_at||!!edit.shift_session_id||!!edit.live_run_id} label={t('inv_part')} value={dailyProducts(edit).map(r=>r.item_id)} onChange={ids=>setEdit(current=>selectProducts(current,ids,()=>crypto.randomUUID()))} options={data.items.filter(i=>i.active&&['FG','SEMI'].includes(i.category)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
+ <CatalogSelect label={t('ps_session')} disabled={!!edit.created_at} value={edit.shift_session_id||supply.data.runs.find(r=>r.id===edit.live_run_id)?.session_id||''} onChange={session=>setEdit(v=>shiftCapture(v,session,supply.data.runs,()=>crypto.randomUUID()))} options={[{value:'',label:t('ps_manual')},...shiftOptions(supply.data.runs,data.items)]}/>
    <CatalogSelect label={t('pr_report_mode')} value={edit.report_mode} onChange={report_mode=>setEdit({...edit,report_mode})} options={['production','packing'].map(value=>({value,label:t('pr_mode_'+value)}))}/>
   </div></section>
   <section className="production-section"><h3>{t('pr_shift_section')}</h3><div className="production-form-grid production-form-grid-four">
