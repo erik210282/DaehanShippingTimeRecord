@@ -34,6 +34,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - run: node tests/inventory-count-flow.test.mjs
       - run: npm install --no-save --package-lock=false playwright@1.55.1
       - run: npx playwright install --with-deps chromium
       - run: node tests/production-supply.test.mjs

@@ -2,7 +2,7 @@ import React from 'react';
 import {useTranslation} from 'react-i18next';
 import {CatalogInput,CatalogSelect} from './SharedCatalogFields';
 import {BtnSecondary,BtnDanger,TextAreaStyle} from './controls';
-import {formatTimeInput,blankTimedDowntime,maximumCompleteBoxes} from '../production/capture.mjs';
+import {downtimeDuration,formatTimeInput,blankTimedDowntime,maximumCompleteBoxes} from '../production/capture.mjs';
 import {downtimeTypes} from '../production/model.mjs';
 
 export function ProductionClockInput({label,value,onChange,required=true,disabled=false,readOnly=false}) {
@@ -20,7 +20,7 @@ export function ProductionDowntimes({report,captured,onChange}) {
  {events.map((d,index)=>{const change=patch=>onChange({...report,downtime_events:events.map((row,k)=>k===index?{...row,...patch}:row)}),timed=Object.hasOwn(d,'start_time')||Object.hasOwn(d,'end_time');
  return <div className="production-downtime-row production-downtime-timed" key={index}>
  <CatalogSelect label={t('pr_downtime_type')} value={d.type} onChange={type=>change({type})} options={downtimeTypes.map(value=>({value,label:t('pr_downtime_'+value)}))}/>
- {timed?<><ProductionClockInput label={t('pr_downtime_start')} value={d.start_time} onChange={start_time=>change({start_time})}/><ProductionClockInput label={t('pr_downtime_end')} value={d.end_time} onChange={end_time=>change({end_time})}/><CatalogInput label={t('pr_downtime_duration')} readOnly value={captured.downtime_events[index]?.minutes||''}/></>:<CatalogInput label={t('pr_downtime_duration')} required type="number" min="0.001" step="any" value={d.minutes} onChange={event=>change({minutes:event.target.value})}/>}
+ {timed?<><ProductionClockInput label={t('pr_downtime_start')} value={d.start_time} onChange={start_time=>change({start_time})}/><ProductionClockInput label={t('pr_downtime_end')} value={d.end_time} onChange={end_time=>change({end_time})}/><CatalogInput label={t('pr_downtime_duration')} placeholder={t('pr_enter_value',{field:t('pr_downtime_duration')})} readOnly value={downtimeDuration(d)}/></>:<CatalogInput label={t('pr_downtime_duration')} required type="number" min="0.001" step="any" value={d.minutes} onChange={event=>change({minutes:event.target.value})}/>}
  <CatalogInput label={t('pr_downtime_note')} value={d.note||''} onChange={event=>change({note:event.target.value})}/>
  <BtnDanger type="button" onClick={()=>onChange({...report,downtime_events:events.filter((_,k)=>k!==index)})}>{t('delete')}</BtnDanger>
  </div>;})}

@@ -7,7 +7,7 @@ import {BtnPrimary,BtnSecondary,BtnDanger} from '../components/controls';
 import {ProductionClockInput} from '../components/ProductionCaptureFields';
 import ErrorPopup from '../components/ErrorPopup';
 import {supabase} from '../supabase/client';
-import {localStart} from './live.mjs';
+import {localStart,localDate} from './live.mjs';
 import {partLabel,loadCounterRuns} from './supply.mjs';
 import {useSupply,useSupplyAlerts} from './useSupply';
 import {registerSupply} from './supplyTranslations';
@@ -15,22 +15,23 @@ import i18n from '../i18n/i18n';
 registerSupply(i18n);
 const modal={overlay:{position:'fixed',inset:0,zIndex:10000,background:'#0f172a99',display:'flex',alignItems:'center',justifyContent:'center',padding:16},content:{position:'relative',inset:'auto',width:'min(760px,100%)',maxHeight:'calc(100dvh - 32px)',overflow:'auto',padding:24,borderRadius:14,background:'#fff'}};
 const emptyLoad=()=>({id:crypto.randomUUID(),station_code:'',item_id:'',quantity:'',alert_minutes:''});
-const emptyShift=()=>({id:crypto.randomUUID(),date:'',time:'',shift_hours:'',stations:[{key:crypto.randomUUID(),station_code:'',item_ids:[]}]});
+const emptyShift=()=>({id:crypto.randomUUID(),date:localDate(),time:'',shift_hours:'',stations:[{key:crypto.randomUUID(),station_code:'',item_ids:[]}]});
 export function ProductionSupplyAlerts({enabled,items=[],rows=[]}){
  const {t}=useTranslation(),{alerts,dismiss}=useSupplyAlerts(rows,enabled);
  return <Modal isOpen={alerts.length>0} style={modal} contentLabel={t('ps_low')} onRequestClose={dismiss}><h2>{t('ps_low')}</h2>{alerts.map(r=><p key={r.station_code+r.item_id}>{r.station_code} · {partLabel(items.find(i=>i.id===r.item_id))} · {t('ps_eta')}: {r.minutes===null?'—':Math.round(r.minutes)}</p>)}<BtnPrimary onClick={dismiss}>{t('pl_ack')}</BtnPrimary></Modal>;
 }
-export default function ProductionSupply({items,stations,manage,mode}){
+export default function ProductionSupply({items,stations,manage,mode,onCloseShift}){
  const {t}=useTranslation(),{data,rows,ready,error,setError,refresh}=useSupply(),[edit,setEdit]=useState(null),[busy,setBusy]=useState(false),lock=useRef(false);
  const fmt=n=>Number(n||0).toLocaleString(i18n.language,{maximumFractionDigits:1}),label=id=>partLabel(items.find(i=>i.id===id));
  const counters=loadCounterRuns(data,edit);
+ async function deleteShift(r){if(lock.current||!window.confirm(t('pl_delete_confirm')))return;lock.current=true;setBusy(true);try{const {error:failure}=await supabase.rpc('production_delete_shift',{p_session:r.session_id||r.id});if(failure)throw failure;await refresh();}catch(e){setError(e.message);}finally{lock.current=false;setBusy(false);}}
  async function save(e){e.preventDefault();if(lock.current)return;const payload=mode==='shifts'?{id:edit.id,started_at:localStart(edit.date,edit.time),shift_hours:edit.shift_hours,stations:edit.stations.map(({station_code,item_ids})=>({station_code,item_ids}))}:{...edit,baselines:counters.map(r=>({run_id:r.id,quantity:edit?.counters?.[r.id]??''}))};
  if(mode==='shifts'&&(!payload.started_at||!payload.shift_hours||!payload.stations.length||payload.stations.some(r=>!r.station_code||!r.item_ids.length))){setError('pl_start_invalid');return;}
  if(mode!=='shifts'&&(!edit.station_code||!edit.item_id||!edit.quantity||!edit.alert_minutes||counters.some(r=>!/^\d{1,12}$/.test(edit?.counters?.[r.id]??'')||Number(edit.counters[r.id])<Number(r.latest_quantity||0)))){setError('ps_load_invalid');return;}
  lock.current=true;setBusy(true);try{const {error:failure}=await supabase.rpc('production_supply_action',{p_action:mode==='shifts'?'start':'load',p_data:payload});if(failure)throw failure;setEdit(null);await refresh();}catch(e){setError(e.message);}finally{lock.current=false;setBusy(false);}
  }
  return <section className="card live-monitor"><header className="live-page-header"><div><h2>{t('ps_'+mode)}</h2><p className="inv-muted">{t(mode==='shifts'?'ps_shift_hint':'ps_load_hint')}</p></div>{(mode!=='shifts'||manage)&&<BtnPrimary disabled={!ready||busy} onClick={()=>setEdit(mode==='shifts'?emptyShift():emptyLoad())}>{t(mode==='shifts'?'ps_start':'ps_load')}</BtnPrimary>}</header>
- {!ready?<p>{t('loading')}</p>:mode==='shifts'?<div className="live-lines">{data.runs.filter(r=>!r.closed_at).map(r=><article className="live-line" key={r.id}><h3>{r.station_code}</h3><p>{label(r.item_id)}</p><p>{new Date(r.started_at).toLocaleString(i18n.language)} · {r.shift_hours} h</p></article>)}</div>:<>
+ {!ready?<p>{t('loading')}</p>:mode==='shifts'?<div className="live-lines">{data.runs.filter(r=>!r.closed_at).map(r=><article className="live-line" key={r.id}><h3>{r.station_code}</h3><p>{label(r.item_id)}</p><p>{new Date(r.started_at).toLocaleString(i18n.language)} · {r.shift_hours} h</p>{manage&&<div className="live-row-actions"><BtnSecondary disabled={busy} onClick={()=>onCloseShift?.(r)}>{t('pl_close_run')}</BtnSecondary><BtnDanger disabled={busy} onClick={()=>deleteShift(r)}>{t('delete')}</BtnDanger></div>}</article>)}</div>:<>
  <p className="inv-muted">{t('ps_estimate_hint')}</p><div className="live-lines">{rows.map(r=><article className={'live-line live-'+(r.low?'critical':'on_track')} key={r.station_code+r.item_id}><h3>{r.station_code} · {stations.find(s=>s.code===r.station_code)?.name}</h3><p>{label(r.item_id)} · {items.find(i=>i.id===r.item_id)?.uom}</p>{r.low&&<strong role="status">{t('ps_low')}</strong>}<dl className="live-card-metrics">{[['confirmed',r.confirmed],['estimated',r.estimated],['rate',r.rate],['eta',r.minutes]].map(([key,v])=><div key={key}><dt>{t('ps_'+key)}</dt><dd>{v===null?'—':fmt(v)}</dd></div>)}</dl>{r.missingRecipe&&<p className="production-short">{t('ps_recipe_missing')}</p>}<BtnPrimary onClick={()=>setEdit({...emptyLoad(),station_code:r.station_code,item_id:r.item_id})}>{t('ps_load')}</BtnPrimary></article>)}</div>{!rows.length&&<p className="inv-muted">{t('ps_no_materials')}</p>}
  <h3>{t('ps_wip')}</h3><p className="inv-muted">{t('ps_wip_hint')}</p><div className="table-wrap"><table className="table"><thead><tr><th>{t('pr_station')}</th><th>{t('inv_part')}</th><th>{t('pr_pending_packing')}</th></tr></thead><tbody>{data.wip.map(w=><tr key={w.station_code+w.item_id}><td>{w.station_code}</td><td>{label(w.item_id)}</td><td>{fmt(w.quantity)}</td></tr>)}</tbody></table></div>{!data.wip.length&&<p className="inv-muted">{t('ps_no_wip')}</p>}
  <h3>{t('ps_history')}</h3><div className="table-wrap"><table className="table"><thead><tr>{['pr_station','inv_part','ps_quantity','pr_reporter','pr_date'].map(key=><th key={key}>{t(key)}</th>)}</tr></thead><tbody>{data.loads.map(l=><tr key={l.id}><td>{l.station_code}</td><td>{label(l.item_id)}</td><td>{fmt(l.quantity)}</td><td>{l.reporter_name||'—'}</td><td>{new Date(l.created_at).toLocaleString(i18n.language)}</td></tr>)}</tbody></table></div></>}

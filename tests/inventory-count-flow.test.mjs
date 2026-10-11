@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';import vm from 'node:vm';
+const mobile=fs.existsSync('InventoryMobile.js');
+const context=vm.createContext({});
+vm.runInContext(fs.readFileSync(mobile?'inventory/countFlow.js':'src/inventory/countFlow.js','utf8').replaceAll('export ',''),context);
+const groups=context.countGroups({'inventory:RAW':{raw:'100',blank:''},'inventory:PACKAGING':{box:'25'},'production:WIP':{wip:'0'}});
+assert.equal(groups.length,3);assert.equal(groups[0].lines[0].physical_quantity,100);assert.equal(groups[2].lines[0].physical_quantity,0);assert.equal(groups[1].area,'PACKAGING');
+assert.equal(context.countError('duplicate key value violates unique constraint "inventory_one_open_count"',(key)=>key),'inv_count_pending');
+vm.runInContext(fs.readFileSync(mobile?'production/capture.js':'src/production/capture.mjs','utf8').replaceAll('export ',''),context);
+assert.equal(context.downtimeDuration({start_time:'10:00',end_time:'10:15'}),15);
+assert.equal(context.downtimeDuration({start_time:'23:50',end_time:'00:10'}),20);
+assert.equal(context.downtimeDuration({start_time:'10',end_time:'10:15'}),'');
+const source=fs.readFileSync(mobile?'ProductionLiveMobile.js':'src/production/ProductionLive.jsx','utf8');
+assert.ok(!source.includes("confirm('delete_run'"));assert.ok(source.includes("confirm('delete_checkpoint'"));
+if(mobile)assert.ok(!fs.readFileSync('GlobalPortal.js','utf8').includes('{canManage && <View style={s.updateInfo}>'));
+console.log('PASS: count areas, zero vs blank, translated pending count, independent downtime duration, progress deletion preserves shift, update available for all roles');

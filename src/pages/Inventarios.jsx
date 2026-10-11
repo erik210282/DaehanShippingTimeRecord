@@ -80,6 +80,7 @@ export default function Inventarios({ access }) {
   const [finishedIdx, setFinishedIdx] = useState([]);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [overviewInput,setOverviewInput]=useState(''),[overviewSearch,setOverviewSearch]=useState('');
   const [demandFilter, setDemandFilter] = useState('');
   const [demandMode, setDemandMode] = useState('all');
   const [selectedIdx, setSelectedIdx] = useState('');
@@ -124,7 +125,7 @@ export default function Inventarios({ access }) {
   const qty = (id, area) => n(balances.find(b => b.item_id === id && b.area === area)?.quantity);
   const stockItems = area => area === 'WIP' ? [] : choose(items, area === 'WIP' ? 'FG' : area === 'PACKAGING' ? 'PACKAGING' : area === 'RAW' ? 'RAW' : area === 'FG' ? 'FG' : null);
   const verifiedAreas = new Set(counts.filter(c => c.status === 'approved').map(c => c.area));
-  const warnings = items.filter(i => i.active &&
+  const warnings = items.filter(i => i.active && [i.part_number,i.part_name,i.description].join(' ').toLowerCase().includes(overviewSearch.toLowerCase()) &&
     (verifiedAreas.has(i.category) || balances.some(b => b.item_id === i.id && b.area === i.category)) &&
     qty(i.id, i.category) <= n(i.minimum_quantity));
   const currentImport = imports.find(i => i.status === 'active');
@@ -196,7 +197,7 @@ export default function Inventarios({ access }) {
       <div className="inv-main">
     {!!message && <p role="status" className="inv-message">{message}</p>}
 
-    {tab === 'overview' && <div className="inv-grid">
+    {tab === 'overview' && <div className="inv-grid"><form className="inv-form inv-wide" onSubmit={e=>{e.preventDefault();setOverviewSearch(overviewInput.trim());}}><input aria-label={t('search')} placeholder={t('inv_filter_part')} value={overviewInput} onChange={e=>setOverviewInput(e.target.value)}/><button type="submit">{t('inv_search')}</button><button type="button" onClick={()=>{setOverviewInput('');setOverviewSearch('');}}>{t('count_clear')}</button></form>
       {areas.map(area => <section key={area} className="inv-card"><h2>{areaLabel(area)}</h2>
         <strong>{balances.filter(b => b.area === area).length}</strong><small>{t('inv_parts_with_movements')}</small></section>)}
       <section className="inv-card inv-wide"><h2>{t('inv_alerts')}</h2>
