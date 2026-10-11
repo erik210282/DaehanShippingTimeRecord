@@ -27,9 +27,10 @@ try{
 
  await page.route('**/rest/v1/rpc/production_live_*',async route=>{
  const url=route.request().url();
- if(url.endsWith('production_live_snapshot_range'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',target_8h:800,target_10h:1200,warning_percent:90,critical_percent:75},{item_id:'item2',target_8h:400,target_10h:500,warning_percent:90,critical_percent:75}],runs:machineGroup?[{...run,session_id:'session'},{...run,id:'run2',item_id:'item2',session_id:'session'}]:[run],checkpoints:[]}});
+ if(url.endsWith('production_live_snapshot_range'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',target_8h:800,target_10h:1200,warning_percent:90,critical_percent:75},{item_id:'item2',target_8h:400,target_10h:500,warning_percent:90,critical_percent:75}],runs:machineGroup?[{...run,session_id:'session'},{...run,id:'run2',item_id:'item2',session_id:'session'}]:[run],checkpoints:[{id:'cp',run_id:'run',recorded_at:run.period_at,quantity:run.period_quantity,created_by:'test-user'}]}});
  const body=route.request().postDataJSON();captured=body;
  if(body.p_action==='finish_batch')run={...run,closed_at:new Date().toISOString()};
+ if(body.p_action.startsWith('delete_')||body.p_action.startsWith('restore_'))return route.fulfill({json:{saved:true}});
  if(body.p_action.endsWith('_batch'))return route.fulfill({json:{saved:true,products:[]}});
  if(body.p_data.quantity==='130')return route.fulfill({status:400,json:{code:'P0001',message:'pl_quantity_invalid',details:null,hint:null}});
  run={...run,latest_quantity:Number(body.p_data.quantity),period_quantity:Number(body.p_data.quantity),attainment:90,performance:'warning'};
@@ -37,7 +38,8 @@ try{
  });
  await page.goto('http://127.0.0.1:4174/'+name+'.html');
  await page.getByRole('button',{name:'Record progress',exact:true}).waitFor();
- await page.getByText('70%',{exact:true}).waitFor();
+ await page.getByText('70%',{exact:true}).first().waitFor();
+ assert.equal(await page.getByRole('cell',{name:'70%',exact:true}).count(),1,'Dashboard efficiency must match card attainment');
  assert.equal(await page.locator('.live-table tbody tr').first().evaluate(el=>getComputedStyle(el.firstElementChild).backgroundColor),'rgb(255, 241, 242)');
  assert.equal(await page.locator('.live-line').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 241, 242)');
  await page.getByRole('button',{name:'Edit',exact:true}).first().click();
@@ -51,7 +53,7 @@ try{
  await page.getByRole('button',{name:'Cancel',exact:true}).click();
  await page.getByRole('button',{name:'Delete',exact:true}).first().click();await assertSolidDialog();
  assert.equal(await page.locator('.live-dialog').getByRole('button',{name:'Delete',exact:true}).evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(220, 53, 69)');
- await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ await page.locator('.live-dialog').getByRole('button',{name:'Delete',exact:true}).click();await page.locator('.live-dialog').waitFor({state:'hidden'});assert.equal(captured.p_action,'delete_checkpoint');assert.equal(captured.p_data.id,'cp');
  const date=page.locator('input[type=date]').first();
  const request=page.waitForRequest(req=>req.url().endsWith('production_live_snapshot_range')&&req.postDataJSON().p_from.includes('2026-09-15'));
  await date.fill('2026-09-15');await request;
@@ -60,6 +62,14 @@ try{
  await page.getByRole('button',{name:'Record progress',exact:true}).click();
  const quantity=page.getByLabel('Cumulative produced pieces',{exact:true});
  await assertSolidDialog();
+ await page.getByRole('button',{name:'Add downtime',exact:true}).click();
+ const downtime=page.locator('.production-downtime-row');
+ const clock=value=>new Date(value).toTimeString().slice(0,5);
+ await downtime.getByLabel('Downtime start',{exact:true}).fill(clock(now-1800000));
+ await downtime.getByLabel('Downtime end',{exact:true}).fill(clock(now-900000));
+ assert.equal(await downtime.getByLabel('Duration (min)',{exact:true}).inputValue(),'15');
+ for(const width of [1280,390]){await page.setViewportSize({width,height:720});const bounds=await downtime.getByRole('button',{name:'Delete',exact:true}).evaluate(el=>{const r=el.getBoundingClientRect(),d=el.closest('.live-dialog').getBoundingClientRect();return r.left>=d.left&&r.right<=d.right;});assert.equal(bounds,true,'Downtime delete button must fit the dialog');}
+ await downtime.getByRole('button',{name:'Delete',exact:true}).click();
  await quantity.fill('130');
  await page.getByRole('button',{name:'Save',exact:true}).click();
  const popup=page.getByRole('alertdialog');
@@ -76,7 +86,7 @@ try{
  assert.equal(captured.p_data.run_id,'run');
  assert.equal(captured.p_data.quantity,'180');
  assert.equal(captured.p_data.started_at,undefined);
- await page.getByText('90%',{exact:true}).waitFor();
+ await page.getByText('90%',{exact:true}).first().waitFor();
  await page.goto('http://127.0.0.1:4174/'+name+'.html?mode=targets');
  assert.match(await page.locator('.live-table tbody tr').first().innerText(),/PN-100 · Test product/);
  await page.getByRole('button',{name:/Add/}).click();
@@ -200,6 +210,7 @@ try{
  await page.getByRole('button',{name:'Start shifts',exact:true}).click();
  await page.getByRole('button',{name:'Start selected machines',exact:true}).click();
  supplyDialog=page.getByRole('dialog',{name:'Start selected machines',exact:true});
+ assert.equal(await supplyDialog.getByLabel('Start date',{exact:true}).inputValue(),new Date().toISOString().slice(0,10));
  await supplyDialog.getByLabel('Start date',{exact:true}).fill(new Date().toISOString().slice(0,10));
  await supplyDialog.getByLabel('Start time',{exact:true}).fill('0800');
  await supplyDialog.getByRole('combobox',{name:'Reference shift',exact:true}).click();await page.getByRole('option',{name:'8 hours',exact:true}).click();
