@@ -21,7 +21,7 @@ export default function PhysicalCounts({items,balances,counts,access,fileRows,sa
  const qty=id=>Number(balances.find(b=>b.item_id===id&&b.area===area)?.quantity||0);
  const fmt=v=>Number(v).toLocaleString(i18n.language,{maximumFractionDigits:6});
  const category=area==='WIP'?'SEMI':area;
- const countable=items.filter(i=>i.active&&(area==='HOLD'?balances.some(b=>b.item_id===i.id&&b.area==='HOLD'):i.category===category)&&(department==='inventory'||(area==='HOLD'?department==='quality':area==='WIP'?department==='production':i.responsible_department===department)));
+ const countable=items.filter(i=>i.active&&(area==='HOLD'?balances.some(b=>b.item_id===i.id&&b.area==='HOLD'):(area==='WIP'?['FG','SEMI'].includes(i.category):i.category===category))&&(department==='inventory'||(area==='HOLD'?department==='quality':area==='WIP'?department==='production':i.responsible_department===department)));
  const entered=countable.filter(i=>physical[i.id]!==undefined&&physical[i.id]!=='');
  const filtered=countable.filter(i=>(!onlyEntered||physical[i.id]!==undefined&&physical[i.id]!=='')&&[i.part_number,i.part_name,i.description].join(' ').toLowerCase().includes(search.trim().toLowerCase()));
  const currentPage=Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)));

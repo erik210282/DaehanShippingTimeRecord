@@ -16,7 +16,7 @@ begin
   loop
     v_item := (v_line->>'item_id')::uuid;
     if not exists(select 1 from public.inventory_items i where i.id=v_item and i.active
-      and (p_area='WIP' and p_department='production' and i.category in ('FG','SEMI')
+      and (p_area='WIP' and p_department in ('production','inventory') and i.category in ('FG','SEMI')
         or p_area='HOLD' and p_department='quality'
         or (i.responsible_department=p_department or p_department='inventory')
           and (p_area='FG' and i.category='FG' or p_area='RAW' and i.category='RAW'

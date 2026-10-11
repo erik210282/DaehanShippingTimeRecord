@@ -32,7 +32,7 @@ export function LiveLineCard({run,item,station,t,onCapture,onClose,onEdit,onDele
  {<div className="live-row-actions">{!run.closed_at&&run.can_continue!==false&&<><BtnPrimary onClick={onCapture}>{t('pl_capture')}</BtnPrimary><BtnSecondary onClick={onClose}>{t('pl_close_run')}</BtnSecondary></>}{run.can_manage!==false&&<><BtnEditDark onClick={onEdit}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={onDelete}>{t('delete')}</BtnDanger></>}</div>}
  </article>;
 }
-export default function ProductionLive({items,stations,supervisor,reporterName,reporters=[],mode='partial'}){
+export default function ProductionLive({items,stations,supervisor,reporterName,reporters=[],mode='partial',finishRun,onFinishHandled}){
  const {t}=useTranslation(),[snapshot,setSnapshot]=useState({targets:[],runs:[],checkpoints:[]}),[ready,setReady]=useState(false),[error,setError]=useState(''),[edit,setEdit]=useState(null),[target,setTarget]=useState(null),[confirmation,setConfirmation]=useState(null),[undo,setUndo]=useState(null),[busy,setBusy]=useState(false),[filter,setFilter]=useState(''),[day,setDay]=useState(localDate());
  const live=useRef(true),lock=useRef(false),seq=useRef(0);
  const refresh=useCallback(async()=>{const range=dayRange(day);if(!range)throw Error('pl_start_invalid');const n=++seq.current;const s=await unwrap(supabase.rpc('production_live_snapshot_range',range));if(live.current&&n===seq.current){setSnapshot(s);setReady(true);}},[day]);
