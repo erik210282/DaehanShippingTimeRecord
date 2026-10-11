@@ -42,5 +42,23 @@ begin
  result:=public.production_supply_snapshot();
  if (select (m->>'loaded_quantity')::numeric-(m->>'confirmed_consumption')::numeric from jsonb_array_elements(result->'materials')m where m->>'station_code'=station)<>951 then raise exception 'new shift reset material carryover';end if;
  if (select sum((w->>'quantity')::numeric) from jsonb_array_elements(result->'wip')w where w->>'station_code'=station)<>18 then raise exception 'new shift reset WIP';end if;
+
+ station:=station||'-BASE';
+ insert into public.inventory_workstations(code,name,machine_type) values(station,'Opening counter test','test');
+ perform public.production_supply_action('start',jsonb_build_object('id',gen_random_uuid(),'started_at',start_at,'shift_hours',8,'stations',jsonb_build_array(jsonb_build_object('station_code',station,'item_ids',jsonb_build_array(a)))));
+ select id into r1 from public.production_live_runs where station_code=station;
+ begin
+  perform public.production_supply_action('load',jsonb_build_object('id',gen_random_uuid(),'station_code',station,'item_id',raw,'quantity',100,'alert_minutes',30));
+  raise exception 'opening without counter accepted';
+ exception when others then if sqlerrm<>'ps_load_invalid' then raise;end if;end;
+ perform public.production_supply_action('load',jsonb_build_object('id',gen_random_uuid(),'station_code',station,'item_id',raw,'quantity',100,'alert_minutes',30,'baselines',jsonb_build_array(jsonb_build_object('run_id',r1,'quantity',5))));
+ finished:=clock_timestamp();
+ perform public.production_live_action('finish',jsonb_build_object('id',gen_random_uuid(),'run_id',r1,'quantity',7,'finished_at',finished));
+ base:=base||jsonb_build_object('id',gen_random_uuid(),'station_code',station,'live_run_id',r1,'item_id',a,'machine_quantity',7,'scrap_quantity',1,'end_time',to_char(finished at time zone 'UTC','HH24:MI'));
+ perform public.production_station_action('submit',base);
+ perform public.production_station_action('post',jsonb_build_object('id',base->>'id'));
+ perform public.production_station_action('post',jsonb_build_object('id',base->>'id'));
+ result:=public.production_supply_snapshot();
+ if (select (m->>'loaded_quantity')::numeric-(m->>'confirmed_consumption')::numeric from jsonb_array_elements(result->'materials')m where m->>'station_code'=station)<>96 then raise exception 'opening counter or posting retry lost physical stock';end if;
 end $test$;
 rollback;

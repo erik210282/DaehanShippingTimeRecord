@@ -20,4 +20,5 @@ row=supplyRows({...base,runs:[{...run,downtime_events:[{start_at:'2026-10-11T09:
 const edit=shiftCapture({id:'draft'},'session',[{id:'r',session_id:'session',station_code:'M',item_id:'p',started_at:'2026-10-11T08:00:00Z'}],()=> 'row');
 assert.equal(edit.live_run_id,'r');assert.equal(edit.start_time,new Date('2026-10-11T08:00:00Z').toTimeString().slice(0,5));assert.equal(edit.machine_quantity,'');
 assert.equal(shiftCapture(edit,'',[],()=> 'row').live_run_id,null);
+row=supplyRows({...base,materials:[{...base.materials[0],tracked_at:at.toISOString()}]},at)[0];assert.equal(row.estimated,1000,'First physical loading excludes elapsed time before loading');
 console.log('Station forecasts, handoff attribution and shift-linked capture passed');

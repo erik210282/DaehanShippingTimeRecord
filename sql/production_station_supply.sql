@@ -187,3 +187,133 @@ begin
  or(r.started_at<p_to and coalesce(r.closed_at,now())>=p_from)))x),'[]'::jsonb),
  'checkpoints',coalesce((select jsonb_agg(to_jsonb(c)||jsonb_build_object('reporter_name',(select o.nombre from public.operadores o where o.uid=c.created_by)) order by c.recorded_at desc,c.id desc) from public.production_checkpoints c join public.production_live_runs r on r.id=c.run_id where c.deleted_at is null and r.deleted_at is null  and c.recorded_at>=p_from and c.recorded_at<p_to),'[]'::jsonb));
 end $function$
+
+
+create table public.production_material_usages(
+ report_id uuid not null references public.production_station_reports(id),
+ station_code text not null references public.inventory_workstations(code),
+ item_id uuid not null references public.inventory_items(id),
+ quantity numeric not null check(quantity>=0),primary key(report_id,item_id)
+);
+alter table public.production_material_usages enable row level security;
+revoke all on public.production_material_usages from anon,authenticated;
+create index production_material_usage_pair on public.production_material_usages(station_code,item_id);
+create function rls_internal.production_material_posted()
+returns trigger language plpgsql security definer set search_path='' as $$
+begin
+ if new.status='posted' and old.status is distinct from 'posted' then
+  perform pg_advisory_xact_lock(hashtextextended('supply-station:'||new.station_code,0));
+  insert into public.production_material_usages(report_id,station_code,item_id,quantity)
+   select new.id,new.station_code,c.ingredient_id,greatest(0,c.quantity-coalesce(b.quantity,0)*c.quantity/nullif(new.machine_quantity,0))
+   from public.production_station_consumptions c
+   join lateral(select min(l.created_at) tracked_at from public.production_material_loads l where l.station_code=new.station_code and l.item_id=c.ingredient_id) loaded on loaded.tracked_at is not null
+   left join public.production_material_baselines b on b.station_code=new.station_code and b.item_id=c.ingredient_id and b.run_id=new.live_run_id
+   left join public.production_live_runs lr on lr.id=new.live_run_id
+   where c.report_id=new.id and c.source='manufacturing'
+    and (lr.closed_at is null or lr.closed_at>=loaded.tracked_at)
+   on conflict(report_id,item_id) do nothing;
+ end if;
+ return new;
+end $$;
+revoke all on function rls_internal.production_material_posted() from public,anon,authenticated;
+create trigger production_material_posted after update of status on public.production_station_reports for each row execute function rls_internal.production_material_posted();
+
+create or replace function rls_internal.production_supply_snapshot()
+returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+ if auth.uid() is null or not public.inventory_access('production') then raise exception 'pr_forbidden';end if;
+ return jsonb_build_object(
+ 'materials',coalesce((select jsonb_agg(to_jsonb(m)) from (
+  select l.station_code,l.item_id,sum(l.quantity) as loaded_quantity,min(l.created_at) as tracked_at,
+  (array_agg(l.alert_minutes order by l.created_at desc,l.id))[1] as alert_minutes,
+  coalesce((select sum(u.quantity) from public.production_material_usages u where u.station_code=l.station_code and u.item_id=l.item_id),0) as confirmed_consumption,
+  0::numeric as confirmed_baseline
+  from public.production_material_loads l group by l.station_code,l.item_id
+ ) m),'[]'::jsonb),
+ 'runs',coalesce((select jsonb_agg(to_jsonb(r)) from (
+  select lr.*,coalesce(sr.machine_quantity,0) as posted_quantity,
+   coalesce((select jsonb_agg(jsonb_build_object('item_id',bl.ingredient_id,'per_unit',bl.quantity_per_unit*(1+bl.waste_rate))) from public.inventory_boms ib join public.inventory_bom_lines bl on bl.bom_id=ib.id join public.inventory_items i on i.id=bl.ingredient_id and i.category='RAW' where ib.finished_item_id=lr.item_id and ib.active and not ib.archived),'[]'::jsonb) as raw_recipe
+  from public.production_live_runs lr left join public.production_station_reports sr on sr.live_run_id=lr.id and sr.status='posted' and sr.report_mode='production'
+  where lr.deleted_at is null and (lr.closed_at is null or (sr.id is null and exists(select 1 from public.production_material_loads l where l.station_code=lr.station_code and l.created_at<=coalesce(lr.closed_at,now()))))
+ ) r),'[]'::jsonb),
+ 'baselines',coalesce((select jsonb_agg(to_jsonb(b)) from public.production_material_baselines b),'[]'::jsonb),
+ 'wip',coalesce((select jsonb_agg(to_jsonb(w)) from (
+  select sr.station_code,sr.item_id,sum(case when sr.report_mode='packing' then -sr.packed_quantity else sr.good_quantity-sr.packed_quantity end) quantity
+  from public.production_station_reports sr where sr.status='posted' and not exists(select 1 from public.production_station_consumptions c where c.report_id=sr.id and c.source='repack') group by sr.station_code,sr.item_id
+ ) w where w.quantity<>0),'[]'::jsonb),
+ 'loads',coalesce((select jsonb_agg(to_jsonb(l)) from (select ml.*,o.nombre as reporter_name from public.production_material_loads ml left join public.operadores o on o.uid=ml.created_by order by ml.created_at desc limit 100) l),'[]'::jsonb)
+ );
+end $$;
+
+create or replace function rls_internal.production_supply_action(p_action text,p_data jsonb)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare uid uuid:=auth.uid(); leader boolean; request uuid:=(p_data->>'id')::uuid; station text; ingredient uuid; qty numeric; minutes numeric; old public.production_shift_starts; entry jsonb; product jsonb; start_at timestamptz; hours integer; session uuid; goal public.production_targets; baseline jsonb; running record;
+begin
+ if uid is null or not public.inventory_access('production') then raise exception 'pr_forbidden';end if;
+ if request is null then raise exception 'pr_invalid';end if;
+ perform pg_advisory_xact_lock(hashtextextended('supply-request:'||request,0));
+ if p_action='load' then
+  if exists(select 1 from public.production_material_loads where id=request and created_by=uid) then return jsonb_build_object('saved',true);end if;
+  station:=p_data->>'station_code';ingredient:=(p_data->>'item_id')::uuid;
+  qty:=nullif(p_data->>'quantity','')::numeric;minutes:=nullif(p_data->>'alert_minutes','')::numeric;
+  if qty is null or qty<=0 or qty>1000000000 or minutes is null or minutes not between 1 and 480 then raise exception 'ps_load_invalid';end if;
+  if not exists(select 1 from public.inventory_workstations where code=station and active) then raise exception 'pr_station_required';end if;
+  if not exists(select 1 from public.inventory_items where id=ingredient and category='RAW' and active) then raise exception 'pr_item_required';end if;
+  perform pg_advisory_xact_lock(hashtextextended('supply-station:'||station,0));
+  -- First allocation is a physical starting balance; prior production must not be deducted from it.
+  if not exists(select 1 from public.production_material_loads where station_code=station and item_id=ingredient) then
+
+   for running in select r.* from public.production_live_runs r where r.station_code=station and r.deleted_at is null and r.closed_at is null and exists(select 1 from public.inventory_boms ib join public.inventory_bom_lines bl on bl.bom_id=ib.id where ib.finished_item_id=r.item_id and ib.active and not ib.archived and bl.ingredient_id=ingredient) order by r.id loop
+    select value into baseline from jsonb_array_elements(coalesce(p_data->'baselines','[]'::jsonb)) where value->>'run_id'=running.id::text;
+    if baseline is null or coalesce(baseline->>'quantity','') !~ '^[0-9]{1,12}$' or (baseline->>'quantity')::numeric<running.latest_quantity then raise exception 'ps_load_invalid';end if;
+    insert into public.production_material_baselines(station_code,item_id,run_id,quantity) values(station,ingredient,running.id,(baseline->>'quantity')::numeric);
+   end loop;
+  end if;
+  insert into public.production_material_loads(id,station_code,item_id,quantity,alert_minutes,created_by)
+   values(request,station,ingredient,qty,minutes,uid);
+  return jsonb_build_object('saved',true);
+ elsif p_action='start' then
+  leader:=public.inventory_access('production',true) or exists(select 1 from public.global_department_memberships where user_id=uid and department='production' and active and role='lider');
+  if not leader then raise exception 'pr_forbidden';end if;
+  select * into old from public.production_shift_starts where id=request;
+  if old.id is not null then
+   if old.created_by<>uid or old.payload<>p_data then raise exception 'pr_invalid';end if;
+   return jsonb_build_object('saved',true);
+  end if;
+  start_at:=nullif(p_data->>'started_at','')::timestamptz;hours:=nullif(p_data->>'shift_hours','')::integer;
+  if start_at is null or start_at>clock_timestamp() or start_at<clock_timestamp()-interval '24 hours' or hours is null or hours not in(8,10) then raise exception 'pl_start_invalid';end if;
+  if jsonb_typeof(p_data->'stations') is distinct from 'array' or jsonb_array_length(p_data->'stations') not between 1 and 30 or (select count(distinct value->>'station_code') from jsonb_array_elements(p_data->'stations'))<>jsonb_array_length(p_data->'stations') then raise exception 'pr_invalid';end if;
+  insert into public.production_shift_starts(id,payload,created_by) values(request,p_data,uid);
+  for entry in select value from jsonb_array_elements(p_data->'stations') order by value->>'station_code' loop
+   station:=entry->>'station_code';
+   if not exists(select 1 from public.inventory_workstations where code=station and active) then raise exception 'pr_station_required';end if;
+   perform pg_advisory_xact_lock(hashtextextended(station,1));
+   if exists(select 1 from public.production_live_runs where station_code=station and deleted_at is null and closed_at is null) then raise exception 'pl_station_busy';end if;
+   if jsonb_typeof(entry->'item_ids') is distinct from 'array' or jsonb_array_length(entry->'item_ids') not between 1 and 30 or (select count(distinct value) from jsonb_array_elements_text(entry->'item_ids'))<>jsonb_array_length(entry->'item_ids') then raise exception 'pr_invalid';end if;
+   session:=gen_random_uuid();
+   for product in select value from jsonb_array_elements(entry->'item_ids') loop
+    ingredient:=(product#>>'{}')::uuid;
+    if not exists(select 1 from public.inventory_items where id=ingredient and active and category in('FG','SEMI')) then raise exception 'pr_item_required';end if;
+    select * into goal from public.production_targets where item_id=ingredient and deleted_at is null;
+    if goal.item_id is null then raise exception 'pl_target_missing';end if;
+    qty:=case when hours=8 then goal.target_8h else goal.target_10h end;
+    insert into public.production_live_runs(id,session_id,shift_start_id,station_code,item_id,started_at,created_by,pieces_per_hour,interval_hours,warning_percent,critical_percent,shift_hours,shift_target)
+    values(gen_random_uuid(),session,request,station,ingredient,start_at,uid,qty/(case when hours=10 then 9.3 else 7.5 end),2,goal.warning_percent,goal.critical_percent,hours,qty);
+   end loop;
+  end loop;
+  return jsonb_build_object('saved',true);
+ else raise exception 'pr_invalid';end if;
+end $$;
+
+
+create trigger production_station_supply_updates after insert or update or delete on public.production_station_reports for each statement execute function rls_internal.production_progress_notify();
+
+
+create function rls_internal.production_checkpoint_material_counter()
+returns trigger language plpgsql security invoker set search_path='' as $$
+begin
+ if new.quantity<coalesce((select max(quantity) from public.production_material_baselines where run_id=new.run_id),0) then raise exception 'pl_quantity_invalid';end if;
+ return new;
+end $$;
+revoke all on function rls_internal.production_checkpoint_material_counter() from public,anon,authenticated;
+create trigger production_checkpoint_material_counter before insert or update of quantity on public.production_checkpoints for each row execute function rls_internal.production_checkpoint_material_counter();

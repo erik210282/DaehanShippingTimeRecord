@@ -16,7 +16,7 @@ export function supplyRows(snapshot,now=new Date()){
    const at=r.latest_at||r.started_at,working=hours(r,at);
    const uph=r.latest_at?(working>0?Number(r.latest_quantity||0)/working:0):Number(r.pieces_per_hour||0);
    const baseline=Number((snapshot.baselines||[]).find(b=>b.station_code===m.station_code&&b.item_id===m.item_id&&b.run_id===r.id)?.quantity||0);
-   const produced=Number(r.latest_quantity||0)+(r.closed_at?0:uph*Math.max(0,hours(r,now)-working));
+   const produced=Math.max(Number(r.latest_quantity||0),baseline)+(r.closed_at?0:uph*Math.max(0,hours(r,now)-hours(r,new Date(Math.max(new Date(at).getTime(),new Date(m.tracked_at).getTime())))));
    pending+=Math.max(0,produced-Number(r.posted_quantity||0)-baseline)*per;
    if(!r.closed_at)rate+=uph*per;
   }
@@ -37,3 +37,5 @@ export function shiftCapture(edit,sessionId,runs,newId){
 export function shiftOptions(runs,items){
  const seen=new Set();return runs.filter(r=>{if(seen.has(r.session_id))return false;seen.add(r.session_id);return true;}).map(r=>({value:r.session_id,label:r.station_code+' · '+new Date(r.started_at).toLocaleString()+' · '+runs.filter(p=>p.session_id===r.session_id).map(p=>partLabel(items.find(i=>i.id===p.item_id))).join(' / ')}));
 }
+
+export function loadCounterRuns(data,edit){if(!edit||data.materials?.some(m=>m.station_code===edit.station_code&&m.item_id===edit.item_id))return [];return (data.runs||[]).filter(r=>!r.closed_at&&r.station_code===edit.station_code&&r.raw_recipe?.some(l=>l.item_id===edit.item_id));}
