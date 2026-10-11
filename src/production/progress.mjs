@@ -1,4 +1,4 @@
-import {localDate,localStart,dayRange} from './live.mjs';
+import {localDate,localStart,dayRange,liveKpis} from './live.mjs';
 import {downtimeSchedule} from './capture.mjs';
 
 export const effectiveShiftHours=hours=>Number(hours)===10?9.3:7.5;
@@ -49,7 +49,7 @@ export function dashboardTable(runs,checkpoints,day,now=new Date()){
   const limit=Math.min(now.getTime(),dayEnd,run.closed_at?new Date(run.closed_at).getTime():Infinity);
   const hours=runHours(run,new Date(limit));let previous=run.started_at,previousQty=0;
   const rates=reports.map(c=>{const elapsed=(new Date(c.recorded_at)-new Date(previous))/3600000-stoppedMinutes(run,previous,c.recorded_at)/60;const rate=elapsed>0?(Number(c.quantity)-previousQty)/elapsed:null;previous=c.recorded_at;previousQty=Number(c.quantity);return rate;}).filter(v=>v!==null);
-  return {run,quantity,efficiency:Number(run.shift_target)>0?quantity/Number(run.shift_target)*100:0,average:rates.length?rates.reduce((a,b)=>a+b,0)/rates.length:0,target:Number(run.shift_target||0)/effectiveShiftHours(run.shift_hours),...hours,cells:columns.map((at,index)=>reports.filter(c=>new Date(c.recorded_at)>=at&&new Date(c.recorded_at)<(columns[index+1]||new Date(last))).at(-1)?.quantity??null)};
+  return {run,quantity,efficiency:liveKpis(run).attainment,average:rates.length?rates.reduce((a,b)=>a+b,0)/rates.length:0,target:Number(run.shift_target||0)/effectiveShiftHours(run.shift_hours),...hours,cells:columns.map((at,index)=>reports.filter(c=>new Date(c.recorded_at)>=at&&new Date(c.recorded_at)<(columns[index+1]||new Date(last))).at(-1)?.quantity??null)};
  });
  return {columns,rows};
 }

@@ -27,12 +27,17 @@ begin
  perform public.production_live_action('checkpoint',jsonb_build_object('id',c2,'run_id',r1,'quantity',8));
  result:=public.production_live_snapshot_range(start_at-interval '1 minute',now()+interval '1 minute');
  if (select jsonb_array_length(x->'contributors') from jsonb_array_elements(result->'runs')x where x->>'id'=r1::text)<>2 then raise exception 'handoff reporter attribution lost';end if;
+ perform public.production_live_action('delete_checkpoint',jsonb_build_object('id',c2));
+ if exists(select 1 from public.production_live_runs where id=r1 and (deleted_at is not null or closed_at is not null)) then raise exception 'checkpoint deletion removed shift';end if;
+ perform public.production_live_action('restore_checkpoint',jsonb_build_object('id',c2));
  finished:=clock_timestamp();
  perform public.production_live_action('finish_batch',jsonb_build_object('products',jsonb_build_array(jsonb_build_object('id',gen_random_uuid(),'run_id',r1,'item_id',a,'quantity',8,'finished_at',finished),jsonb_build_object('id',gen_random_uuid(),'run_id',r2,'item_id',b,'quantity',11,'finished_at',finished))));
 
+ if (select count(*) from public.production_station_reports where live_run_id in(r1,r2) and progress_draft and status='draft' and people is null and scrap_quantity is null and full_boxes is null)<>2 then raise exception 'finish did not create incomplete daily drafts';end if;
+ if exists(select 1 from public.production_station_reports d join public.production_live_runs r on r.id=d.live_run_id where r.id in(r1,r2) and (d.machine_quantity<>r.latest_quantity or d.end_time<>(r.closed_at at time zone 'UTC')::time)) then raise exception 'draft lost final quantity or actual closing time';end if;
  base:=jsonb_build_object('station_code',station,'production_date',(start_at at time zone 'UTC')::date,'start_time',to_char(start_at at time zone 'UTC','HH24:MI'),'end_time',to_char(finished at time zone 'UTC','HH24:MI'),'ends_next_day',(start_at at time zone 'UTC')::date<>(finished at time zone 'UTC')::date,'people',2,'report_mode','production','downtime_events','[]'::jsonb,'machine_minutes',floor(extract(epoch from(finished-start_at))/60),'downtime_minutes',0,'break_minutes',0,'break_count',0,'rework_quantity',0,'full_boxes',0,'pallets',0,'rework_completed',true,'catalog_packing',false);
- rows:=jsonb_build_array(base||jsonb_build_object('id',gen_random_uuid(),'live_run_id',r1,'item_id',a,'machine_quantity',8,'scrap_quantity',1),base||jsonb_build_object('id',gen_random_uuid(),'live_run_id',r2,'item_id',b,'machine_quantity',11,'scrap_quantity',0));
- perform public.production_station_action('submit',jsonb_build_object('capture_group_id',gen_random_uuid(),'products',rows));
+ rows:=jsonb_build_array(base||jsonb_build_object('id',(select id from public.production_station_reports where live_run_id=r1),'live_run_id',r1,'item_id',a,'machine_quantity',8,'scrap_quantity',1),base||jsonb_build_object('id',(select id from public.production_station_reports where live_run_id=r2),'live_run_id',r2,'item_id',b,'machine_quantity',11,'scrap_quantity',0));
+ perform public.production_station_action('submit',jsonb_build_object('capture_group_id',(select session_id from public.production_live_runs where id=r1),'products',rows));
  for result in select value from jsonb_array_elements(rows) loop perform public.production_station_action('post',jsonb_build_object('id',result->>'id'));end loop;
  result:=public.production_supply_snapshot();
  if (select (m->>'confirmed_consumption')::numeric from jsonb_array_elements(result->'materials')m where m->>'station_code'=station)<>49 then raise exception 'scrap did not consume raw or counted twice';end if;
@@ -54,7 +59,7 @@ begin
  perform public.production_supply_action('load',jsonb_build_object('id',gen_random_uuid(),'station_code',station,'item_id',raw,'quantity',100,'alert_minutes',30,'baselines',jsonb_build_array(jsonb_build_object('run_id',r1,'quantity',5))));
  finished:=clock_timestamp();
  perform public.production_live_action('finish',jsonb_build_object('id',gen_random_uuid(),'run_id',r1,'quantity',7,'finished_at',finished));
- base:=base||jsonb_build_object('id',gen_random_uuid(),'station_code',station,'live_run_id',r1,'item_id',a,'machine_quantity',7,'scrap_quantity',1,'end_time',to_char(finished at time zone 'UTC','HH24:MI'));
+ base:=base||jsonb_build_object('id',(select id from public.production_station_reports where live_run_id=r1),'station_code',station,'live_run_id',r1,'item_id',a,'machine_quantity',7,'scrap_quantity',1,'end_time',to_char(finished at time zone 'UTC','HH24:MI'));
  perform public.production_station_action('submit',base);
  perform public.production_station_action('post',jsonb_build_object('id',base->>'id'));
  perform public.production_station_action('post',jsonb_build_object('id',base->>'id'));

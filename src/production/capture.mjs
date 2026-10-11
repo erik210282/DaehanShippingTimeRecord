@@ -35,3 +35,9 @@ export function maximumCompleteBoxes(good,piecesPerBox) {
  const pieces=Number(piecesPerBox),available=Number(good);
  return Number.isInteger(pieces)&&pieces>0&&Number.isFinite(available)?Math.floor(Math.max(0,available)/pieces):0;
 }
+
+// Preview duration independently; full shift and overlap validation still runs on save.
+export function downtimeDuration(event){
+ const start=clockMinutes(event?.start_time),end=clockMinutes(event?.end_time);
+ return start===null||end===null||start===end?'':(end-start+1440)%1440;
+}
