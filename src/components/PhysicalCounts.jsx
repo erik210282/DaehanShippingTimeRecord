@@ -1,3 +1,4 @@
+import i18n from '../i18n/i18n';
 import {countGroups,countError,registerCountFlow} from '../inventory/countFlow';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,9 +7,10 @@ import { CatalogInput, CatalogSelect } from './SharedCatalogFields';
 import { BtnPrimary, BtnSecondary, BtnDanger, TablePagination } from './controls';
 import '../pages/Catalogos.css';
 import { parsePhysicalCount } from '../inventory/physicalCounts';
+registerCountFlow(i18n);
 const unwrap = async q => {const {data,error}=await q;if(error)throw error;return data;};
 export default function PhysicalCounts({items,balances,counts,access,fileRows,saveCsv,onChanged}){
- const {t,i18n}=useTranslation();registerCountFlow(i18n);
+ const {t,i18n}=useTranslation();
  const can=(dept,supervisor=false)=>access.admin||access.memberships.some(m=>m.department===dept&&(!supervisor||m.role==='supervisor'));
  const [area,setArea]=useState('RAW'),[department,setDepartment]=useState(can('receiving')?'receiving':'inventory');
  const [captures,setCaptures]=useState({}),[search,setSearch]=useState(''),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(25);

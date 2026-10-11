@@ -95,7 +95,7 @@ export default function Inventarios({ access }) {
     const [i, b, c, imp, ship, disp, lines, pendingRows] = await Promise.all([
       unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,productos(nombre,descripcion),category,uom,minimum_quantity,responsible_department,default_location,active').order('part_number')),
       unwrap(supabase.from('inventory_balances').select('item_id,area,quantity')),
-      unwrap(supabase.from('inventory_counts').select('*,inventory_count_lines(*)').order('submitted_at', { ascending: false }).limit(50)),
+      unwrap(supabase.from('inventory_counts').select('*,inventory_count_lines(*)').order('submitted_at', { ascending: false })),
       unwrap(supabase.from('inventory_demand_imports').select('*').order('imported_at', { ascending: false }).limit(10)),
       can('shipping',true) ? unwrap(supabase.from('actividades').select('id,nombre').ilike('nombre','load')) : Promise.resolve([]),
       unwrap(supabase.from('inventory_dispatches').select('*').order('confirmed_at', { ascending: false }).limit(50)),

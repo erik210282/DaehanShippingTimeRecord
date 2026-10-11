@@ -7,7 +7,7 @@ AS $function$
 declare v_id uuid; v_line jsonb; v_item uuid; v_expected numeric;
 begin
   if not public.inventory_access(p_department) or p_area not in ('RAW','WIP','FG','PACKAGING','HOLD')
-     or jsonb_typeof(p_lines)<>'array' or jsonb_array_length(p_lines)=0
+     or jsonb_typeof(p_lines) is distinct from 'array' or jsonb_array_length(p_lines)=0
      then raise exception 'Conteo inválido'; end if;
   perform pg_advisory_xact_lock(hashtextextended('count:'||p_department||':'||p_area,0));
   if exists(select 1 from public.inventory_counts where department=p_department and area=p_area and status='submitted') then raise exception 'inv_count_pending';end if;
@@ -47,7 +47,7 @@ create or replace function rls_internal.inventory_review_counts(p_counts uuid[],
 returns uuid[] language plpgsql security definer set search_path='' as $$
 declare cid uuid;
 begin
- if auth.uid() is null or cardinality(p_counts) not between 1 and 100 or p_approve is null then raise exception 'inv_review_quantities';end if;
+ if auth.uid() is null or p_counts is null or cardinality(p_counts) not between 1 and 100 or p_approve is null then raise exception 'inv_review_quantities';end if;
  for cid in select distinct x from unnest(p_counts) x order by x loop
   perform rls_internal.inventory_review_count(cid,p_approve,p_note);
  end loop;
