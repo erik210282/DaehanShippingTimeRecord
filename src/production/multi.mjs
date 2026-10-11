@@ -1,5 +1,5 @@
 
-const productFields=['id','item_id','machine_quantity','scrap_quantity','rework_quantity','packaging_type','full_boxes','pallets','pieces_per_box','note','rework_completed','catalog_packing'];
+const productFields=['id','live_run_id','item_id','machine_quantity','scrap_quantity','rework_quantity','packaging_type','full_boxes','pallets','pieces_per_box','note','rework_completed','catalog_packing'];
 const pick=r=>Object.fromEntries(productFields.map(k=>[k,r[k]]));
 export function dailyProducts(edit){
  const rows=Array.isArray(edit.products)?edit.products:edit.item_id?[pick(edit)]:[];
