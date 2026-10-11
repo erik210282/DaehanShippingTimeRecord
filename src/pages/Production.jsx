@@ -1,4 +1,8 @@
 import {dailyProducts,selectProducts,switchProduct,openCapture,sharedTimeRows,registerMulti} from '../production/multi.mjs';
+import ProductionSupply,{ProductionSupplyAlerts} from '../production/ProductionSupply';
+import {useSupply} from '../production/useSupply';
+import {shiftCapture,shiftOptions} from '../production/supply.mjs';
+import {registerSupply} from '../production/supplyTranslations';
 import ProductionLive from '../production/ProductionLive';
 import ErrorPopup from '../components/ErrorPopup';
 
@@ -22,7 +26,7 @@ import {downtimeSchedule,normalizeCapture} from '../production/capture.mjs';
 import i18n from '../i18n/i18n';
 import './Production.css';
 import './Catalogos.css';
-registerProduction(i18n);registerCaptureHints(i18n);registerMulti(i18n);
+registerSupply(i18n);registerProduction(i18n);registerCaptureHints(i18n);registerMulti(i18n);
 const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return data;};
 const day=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const blank=()=>({id:crypto.randomUUID(),production_date:'',station_code:'',item_id:'',start_time:'',end_time:'',ends_next_day:false,machine_minutes:'',downtime_minutes:'0',downtime_reason:'',break_count:'0',break_minutes:'0',people:'',machine_quantity:'',scrap_quantity:'',rework_quantity:'',packaging_type:'',full_boxes:'',pallets:'0',pieces_per_box:0,turns:'',report_mode:'',note:'',staff_names:'',status:'draft',downtime_events:[],rework_completed:true,catalog_packing:false});
@@ -36,7 +40,8 @@ export default function Production({access}) {
  const allowed=access.admin||access.memberships.some(m=>m.department==='production');
  const supervisor=access.admin||access.memberships.some(m=>m.department==='production'&&m.role==='supervisor');
  const manage=supervisor||access.memberships.some(m=>m.department==='production'&&m.role==='lider');
- const [tab,setTab]=usePageSection('production',manage?'dashboard':'partial',['records','summary','partial','dashboard','targets']);
+ const [tab,setTab]=usePageSection('production',manage?'dashboard':'partial',['records','summary','partial','dashboard','targets','materials','shifts']);
+ const supply=useSupply();
  const [data,setData]=useState({reports:[],items:[],stations:[],boms:[],balances:[],consumptions:[],reporters:[]});
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [filter,setFilter]=useState(''),[stationFilter,setStationFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState('');
@@ -149,9 +154,10 @@ export default function Production({access}) {
   {preview(r).map(c=>{const i=data.items.find(i=>i.id===c.ingredient_id);return <tr key={c.ingredient_id+c.area+c.source}><td>{i?.part_number}</td><td>{i?.part_name}</td><td>{t('inv_area_'+c.area)}</td><td>{fmt(c.quantity)}</td><td>{i?.uom}</td>{r.status!=='posted'&&<td className={stock(c.ingredient_id,c.area)<c.quantity?'production-short':''}>{fmt(stock(c.ingredient_id,c.area))}</td>}</tr>;})}
  </tbody></table></div>;
  if(!allowed)return <Navigate to="/inicio" replace/>;
- return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav value={tab} onChange={setTab} label={t('global_production')} items={[...(manage?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),{key:'summary',label:t('pr_summary')}]} /></div>
+ return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav value={tab} onChange={setTab} label={t('global_production')} items={[...(manage?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),{key:'materials',label:t('ps_materials')},...(manage?[{key:'shifts',label:t('ps_shifts')}]:[]),{key:'summary',label:t('pr_summary')}]} /></div>
+ <ProductionSupplyAlerts enabled={manage&&!edit&&!review} items={data.items} rows={supply.rows}/>
  <main className="page-container page-container--fluid production-page">
-  {['partial','dashboard','targets'].includes(tab)?<ProductionLive key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
+  {['materials','shifts'].includes(tab)?<ProductionSupply mode={tab} items={data.items} stations={data.stations} manage={manage}/>:['partial','dashboard','targets'].includes(tab)?<ProductionLive key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
    <div className="catalog-toolbar"><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2>
    <div className="catalog-filters production-filters">
     <CatalogInput label={t('pr_from')} type="date" value={from} onChange={ev=>setFrom(ev.target.value)}/>
@@ -181,14 +187,15 @@ export default function Production({access}) {
  {edit&&<form ref={form} className="production-form production-dialog" onSubmit={ev=>{ev.preventDefault();action('save',edit);}}>
   <header className="production-dialog-header"><h2>{t('pr_new_report')}</h2><p className="inv-muted">{t('pr_current_reporter')}: {reporterName(access.userId)}</p></header>
   <fieldset disabled={busy} className="production-editor">
+ <CatalogSelect label={t('ps_session')} disabled={!!edit.created_at} value={edit.shift_session_id||supply.data.runs.find(r=>r.id===edit.live_run_id)?.session_id||''} onChange={session=>setEdit(v=>shiftCapture(v,session,supply.data.runs,()=>crypto.randomUUID()))} options={[{value:'',label:t('ps_manual')},...shiftOptions(supply.data.runs,data.items)]}/>
   <section className="production-section"><h3>{t('pr_identity_section')}</h3><div className="production-form-grid">
-   <CatalogSelect label={t('inv_station_code')} value={edit.station_code} onChange={station_code=>setEdit({...edit,station_code,turns:''})} options={data.stations.filter(s=>s.active||s.code===edit.station_code).map(s=>({value:s.code,label:s.code+' · '+s.name}))}/>
-   <CatalogSelect multi disabled={!!edit.created_at} label={t('inv_part')} value={dailyProducts(edit).map(r=>r.item_id)} onChange={ids=>setEdit(current=>selectProducts(current,ids,()=>crypto.randomUUID()))} options={data.items.filter(i=>i.active&&['FG','SEMI'].includes(i.category)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
+   <CatalogSelect disabled={!!edit.shift_session_id||!!edit.live_run_id} label={t('inv_station_code')} value={edit.station_code} onChange={station_code=>setEdit({...edit,station_code,turns:''})} options={data.stations.filter(s=>s.active||s.code===edit.station_code).map(s=>({value:s.code,label:s.code+' · '+s.name}))}/>
+   <CatalogSelect multi disabled={!!edit.created_at||!!edit.shift_session_id||!!edit.live_run_id} label={t('inv_part')} value={dailyProducts(edit).map(r=>r.item_id)} onChange={ids=>setEdit(current=>selectProducts(current,ids,()=>crypto.randomUUID()))} options={data.items.filter(i=>i.active&&['FG','SEMI'].includes(i.category)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
    <CatalogSelect label={t('pr_report_mode')} value={edit.report_mode} onChange={report_mode=>setEdit({...edit,report_mode})} options={['production','packing'].map(value=>({value,label:t('pr_mode_'+value)}))}/>
   </div></section>
   <section className="production-section"><h3>{t('pr_shift_section')}</h3><div className="production-form-grid production-form-grid-four">
-   <CatalogInput label={t('pr_date')} required type="date" value={edit.production_date} onChange={ev=>setEdit({...edit,production_date:ev.target.value})}/>
-   <ProductionClockInput label={t('pr_start')} value={edit.start_time} onChange={start_time=>setEdit({...edit,start_time})}/>
+   <CatalogInput readOnly={!!edit.shift_session_id||!!edit.live_run_id} label={t('pr_date')} required type="date" value={edit.production_date} onChange={ev=>setEdit({...edit,production_date:ev.target.value})}/>
+   <ProductionClockInput disabled={!!edit.shift_session_id||!!edit.live_run_id} label={t('pr_start')} value={edit.start_time} onChange={start_time=>setEdit({...edit,start_time})}/>
    <ProductionClockInput label={t('pr_end')} value={edit.end_time} onChange={end_time=>setEdit({...edit,end_time})}/>
    {numeric('people','pr_people',{min:1})}
    {isTurntable(stationFor(edit))&&numeric('turns','pr_turns')}

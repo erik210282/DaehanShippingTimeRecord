@@ -1,5 +1,7 @@
 import {progressCapture,eventsInEditor,runHours,progressRate,dashboardTable,uphTarget,synchronizedTargets} from './progress.mjs';
 import {ProductionDowntimes} from '../components/ProductionCaptureFields';
+import {contributorNames} from './supply.mjs';
+import {registerSupply} from './supplyTranslations';
 import {subscribeUpdates} from '../realtime';
 import {selectLiveProducts,registerMulti} from './multi.mjs';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
@@ -13,15 +15,16 @@ import ErrorPopup from '../components/ErrorPopup';
 import {localStart,localDate,dayRange,liveKpis} from './live.mjs';
 import {registerLive} from './liveTranslations';
 import i18n from '../i18n/i18n';
-registerLive(i18n);registerMulti(i18n);
+registerSupply(i18n);registerLive(i18n);registerMulti(i18n);
 const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return data;};
 const red={background:'#dc3545',color:'#fff',borderColor:'#dc3545'};
 // Custom ReactModal classes omit default content styles; keep the surface opaque.
 const modal={overlay:{position:'fixed',inset:0,zIndex:10000,backgroundColor:'#0f172a99',display:'flex',alignItems:'center',justifyContent:'center',padding:16},content:{position:'relative',inset:'auto',width:'min(760px,100%)',maxHeight:'calc(100dvh - 32px)',overflow:'auto',boxSizing:'border-box',border:'1px solid #e2e8f0',borderRadius:16,padding:0,backgroundColor:'#fff',boxShadow:'0 24px 60px rgba(15,23,42,.25)'}};
-export function LiveLineCard({run,item,station,t,onCapture,onClose,onEdit,onDelete,format=String}){
+export function LiveLineCard({run,item,station,t,onCapture,onClose,onEdit,onDelete,contributors,format=String}){
  const k=liveKpis(run);k.rate=progressRate(run,k.at,k.quantity);const hours=runHours(run);
  return <article className={'live-line live-'+k.performance}>
  <div className="live-card-heading"><div><h3>{run.station_code} · {station?.name}</h3><p>{item?.part_number} · {item?.productos?.nombre||item?.part_name||item?.description}</p></div><span className={'live-badge live-'+k.performance}>{t('pl_status_'+k.performance)}</span></div>
+ <p className="inv-muted">{t('ps_contributors')}: {contributors||'—'}</p>
  <div className="live-attainment"><strong>{format(k.attainment)}%</strong><span>{t('pl_attainment')}</span></div>
  <div className="live-progress" role="progressbar" aria-label={t('pl_attainment')} aria-valuenow={Math.min(100,Math.round(k.attainment))} aria-valuemin={0} aria-valuemax={100}><div style={{width:Math.min(100,k.attainment)+'%'}}/></div>
  <dl className="live-card-metrics">{[['quantity',k.quantity],['expected',k.expected],['gap',k.gap],['actual_rate',k.rate]].map(([label,value])=><div key={label}><dt>{t('pl_'+label)}</dt><dd>{format(value)}</dd></div>)}</dl>
@@ -82,7 +85,7 @@ export default function ProductionLive({items,stations,supervisor,reporterName,r
  </>:<>
  <div className="live-kpi-strip">{[['lines',new Set(runs.map(r=>r.station_code)).size],['active',new Set(active.map(r=>r.station_code)).size],['alerts',runs.filter(r=>['warning','critical'].includes(liveKpis(r).performance)).length]].map(([label,n])=><div key={label} className={'live-kpi live-kpi-'+label}><span>{t('pl_'+label)}</span><strong>{n}</strong></div>)}</div>
  <p className="live-legend">{t('pl_performance_hint')}</p>
- <div className="live-lines">{runs.map(r=><LiveLineCard key={r.id} run={r} item={items.find(i=>i.id===r.item_id)} station={stations.find(s=>s.code===r.station_code)} t={t} format={format} onCapture={()=>open(r)} onClose={()=>closeRun(r)} onEdit={()=>open(r,'edit_run')} onDelete={()=>confirm('delete_run',{run_id:r.id})}/>)}</div>
+ <div className="live-lines">{runs.map(r=><LiveLineCard key={r.id} contributors={contributorNames(r,snapshot.checkpoints,reporters)} run={r} item={items.find(i=>i.id===r.item_id)} station={stations.find(s=>s.code===r.station_code)} t={t} format={format} onCapture={()=>open(r)} onClose={()=>closeRun(r)} onEdit={()=>open(r,'edit_run')} onDelete={()=>confirm('delete_run',{run_id:r.id})}/>)}</div>
  {!runs.length&&<p className="live-empty">{t('pl_no_active')}</p>}
  {mode==='dashboard'?<><div className="live-section-heading"><h3>{t('pl_dashboard_summary')}</h3><span>{day}</span></div><div className="table-wrap"><table className="table live-table"><thead><tr><th>{t('pr_station')}</th><th>{t('inv_part')}</th>{dashboard.columns.map(at=><th key={at.toISOString()}>{at.toLocaleTimeString(i18n.language,{hour:'2-digit',minute:'2-digit'})}</th>)}{['result','efficiency','average_uph','uph_target','working_hours','unplanned_minutes'].map(k=><th key={k}>{t('pl_'+k)}</th>)}</tr></thead><tbody>{dashboard.rows.map(row=><tr key={row.run.id} className={'live-report-row live-'+(row.efficiency<Number(row.run.critical_percent)?'critical':row.efficiency<Number(row.run.warning_percent)?'warning':'on_track')}><td>{row.run.station_code}</td><td>{items.find(i=>i.id===row.run.item_id)?.part_number}</td>{row.cells.map((n,index)=><td key={index}>{n===null?'—':format(n)}</td>)}<td>{format(row.quantity)}</td><td>{format(row.efficiency)}%</td><td>{format(row.average)}</td><td>{format(row.target)}</td><td>{format(row.working)}</td><td>{format(row.downtime)}</td></tr>)}</tbody></table></div></>:<> <div className="live-section-heading"><h3>{t('pl_history')}</h3><span>{day} · {reports.length}</span></div>
  <div className="table-wrap"><table className="table live-table"><thead><tr>{['pr_station','inv_part','pr_reporter','pl_last','pl_quantity','pl_expected','pl_attainment','status','actions'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>{reports.map(c=>{const r=snapshot.runs.find(r=>r.id===c.run_id),performance=liveKpis({...r,attainment:c.attainment,period_at:c.recorded_at}).performance;return <tr key={c.id} className={'live-report-row live-'+performance}><td>{r.station_code}</td><td>{items.find(i=>i.id===r.item_id)?.part_number}</td><td>{reporters.find(person=>person.uid===c.created_by)?.nombre||'—'}</td><td>{new Date(c.recorded_at).toLocaleString(i18n.language)}</td><td>{format(c.quantity)}</td><td>{format(c.expected_quantity)}</td><td><strong>{format(c.attainment)}%</strong></td><td><span className={'live-badge live-'+performance}>{t('pl_status_'+performance)}</span></td><td><div className="live-row-actions">{r.can_manage!==false&&<><BtnEditDark onClick={()=>reportEdit(c)}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={()=>confirm('delete_checkpoint',{id:c.id})}>{t('delete')}</BtnDanger></>}</div></td></tr>;})}</tbody></table></div>
