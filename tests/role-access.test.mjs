@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+const mobile=fs.existsSync('ProductionMobile.js'),root=mobile?'':'src/';const context=vm.createContext({});
+vm.runInContext(fs.readFileSync(root+'roleAccessModel.js','utf8').replaceAll('export ',''),context);
+const op=[{department:'production',role:'operador'}],profiles=[{department:'production',role:'operador',activities:['records','dashboard']}];
+assert.equal(context.roleAllowed(profiles,op,false,'production','partial'),false);
+assert.equal(context.roleAllowed(profiles,op,false,'production','daily'),true);
+assert.equal(context.roleAllowed(profiles,op,false,'production','dashboard'),true);
+assert.equal(context.roleAllowed([{...profiles[0],activities:['parameter-settings']}],op,false,'production','parameter-settings'),false);
+assert.equal(context.roleAllowed(profiles,[],false,'production','records'),false);
+assert.equal(context.roleAllowed(profiles,op,true,'production','parameters'),true);
+assert.equal(context.roleAllowed([],op,false,'production','partial'),true);
+assert.equal(context.roleAllowed([],op,false,'production','parameters'),false);
+assert.equal(context.activityKey('shipping','/resumen'),'summary');
+const bundles={};vm.runInContext(fs.readFileSync(root+'roleAccessTranslations.js','utf8').replaceAll('export ',''),context);context.registerRoleAccess({addResourceBundle:(lang,ns,values)=>bundles[lang]=values});
+assert.deepEqual(Object.keys(bundles.en).sort(),Object.keys(bundles.es).sort());assert.deepEqual(Object.keys(bundles.en).sort(),Object.keys(bundles.ko).sort());
+console.log('PASS: role permissions, department isolation, admin access, saved-page aliases and ES/EN/KO translations');

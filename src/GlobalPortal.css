@@ -79,3 +79,12 @@
 .global-settings-grid > .global-panel { align-self: start; }
 .global-announcement-admin-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
 .global-announcement-admin-row button { border: 0; border-radius: 8px; background: #2563eb; color: white; padding: 9px 14px; cursor: pointer; }
+
+.global-settings-sections {margin-top:20px;max-width:1100px;}
+.role-activity-choice {display:flex!important;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #e5e7eb;}
+.global-panel .role-activity-choice input {width:18px;height:18px;margin:0;flex:none;accent-color:#2563eb;}
+.role-activity-choice small {color:#64748b;margin-left:auto;}
+
+.role-activity-choice {flex-wrap:wrap;}
+.role-activity-choice span {flex:1;min-width:0;}
+.role-activity-choice small {flex-basis:100%;margin-left:30px;}

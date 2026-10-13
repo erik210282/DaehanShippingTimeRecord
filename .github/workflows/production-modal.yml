@@ -1,50 +1,57 @@
-name: Production modal layout
-on:
-  pull_request:
-    paths:
-      - 'src/pages/Production.jsx'
-      - 'src/pages/Production.css'
-      - 'src/components/ProductionCaptureFields.jsx'
-      - 'src/production/**'
-      - 'src/components/ErrorPopup.jsx'
-      - 'src/production/translations.js'
-      - 'src/pages/Catalogos.css'
-      - 'src/components/ProductionCatalog.jsx'
-      - 'src/components/RecipePackingFields.jsx'
+name: Production modal layout
+on:
+  pull_request:
+    paths:
+      - 'src/pages/Production.jsx'
+      - 'src/pages/Production.css'
+      - 'src/components/ProductionCaptureFields.jsx'
+      - 'src/production/**'
+      - 'src/components/ErrorPopup.jsx'
+      - 'src/production/translations.js'
+      - 'src/pages/Catalogos.css'
+      - 'src/components/ProductionCatalog.jsx'
+      - 'src/components/RecipePackingFields.jsx'
       - 'tests/production-supply.test.mjs'
-      - 'tests/production-modal.test.mjs'
-      - 'tests/bom-existing-ui.test.mjs'
-      - 'src/components/SharedCatalogFields.jsx'
-      - 'src/components/styles.jsx'
-      - 'src/pages/Receiving.jsx'
-      - 'src/pages/Inventarios.jsx'
-      - 'src/App.jsx'
-      - 'src/GlobalPortal.jsx'
-      - '.github/workflows/production-modal.yml'
-permissions:
-  contents: read
-jobs:
-  layout:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
+      - 'tests/production-modal.test.mjs'
+      - 'tests/bom-existing-ui.test.mjs'
+      - 'src/components/SharedCatalogFields.jsx'
+      - 'src/components/styles.jsx'
+      - 'src/pages/Receiving.jsx'
+      - 'src/pages/Inventarios.jsx'
+      - 'src/App.jsx'
+      - 'src/GlobalPortal.jsx'
+      - 'src/GlobalSettings.jsx'
+      - 'src/RoleAccess*'
+      - 'src/roleAccess*'
+      - 'tests/role-access-ui.test.mjs'
+      - '.github/workflows/production-modal.yml'
+permissions:
+  contents: read
+jobs:
+  layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
       - run: npm ci
-      - run: node tests/inventory-count-flow.test.mjs
-      - run: npm install --no-save --package-lock=false playwright@1.55.1
-      - run: npx playwright install --with-deps chromium
+      - run: node tests/inventory-count-flow.test.mjs
+      - run: npm install --no-save --package-lock=false playwright@1.55.1
+      - run: npx playwright install --with-deps chromium
       - run: node tests/inventory-count-ui.test.mjs
       - run: node tests/production-parameters.test.mjs
       - run: node tests/production-supply.test.mjs
       - run: node tests/production-progress.test.mjs
-      - run: node tests/production-live.test.mjs
+      - run: node tests/production-live.test.mjs
+      - run: node tests/role-access.test.mjs
+      - run: node tests/role-access-ui.test.mjs
       - run: node tests/production-parameters-ui.test.mjs
-      - run: node tests/production-live-ui.test.mjs
-      - run: node tests/production-capture.test.mjs
-      - run: node tests/production-modal.test.mjs
-      - run: node tests/bom-existing-ui.test.mjs
-      - run: npm run build
+      - run: node tests/production-live-ui.test.mjs
+      - run: node tests/production-capture.test.mjs
+      - run: node tests/production-modal.test.mjs
+      - run: node tests/bom-existing-ui.test.mjs
+      - run: npm run build
+

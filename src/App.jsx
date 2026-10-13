@@ -1,3 +1,4 @@
+import {RoleAccessProvider,SectionPermission} from './RoleAccess';
 import ModuleHeading from './components/ModuleHeading';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Registros from "./pages/Registros";
@@ -220,7 +221,7 @@ const Navbar = () => {
       </div>
       <div className="app-header-right"><button className="app-header-button" onClick={handleLogout}>{t('logout')}</button><LanguageBar /></div>
     </header>
-    {shipping && <div className="app-department-nav"><ModuleHeading title={t('global_shipping')}/><DepartmentNav items={shippingItems} value={location.pathname} onChange={navigate} label={t('global_shipping')}/></div>}
+    {shipping && <div className="app-department-nav"><ModuleHeading title={t('global_shipping')}/><DepartmentNav department="shipping" items={shippingItems} value={location.pathname} onChange={navigate} label={t('global_shipping')}/></div>}
   </>;
 };
 
@@ -262,15 +263,15 @@ const PrivateArea = () => {
           <Route path="/departamento/:name" element={<DepartmentRoute access={access} />} />
           <Route path="/inventarios" element={access.admin || access.memberships.some(m => ['inventory', 'shipping', 'production', 'receiving', 'quality'].includes(m.department))
             ? <Inventarios access={access} /> : <Navigate to="/inicio" replace />} />
-          <Route path="/tareas-pendientes" element={<ProtectedRoute><TareasPendientes /></ProtectedRoute>} />
-          <Route path="/resumen" element={<ProtectedRoute><Resumen /></ProtectedRoute>} />
-          <Route path="/registros" element={<ProtectedRoute><Registros /></ProtectedRoute>} />
-          <Route path="/generarbol" element={<ProtectedRoute><GenerarBOL /></ProtectedRoute>} />
+          <Route path="/tareas-pendientes" element={<ProtectedRoute><SectionPermission department="shipping" activity="pending"><TareasPendientes /></SectionPermission></ProtectedRoute>} />
+          <Route path="/resumen" element={<ProtectedRoute><SectionPermission department="shipping" activity="summary"><Resumen /></SectionPermission></ProtectedRoute>} />
+          <Route path="/registros" element={<ProtectedRoute><SectionPermission department="shipping" activity="records"><Registros /></SectionPermission></ProtectedRoute>} />
+          <Route path="/generarbol" element={<ProtectedRoute><SectionPermission department="shipping" activity="bol"><GenerarBOL /></SectionPermission></ProtectedRoute>} />
           <Route path="/comunicaciones" element={<ProtectedRoute><Comunicaciones /></ProtectedRoute>} />
-          <Route path="/productividad" element={<ProtectedRoute><Productividad /></ProtectedRoute>} />
+          <Route path="/productividad" element={<ProtectedRoute><SectionPermission department="shipping" activity="productivity"><Productividad /></SectionPermission></ProtectedRoute>} />
           <Route path="/catalogos" element={access.admin || access.memberships.length ? <Catalogos access={access}/> : <Navigate to="/inicio" replace/>} />
           <Route path="/usuarios" element={<Navigate to="/global-settings" replace />} />
-          <Route path="/configuracion-tareas" element={<ProtectedRoute><ConfiguracionTareas /></ProtectedRoute>} />
+          <Route path="/configuracion-tareas" element={<ProtectedRoute><SectionPermission department="shipping" activity="tasks-settings"><ConfiguracionTareas /></SectionPermission></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/inicio" replace />} />
         </Routes>
       </div>
@@ -278,7 +279,7 @@ const PrivateArea = () => {
     {announcements.notice && !announcements.gate && <AnnouncementNotice onOpen={() => { returnPath.current = location.pathname + location.search;
     try { sessionStorage.setItem('announcement-return', returnPath.current); } catch {} announcements.open(); navigate('/announcements'); }} />}
   </>;
-  return portal;
+  return <RoleAccessProvider access={access}>{portal}</RoleAccessProvider>;
 };
 
 const AppContent = () => (
