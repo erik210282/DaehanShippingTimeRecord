@@ -1,3 +1,4 @@
+import InventoryStockStatus from '../components/InventoryStockStatus';
 import {SectionPermission} from '../RoleAccess';
 import ModuleHeading from '../components/ModuleHeading';
 import { usePageSection } from '../usePageSection';
@@ -64,13 +65,13 @@ async function unwrap(promise) {
 }
 const choose = (items, category) => items.filter(i => i.active && (!category || i.category === category));
 
-export default function Inventarios({ access }) {
+export default function Inventarios({ access,permissionDepartment='inventory' }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language?.startsWith('ko') ? 'ko-KR' : i18n.language?.startsWith('en') ? 'en-US' : 'es-MX';
   const fmt = value => n(value).toLocaleString(locale, { maximumFractionDigits: 3 });
   const sectionLabel = key => t(sections.find(section => section[0] === key)?.[1] || 'inv_overview');
   const areaLabel = area => t(`inv_area_${area}`);
-  const [tab, setTab] = usePageSection('inventory', 'overview', sections.map(([key])=>key));
+  const [tab, setTab] = usePageSection(permissionDepartment, 'overview', sections.map(([key])=>key));
   const [items, setItems] = useState([]);
   const [balances, setBalances] = useState([]);
   const [counts, setCounts] = useState([]);
@@ -123,7 +124,7 @@ export default function Inventarios({ access }) {
     finally { setBusy(false); }
   }
   const qty = (id, area) => n(balances.find(b => b.item_id === id && b.area === area)?.quantity);
-  const stockItems = area => area === 'WIP' ? [] : choose(items, area === 'WIP' ? 'FG' : area === 'PACKAGING' ? 'PACKAGING' : area === 'RAW' ? 'RAW' : area === 'FG' ? 'FG' : null);
+  const stockItems = area => area === 'WIP' ? items.filter(i=>['FG','SEMI'].includes(i.category)) : choose(items, area === 'WIP' ? 'FG' : area === 'PACKAGING' ? 'PACKAGING' : area === 'RAW' ? 'RAW' : area === 'FG' ? 'FG' : null);
   const verifiedAreas = new Set(counts.filter(c => c.status === 'approved').map(c => c.area));
   const warnings = items.filter(i => i.active &&
     (verifiedAreas.has(i.category) || balances.some(b => b.item_id === i.id && b.area === i.category)) &&
@@ -191,13 +192,13 @@ export default function Inventarios({ access }) {
 
 
   return <><div className="module-department-nav">
-    <ModuleHeading title={t('inv_title')}/>
-    <DepartmentNav items={sections.map(([key,label])=>({key,label:t(label)}))} value={tab} onChange={key=>{setTab(key);setMessage('');}} label={t('inv_section')}/></div><SectionPermission department="inventory" activity={tab}><main className="inv-page module-surface">
+    <ModuleHeading title={t(permissionDepartment==='quality'?'global_quality':'inv_title')}/>
+    <DepartmentNav department={permissionDepartment} items={(permissionDepartment==='quality'?sections.filter(([key])=>['overview','quality','counts'].includes(key)):sections).map(([key,label])=>({key,label:t(label)}))} value={tab} onChange={key=>{setTab(key);setMessage('');}} label={t('inv_section')}/></div><SectionPermission department={permissionDepartment} activity={tab}><main className="inv-page module-surface">
     <div className="inv-layout">
       <div className="inv-main">
     {!!message && <p role="status" className="inv-message">{message}</p>}
 
-    {tab === 'overview' && <div className="inv-grid">
+    {tab === 'overview' && <div className="inv-grid"><InventoryStockStatus items={items} balances={balances}/>
       {areas.map(area => <section key={area} className="inv-card"><h2>{areaLabel(area)}</h2>
         <strong>{balances.filter(b => b.area === area).length}</strong><small>{t('inv_parts_with_movements')}</small></section>)}
       <section className="inv-card inv-wide"><h2>{t('inv_alerts')}</h2>
@@ -212,11 +213,11 @@ export default function Inventarios({ access }) {
     {['RAW','WIP','FG','PACKAGING'].includes(tab) && <section className="inv-card">
       <h2>{sectionLabel(tab)}</h2>
       <p className="inv-muted">{t('inv_negative_hint')}</p>
-      <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th>{tab==='FG'&&<th>{t('name')}</th>}<th>{t('inv_description')}</th><th>{t('inv_unit')}</th><th>{t('inv_balance')}</th><th>{t('inv_minimum')}</th><th>{t('inv_location')}</th>{tab==='RAW'&&<th>{t('inv_notes')}</th>}</tr></thead>
+      <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th>{tab==='FG'&&<th>{t('name')}</th>}<th>{t('inv_description')}</th><th>{t('inv_unit')}</th><th>{t('rw_available')}</th><th>{t('rw_quarantine')}</th><th>{t('inv_minimum')}</th><th>{t('inv_location')}</th>{tab==='RAW'&&<th>{t('inv_notes')}</th>}</tr></thead>
         <tbody>{stockItems(tab).map(i => <tr key={i.id}><td>{i.part_number}</td>{tab==='FG'&&<td>{i.part_name||'—'}</td>}<td>{i.description}</td><td>{i.uom}</td>
-          <td className={qty(i.id,tab)<0 ? 'inv-negative' : qty(i.id,tab)<=n(i.minimum_quantity) ? 'inv-low' : ''}>{fmt(qty(i.id,tab))}</td>
+          <td className={qty(i.id,tab)<0 ? 'inv-negative' : qty(i.id,tab)<=n(i.minimum_quantity) ? 'inv-low' : ''}>{fmt(qty(i.id,tab))}</td><td>{fmt(qty(i.id,'HOLD'))}</td>
           <td>{fmt(i.minimum_quantity)}</td><td>{i.default_location || '—'}</td>{tab==='RAW'&&<td>{pendingParts.has(i.part_number)?t(qty(i.id,tab)===0?'inv_ref_missing_count':'inv_ref_balance_pending'):!countedParts.has(i.part_number)&&qty(i.id,tab)===0?t('inv_ref_missing_count'):'—'}</td>}</tr>)}</tbody></table></div>
-      {tab==='WIP'&&<p className="inv-muted">{t('inv_wip_empty')}</p>}
+      {tab==='WIP'&&!stockItems('WIP').length&&<p className="inv-muted">{t('inv_wip_empty')}</p>}
     </section>}
     {tab === 'demand' && <section className="inv-card"><h2>{t('inv_demand_title')}</h2>
       <p>{t('inv_demand_intro')}</p>
