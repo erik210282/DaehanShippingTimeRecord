@@ -229,6 +229,7 @@ const Navbar = () => {
 function DepartmentRoute({ access }) {
   const { name } = useParams();
   if (name === 'receiving') return <Receiving access={access} />;
+  if (name === 'quality') return <Inventarios access={access} permissionDepartment="quality"/>;
   if (name === 'production') return <Production access={access} />;
   return <DepartmentLanding name={name} access={access} />;
 }

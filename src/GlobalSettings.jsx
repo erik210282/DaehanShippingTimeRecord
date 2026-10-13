@@ -16,6 +16,7 @@ export default function GlobalSettings({ access }) {
   const { t } = useTranslation();
   const [section,setSection]=usePageSection('global-settings','users',['users','access','create','roles']);
   const managed = access.admin ? departmentKeys : departmentKeys.filter(d => access.memberships.some(m => m.department === d && m.role === 'supervisor'));
+  const [hideInactive,setHideInactive]=useState(true);
   const [people, setPeople] = useState([]);
   const [memberships, setMemberships] = useState([]);
   const [selected, setSelected] = useState('');
@@ -93,16 +94,19 @@ export default function GlobalSettings({ access }) {
     window.dispatchEvent(new Event('global-access-updated'));
   }
 
+  const visiblePeople=people.filter(u=>!hideInactive||u.activo);
+  useEffect(()=>{if(hideInactive&&people.some(u=>u.uid===selected&&!u.activo)){setSelected('');setDraft({});setLink('');}},[hideInactive,people,selected]);
   const person = people.find(u => u.uid === selected);
   return <main className="global-page">
     <div className="global-heading"><span>DAEHAN APP</span><h1>{t('global_settings')}</h1></div>
     {status && <p role="status">{status}</p>}
     {link && <div className="global-panel"><strong>{t('global_password_link')}</strong><p>{t('global_link_private')}</p><div className="global-link-output">{link}</div><button className="global-settings-action" onClick={() => navigator.clipboard.writeText(link)}>{t('global_copy_link')}</button></div>}
     <DepartmentNav label={t('ra_menu')} value={section} onChange={setSection} items={[{key:'users',label:t('global_users')},{key:'access',label:t('global_access')},{key:'create',label:t('global_create_user')},{key:'roles',label:t('ra_roles')}]}/>
+    {['users','access'].includes(section)&&<label className="role-activity-choice"><input type="checkbox" checked={hideInactive} onChange={e=>setHideInactive(e.target.checked)}/><span>{t('ra_hide_inactive')}</span></label>}
     <div className="global-settings-sections">
       {section==='roles'&&<RoleAccessSettings access={access} managed={managed}/>}
       {section==='users'&&<section className="global-panel"><h2>{t('global_users')}</h2>
-        <div className="global-list">{people.map(u => {
+        <div className="global-list">{visiblePeople.map(u => {
           const assigned = memberships.filter(m => m.user_id === u.uid && m.active && managed.includes(m.department));
           if (!access.admin && !assigned.length) return null;
           return <button type="button" className="global-user-row" aria-selected={selected === u.uid} key={u.uid} onClick={() => {selectUser(u.uid);setSection('access');}}>
@@ -112,7 +116,7 @@ export default function GlobalSettings({ access }) {
         })}</div>
       </section>}
       {section==='access'&&<section className="global-panel"><h2>{t('global_access')}</h2>
-        <label>{t('global_user')}<select value={selected} onChange={e => selectUser(e.target.value)}><option value="">—</option>{people.map(u => <option key={u.uid} value={u.uid}>{u.nombre}</option>)}</select></label>
+        <label>{t('global_user')}<select value={selected} onChange={e => selectUser(e.target.value)}><option value="">—</option>{visiblePeople.map(u => <option key={u.uid} value={u.uid}>{u.nombre}</option>)}</select></label>
         {person && <><p>{person.nombre} · {person.email}</p>{Choices({values:draft,onChange:setDraft,userId:selected})}
           <div className="global-access-actions">
             <button className="global-settings-action" disabled={busy || !person.activo} onClick={() => perform(saveAssignments)}>{t('global_save_access')}</button>

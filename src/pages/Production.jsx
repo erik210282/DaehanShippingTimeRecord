@@ -1,3 +1,4 @@
+import ProductionRework from '../production/ProductionRework';
 import {SectionPermission,useRoleAccess} from '../RoleAccess';
 import ProductionParameters from '../production/ProductionParameters';
 import {dailyProducts,selectProducts,switchProduct,openCapture,sharedTimeRows,registerMulti} from '../production/multi.mjs';
@@ -81,7 +82,7 @@ export default function Production({access}) {
 
  const manage=supervisor||access.memberships.some(m=>m.department==='production'&&m.role==='lider');
 
- const [tab,setTab]=usePageSection('production',manage?'dashboard':'partial',['records','summary','partial','dashboard','targets','materials','shifts','parameters','parameter-settings']);
+ const [tab,setTab]=usePageSection('production',manage?'dashboard':'partial',['records','summary','partial','dashboard','targets','materials','shifts','parameters','parameter-settings','rework']);
 
  const supply=useSupply();
  const [finishRun,setFinishRun]=useState(null);
@@ -307,12 +308,12 @@ export default function Production({access}) {
 
  if(!allowed)return <Navigate to="/inicio" replace/>;
 
- return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav department="production" value={tab} onChange={setTab} label={t('global_production')} items={[...(manage||roleAccess?.can('production','dashboard')?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),{key:'materials',label:t('ps_materials')},...(manage?[{key:'shifts',label:t('ps_shifts')}]:[]),...(manage?[{key:'parameters',label:t('pp_capture')}]:[]),...(supervisor?[{key:'parameter-settings',label:t('pp_settings')}]:[]),{key:'summary',label:t('pr_summary')}]} /></div>
+ return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav department="production" value={tab} onChange={setTab} label={t('global_production')} items={[...(manage||roleAccess?.can('production','dashboard')?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},{key:'rework',label:t('rw_title')},...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),{key:'materials',label:t('ps_materials')},...(manage?[{key:'shifts',label:t('ps_shifts')}]:[]),...(manage?[{key:'parameters',label:t('pp_capture')}]:[]),...(supervisor?[{key:'parameter-settings',label:t('pp_settings')}]:[]),{key:'summary',label:t('pr_summary')}]} /></div>
 
  <ProductionSupplyAlerts enabled={manage&&!edit&&!review} items={data.items} rows={supply.rows}/>
  <main className="page-container page-container--fluid production-page">
 
-  <SectionPermission department="production" activity={tab}>{['parameters','parameter-settings'].includes(tab)?<ProductionParameters mode={tab} manage={manage} supervisor={supervisor} reporterName={reporterName(access.userId)} items={data.items} stations={data.stations}/>:['materials','shifts'].includes(tab)?<ProductionSupply onCloseShift={r=>{setFinishRun(r);setTab('partial');}} mode={tab} items={data.items} stations={data.stations} manage={manage}/>:['partial','dashboard','targets'].includes(tab)?<ProductionLive finishRun={finishRun} onFinishHandled={()=>setFinishRun(null)} key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
+  <SectionPermission department="production" activity={tab}>{tab==='rework'?<ProductionRework reporterName={access.name} canReview={access.admin||access.memberships.some(m=>m.department==='quality'&&m.role==='supervisor')}/>:['parameters','parameter-settings'].includes(tab)?<ProductionParameters mode={tab} manage={manage} supervisor={supervisor} reporterName={reporterName(access.userId)} items={data.items} stations={data.stations}/>:['materials','shifts'].includes(tab)?<ProductionSupply onCloseShift={r=>{setFinishRun(r);setTab('partial');}} mode={tab} items={data.items} stations={data.stations} manage={manage}/>:['partial','dashboard','targets'].includes(tab)?<ProductionLive finishRun={finishRun} onFinishHandled={()=>setFinishRun(null)} key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
 
    <div className="catalog-toolbar"><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2>
 

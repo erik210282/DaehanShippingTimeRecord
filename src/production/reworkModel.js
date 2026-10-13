@@ -1,0 +1,4 @@
+export function reworkAvailable(hold){return Math.max(0,Number(hold?.remaining_quantity??Number(hold?.quantity||0)-Number(hold?.released_quantity||0)-Number(hold?.rejected_quantity||0))-Number(hold?.pending_quantity||0));}
+export function reworkProblem(edit,hold){if(!hold||!edit.hold_id)return 'rw_select';if(![edit.good_quantity,edit.scrap_quantity].every(v=>/^\d+(\.\d+)?$/.test(String(v).trim())))return 'rw_invalid';const total=Number(edit.good_quantity)+Number(edit.scrap_quantity);return total<=0?'rw_invalid':total>reworkAvailable(hold)?'rw_exceeds':null;}
+export function reworkTime(now=new Date()){return String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');}
+export function stockSummary(item,balances){const quantity=area=>Number(balances.find(b=>b.item_id===item.id&&b.area===area)?.quantity||0),good=quantity('FG')+quantity('WIP'),hold=quantity('HOLD');return {good,hold,total:good+hold};}

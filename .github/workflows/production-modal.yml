@@ -48,6 +48,8 @@ jobs:
       - run: node tests/production-live.test.mjs
       - run: node tests/role-access.test.mjs
       - run: node tests/role-access-ui.test.mjs
+      - run: node tests/production-rework.test.mjs
+      - run: node tests/production-rework-ui.test.mjs
       - run: node tests/production-parameters-ui.test.mjs
       - run: node tests/production-live-ui.test.mjs
       - run: node tests/production-capture.test.mjs

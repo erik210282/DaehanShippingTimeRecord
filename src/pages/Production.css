@@ -47,3 +47,6 @@
 .live-dialog .production-section-heading{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
 .live-dialog .production-downtime-row>button{justify-self:start;max-width:100%}
 @media(max-width:600px){.live-dialog .production-downtime-timed{grid-template-columns:minmax(0,1fr)}}
+
+.production-rework-dialog > form {display:flex;flex-direction:column;min-height:0;flex:1;}
+.production-rework-dialog .live-dialog-body {overflow-y:auto;min-height:0;border:0;}
