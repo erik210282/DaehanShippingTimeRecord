@@ -25,6 +25,9 @@ begin
   perform public.production_parameter_action('capture',capture||jsonb_build_object('id',gen_random_uuid(),'template_version',2));
   raise exception 'operator captured leader parameters';
  exception when others then if sqlerrm<>'pr_forbidden' then raise;end if;end;
+ -- Exercise the leader role inside the rolled-back transaction; no permission change persists.
+ update public.global_department_memberships set role='lider' where user_id='9c45902c-ee83-4716-9f70-d8e7fe8e8b0d'::uuid and department='production' and active;
+ if not found then raise exception 'leader test fixture unavailable';end if;
  select user_id into leader from public.global_department_memberships where department='production' and active and role='lider' limit 1;
  if leader is not null then
   perform set_config('request.jwt.claim.sub',leader::text,true);

@@ -12,7 +12,8 @@ try{
  const dialog=page.getByRole('dialog',{name:'Machine parameters',exact:true});assert.equal(await dialog.getByLabel('Measurement time',{exact:true}).inputValue(),'');assert.equal(await dialog.getByLabel('Leader name',{exact:true}).inputValue(),'Test Leader');
  await dialog.getByRole('combobox',{name:'Workstation',exact:true}).click();await page.getByRole('option',{name:'M1 · Trimming',exact:true}).click();
  const press=dialog.getByLabel('Actual reading · Press time',{exact:true});assert.equal(await press.inputValue(),'');await press.fill('1.5');await dialog.getByLabel('Actual reading · Pressure gauge',{exact:true}).fill('15');
- for(const option of ['PN-A · First part','PN-B · Second part','PN-B · Second part']){await dialog.getByRole('combobox',{name:'Part',exact:true}).click();await page.getByRole('option',{name:option,exact:true}).click();}
+ for(const option of ['PN-A · First part','PN-B · Second part']){await dialog.getByRole('combobox',{name:'Part',exact:true}).click();await page.getByRole('option',{name:option,exact:true}).click();}
+ await dialog.getByLabel('Remove PN-B · Second part',{exact:true}).click();
  assert.equal(await press.inputValue(),'1.5','Deselecting a product must retain machine readings');
  await dialog.getByLabel('Measurement time',{exact:true}).fill('0800');
  for(const width of [1280,390]){await page.setViewportSize({width,height:720});const buttons=await dialog.getByRole('button',{name:'Save',exact:true}).evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight;});assert.equal(buttons,true);}
