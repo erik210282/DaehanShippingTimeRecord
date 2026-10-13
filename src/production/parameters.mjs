@@ -15,3 +15,6 @@ export function captureProblem(edit){
 export function captureValues(edit){return edit.template.fields.map(f=>{const value=String(edit.values[f.id]?.value??'').trim();return {id:f.id,value:f.input_type==='numeric'?value.replace(',','.'):value,note:edit.values[f.id]?.note||''};});}
 export function scopeCapture(edit,patch,templates,stations){const next={...edit,...patch},options=matchingTemplates(templates,stations.find(s=>s.code===next.station_code),next.item_ids),template=options.find(c=>c.id===edit.template?.id)||options[0]||null,keep=next.station_code===edit.station_code&&template?.id===edit.template?.id&&template?.version===edit.template?.version;return {...next,template,values:keep?edit.values:{}};}
 
+
+export function currentParameterTime(now=new Date()){return String(now.getHours()).padStart(2,"0")+String(now.getMinutes()).padStart(2,"0");}
+export function reportProducts(report){return report.products?.length?report.products.map(p=>p.part_number+" · "+p.part_name).join(" / "):report.part_number+" · "+report.part_name;}
