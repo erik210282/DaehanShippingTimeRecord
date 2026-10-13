@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';import vm from 'node:vm';
+const mobile=fs.existsSync('ProductionMobile.js'),root=mobile?'production/':'src/production/';
+const context=vm.createContext({});vm.runInContext(fs.readFileSync(root+(mobile?'parameters.js':'parameters.mjs'),'utf8').replaceAll('export ',''),context);
+const generic={id:'general',name:'General',active:true,machine_types:['Foaming']},specific={...generic,id:'specific',station_code:'M1'};
+assert.equal(context.matchingTemplates([generic,specific],{code:'M1',machine_type:'Foaming'},['A'])[0].id,'specific');
+assert.equal(context.matchingTemplates([generic],{code:'M2',machine_type:'Assembly'}).length,0);
+assert.equal(context.matchingTemplates([{...generic,item_id:'A'}],{code:'M1',machine_type:'Foaming'},['A','B']).length,0);
+assert.equal(context.readingOutside({input_type:'numeric',minimum:7,maximum:13},'15'),true);
+assert.equal(context.readingOutside({input_type:'numeric',minimum:7,maximum:13},'7'),false);
+assert.equal(context.readingOutside({input_type:'numeric',minimum:7,maximum:13},''),false);
+const edit={station_code:'M1',item_ids:['A'],template:{fields:[{id:'f',input_type:'numeric'}]},values:{f:{value:''}}};assert.equal(context.captureProblem(edit),'pp_values_required');edit.values.f.value='0,5';assert.equal(context.captureProblem(edit),null);assert.equal(context.captureValues(edit)[0].value,'0.5');
+const bundles={};vm.runInContext(fs.readFileSync(root+'parameterTranslations.js','utf8').replaceAll('export ',''),context);context.registerParameters({addResourceBundle:(lang,ns,values)=>bundles[lang]=values});
+assert.deepEqual(Object.keys(bundles.en).sort(),Object.keys(bundles.es).sort());assert.deepEqual(Object.keys(bundles.en).sort(),Object.keys(bundles.ko).sort());assert.ok(Object.values(bundles.ko).every(Boolean));
+console.log('PASS: machine/type/product scopes, override priority, numeric limits, blank readings, decimal input, complete EN/ES/KO translations');
