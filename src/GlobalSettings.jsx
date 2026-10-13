@@ -1,3 +1,9 @@
+import DepartmentNav from './components/DepartmentNav';
+import RoleAccessSettings from './RoleAccessSettings';
+import {usePageSection} from './usePageSection';
+import {registerRoleAccess} from './roleAccessTranslations';
+import i18n from './i18n/i18n';
+registerRoleAccess(i18n);
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from './supabase/client';
@@ -8,6 +14,7 @@ const emptyAssignments = () => ({});
 
 export default function GlobalSettings({ access }) {
   const { t } = useTranslation();
+  const [section,setSection]=usePageSection('global-settings','users',['users','access','create','roles']);
   const managed = access.admin ? departmentKeys : departmentKeys.filter(d => access.memberships.some(m => m.department === d && m.role === 'supervisor'));
   const [people, setPeople] = useState([]);
   const [memberships, setMemberships] = useState([]);
@@ -91,20 +98,22 @@ export default function GlobalSettings({ access }) {
     <div className="global-heading"><span>DAEHAN APP</span><h1>{t('global_settings')}</h1></div>
     {status && <p role="status">{status}</p>}
     {link && <div className="global-panel"><strong>{t('global_password_link')}</strong><p>{t('global_link_private')}</p><div className="global-link-output">{link}</div><button className="global-settings-action" onClick={() => navigator.clipboard.writeText(link)}>{t('global_copy_link')}</button></div>}
-    <div className="global-settings-grid">
-      <section className="global-panel"><h2>{t('global_users')}</h2>
+    <DepartmentNav label={t('ra_menu')} value={section} onChange={setSection} items={[{key:'users',label:t('global_users')},{key:'access',label:t('global_access')},{key:'create',label:t('global_create_user')},{key:'roles',label:t('ra_roles')}]}/>
+    <div className="global-settings-sections">
+      {section==='roles'&&<RoleAccessSettings access={access} managed={managed}/>}
+      {section==='users'&&<section className="global-panel"><h2>{t('global_users')}</h2>
         <div className="global-list">{people.map(u => {
           const assigned = memberships.filter(m => m.user_id === u.uid && m.active && managed.includes(m.department));
           if (!access.admin && !assigned.length) return null;
-          return <button type="button" className="global-user-row" aria-selected={selected === u.uid} key={u.uid} onClick={() => selectUser(u.uid)}>
+          return <button type="button" className="global-user-row" aria-selected={selected === u.uid} key={u.uid} onClick={() => {selectUser(u.uid);setSection('access');}}>
             <span><strong>{u.nombre}</strong><br /><small>{u.email}{!u.activo && ` · ${t('global_inactive_user')}`}</small></span>
             <span className="global-role-tags">{assigned.map(m => <span className="global-role-tag" key={m.department}>{t(`global_${m.department}`)} · {t(`global_role_${m.role}`)}</span>)}</span>
           </button>;
         })}</div>
-      </section>
-      <section className="global-panel"><h2>{t('global_access')}</h2>
+      </section>}
+      {section==='access'&&<section className="global-panel"><h2>{t('global_access')}</h2>
         <label>{t('global_user')}<select value={selected} onChange={e => selectUser(e.target.value)}><option value="">—</option>{people.map(u => <option key={u.uid} value={u.uid}>{u.nombre}</option>)}</select></label>
-        {person && <><p>{person.nombre} · {person.email}</p><Choices values={draft} onChange={setDraft} userId={selected} />
+        {person && <><p>{person.nombre} · {person.email}</p>{Choices({values:draft,onChange:setDraft,userId:selected})}
           <div className="global-access-actions">
             <button className="global-settings-action" disabled={busy || !person.activo} onClick={() => perform(saveAssignments)}>{t('global_save_access')}</button>
             {person.activo && <button className="global-settings-action global-action-secondary" disabled={busy} onClick={() => perform(async () => { const result = await invoke({ action: 'link', user_id: selected }); setLink(result.link); })}>{t('global_generate_link')}</button>}
@@ -117,8 +126,8 @@ export default function GlobalSettings({ access }) {
             </div>
           </section>}
         </>}
-      </section>
-      <section className="global-panel"><h2>{t('global_create_user')}</h2>
+      </section>}
+      {section==='create'&&<section className="global-panel"><h2>{t('global_create_user')}</h2>
         <form onSubmit={e => { e.preventDefault(); perform(async () => {
           const assignments = Object.entries(newDraft).map(([department, role]) => ({ department, role }));
           if (!assignments.length) throw new Error(t('global_choose_department'));
@@ -131,10 +140,10 @@ export default function GlobalSettings({ access }) {
         }); }}>
           <label>{t('global_name')}<input required minLength={2} maxLength={100} value={name} onChange={e => setName(e.target.value)} /></label>
           <label>{t('email')}<input required type="email" value={email} onChange={e => setEmail(e.target.value)} /></label>
-          <strong>{t('global_access')}</strong><Choices values={newDraft} onChange={setNewDraft} />
+          <strong>{t('global_access')}</strong>{Choices({values:newDraft,onChange:setNewDraft})}
           <button disabled={busy}>{t('global_create_and_link')}</button>
         </form>
-      </section>
+      </section>}
     </div>
   </main>;
 }

@@ -18,3 +18,5 @@ export function scopeCapture(edit,patch,templates,stations){const next={...edit,
 
 export function currentParameterTime(now=new Date()){return String(now.getHours()).padStart(2,"0")+String(now.getMinutes()).padStart(2,"0");}
 export function reportProducts(report){return report.products?.length?report.products.map(p=>p.part_number+" · "+p.part_name).join(" / "):report.part_number+" · "+report.part_name;}
+
+export function editParameterReport(report){return {id:report.capture_group_id,date:report.recorded_date,time:report.recorded_time.slice(0,5).replace(':',''),station_code:report.station_code,item_ids:report.products?.map(p=>p.item_id)||[report.item_id],template:{id:report.template_id,version:report.template_version,fields:report.readings},values:Object.fromEntries(report.readings.map(f=>[f.id,{value:f.value,note:f.note||''}])),note:report.note||'',original:report};}

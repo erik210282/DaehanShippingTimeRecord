@@ -1,3 +1,4 @@
+import {SectionPermission,useRoleAccess} from '../RoleAccess';
 import ErrorPopup from '../components/ErrorPopup';
 import ModuleHeading from '../components/ModuleHeading';
 import { usePageSection } from '../usePageSection';
@@ -29,6 +30,7 @@ function Field({ label, value, onChange, type = 'text', ...props }) {
 
 export default function Receiving({ access }) {
   const { t, i18n } = useTranslation();
+  const permissions=useRoleAccess();
   const [data, setData] = useState(emptyData), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
   const [ready,setReady]=useState(false);
   const [tab, setTab] = usePageSection('receiving', 'pending', ['pending','summary','productivity']), [from, setFrom] = useState(''), [to, setTo] = useState(''), [filter, setFilter] = useState(''), [search, setSearch] = useState('');
@@ -60,7 +62,7 @@ export default function Receiving({ access }) {
   if(!loading && !ready) return <main className="rc-page"><h1>{t('rc_title')}</h1><ErrorPopup message={error} onClose={()=>setError('')}/><BtnPrimary onClick={refresh}>{t('global_retry')}</BtnPrimary></main>;
   const options = (rows, label) => rows.map(row => ({ value: row.id, label: label(row) }));
   const ownLines = id => data.lines.filter(line => line.receipt_id === id);
-  const canTask = task => supervisor || task.operator_id === access.userId || task.additional_operator_ids?.includes(access.userId);
+  const canTask = task => (!permissions||permissions.can('receiving',task.kind==='putaway'?'putaway':'unload'))&&(supervisor || task.operator_id === access.userId || task.additional_operator_ids?.includes(access.userId));
   const receipts = data.receipts.filter(row => {
     const day = localDay(row.created_at);
     return row.status!=='cancelled' && (!from || day >= from) && (!to || day <= to) && (!filter || receiptState(row,data.lines,data.tasks) === filter)
@@ -83,7 +85,7 @@ export default function Receiving({ access }) {
   const tabs = receiver ? ['pending','summary','productivity'] : ['summary'];
   return <><div className="module-department-nav">
     <ModuleHeading title={t('rc_title')}/>
-    <DepartmentNav items={tabs.map(key=>({key,label:t(`rc_${key}`)}))} value={currentTab} onChange={key=>{setTab(key);}} label={t('rc_title')}/></div><main className="rc-page module-surface">
+    <DepartmentNav department="receiving" items={tabs.map(key=>({key,label:t(`rc_${key}`)}))} value={currentTab} onChange={key=>{setTab(key);}} label={t('rc_title')}/></div><SectionPermission department="receiving" activity={currentTab}><main className="rc-page module-surface">
     <ErrorPopup message={error} onClose={()=>setError('')}/>{message && <div className="rc-alert" role="status">{message}</div>}
     {loading ? <p>{t('loading')}</p> : <>
     {['pending','summary','productivity'].includes(currentTab) && <>
@@ -94,7 +96,7 @@ export default function Receiving({ access }) {
       <div className="rc-metrics">{['pending','process','paused','completed'].map(key=><div key={key} style={{borderTopColor:statusColors[key]}}><strong>{receipts.filter(r=>receiptState(r,data.lines,data.tasks)===key).length}</strong><span>{t(`rc_status_${key}`)}</span></div>)}</div>
     </>}
     {currentTab==='pending' && <>
-      <div className="rc-toolbar"><BtnPrimary disabled={busy || data.tasks.some(task=>task.status==='running' && (task.operator_id===access.userId || task.additional_operator_ids?.includes(access.userId)))} onClick={()=>{setAdditional([]);setNewReceipt(true);receiptId.current=newId();setReceiptDraft(blankReceipt());}}>{t('rc_new')}</BtnPrimary></div>
+      <div className="rc-toolbar"><BtnPrimary disabled={!!permissions&&!permissions.can('receiving','unload') || busy || data.tasks.some(task=>task.status==='running' && (task.operator_id===access.userId || task.additional_operator_ids?.includes(access.userId)))} onClick={()=>{setAdditional([]);setNewReceipt(true);receiptId.current=newId();setReceiptDraft(blankReceipt());}}>{t('rc_new')}</BtnPrimary></div>
       <div className="rc-cards">{receipts.filter(row=>(!['completed','cancelled'].includes(receiptState(row,data.lines,data.tasks)) || ownLines(row.id).some(l=>l.quality_status==='held'))).map(row=>{
         const state=receiptState(row,data.lines,data.tasks);
         return <article className="rc-card" key={row.id} style={{borderLeftColor:statusColors[state]}}>
@@ -149,5 +151,5 @@ export default function Receiving({ access }) {
     </section></div>}
     {holdLine && <div className="rc-modal" role="dialog" aria-modal="true" aria-label={t('rc_quarantine')}><section className="rc-dialog"><h2>{t('rc_quarantine')}</h2><p>{itemLabel(holdLine)} · {fmt(holdLine.received)} {holdLine.uom}</p><Field label={t('rc_reason')} value={reason} onChange={setReason}/><div className="rc-toolbar"><BtnDanger disabled={busy || !reason.trim()} onClick={()=>run(async()=>{await service.hold(holdLine.id,reason.trim());setHoldLine(null);})}>{t('rc_quarantine')}</BtnDanger><BtnSecondary disabled={busy} onClick={()=>setHoldLine(null)}>{t('rc_close')}</BtnSecondary></div></section></div>}
 
-  </main></>;
+  </main></SectionPermission></>;
 }
