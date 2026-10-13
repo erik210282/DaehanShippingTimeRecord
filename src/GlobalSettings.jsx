@@ -101,8 +101,8 @@ export default function GlobalSettings({ access }) {
     <div className="global-heading"><span>DAEHAN APP</span><h1>{t('global_settings')}</h1></div>
     {status && <p role="status">{status}</p>}
     {link && <div className="global-panel"><strong>{t('global_password_link')}</strong><p>{t('global_link_private')}</p><div className="global-link-output">{link}</div><button className="global-settings-action" onClick={() => navigator.clipboard.writeText(link)}>{t('global_copy_link')}</button></div>}
-    <DepartmentNav label={t('ra_menu')} value={section} onChange={setSection} items={[{key:'users',label:t('global_users')},{key:'access',label:t('global_access')},{key:'create',label:t('global_create_user')},{key:'roles',label:t('ra_roles')}]}/>
-    {['users','access'].includes(section)&&<label className="role-activity-choice"><input type="checkbox" checked={hideInactive} onChange={e=>setHideInactive(e.target.checked)}/><span>{t('ra_hide_inactive')}</span></label>}
+    <div className="global-settings-toolbar"><DepartmentNav label={t('ra_menu')} value={section} onChange={setSection} items={[{key:'users',label:t('global_users')},{key:'access',label:t('global_access')},{key:'create',label:t('global_create_user')},{key:'roles',label:t('ra_roles')}]}/>
+    {['users','access'].includes(section)&&<label className="global-inactive-filter"><input type="checkbox" checked={hideInactive} onChange={e=>setHideInactive(e.target.checked)}/><span>{t('ra_hide_inactive')}</span></label>}</div>
     <div className="global-settings-sections">
       {section==='roles'&&<RoleAccessSettings access={access} managed={managed}/>}
       {section==='users'&&<section className="global-panel"><h2>{t('global_users')}</h2>

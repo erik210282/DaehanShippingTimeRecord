@@ -88,3 +88,9 @@
 .role-activity-choice {flex-wrap:wrap;}
 .role-activity-choice span {flex:1;min-width:0;}
 .role-activity-choice small {flex-basis:100%;margin-left:30px;}
+
+.global-settings-toolbar {display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;}
+.global-settings-toolbar .department-nav {margin:0;}
+.global-inactive-filter {display:inline-flex;align-items:center;gap:9px;min-height:42px;padding:8px 14px;border:1px solid #dce3ec;border-radius:10px;background:#fff;color:#334155;font-size:14px;font-weight:600;cursor:pointer;box-sizing:border-box;}
+.global-inactive-filter input {width:17px;height:17px;margin:0;accent-color:#2563eb;flex-shrink:0;}
+.global-inactive-filter:focus-within {outline:2px solid #2563eb;outline-offset:2px;}
