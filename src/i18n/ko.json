@@ -147,7 +147,7 @@
   "save": "저장",
   "save_and_link": "Storage에 저장 및 연결",
   "save_success": "기록이 성공적으로 저장되었습니다.",
-  "search": "검색...",
+  "search": "검색",
   "seal_number": "봉인 번호",
   "select": "선택",
   "select_activity": "활동 선택",
@@ -611,5 +611,16 @@
   "cat_copy_recipe": "원래 제품과 동일한 레시피 사용",
   "cat_source_no_recipe": "원래 제품에 복사할 활성 레시피가 없습니다.",
   "catalog_source_recipe_missing": "원래 레시피를 사용할 수 없어 제품이 저장되지 않았습니다.",
-  "catalog_target_recipe_differs": "새 부품 번호에 이미 다른 레시피가 있습니다. 기존 레시피를 유지하려면 원래 제품의 레시피 사용을 해제하세요."
+  "catalog_target_recipe_differs": "새 부품 번호에 이미 다른 레시피가 있습니다. 기존 레시피를 유지하려면 원래 제품의 레시피 사용을 해제하세요.",
+  "inv_stock_filter": "재고 상태",
+  "inv_stock_all": "전체",
+  "inv_stock_low": "최소 재고 미만",
+  "inv_stock_zero": "재고 없음",
+  "inv_stock_negative": "음수 재고",
+  "inv_filter_hint": "부품, 이름, 설명 또는 위치 검색",
+  "inv_ship_date": "출하 날짜",
+  "multi_part_hint": "부품을 선택하고 각 부품의 수량을 입력하세요.",
+  "inv_filter_from": "시작일",
+  "inv_filter_to": "종료일",
+  "pl_hours": "기준 근무"
 }

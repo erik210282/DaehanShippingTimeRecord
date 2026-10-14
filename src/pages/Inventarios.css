@@ -61,3 +61,5 @@
 }
 
 .inv-page .count-quantity { width: 140px; max-width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #0f172a; }
+
+.inventory-filter-bar{margin:18px 0;padding:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px}.inventory-filter-bar .catalog-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}.inventory-filter-bar .catalog-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}.inventory-filter-bar .catalog-field{min-width:0}

@@ -2,7 +2,7 @@
 export function fieldLabel(field,t){return field.key?t('pp_'+field.key,{defaultValue:field.label}):field.label;}
 export function matchingTemplates(templates,station,itemIds=[]){
  if(!station)return [];
- return templates.filter(t=>t.active&&t.machine_types.includes(station.machine_type)&&(!t.station_code||t.station_code===station.code)&&(!t.item_id||itemIds.length===1&&itemIds[0]===t.item_id)).sort((a,b)=>(Number(!!b.station_code)*2+Number(!!b.item_id))-(Number(!!a.station_code)*2+Number(!!a.item_id))||a.name.localeCompare(b.name));
+ return templates.filter(t=>t.active&&t.machine_types.includes(station.machine_type)&&(!t.station_code||t.station_code===station.code)&&(!(t.item_ids?.length||t.item_id)||itemIds.length>0&&itemIds.every(id=>(t.item_ids?.length?t.item_ids:[t.item_id]).includes(id)))).sort((a,b)=>(Number(!!b.station_code)*2+Number(!!(b.item_ids?.length||b.item_id)))-(Number(!!a.station_code)*2+Number(!!(a.item_ids?.length||a.item_id)))||a.name.localeCompare(b.name));
 }
 export function blankParameter(newId){return {id:newId(),label:'',unit:'',reference:'',input_type:'numeric',minimum:'',maximum:''};}
 export function blankTemplate(newId){return {id:newId(),name:'',machine_types:[],station_code:'',item_id:'',fields:[blankParameter(newId)]};}

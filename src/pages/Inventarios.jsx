@@ -1,4 +1,5 @@
-import InventoryStockStatus from '../components/InventoryStockStatus';
+import {CatalogInput,CatalogSelect} from '../components/SharedCatalogFields';
+import {BtnPrimary,BtnSecondary} from '../components/controls';
 import {SectionPermission} from '../RoleAccess';
 import ModuleHeading from '../components/ModuleHeading';
 import { usePageSection } from '../usePageSection';
@@ -13,10 +14,7 @@ import DepartmentNav from '../components/DepartmentNav';
 import './Inventarios.css';
 
 const sections = [
-  ['overview', 'inv_overview'], ['RAW', 'inv_area_RAW'], ['WIP', 'inv_area_WIP'],
-  ['FG', 'inv_area_FG'], ['demand', 'inv_demand'],
-  ['PACKAGING', 'inv_area_PACKAGING'], ['quality', 'inv_quality'],
-  ['counts', 'inv_counts'], ['dispatch', 'inv_dispatch'],
+ ['overview','inv_overview'],['FG','inv_area_FG'],['RAW','inv_area_RAW'],['WIP','inv_area_WIP'],['quality','inv_quality'],['PACKAGING','inv_area_PACKAGING'],['dispatch','inv_dispatch'],['counts','inv_counts'],['demand','inv_demand'],
 ];
 const areas = ['RAW', 'WIP', 'FG', 'PACKAGING', 'HOLD'];
 const n = value => Number(value || 0);
@@ -83,7 +81,13 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [demandFilter, setDemandFilter] = useState('');
+ const emptyFilters=()=>({search:'',parts:[],stock:'all',from:'',to:''});
+ const [filterDraft,setFilterDraft]=useState(emptyFilters),[filters,setFilters]=useState(emptyFilters);
+ const matchPart=item=>(!filters.parts.length||filters.parts.includes(item.id))&&[item.part_number,item.part_name,item.description,item.default_location].join(' ').toLowerCase().includes(filters.search.trim().toLowerCase());
+ const stockMatches=item=>matchPart(item)&&(filters.stock==='all'||filters.stock==='low'&&qty(item.id,tab)<=n(item.minimum_quantity)||filters.stock==='zero'&&qty(item.id,tab)===0||filters.stock==='negative'&&qty(item.id,tab)<0);
+ const filterBar=(shipping=false)=><form className="catalog-toolbar inventory-filter-bar" onSubmit={e=>{e.preventDefault();setFilters({...filterDraft});}}><div className="catalog-fields"><CatalogInput label={t('search')} placeholder={t('inv_filter_hint')} value={filterDraft.search} onChange={e=>setFilterDraft(v=>({...v,search:e.target.value}))}/><CatalogSelect multi label={t('inv_part')} value={filterDraft.parts} onChange={parts=>setFilterDraft(v=>({...v,parts}))} options={(shipping?items.filter(i=>i.category==='FG'):stockItems(tab)).map(i=>({value:i.id,label:i.part_number+' · '+(i.part_name||i.description||'')}))}/>{shipping?<><CatalogInput type="date" label={t('inv_filter_from')} value={filterDraft.from} onChange={e=>setFilterDraft(v=>({...v,from:e.target.value}))}/><CatalogInput type="date" label={t('inv_filter_to')} value={filterDraft.to} onChange={e=>setFilterDraft(v=>({...v,to:e.target.value}))}/></>:<CatalogSelect label={t('inv_stock_filter')} value={filterDraft.stock} onChange={stock=>setFilterDraft(v=>({...v,stock}))} options={['all','low','zero','negative'].map(value=>({value,label:t('inv_stock_'+value)}))}/>}</div><div className="catalog-actions"><BtnPrimary type="submit">{t('search')}</BtnPrimary><BtnSecondary type="button" onClick={()=>{setFilterDraft(emptyFilters());setFilters(emptyFilters());}}>{t('clear_filters')}</BtnSecondary></div></form>;
   const [demandMode, setDemandMode] = useState('all');
+ const [demandParts,setDemandParts]=useState([]);
   const [selectedIdx, setSelectedIdx] = useState('');
   const [dispatchDate, setDispatchDate] = useState(today());
   const [perBox, setPerBox] = useState({});
@@ -177,6 +181,7 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
     let query = supabase.from('inventory_demand_lines')
       .select('po,po_line,part_number,description,destination,ship_date,quantity,uom')
       .eq('import_id',currentImport.id).order('ship_date').limit(500);
+    if(demandParts.length)query=query.in('part_number',demandParts);
     if (demandFilter.trim()) query = query.ilike('part_number',`%${demandFilter.trim()}%`);
     if (currentImport.backlog_cutoff && demandMode==='backlog')
       query = query.lte('ship_date',currentImport.backlog_cutoff);
@@ -193,12 +198,12 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
 
   return <><div className="module-department-nav">
     <ModuleHeading title={t(permissionDepartment==='quality'?'global_quality':'inv_title')}/>
-    <DepartmentNav department={permissionDepartment} items={(permissionDepartment==='quality'?sections.filter(([key])=>['overview','quality','counts'].includes(key)):sections).map(([key,label])=>({key,label:t(label)}))} value={tab} onChange={key=>{setTab(key);setMessage('');}} label={t('inv_section')}/></div><SectionPermission department={permissionDepartment} activity={tab}><main className="inv-page module-surface">
+    <DepartmentNav department={permissionDepartment} items={(permissionDepartment==='quality'?sections.filter(([key])=>['overview','quality','counts'].includes(key)):sections).map(([key,label])=>({key,label:t(label)}))} value={tab} onChange={key=>{setTab(key);setMessage('');setFilterDraft(emptyFilters());setFilters(emptyFilters());}} label={t('inv_section')}/></div><SectionPermission department={permissionDepartment} activity={tab}><main className="inv-page module-surface">
     <div className="inv-layout">
       <div className="inv-main">
     {!!message && <p role="status" className="inv-message">{message}</p>}
 
-    {tab === 'overview' && <div className="inv-grid"><InventoryStockStatus items={items} balances={balances}/>
+    {tab === 'overview' && <div className="inv-grid">
       {areas.map(area => <section key={area} className="inv-card"><h2>{areaLabel(area)}</h2>
         <strong>{balances.filter(b => b.area === area).length}</strong><small>{t('inv_parts_with_movements')}</small></section>)}
       <section className="inv-card inv-wide"><h2>{t('inv_alerts')}</h2>
@@ -211,10 +216,10 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
       </section></div>}
 
     {['RAW','WIP','FG','PACKAGING'].includes(tab) && <section className="inv-card">
-      <h2>{sectionLabel(tab)}</h2>
+      <h2>{sectionLabel(tab)}</h2>{filterBar()}
       <p className="inv-muted">{t('inv_negative_hint')}</p>
       <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th>{tab==='FG'&&<th>{t('name')}</th>}<th>{t('inv_description')}</th><th>{t('inv_unit')}</th><th>{t('rw_available')}</th><th>{t('rw_quarantine')}</th><th>{t('inv_minimum')}</th><th>{t('inv_location')}</th>{tab==='RAW'&&<th>{t('inv_notes')}</th>}</tr></thead>
-        <tbody>{stockItems(tab).map(i => <tr key={i.id}><td>{i.part_number}</td>{tab==='FG'&&<td>{i.part_name||'—'}</td>}<td>{i.description}</td><td>{i.uom}</td>
+        <tbody>{stockItems(tab).filter(stockMatches).map(i => <tr key={i.id}><td>{i.part_number}</td>{tab==='FG'&&<td>{i.part_name||'—'}</td>}<td>{i.description}</td><td>{i.uom}</td>
           <td className={qty(i.id,tab)<0 ? 'inv-negative' : qty(i.id,tab)<=n(i.minimum_quantity) ? 'inv-low' : ''}>{fmt(qty(i.id,tab))}</td><td>{fmt(qty(i.id,'HOLD'))}</td>
           <td>{fmt(i.minimum_quantity)}</td><td>{i.default_location || '—'}</td>{tab==='RAW'&&<td>{pendingParts.has(i.part_number)?t(qty(i.id,tab)===0?'inv_ref_missing_count':'inv_ref_balance_pending'):!countedParts.has(i.part_number)&&qty(i.id,tab)===0?t('inv_ref_missing_count'):'—'}</td>}</tr>)}</tbody></table></div>
       {tab==='WIP'&&!stockItems('WIP').length&&<p className="inv-muted">{t('inv_wip_empty')}</p>}
@@ -226,23 +231,23 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
         const file = e.target.files?.[0]; if (file) act(() => importDemand(file),t('inv_demand_updated')); e.target.value='';
       }}/></label>}
       <form className="inv-form" onSubmit={e => {e.preventDefault();searchDemand().catch(error=>setMessage(error.message));}}>
-        <input placeholder={t('inv_filter_part')} value={demandFilter} onChange={e=>setDemandFilter(e.target.value)}/>
+        <CatalogSelect multi label={t('inv_part')} value={demandParts} onChange={setDemandParts} options={[...new Map(items.filter(i=>['FG','SEMI'].includes(i.category)).map(i=>[i.part_number,{value:i.part_number,label:i.part_number+' · '+(i.part_name||i.description||'')}])).values()]}/><input placeholder={t('inv_filter_part')} value={demandFilter} onChange={e=>setDemandFilter(e.target.value)}/>
         <select value={demandMode} onChange={e=>setDemandMode(e.target.value)}>
           <option value="all">{t('inv_all')}</option><option value="backlog">{t('inv_backlog')}</option><option value="future">{t('inv_future_demand')}</option></select>
         <button>{t('inv_search')}</button></form>
       <p className="inv-muted">{t('inv_max_500')}</p>
-      <div className="inv-table-wrap"><table><thead><tr><th>Ship Date</th><th>{t('inv_po_line')}</th><th>{t('inv_part')}</th><th>{t('inv_destination')}</th><th>{t('inv_quantity')}</th><th>{t('inv_catalog')}</th></tr></thead><tbody>
+      <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_ship_date')}</th><th>{t('inv_po_line')}</th><th>{t('inv_part')}</th><th>{t('inv_destination')}</th><th>{t('inv_quantity')}</th><th>{t('inv_catalog')}</th></tr></thead><tbody>
         {demand.map((r,index) => <tr key={index}><td>{r.ship_date}</td><td>{r.po} / {r.po_line}</td><td>{r.part_number}</td><td>{r.destination}</td><td>{fmt(r.quantity)} {r.uom}</td>
           <td>{t(items.some(i=>i.part_number===r.part_number) ? 'inv_linked' : 'inv_review_part')}</td></tr>)}</tbody></table></div></section>}
 
     {tab === 'counts' && <PhysicalCounts items={items} balances={balances} counts={counts} access={access} fileRows={fileRows} saveCsv={saveCsv} onChanged={refresh}/>}
-    {tab === 'dispatch' && <section className="inv-card"><h2>{t('inv_dispatch_title')}</h2>
+    {tab === 'dispatch' && <section className="inv-card"><h2>{t('inv_dispatch_title')}</h2>{filterBar(true)}
       <p>{t('inv_dispatch_intro')}</p>
       {can('shipping',true) && <><div className="inv-form"><select value={selectedIdx} onChange={e=>{setSelectedIdx(e.target.value);setPerBox({});}}>
         <option value="">{t('inv_select_idx')}</option>{pendingIdx.map(idx=><option key={idx}>{idx}</option>)}</select>
         <input type="date" max={today()} value={dispatchDate} onChange={e=>setDispatchDate(e.target.value)}/></div>
         {!!selectedIdx && <><div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th><th>{t('inv_boxes')}</th><th>{t('inv_pieces_per_box')}</th><th>{t('inv_pieces_deducted')}</th></tr></thead><tbody>
-          {selectedLines.map(l=>{const product=l.productos;const a=n(product?.cantidad_por_caja_retornable),b=n(product?.cantidad_por_caja_expendable);
+          {selectedLines.filter(l=>matchPart(items.find(i=>i.part_number===l.productos?.part_number)||{id:'',part_number:l.productos?.part_number})).map(l=>{const product=l.productos;const a=n(product?.cantidad_por_caja_retornable),b=n(product?.cantidad_por_caja_expendable);
             const initial=a>0&&a===b?a:(!b&&a>0?a:(!a&&b>0?b:''));
             const value=perBox[l.id] ?? initial;
             return <tr key={l.id}><td>{product?.part_number}</td><td>{l.cantidad_cajas}</td>
@@ -255,7 +260,7 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
             await unwrap(supabase.rpc('inventory_confirm_dispatch',{p_idx:selectedIdx,p_date:dispatchDate,p_lines:lineData,p_note:t('inv_mobile_dispatch_note')}));
             setSelectedIdx('');setPerBox({});
           },t('inv_shipment_confirmed'))}>{t('inv_confirm_idx')}</button></>}</>}
-      <h3>{t('inv_confirmed_shipments')}</h3>{dispatches.map(d=><p key={d.idx}>{d.ship_date} · IDX {d.idx} · {t('inv_confirmed_at')} {new Date(d.confirmed_at).toLocaleString(locale)}</p>)}</section>}
+      <h3>{t('inv_confirmed_shipments')}</h3>{dispatches.filter(d=>(!filters.from||d.ship_date>=filters.from)&&(!filters.to||d.ship_date<=filters.to)&&(!filters.parts.length||shippingLines.some(l=>l.idx===d.idx&&filters.parts.includes(items.find(i=>i.part_number===l.productos?.part_number)?.id)))&&[d.idx,d.ship_date,...shippingLines.filter(l=>l.idx===d.idx).map(l=>l.productos?.part_number)].join(' ').toLowerCase().includes(filters.search.toLowerCase())).map(d=><p key={d.idx}>{d.ship_date} · IDX {d.idx} · {t('inv_confirmed_at')} {new Date(d.confirmed_at).toLocaleString(locale)}</p>)}</section>}
 
     {tab === 'quality' && <section className="inv-card"><h2>{t('inv_quality_title')}</h2>
       <QualityHolds items={items} access={access}/></section>}

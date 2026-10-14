@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {partEntries,selectPartEntries,switchPartEntry,selectReceiptParts} from '../src/production/partEntries.mjs';
+import {matchingTemplates} from '../src/production/parameters.mjs';
+let id=0,edit=selectPartEntries({station_code:'M',alert_minutes:'30'},['a','b'],()=>String(++id));
+edit={...edit,quantity:'10',counters:{r:'15'}};
+edit=switchPartEntry(edit,'b');assert.equal(edit.quantity,'');
+edit={...edit,quantity:'20'};edit=switchPartEntry(edit,'a');assert.equal(edit.quantity,'10');assert.equal(edit.counters.r,'15');
+assert.deepEqual(partEntries(edit).map(row=>[row.item_id,row.quantity]),[['a','10'],['b','20']]);
+edit=selectPartEntries(edit,['b'],()=>String(++id));assert.equal(edit.quantity,'20');
+assert.deepEqual(selectReceiptParts([{item_id:'a',expected:'5',category:'RAW'}],0,['a','b']).map(row=>[row.item_id,row.expected]),[['a','5'],['b','']]);
+const template={id:'t',active:true,name:'T',machine_types:['Assembly'],item_ids:['a','b']};
+assert.equal(matchingTemplates([template],{machine_type:'Assembly'},['a','b']).length,1);
+assert.equal(matchingTemplates([template],{machine_type:'Assembly'},['c']).length,0);
+console.log('PASS: multi-part quantities, switching, deselection, receipt rows and parameter scope');
