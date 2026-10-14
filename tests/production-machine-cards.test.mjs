@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const mobile=fs.existsSync('production/machineCards.js'),file=mobile?'production/machineCards.js':'src/production/machineCards.mjs';
+const {machineGroups,sessionGroups,splitRows}=await import('data:text/javascript,'+encodeURIComponent(fs.readFileSync(file,'utf8')));
+const runs=[{id:'a',station_code:'M1',session_id:'s1',item_id:'p1'},{id:'b',station_code:'M1',session_id:'s1',item_id:'p2'},{id:'c',station_code:'M2',session_id:'s2',item_id:'p1'},{id:'d',station_code:'M1',session_id:'s3',item_id:'p1'}];
+assert.equal(machineGroups(runs).length,2);
+assert.deepEqual(machineGroups(runs)[0].runs.map(r=>r.id),['a','b','d'],'Same part in different sessions must remain present');
+assert.deepEqual(sessionGroups(machineGroups(runs)[0].runs).map(g=>g.runs.map(r=>r.id)),[['a','b'],['d']],'Actions keep original session boundaries');
+assert.equal(sessionGroups([{id:'old1'},{id:'old2'}]).length,2,'Legacy runs cannot be accidentally combined');
+const rows=[{key:'quantity',values:['74','74']},{key:'target',values:['75.4','80']},{key:'operator',values:['Ana','Ana']}];
+assert.deepEqual(splitRows(rows).shared.map(r=>r.key),['quantity','operator']);
+assert.deepEqual(splitRows(rows).different.map(r=>r.key),['target']);
+assert.deepEqual(runs.map(r=>r.id),['a','b','c','d'],'Grouping does not mutate source order');
+console.log('Machine grouping, differing readings, repeated products and session actions passed');

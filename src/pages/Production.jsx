@@ -1,3 +1,4 @@
+import {partLabel} from '../production/supply.mjs';
 import ProductionRework from '../production/ProductionRework';
 import {SectionPermission,useRoleAccess} from '../RoleAccess';
 import ProductionParameters from '../production/ProductionParameters';
@@ -263,7 +264,7 @@ export default function Production({access}) {
 
    [t('pr_date')]:r.production_date,[t('inv_station_code')]:r.station_code,[t('name')]:stationFor(r)?.name,
 
-   [t('inv_part')]:itemFor(r)?.part_number,[t('description')]:itemFor(r)?.description,
+   [t('inv_part')]:partLabel(itemFor(r)),[t('description')]:itemFor(r)?.description,
 
    [t('pr_start')]:r.start_time,[t('pr_end')]:r.end_time,[t('pr_next_day')]:t(r.ends_next_day?'yes':'no'),
 
@@ -404,7 +405,7 @@ export default function Production({access}) {
 
   {scheduleError&&edit.start_time&&edit.end_time&&<p role="alert" className="inv-message">{t(scheduleError)}</p>}
 
-  <section className="production-section"><p className="inv-muted">{t('pm_shared_hint')}</p><div className="production-row-actions">{dailyProducts(edit).map(r=><BtnEditDark key={r.item_id} type="button" aria-pressed={edit.item_id===r.item_id} style={edit.item_id===r.item_id?{background:'#28a745',color:'#fff'}:undefined} onClick={()=>setEdit(switchProduct(edit,r.item_id))}>{itemFor(r)?.part_number}</BtnEditDark>)}</div><h3>{itemFor(edit)?.part_number} · {t('pr_quantities')}</h3><p className="inv-muted">{t('pr_quantity_hint')}</p><div className="production-form-grid production-form-grid-four">
+  <section className="production-section"><p className="inv-muted">{t('pm_shared_hint')}</p><div className="production-row-actions">{dailyProducts(edit).map(r=><BtnEditDark key={r.item_id} type="button" aria-pressed={edit.item_id===r.item_id} style={edit.item_id===r.item_id?{background:'#28a745',color:'#fff'}:undefined} onClick={()=>setEdit(switchProduct(edit,r.item_id))}>{partLabel(itemFor(r))}</BtnEditDark>)}</div><h3>{partLabel(itemFor(edit))} · {t('pr_quantities')}</h3><p className="inv-muted">{t('pr_quantity_hint')}</p><div className="production-form-grid production-form-grid-four">
 
    {numeric('machine_quantity','pr_machine_quantity')}{numeric('scrap_quantity','pr_scrap')}{numeric('rework_quantity','pr_rework')}<CatalogInput label={t('pr_good')} readOnly value={fmt(metrics.good)}/>
 

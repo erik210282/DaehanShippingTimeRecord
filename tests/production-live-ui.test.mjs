@@ -125,8 +125,8 @@ try{
  await page.getByRole('combobox',{name:'Reference shift',exact:true}).click();
  await page.getByRole('option',{name:'8 hours',exact:true}).click();
  await page.getByLabel('Start time',{exact:true}).fill('0000');
- await page.getByLabel('Produced quantity · PN-100',{exact:true}).fill('7');
- await page.getByLabel('Produced quantity · PN-200',{exact:true}).fill('11');
+ await page.getByLabel('Produced quantity · PN-100 · Test product',{exact:true}).fill('7');
+ await page.getByLabel('Produced quantity · PN-200 · Second product',{exact:true}).fill('11');
  await page.getByRole('button',{name:'Save',exact:true}).click();
  await page.locator('.live-dialog').waitFor({state:'hidden'});
  assert.equal(await page.getByRole('alertdialog').count(),0);
@@ -138,12 +138,16 @@ try{
 
  machineGroup=true;
  await page.reload();
+ assert.equal(await page.getByRole('button',{name:'Record progress',exact:true}).count(),1,'One shared capture action for machine session');
+ assert.equal(await page.locator('.live-machine').count(),1,'One card per machine');
+ await page.getByText('PN-100 · Test product',{exact:true}).first().waitFor();
+ await page.getByText('PN-200 · Second product',{exact:true}).first().waitFor();
  await page.getByRole('button',{name:'End session',exact:true}).first().click();
  assert.equal(await page.getByLabel('Finish time',{exact:true}).inputValue(),'');
  await page.getByLabel('Finish date',{exact:true}).fill(new Date().toISOString().slice(0,10));
  await page.getByLabel('Finish time',{exact:true}).fill(new Date().toTimeString().slice(0,5));
- await page.getByLabel('Produced quantity · PN-100',{exact:true}).fill('190');
- await page.getByLabel('Produced quantity · PN-200',{exact:true}).fill('100');
+ await page.getByLabel('Produced quantity · PN-100 · Test product',{exact:true}).fill('190');
+ await page.getByLabel('Produced quantity · PN-200 · Second product',{exact:true}).fill('100');
  await page.locator('.live-dialog').getByRole('button',{name:'End session',exact:true}).click();
  await page.locator('.live-dialog').waitFor({state:'hidden'});
  assert.equal(captured.p_action,'finish_batch');
@@ -178,10 +182,10 @@ try{
  assert.equal(await daily.getByLabel('People at the station',{exact:true}).getAttribute('placeholder'),'Enter number of people');
  await daily.getByLabel('Total machine output (pcs)',{exact:true}).fill('7');
  for(const label of ["Scrap (pcs)","Reworked pieces (pcs)","Full boxes"])await daily.getByLabel(label,{exact:true}).fill('0');
- await daily.getByRole('button',{name:'PN-200',exact:true}).click();
+ await daily.getByRole('button',{name:'PN-200 · Second product',exact:true}).click();
  await daily.getByLabel('Total machine output (pcs)',{exact:true}).fill('11');
  for(const label of ["Scrap (pcs)","Reworked pieces (pcs)","Full boxes"])await daily.getByLabel(label,{exact:true}).fill('0');
- await daily.getByRole('button',{name:'PN-100',exact:true}).click();
+ await daily.getByRole('button',{name:'PN-100 · Test product',exact:true}).click();
  assert.equal(await daily.getByLabel('Total machine output (pcs)',{exact:true}).inputValue(),'7');
  await daily.getByRole('button',{name:'Save draft',exact:true}).click();
  await daily.waitFor({state:'hidden'});
