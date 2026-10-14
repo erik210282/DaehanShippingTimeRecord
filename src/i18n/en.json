@@ -624,5 +624,6 @@
   "inv_filter_to": "To",
   "pl_hours": "Reference Shift",
   "rc_title": "Receiving",
-  "rc_po_number": "PO Number"
+  "rc_po_number": "PO Number",
+  "select_no_options": "No Results"
 }

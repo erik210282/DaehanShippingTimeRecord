@@ -624,5 +624,6 @@
   "inv_filter_to": "종료일",
   "pl_hours": "기준 근무",
   "rc_title": "입고",
-  "rc_po_number": "발주 번호"
+  "rc_po_number": "발주 번호",
+  "select_no_options": "검색 결과 없음"
 }

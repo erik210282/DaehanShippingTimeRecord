@@ -624,5 +624,6 @@
   "inv_filter_to": "Hasta",
   "pl_hours": "Turno de Referencia",
   "rc_title": "Recepción",
-  "rc_po_number": "Número de PO"
+  "rc_po_number": "Número de PO",
+  "select_no_options": "Sin Resultados"
 }
