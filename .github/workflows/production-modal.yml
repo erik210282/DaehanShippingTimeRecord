@@ -55,5 +55,7 @@ jobs:
       - run: node tests/production-capture.test.mjs
       - run: node tests/production-modal.test.mjs
       - run: node tests/bom-existing-ui.test.mjs
+      - run: node tests/multiple-part-selection.test.mjs
+      - run: node tests/inventory-navigation-ui.test.mjs
       - run: npm run build
 
