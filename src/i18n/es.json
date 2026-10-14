@@ -622,5 +622,7 @@
   "multi_part_hint": "Selecciona las partes y captura una cantidad para cada una.",
   "inv_filter_from": "Desde",
   "inv_filter_to": "Hasta",
-  "pl_hours": "Turno de Referencia"
+  "pl_hours": "Turno de Referencia",
+  "rc_title": "Recepción",
+  "rc_po_number": "Número de PO"
 }

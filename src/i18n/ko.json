@@ -622,5 +622,7 @@
   "multi_part_hint": "부품을 선택하고 각 부품의 수량을 입력하세요.",
   "inv_filter_from": "시작일",
   "inv_filter_to": "종료일",
-  "pl_hours": "기준 근무"
+  "pl_hours": "기준 근무",
+  "rc_title": "입고",
+  "rc_po_number": "발주 번호"
 }

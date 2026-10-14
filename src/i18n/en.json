@@ -622,5 +622,7 @@
   "multi_part_hint": "Select parts and enter a quantity for each one.",
   "inv_filter_from": "From",
   "inv_filter_to": "To",
-  "pl_hours": "Reference Shift"
+  "pl_hours": "Reference Shift",
+  "rc_title": "Receiving",
+  "rc_po_number": "PO Number"
 }
