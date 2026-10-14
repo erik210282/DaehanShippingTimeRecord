@@ -16,9 +16,10 @@ try{
  let run={id:'run',station_code:'M-01',item_id:'item',started_at:new Date(now-2*3600000).toISOString(),latest_at:new Date(now).toISOString(),latest_quantity:140,pieces_per_hour:100,shift_hours:8,shift_target:750,period_quantity:140,period_at:new Date(now).toISOString(),warning_percent:90,critical_percent:75,expected_quantity:200,attainment:70,performance:'critical',overdue:false};
  let captured,machineGroup=false;
 
- let dailyCaptured,showReview=false,supplyCaptured;let supplyState={runs:[],materials:[],wip:[],loads:[],baselines:[]};
+ let dailyCaptured,showReview=false,showProgressDraft=false,supplyCaptured;let supplyState={runs:[],materials:[],wip:[],loads:[],baselines:[]};
  await page.route('**/rest/v1/**',route=>{
   const table=new URL(route.request().url()).pathname.split('/').pop();
+  if(table==='production_station_reports'&&showProgressDraft)return route.fulfill({json:[{id:'progress-draft',live_run_id:'run',capture_group_id:'session',production_date:'2026-10-13',station_code:'M-01',item_id:'item',created_by:'other-leader',status:'draft',progress_draft:true,machine_quantity:474,good_quantity:474,packed_quantity:0,scrap_quantity:null,rework_quantity:null,full_boxes:null,people:null,elapsed_minutes:630,machine_minutes:630,start_time:'06:00',end_time:'16:30',downtime_events:[],report_mode:'production',rework_completed:true}]});
   if(table==='production_supply_snapshot')return route.fulfill({json:supplyState});
   if(table==='production_supply_action'){supplyCaptured=route.request().postDataJSON();return route.fulfill({json:{saved:true}});}
   if(table==='production_station_action'){dailyCaptured=route.request().postDataJSON();return route.fulfill({json:'group'});}
@@ -236,6 +237,19 @@ try{
  await page.getByRole('button',{name:'Station Raw Materials',exact:true}).click();
  await page.getByText('Unpacked product · carryover',{exact:true}).waitFor();
  await page.getByRole('cell',{name:'25',exact:true}).waitFor();
+
+ showReview=false;showProgressDraft=true;
+ await page.goto('http://127.0.0.1:4174/'+name+'.html?daily=1&production=records');
+ await page.getByRole('button',{name:'Complete Report',exact:true}).first().click();
+ await page.getByLabel('People at the station',{exact:true}).waitFor();
+ assert.equal(await page.getByLabel('People at the station',{exact:true}).inputValue(),'');
+ assert.equal(await page.getByLabel('Total machine output (pcs)',{exact:true}).inputValue(),'474');
+ assert.equal(await page.getByLabel('End time',{exact:true}).inputValue(),'16:30');
+ await page.getByLabel('People at the station',{exact:true}).fill('2');
+ for(const label of ['Scrap (pcs)','Reworked pieces (pcs)','Full boxes'])await page.getByLabel(label,{exact:true}).fill('0');
+ await page.getByRole('button',{name:'Save draft',exact:true}).click();
+ await page.locator('.production-modal').waitFor({state:'hidden'});
+ assert.equal(dailyCaptured.p_data.products[0].id,'progress-draft','Completion reuses the existing draft');
 
  console.log('PASS: opaque edit/delete/capture/target dialogs, visible dropdown arrows, dashboard at desktop/phone widths, checkpoint capture, centered error above form, values retained after error, successful server-time report');
 }finally{await browser?.close();server.kill();fs.rmSync(name+'.html',{force:true});fs.rmSync(name+'.jsx',{force:true});}
