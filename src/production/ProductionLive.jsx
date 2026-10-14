@@ -49,7 +49,7 @@ export function MachineLineCard({group,items,station,t,format,checkpoints,report
  return <article className={'live-line live-machine live-'+performance}>
  <div className="live-card-heading"><h3>{[group.station_code,station?.name].filter(Boolean).join(' · ')}</h3></div>
  <dl className="live-machine-shared">{shared.map(row=><div key={row.key}>{row.key==='ps_contributors'?<p className="inv-muted">{t(row.key)}: {row.values[0]}</p>:<><dt>{t(row.label||row.key)}</dt><dd>{row.values[0]}</dd></>}</div>)}</dl>
- <div className="table-wrap"><table className="table live-machine-table"><thead><tr><th>{t('inv_part')}</th>{runs.map(r=><th key={r.id}>{partLabel(items.find(i=>i.id===r.item_id))}<small>{new Date(r.started_at).toLocaleString(i18n.language)}</small></th>)}</tr></thead><tbody>
+ <div className="table-wrap"><table className="table live-machine-table"><thead><tr><th>{t('inv_part')}</th>{runs.map(r=><th key={r.id}><span>{partLabel(items.find(i=>i.id===r.item_id))}</span><small>{new Date(r.started_at).toLocaleString(i18n.language)}</small></th>)}</tr></thead><tbody>
  {different.map(row=><tr key={row.key}><th scope="row">{t(row.label||row.key)}</th>{row.values.map((value,i)=><td key={runs[i].id}>{value}</td>)}</tr>)}
  <tr><th scope="row">{t('actions')}</th>{runs.map(r=><td key={r.id}><div className="live-row-actions">{r.can_manage!==false&&<><BtnEditDark onClick={()=>onEdit(r)}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={()=>onDelete(r)}>{t('delete')}</BtnDanger></>}</div></td>)}</tr>
  </tbody></table></div>
