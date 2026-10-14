@@ -28,7 +28,7 @@ try{
 
  await page.route('**/rest/v1/rpc/production_live_*',async route=>{
  const url=route.request().url();
- if(url.endsWith('production_live_snapshot_range'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',target_8h:800,target_10h:1200,warning_percent:90,critical_percent:75},{item_id:'item2',target_8h:400,target_10h:500,warning_percent:90,critical_percent:75}],runs:machineGroup?[{...run,session_id:'session'},{...run,id:'run2',item_id:'item2',session_id:'session'}]:[run],checkpoints:[{id:'cp',run_id:'run',recorded_at:run.period_at,quantity:run.period_quantity,created_by:'test-user'}]}});
+ if(url.endsWith('production_live_snapshot_range'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',target_8h:800,target_10h:1200,warning_percent:90,critical_percent:75},{item_id:'item2',target_8h:400,target_10h:500,warning_percent:90,critical_percent:75}],runs:machineGroup?[{...run,attainment:70,session_id:'session'},{...run,id:'run2',item_id:'item2',attainment:95,session_id:'session'}]:[run],checkpoints:[{id:'cp',run_id:'run',recorded_at:run.period_at,quantity:run.period_quantity,created_by:'test-user'}]}});
  const body=route.request().postDataJSON();captured=body;
  if(body.p_action==='finish_batch')run={...run,closed_at:new Date().toISOString()};
  if(body.p_action.startsWith('delete_')||body.p_action.startsWith('restore_'))return route.fulfill({json:{saved:true}});
@@ -143,6 +143,11 @@ try{
  assert.equal(await page.locator('.live-machine').count(),1,'One card per machine');
  await page.getByText('PN-100 · Test product',{exact:true}).first().waitFor();
  await page.getByText('PN-200 · Second product',{exact:true}).first().waitFor();
+ assert.equal(await page.locator('.live-machine-shared').count(),0,'Every metric stays in the same table position');
+ const columnColors=await page.locator('.live-machine-table tr').evaluateAll(rows=>rows.map(row=>Array.from(row.children).slice(1).map(cell=>getComputedStyle(cell).backgroundColor)));
+ assert.ok(columnColors.every(colors=>colors[0]==='rgb(255, 241, 242)'&&colors[1]==='rgb(240, 253, 244)'),JSON.stringify(columnColors));
+ assert.ok(await page.locator('.live-product-attainment strong').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize))>=32,'Attainment percentage must stand out');
+ 
  await page.getByRole('button',{name:'End session',exact:true}).first().click();
  assert.equal(await page.getByLabel('Finish time',{exact:true}).inputValue(),'');
  await page.getByLabel('Finish date',{exact:true}).fill(new Date().toISOString().slice(0,10));
