@@ -41,17 +41,17 @@ export function adjustedTarget(run,at=new Date()){
  return Number(run.shift_target||0)/effectiveShiftHours(run.shift_hours)*runHours(run,at).working;
 }
 // Reporting cadence pauses for lunch; other downtime affects rates, not the clock labels.
-export function reportingCuts(run,end){
+export function reportingCuts(run,end,closed=true){
  const start=new Date(run.started_at).getTime(),last=new Date(end).getTime();
  const lunches=(run.downtime_events||[]).filter(d=>d.type==='lunch').map(d=>[new Date(d.start_at).getTime(),new Date(d.end_at).getTime()]).sort((a,b)=>a[0]-b[0]);
  const cuts=[start];let previous=start;
  while(previous<last){
   let next=previous+7200000;
   for(const [a,b] of lunches)if(a>=previous&&a<next)next+=Math.max(0,b-Math.max(a,previous));
-  if(next>=last)break;
+  if(next>=last){if(!closed)cuts.push(next);break;}
   cuts.push(next);previous=next;
  }
- if(last>start)cuts.push(last);
+ if(closed&&last>start)cuts.push(last);
  return cuts;
 }
 export function dashboardTable(runs,checkpoints,day,now=new Date()){
@@ -61,7 +61,7 @@ export function dashboardTable(runs,checkpoints,day,now=new Date()){
   const reports=checkpoints.filter(c=>c.run_id===run.id&&new Date(c.recorded_at)<dayEnd).sort((a,b)=>new Date(a.recorded_at)-new Date(b.recorded_at)||a.id.localeCompare(b.id));
   const latest=reports.at(-1),at=latest?.recorded_at||run.period_at||run.latest_at;
   const end=Math.min(dayEnd,run.closed_at?new Date(run.closed_at).getTime():Math.max(new Date(at||run.started_at).getTime(),Math.min(now.getTime(),dayEnd)));
-  return {run,reports,at,end,cuts:reportingCuts(run,end).filter(at=>at>=dayStart&&at<=dayEnd)};
+  return {run,reports,at,end,cuts:reportingCuts(run,end,!!run.closed_at).filter(at=>at>=dayStart&&at<=dayEnd)};
  });
  const columns=[...new Set(scheduled.flatMap(row=>row.cuts))].sort((a,b)=>a-b).map(at=>new Date(at));
  const rows=scheduled.map(({run,reports,at,end,cuts})=>{
