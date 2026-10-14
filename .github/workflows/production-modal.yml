@@ -48,6 +48,7 @@ jobs:
       - run: node tests/production-supply.test.mjs
       - run: node tests/production-progress.test.mjs
       - run: node tests/production-live.test.mjs
+      - run: node tests/production-machine-cards.test.mjs
       - run: node tests/role-access.test.mjs
       - run: node tests/role-access-ui.test.mjs
       - run: node tests/production-rework.test.mjs
