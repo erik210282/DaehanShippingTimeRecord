@@ -13,7 +13,7 @@ const source=fs.readFileSync('src/pages/Resumen.jsx','utf8')
  .replaceAll('from "../utils/','from "./src/utils/');
 fs.writeFileSync(files[0],'<html><body><div id="root"></div><script type="module" src="/'+fixture+'.jsx"></script></body></html>');
 fs.writeFileSync(files[2],source);
-fs.writeFileSync(files[1],`import React from 'react';import {createRoot} from 'react-dom/client';import i18n from 'i18next';import {initReactI18next} from 'react-i18next';import Resumen from './${fixture}-page.jsx';
+fs.writeFileSync(files[1],`import React from 'react';import {createRoot} from 'react-dom/client';import i18n from 'i18next';import {initReactI18next} from 'react-i18next';
 i18n.use(initReactI18next).init({lng:'en',resources:{en:{translation:{loading:'Loading',buscaridx:'Search IDX',shipping_verified:'Verified',shipping_pending_verification:'Pending'}},es:{translation:{loading:'Cargando',buscaridx:'Buscar IDX'}}}});
 window.i18n=i18n;window.requests=[];window.catalogRequests=[];
 const capture={etiqueta_inicio:'001234',etiqueta_fin:'005678',trailer:'T',trailer_fin:'T',puerta:'D',puerta_fin:'D'};
@@ -21,12 +21,13 @@ window.summaryClient={
 from(table){window.catalogRequests.push(table);return {select(){return Promise.resolve({data:table==='actividades'?[{id:'load',nombre:'load'}]:table==='productos'?[{id:'part',nombre:'Widget',part_number:'PN-1'}]:[]});}};},
 async rpc(name,args){window.requests.push({name,args});const idx=args.p_idx||String(3000-args.p_page);await new Promise(r=>setTimeout(r,args.p_idx==='slow'?800:80));if(args.p_idx==='error')return {error:{message:'Test failure'}};return {data:{total:60,page:args.p_page,activities:[{id:'a',idx,estado:'finalizada',actividad:'load',hora_inicio:'2026-10-14T06:00:00Z',createdAt:'2026-10-14T06:00:00Z',productos:[{producto:'part',cantidad:10}],operadores:[],duracion:10,pausa_total:0,notas:'Latest note'}],captures:{a:capture}}};}
 };
+const {default:Resumen}=await import('./${fixture}-page.jsx');
 createRoot(document.getElementById('root')).render(<Resumen/>);`);
-const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','4173'],{stdio:'ignore'});
+const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','4173'],{stdio:'ignore',env:{...process.env,VITE_SUPABASE_URL:'https://summary-fixture.supabase.co',VITE_SUPABASE_ANON_KEY:'fixture-key'}});
 let browser;
 try{
  for(let i=0;i<100;i++){try{if((await fetch('http://127.0.0.1:4173/'+files[0])).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
- browser=await chromium.launch();const page=await browser.newPage();await page.goto('http://127.0.0.1:4173/'+files[0]);
+ browser=await chromium.launch();const page=await browser.newPage();page.on('pageerror',error=>console.error(error));await page.goto('http://127.0.0.1:4173/'+files[0]);
  await page.getByRole('cell',{name:'2999',exact:true}).waitFor();
  assert.equal(await page.evaluate(()=>window.requests.length),1,'One page request even when catalogs settle');
  assert.deepEqual(await page.evaluate(()=>window.catalogRequests.sort()),['actividades','operadores','productos']);
