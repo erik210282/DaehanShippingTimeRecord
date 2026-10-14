@@ -45,7 +45,7 @@ export default function Receiving({ access }) {
   const allowed = receiver || qualityAccess;
   const manage = access.admin || access.memberships.some(m => m.department === 'receiving' && ['supervisor','lider'].includes(m.role));
   const supervisor = access.admin || access.memberships.some(m => m.department === 'receiving' && m.role === 'supervisor');
-  const fmt = value => number(value).toLocaleString(i18n.language, { maximumFractionDigits: 2 });
+  const fmt = value => number(value).toLocaleString('en-US',{ maximumFractionDigits: 2 });
   const date = value => value ? new Date(value).toLocaleString(i18n.language) : '—';
   const refresh = useCallback(async () => {
     if (!allowed) { setLoading(false); return; }

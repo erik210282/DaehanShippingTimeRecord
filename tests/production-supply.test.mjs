@@ -22,3 +22,6 @@ assert.equal(edit.live_run_id,'r');assert.equal(edit.start_time,new Date('2026-1
 assert.equal(shiftCapture(edit,'',[],()=> 'row').live_run_id,null);
 row=supplyRows({...base,materials:[{...base.materials[0],tracked_at:at.toISOString()}]},at)[0];assert.equal(row.estimated,1000,'First physical loading excludes elapsed time before loading');
 console.log('Station forecasts, handoff attribution and shift-linked capture passed');
+
+const handoff=shiftCapture({id:'new'},'session',[{id:'r',session_id:'session',station_code:'M',item_id:'p',started_at:'2026-10-13T13:00:00Z',closed_at:'2026-10-13T23:30:00Z',latest_quantity:474,latest_at:'2026-10-13T23:30:00Z'}],()=> 'new-row',[{id:'existing',live_run_id:'r',item_id:'p',status:'draft',capture_group_id:'session',people:null,machine_quantity:474,scrap_quantity:null,downtime_events:[]}]);
+assert.equal(handoff.id,'existing');assert.equal(handoff.products[0].id,'existing');assert.equal(handoff.people,'');assert.equal(handoff.scrap_quantity,'');assert.equal(handoff.machine_quantity,474);

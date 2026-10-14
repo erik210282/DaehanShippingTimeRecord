@@ -26,16 +26,20 @@ export function supplyRows(snapshot,now=new Date()){
   return {...m,confirmed,pending,estimated,rate,minutes,low,missingRecipe};
  });
 }
-export function shiftCapture(edit,sessionId,runs,newId){
- const siblings=runs.filter(r=>r.session_id===sessionId);if(!siblings.length)return {...edit,shift_session_id:'',live_run_id:null,products:edit.products?.map(p=>({...p,live_run_id:null}))};
+export function shiftCapture(edit,sessionId,runs,newId,reports=[]){
+ const siblings=runs.filter(r=>(r.session_id||r.id)===sessionId);if(!siblings.length)return {...edit,shift_session_id:'',live_run_id:null,products:edit.products?.map(p=>({...p,live_run_id:null}))};
  const first=siblings[0],date=new Date(first.started_at),end=first.closed_at?new Date(first.closed_at):null;
  const day=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
- const previous=edit.products||[edit];
- const products=siblings.map(r=>({...previous.find(p=>p.item_id===r.item_id),id:previous.find(p=>p.item_id===r.item_id)?.id||newId(),item_id:r.item_id,live_run_id:r.id,machine_quantity:previous.find(p=>p.item_id===r.item_id)?.machine_quantity??'',scrap_quantity:previous.find(p=>p.item_id===r.item_id)?.scrap_quantity??'',rework_quantity:previous.find(p=>p.item_id===r.item_id)?.rework_quantity??'',full_boxes:previous.find(p=>p.item_id===r.item_id)?.full_boxes??'',pallets:'0',pieces_per_box:0,note:'',rework_completed:true,catalog_packing:false}));
- return {...edit,...products[0],products,shift_session_id:sessionId,station_code:first.station_code,production_date:day(date),start_time:date.toTimeString().slice(0,5),end_time:end?end.toTimeString().slice(0,5):'',ends_next_day:end?day(date)!==day(end):false};
+ const draft=reports.find(r=>r.live_run_id===first.id&&r.status==='draft');
+ const products=siblings.map(r=>{
+  const saved=(edit.products||[edit]).find(p=>p.live_run_id===r.id)||reports.find(p=>p.live_run_id===r.id&&p.status==='draft');
+  return {...saved,id:saved?.id||newId(),item_id:r.item_id,live_run_id:r.id,machine_quantity:saved?.machine_quantity??(r.latest_at?r.latest_quantity:''),scrap_quantity:saved?.scrap_quantity??'',rework_quantity:saved?.rework_quantity??'',full_boxes:saved?.full_boxes??'',pallets:saved?.pallets??'0',pieces_per_box:saved?.pieces_per_box??0,note:saved?.note??'',rework_completed:saved?.rework_completed??true,catalog_packing:saved?.catalog_packing??false};
+ });
+ const downtime_events=draft?.downtime_events||(first.downtime_events||[]).map(d=>({...d,start_time:new Date(d.start_at).toTimeString().slice(0,5),end_time:new Date(d.end_at).toTimeString().slice(0,5),minutes:String((new Date(d.end_at)-new Date(d.start_at))/60000)}));
+ return {...edit,...draft,...products[0],products,shift_session_id:sessionId,group_id:sessionId,capture_group_id:draft?.capture_group_id||sessionId,station_code:first.station_code,production_date:day(date),start_time:date.toTimeString().slice(0,5),end_time:end?end.toTimeString().slice(0,5):'',ends_next_day:end?day(date)!==day(end):false,people:draft?.people??'',report_mode:'production',downtime_events};
 }
 export function shiftOptions(runs,items){
- const seen=new Set();return runs.filter(r=>{if(seen.has(r.session_id))return false;seen.add(r.session_id);return true;}).map(r=>({value:r.session_id,label:r.station_code+' · '+new Date(r.started_at).toLocaleString()+' · '+runs.filter(p=>p.session_id===r.session_id).map(p=>partLabel(items.find(i=>i.id===p.item_id))).join(' / ')}));
+ const seen=new Set();return runs.filter(r=>{if(seen.has(r.session_id||r.id))return false;seen.add(r.session_id||r.id);return true;}).map(r=>({value:r.session_id||r.id,label:r.station_code+' · '+new Date(r.started_at).toLocaleString()+' · '+runs.filter(p=>p.session_id===r.session_id).map(p=>partLabel(items.find(i=>i.id===p.item_id))).join(' / ')}));
 }
 
 export function loadCounterRuns(data,edit){if(!edit||data.materials?.some(m=>m.station_code===edit.station_code&&m.item_id===edit.item_id))return [];return (data.runs||[]).filter(r=>!r.closed_at&&r.station_code===edit.station_code&&r.raw_recipe?.some(l=>l.item_id===edit.item_id));}

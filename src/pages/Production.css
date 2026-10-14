@@ -50,3 +50,5 @@
 
 .production-rework-dialog > form {display:flex;flex-direction:column;min-height:0;flex:1;}
 .production-rework-dialog .live-dialog-body {overflow-y:auto;min-height:0;border:0;}
+
+.production-pending-reports{margin:18px 0;padding:16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px}.production-pending-report{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:12px}.production-daily-table th:last-child,.production-daily-table td:last-child{position:sticky;right:0;background:#fff;box-shadow:-3px 0 5px #0f172a15;z-index:2}.production-daily-table th:last-child{z-index:4}

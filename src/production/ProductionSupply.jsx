@@ -22,7 +22,7 @@ export function ProductionSupplyAlerts({enabled,items=[],rows=[]}){
 }
 export default function ProductionSupply({items,stations,manage,mode,onCloseShift}){
  const {t}=useTranslation(),{data,rows,ready,error,setError,refresh}=useSupply(),[edit,setEdit]=useState(null),[busy,setBusy]=useState(false),lock=useRef(false);
- const fmt=n=>Number(n||0).toLocaleString(i18n.language,{maximumFractionDigits:1}),label=id=>partLabel(items.find(i=>i.id===id));
+ const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:1}),label=id=>partLabel(items.find(i=>i.id===id));
  const counters=loadCounterRuns(data,edit);
  async function deleteShift(r){if(lock.current||!window.confirm(t('pl_delete_confirm')))return;lock.current=true;setBusy(true);try{const {error:failure}=await supabase.rpc('production_delete_shift',{p_session:r.session_id||r.id});if(failure)throw failure;await refresh();}catch(e){setError(e.message);}finally{lock.current=false;setBusy(false);}}
  async function save(e){e.preventDefault();if(lock.current)return;const payload=mode==='shifts'?{id:edit.id,started_at:localStart(edit.date,edit.time),shift_hours:edit.shift_hours,stations:edit.stations.map(({station_code,item_ids})=>({station_code,item_ids}))}:{...edit,baselines:counters.map(r=>({run_id:r.id,quantity:edit?.counters?.[r.id]??''}))};
