@@ -73,3 +73,22 @@
 .production-parameter-dialog .catalog-field input{max-width:none!important}
 .production-parameter-dialog .live-dialog-body>button{margin:2px 0 6px;min-height:42px}
 @media(max-width:600px){.live-machine-shared{grid-template-columns:1fr}.production-parameter-dialog .production-section{padding:18px}}
+
+/* Every machine uses the same metric rows; product status colors cover full columns. */
+.live-machine .table-wrap,.live-machine-table{background:transparent!important}
+.live-machine-table th,.live-machine-table td{background:transparent!important;border-color:#cbd5e180!important}
+.live-machine-table .live-product.live-on_track{background:#f0fdf4!important}
+.live-machine-table .live-product.live-warning{background:#fffbeb!important}
+.live-machine-table .live-product.live-critical{background:#fff1f2!important}
+.live-machine-table .live-product.live-pending{background:#f8fafc!important}
+.live-product-attainment strong{display:block;font-size:36px;line-height:1.15;font-weight:800;margin-bottom:14px}
+.live-product-attainment.live-on_track strong{color:#15803d}
+.live-product-attainment.live-warning strong{color:#a16207}
+.live-product-attainment.live-critical strong{color:#b91c1c}
+.live-product-attainment.live-pending strong{color:#64748b}
+.live-machine-table .live-on_track .live-progress>div{background:#16a34a}
+.live-machine-table .live-warning .live-progress>div{background:#d97706}
+.live-machine-table .live-critical .live-progress>div{background:#dc2626}
+.live-machine-table .live-pending .live-progress>div{background:#64748b}
+.live-machine-table .live-progress{min-width:140px;height:8px}
+.live-machine-table td,.live-machine-table th{width:auto!important}

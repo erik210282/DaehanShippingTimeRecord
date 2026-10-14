@@ -56,24 +56,32 @@ export function reportingCuts(run,end,closed=true){
 }
 export function dashboardTable(runs,checkpoints,day,now=new Date()){
  const range=dayRange(day);if(!range||!runs.length)return {columns:[],rows:[]};
- const dayStart=new Date(range.p_from).getTime(),dayEnd=new Date(range.p_to).getTime();
- const scheduled=runs.map(run=>{
-  const reports=checkpoints.filter(c=>c.run_id===run.id&&new Date(c.recorded_at)<dayEnd).sort((a,b)=>new Date(a.recorded_at)-new Date(b.recorded_at)||a.id.localeCompare(b.id));
+ const dayEnd=new Date(range.p_to).getTime();
+ const rows=runs.map(run=>{
+  const start=new Date(run.started_at).getTime();
+  const reports=checkpoints.filter(c=>c.run_id===run.id&&new Date(c.recorded_at)>=start&&new Date(c.recorded_at)<dayEnd&&new Date(c.recorded_at)<=now).sort((a,b)=>new Date(a.recorded_at)-new Date(b.recorded_at)||String(a.id).localeCompare(String(b.id)));
+  const initial=reports.filter(c=>new Date(c.recorded_at).getTime()===start).at(-1),captures=reports.filter(c=>new Date(c.recorded_at).getTime()>start);
   const latest=reports.at(-1),at=latest?.recorded_at||run.period_at||run.latest_at;
   const end=Math.min(dayEnd,run.closed_at?new Date(run.closed_at).getTime():Math.max(new Date(at||run.started_at).getTime(),Math.min(now.getTime(),dayEnd)));
-  return {run,reports,at,end,cuts:reportingCuts(run,end,!!run.closed_at).filter(at=>at>=dayStart&&at<=dayEnd)};
+  const quantity=Number(latest?.quantity??run.period_quantity??run.latest_quantity??0);
+  const measuredAt=at?new Date(at):new Date(end),measured=runHours(run,measuredAt),expected=adjustedTarget(run,measuredAt),hours=runHours(run,new Date(end));
+  // Ordinal positions preserve every capture, even when several fall in the same time window.
+  const scheduleEnd=start+(captures.length+2)*7200000+(run.downtime_events||[]).filter(d=>d.type==='lunch').reduce((sum,d)=>sum+Math.max(0,new Date(d.end_at)-new Date(d.start_at)),0);
+  const schedule=reportingCuts(run,scheduleEnd,false);
+  return {run,quantity,efficiency:expected>0?quantity*100/expected:0,average:measured.working>0?quantity/measured.working:0,target:Number(run.shift_target||0)/effectiveShiftHours(run.shift_hours),expected,...hours,
+   cells:[Number(initial?.quantity??0),...captures.map(c=>Number(c.quantity))],
+   recordedTimes:[new Date(start),...captures.map(c=>new Date(c.recorded_at))],
+   scheduledTimes:schedule.map(at=>new Date(at))};
  });
- const columns=[...new Set(scheduled.flatMap(row=>row.cuts))].sort((a,b)=>a-b).map(at=>new Date(at));
- const rows=scheduled.map(({run,reports,at,end,cuts})=>{
-  const latest=reports.at(-1),quantity=Number(latest?.quantity??run.period_quantity??run.latest_quantity??0);
-  const measuredAt=at?new Date(at):new Date(end),measured=runHours(run,measuredAt);
-  const expected=adjustedTarget(run,measuredAt),hours=runHours(run,new Date(end));
-  const values=new Map();
-  for(const report of reports){
-   const cut=cuts.find(cut=>cut>=new Date(report.recorded_at).getTime());
-   if(cut!==undefined)values.set(cut,Number(report.quantity));
-  }
-  return {run,quantity,efficiency:expected>0?quantity*100/expected:0,average:measured.working>0?quantity/measured.working:0,target:Number(run.shift_target||0)/effectiveShiftHours(run.shift_hours),expected,...hours,cells:columns.map(at=>values.get(at.getTime())??null)};
+ const count=Math.max(...rows.map(row=>row.cells.length));
+ const columns=Array.from({length:count},(_,index)=>{
+  const times=rows.map(row=>row.scheduledTimes[index]?.getTime());
+  return {index,time:times.every(at=>at===times[0])&&times[0]!==undefined?new Date(times[0]):null};
  });
+ for(const row of rows)while(row.cells.length<count)row.cells.push(null);
  return {columns,rows};
+}
+export function dashboardColumnLabel(column,t,language){
+ const label=t(column.index===0?'pl_report_start':column.index===1?'pl_first_report':'pl_numbered_report',{number:column.index});
+ return label+(column.time?' ('+column.time.toLocaleTimeString(language,{hour:'numeric',minute:'2-digit'})+')':'');
 }
