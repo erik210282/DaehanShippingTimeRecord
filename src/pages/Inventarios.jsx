@@ -68,7 +68,7 @@ const choose = (items, category) => items.filter(i => i.active && (!category || 
 export default function Inventarios({ access,permissionDepartment='inventory' }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language?.startsWith('ko') ? 'ko-KR' : i18n.language?.startsWith('en') ? 'en-US' : 'es-MX';
-  const fmt = value => n(value).toLocaleString(locale, { maximumFractionDigits: 3 });
+  const fmt = value => n(value).toLocaleString('en-US',{ maximumFractionDigits: 3 });
   const sectionLabel = key => t(sections.find(section => section[0] === key)?.[1] || 'inv_overview');
   const areaLabel = area => t(`inv_area_${area}`);
   const [tab, setTab] = usePageSection(permissionDepartment, 'overview', sections.map(([key])=>key));

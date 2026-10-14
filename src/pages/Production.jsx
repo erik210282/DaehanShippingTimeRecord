@@ -98,7 +98,7 @@ export default function Production({access}) {
 
  const lock=useRef(false),live=useRef(true),request=useRef(0),form=useRef(null);
 
- const fmt=value=>Number(value||0).toLocaleString(lang.language,{maximumFractionDigits:3});
+ const fmt=value=>Number(value||0).toLocaleString('en-US',{maximumFractionDigits:3});
 
  const refresh=useCallback(async()=>{
 
@@ -141,6 +141,7 @@ export default function Production({access}) {
  const packingName=r=>r.packing_box_name||packingLabel(profileFor(r))||(['returnable','expendable'].includes(r.packaging_type)?t('pr_'+r.packaging_type):'');
 
  const editable=r=>r.status==='draft';
+ const completeReport=r=>{setReview(null);setError('');setEdit({...openCapture(r,data.reports),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})});};
 
  const filtered=useMemo(()=>data.reports.filter(r=>{
 
@@ -170,7 +171,7 @@ export default function Production({access}) {
 
   try {
 
-   const payload=type==='save'||type==='submit'?Object.fromEntries(Object.entries(r).filter(([k])=>!['products','created_by','created_at','updated_at','reviewed_by','reviewed_at','inventory_report_id','good_quantity','packed_quantity','elapsed_minutes','bom_id','status'].includes(k))):{id:r.id};
+   const payload=type==='save'||type==='submit'?{timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,...Object.fromEntries(Object.entries(r).filter(([k])=>!['products','created_by','created_at','updated_at','reviewed_by','reviewed_at','inventory_report_id','good_quantity','packed_quantity','elapsed_minutes','bom_id','status'].includes(k)))}:{id:r.id};
 
    if(type==='save'||type==='submit'){
 
@@ -214,7 +215,7 @@ export default function Production({access}) {
 
     if(problem){setEdit(switchProduct(edit,row.item_id));throw Error(problem);}
 
-    const payload=Object.fromEntries(Object.entries(r).filter(([k])=>!['products','created_by','created_at','updated_at','reviewed_by','reviewed_at','inventory_report_id','good_quantity','packed_quantity','elapsed_minutes','bom_id','status','packing_item_id','packing_box_name'].includes(k)));
+    const payload={timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,...Object.fromEntries(Object.entries(r).filter(([k])=>!['products','created_by','created_at','updated_at','reviewed_by','reviewed_at','inventory_report_id','good_quantity','packed_quantity','elapsed_minutes','bom_id','status','packing_item_id','packing_box_name'].includes(k)))};
 
     for(const k of ['machine_minutes','downtime_minutes','break_count','break_minutes','people','machine_quantity','scrap_quantity','rework_quantity','full_boxes','pallets'])payload[k]=Number(payload[k]);
 
@@ -343,19 +344,20 @@ export default function Production({access}) {
 
    <p className="inv-muted">{t('pr_workflow_hint')}</p>
 
+   {tab==='records'&&!loading&&filtered.some(r=>r.progress_draft&&r.status==='draft')&&<div className="production-pending-reports"><h3>{t('ps_pending_daily')}</h3>{filtered.filter((r,index,rows)=>r.progress_draft&&r.status==='draft'&&rows.findIndex(other=>(other.capture_group_id||other.id)===(r.capture_group_id||r.id))===index).map(r=><div className="production-pending-report" key={r.id}><span>{r.production_date} · {r.station_code}</span><BtnPrimary onClick={()=>completeReport(r)}>{t('ps_complete_daily')}</BtnPrimary></div>)}</div>}
    {loading?<p>{t('loading')}</p>:tab==='summary'?<>
 
     <p className="inv-muted">{t('pr_summary_hint')}</p><div className="production-metrics">{[['pr_machine_quantity',totals.machine_quantity],['pr_good',totals.good_quantity],['pr_scrap',totals.scrap_quantity],['pr_rework',totals.rework_quantity],['pr_boxes',totals.full_boxes],['pr_labor_hours',totals.labor]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
 
     <div className="table-wrap"><table className="table"><thead><tr>{['inv_station_code','name','pr_machine_quantity','pr_scrap','pr_rework','pr_boxes','pr_machine_minutes','pr_downtime','pr_labor_hours'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>{byStation.map(s=><tr key={s.code}><td>{s.code}</td><td>{data.stations.find(x=>x.code===s.code)?.name}</td>{['pieces','scrap','rework','boxes','machine','downtime','labor'].map(k=><td key={k}>{fmt(s[k])}</td>)}</tr>)}</tbody></table></div>
 
-   </>:<div className="table-wrap catalog-table-scroll"><table className="table"><thead><tr>{['pr_date','inv_station_code','inv_part','name','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_packing_type','pr_machine_minutes','pr_downtime','pr_people','pr_total_hours','pr_labor_hours','pr_turns','status','actions'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>
+   </>:<div className="table-wrap catalog-table-scroll"><table className="table production-daily-table"><thead><tr>{['pr_date','inv_station_code','inv_part','name','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_packing_type','pr_machine_minutes','pr_downtime','pr_people','pr_total_hours','pr_labor_hours','pr_turns','status','actions'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>
 
     {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))-1)*pageSize,Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))*pageSize).map(r=><tr key={r.id}><td>{r.production_date}</td><td title={stationFor(r)?.name}>{r.station_code}</td><td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{packingName(r)||'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td><td><div className="production-row-actions">
 
      <BtnSecondary disabled={busy} onClick={()=>{setError('');setConfirming(false);setReview(r);}}>{t('pr_details')}</BtnSecondary>
 
-     {editable(r)&&<><BtnEditDark disabled={busy} onClick={()=>{setError('');setEdit({...openCapture(r,data.reports),start_time:String(r.start_time||'').slice(0,5),end_time:String(r.end_time||'').slice(0,5),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})});}}>{t('edit')}</BtnEditDark>{(manage||r.created_by===access.userId)&&<BtnDanger disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',r)}>{t('delete')}</BtnDanger>}</>}
+     {editable(r)&&<><BtnEditDark disabled={busy} onClick={()=>{setError('');setEdit({...openCapture(r,data.reports),start_time:String(r.start_time||'').slice(0,5),end_time:String(r.end_time||'').slice(0,5),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})});}}>{t(r.progress_draft?'ps_complete_daily':'edit')}</BtnEditDark>{(manage||r.created_by===access.userId)&&<BtnDanger disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',r)}>{t('delete')}</BtnDanger>}</>}
 
     </div></td></tr>)}
 
@@ -378,7 +380,7 @@ export default function Production({access}) {
 
    <CatalogSelect multi disabled={!!edit.created_at||!!edit.shift_session_id||!!edit.live_run_id} label={t('inv_part')} value={dailyProducts(edit).map(r=>r.item_id)} onChange={ids=>setEdit(current=>selectProducts(current,ids,()=>crypto.randomUUID()))} options={data.items.filter(i=>i.active&&['FG','SEMI'].includes(i.category)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
 
- <CatalogSelect label={t('ps_session')} disabled={!!edit.created_at} value={edit.shift_session_id||supply.data.runs.find(r=>r.id===edit.live_run_id)?.session_id||''} onChange={session=>setEdit(v=>shiftCapture(v,session,supply.data.runs,()=>crypto.randomUUID()))} options={[{value:'',label:t('ps_manual')},...shiftOptions(supply.data.runs,data.items)]}/>
+ <CatalogSelect label={t('ps_session')} disabled={!!edit.created_at} value={edit.shift_session_id||supply.data.runs.find(r=>r.id===edit.live_run_id)?.session_id||''} onChange={session=>setEdit(v=>shiftCapture(v,session,supply.data.runs,()=>crypto.randomUUID(),data.reports))} options={[{value:'',label:t('ps_manual')},...shiftOptions(supply.data.runs,data.items)]}/>
 
    <CatalogSelect label={t('pr_report_mode')} value={edit.report_mode} onChange={report_mode=>setEdit({...edit,report_mode})} options={['production','packing'].map(value=>({value,label:t('pr_mode_'+value)}))}/>
 
@@ -470,6 +472,7 @@ export default function Production({access}) {
 
   <div className="catalog-actions">
 
+   {review.status==='draft'&&<BtnPrimary disabled={busy} onClick={()=>completeReport(review)}>{t('ps_complete_daily')}</BtnPrimary>}
    {review.status==='submitted'&&supervisor&&<><BtnPrimary disabled={busy} onClick={()=>setConfirming(true)}>{t('pr_post_inventory')}</BtnPrimary><BtnSecondary disabled={busy} onClick={()=>action('return',review)}>{t('pr_return_draft')}</BtnSecondary></>}
 
    <BtnDanger style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} onClick={()=>{setReview(null);setConfirming(false);}}>{t('cancel')}</BtnDanger>

@@ -21,7 +21,7 @@ export default function PhysicalCounts({items,balances,counts,access,fileRows,sa
  const submitted=counts.filter(c=>c.status==='submitted'),reviewable=submitted.filter(c=>can(c.department,true));
  const pending=reviewable.length?reviewable:submitted,pendingDepartments=pending.length?['all']:[];
  const qty=id=>Number(balances.find(b=>b.item_id===id&&b.area===area)?.quantity||0);
- const fmt=v=>Number(v).toLocaleString(i18n.language,{maximumFractionDigits:6});
+ const fmt=v=>Number(v).toLocaleString('en-US',{maximumFractionDigits:6});
  const category=area==='WIP'?'SEMI':area;
  const countable=items.filter(i=>i.active&&(area==='HOLD'?balances.some(b=>b.item_id===i.id&&b.area==='HOLD'):(area==='WIP'?['FG','SEMI'].includes(i.category):i.category===category))&&(department==='inventory'||(area==='HOLD'?department==='quality':area==='WIP'?department==='production':i.responsible_department===department)));
  const entered=countable.filter(i=>physical[i.id]!==undefined&&physical[i.id]!=='');

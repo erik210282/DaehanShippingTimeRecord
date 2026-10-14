@@ -13,7 +13,7 @@ try{
  const page=await browser.newPage({viewport:{width:1280,height:720}});
  page.on('pageerror',error=>console.error('Browser error:',error.message));
  const now=Date.now();
- let run={id:'run',station_code:'M-01',item_id:'item',started_at:new Date(now-2*3600000).toISOString(),latest_at:new Date(now).toISOString(),latest_quantity:140,pieces_per_hour:100,shift_hours:8,shift_target:800,period_quantity:140,period_at:new Date(now).toISOString(),warning_percent:90,critical_percent:75,expected_quantity:200,attainment:70,performance:'critical',overdue:false};
+ let run={id:'run',station_code:'M-01',item_id:'item',started_at:new Date(now-2*3600000).toISOString(),latest_at:new Date(now).toISOString(),latest_quantity:140,pieces_per_hour:100,shift_hours:8,shift_target:750,period_quantity:140,period_at:new Date(now).toISOString(),warning_percent:90,critical_percent:75,expected_quantity:200,attainment:70,performance:'critical',overdue:false};
  let captured,machineGroup=false;
 
  let dailyCaptured,showReview=false,supplyCaptured;let supplyState={runs:[],materials:[],wip:[],loads:[],baselines:[]};

@@ -25,7 +25,7 @@ export default function InventoryReference({ mode }) {
   const isPending = r => ['unmatched_fg', 'unit_conflict', 'missing_count'].includes(r.status);
   const relevant = useMemo(() => rows.filter(r => mode === 'stations' || (mode === 'bom' ? r.status !== 'excluded' : r.details?.kind === (mode === 'semi' ? 'SEMI' : 'RAW'))), [rows, mode]);
   const visible = relevant.filter(r => (!pending || isPending(r)) && JSON.stringify(r).toLowerCase().includes(search.trim().toLowerCase()));
-  const fmt = v => v == null ? t('inv_ref_no_count') : Number(v).toLocaleString(i18n.language, { maximumFractionDigits: 6 });
+  const fmt = v => v == null ? t('inv_ref_no_count') : Number(v).toLocaleString('en-US',{ maximumFractionDigits: 6 });
   return <section className="inv-card">
     <h2>{t(mode === 'stations' ? 'inv_workstations' : 'inv_ref_title')}</h2>
     <p className="inv-muted">{t(mode === 'stations' ? 'inv_station_intro' : 'inv_ref_intro')}</p>

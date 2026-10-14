@@ -42,7 +42,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  const visible=rows.filter(r=>(!hideInactive||(r.active&&(stations||productFor(r)?.activo!==false)))&&(JSON.stringify(r).toLowerCase().includes(query)||(!stations&&nameFor(r).toLowerCase().includes(query))));
  useEffect(()=>{setPage(1);},[filter,hideInactive]);
  const totalPages=Math.max(1,Math.ceil(visible.length/pageSize)),currentPage=Math.min(page,totalPages);
- const fmt=value=>Number(value||0).toLocaleString(i18n.language,{maximumFractionDigits:6});
+ const fmt=value=>Number(value||0).toLocaleString('en-US',{maximumFractionDigits:6});
  async function perform(action){
   if(busy)return;setBusy(true);setError('');
   try{await action();await refresh();setEdit(null);}catch(e){setError(t(e.message,{defaultValue:e.message}));}finally{setBusy(false);}

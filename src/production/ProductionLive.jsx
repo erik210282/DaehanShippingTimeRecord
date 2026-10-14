@@ -1,4 +1,4 @@
-import {progressCapture,eventsInEditor,runHours,progressRate,dashboardTable,uphTarget,synchronizedTargets} from './progress.mjs';
+import {progressCapture,eventsInEditor,runHours,progressRate,adjustedTarget,dashboardTable,uphTarget,synchronizedTargets} from './progress.mjs';
 import {ProductionDowntimes} from '../components/ProductionCaptureFields';
 import {contributorNames} from './supply.mjs';
 import {registerSupply} from './supplyTranslations';
@@ -28,7 +28,7 @@ export function LiveLineCard({run,item,station,t,onCapture,onClose,onEdit,onDele
  <div className="live-attainment"><strong>{format(k.attainment)}%</strong><span>{t('pl_attainment')}</span></div>
  <div className="live-progress" role="progressbar" aria-label={t('pl_attainment')} aria-valuenow={Math.min(100,Math.round(k.attainment))} aria-valuemin={0} aria-valuemax={100}><div style={{width:Math.min(100,k.attainment)+'%'}}/></div>
  <dl className="live-card-metrics">{[['quantity',k.quantity],['expected',k.expected],['gap',k.gap],['actual_rate',k.rate]].map(([label,value])=><div key={label}><dt>{t('pl_'+label)}</dt><dd>{format(value)}</dd></div>)}</dl>
- <div className="live-card-meta"><span>{t('pl_running_hours')}: {format(hours.elapsed)}</span><span>{t('pl_shift')}: {run.shift_hours} h · {t('pl_shift_target')}: {format(run.shift_target)}</span><span>{t('pl_last')}: {k.at?new Date(k.at).toLocaleString(i18n.language):'—'}</span><span>{run.closed_at?t('pl_closed'):t('pl_active')}</span></div>
+ <div className="live-card-meta"><span>{t('pl_running_hours')}: {format(hours.elapsed)}</span><span>{t('pl_shift')}: {run.shift_hours} h · {t('pl_shift_target')}: {format(adjustedTarget(run,k.at||new Date()))}</span><span>{t('pl_last')}: {k.at?new Date(k.at).toLocaleString(i18n.language):'—'}</span><span>{run.closed_at?t('pl_closed'):t('pl_active')}</span></div>
  {<div className="live-row-actions">{!run.closed_at&&run.can_continue!==false&&<><BtnPrimary onClick={onCapture}>{t('pl_capture')}</BtnPrimary><BtnSecondary onClick={onClose}>{t('pl_close_run')}</BtnSecondary></>}{run.can_manage!==false&&<><BtnEditDark onClick={onEdit}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={onDelete}>{t('delete')}</BtnDanger></>}</div>}
  </article>;
 }
@@ -37,7 +37,7 @@ export default function ProductionLive({items,stations,supervisor,reporterName,r
  const live=useRef(true),lock=useRef(false),seq=useRef(0);
  const refresh=useCallback(async()=>{const range=dayRange(day);if(!range)throw Error('pl_start_invalid');const n=++seq.current;const s=await unwrap(supabase.rpc('production_live_snapshot_range',range));if(live.current&&n===seq.current){setSnapshot(s);setReady(true);}},[day]);
  useEffect(()=>{live.current=true;setReady(false);refresh().catch(e=>live.current&&setError(t(e.message,{defaultValue:t('pr_load_error')})));const off=subscribeUpdates(supabase,'production-live',['catalog_updates'],()=>refresh().catch(()=>{}));const timer=setInterval(()=>{if(document.visibilityState==='visible')refresh().catch(()=>{});},15000);const wake=()=>{if(document.visibilityState==='visible')refresh().catch(()=>{});};document.addEventListener('visibilitychange',wake);return()=>{live.current=false;++seq.current;clearInterval(timer);off();document.removeEventListener('visibilitychange',wake);};},[refresh,t]);
- const format=v=>Number(v||0).toLocaleString(i18n.language,{maximumFractionDigits:1});
+ const format=v=>Number(v||0).toLocaleString('en-US',{maximumFractionDigits:1});
  const runs=snapshot.runs.filter(r=>!filter||r.station_code===filter),active=runs.filter(r=>!r.closed_at);
  const reports=snapshot.checkpoints.filter(c=>runs.some(r=>r.id===c.run_id));
  const dashboard=dashboardTable(runs,reports,day);
