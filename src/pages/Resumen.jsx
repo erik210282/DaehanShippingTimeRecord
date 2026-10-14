@@ -1,10 +1,10 @@
 import {useLiveVersion} from '../useLiveVersion';
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../supabase/client";
 import { format } from "date-fns";
 import { DSInput, DSDate, BtnSecondary, TablePagination } from "../components/controls";
-import { fetchShippingCaptures, isShippingVerified, legacyShippingCapture } from "../utils/shippingValidation";
+import { isShippingVerified, legacyShippingCapture } from "../utils/shippingValidation";
 
 const SHIPPING_PHASES = ["stage", "label", "scan", "load"];
 const labelLastFour = (value) => String(value || "").match(/\d{4}$/)?.[0] || "—";
@@ -13,7 +13,11 @@ export default function Resumen() {
  const liveVersion=useLiveVersion('Resumen');
 
   const { t } = useTranslation();
-  const [resumenData, setResumenData] = useState([]);
+  const [result, setResult] = useState({ activities: [], captures: {}, total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState("");
+  const [search, setSearch] = useState("");
   const [filtroIdx, setFiltroIdx] = useState("");
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
@@ -43,99 +47,59 @@ export default function Resumen() {
     }
   };
 
+  // Catalogs load concurrently; an empty catalog must not block the table.
   useEffect(() => {
-    const cargarCatalogosYActividades = async () => {
-      // 1. Cargar actividades
-      const { data: actividades, error: errorActividades } = await supabase
-        .from("actividades")
-        .select("id, nombre");
-
-      if (errorActividades) {
-        return;
-      }
-
-      const actDict = {};
-      actividades?.forEach((a) => {
-        actDict[a.id] = a.nombre?.toLowerCase().trim();
-      });
-      setActividadesDict(actDict);
-
-      // 2. Cargar productos y operadores
-      const [{ data: productos, error: errorProductos }, { data: operadores, error: errorOperadores }] =
-        await Promise.all([
-           supabase.from("productos").select("id, nombre, part_number"),
-          supabase.from("operadores").select("id, nombre"),
-        ]);
-
-      if (errorProductos || errorOperadores) {
-        return;
-      }
-
-      const prodDict = {};
-      productos?.forEach((p) => {
-        prodDict[p.id] = p.nombre;
-      });
-      setPartesDict(Object.fromEntries((productos || []).map((p) => [p.id, p.part_number || ""])));
-
-      const opDict = {};
-      operadores?.forEach((op) => {
-        opDict[op.id] = op.nombre;
-      });
-      setProductosDict(prodDict);
-      setOperadoresDict(opDict);
-    };
-
-    cargarCatalogosYActividades();
+    let active = true;
+    setCatalogLoading(true);
+    Promise.all([
+      supabase.from("actividades").select("id, nombre"),
+      supabase.from("productos").select("id, nombre, part_number"),
+      supabase.from("operadores").select("id, nombre"),
+    ]).then(([activities, products, operators]) => {
+      if (!active) return;
+      const error = activities.error || products.error || operators.error;
+      if (error) { setCatalogError(error.message); return; }
+      setCatalogError("");
+      setActividadesDict(Object.fromEntries((activities.data || []).map(a => [a.id, a.nombre?.toLowerCase().trim()])));
+      setProductosDict(Object.fromEntries((products.data || []).map(p => [p.id, p.nombre])));
+      setPartesDict(Object.fromEntries((products.data || []).map(p => [p.id, p.part_number || ""])));
+      setOperadoresDict(Object.fromEntries((operators.data || []).map(o => [o.id, o.nombre])));
+    }).catch(error => { if (active) setCatalogError(error.message); })
+      .finally(() => { if (active) setCatalogLoading(false); });
+    return () => { active = false; };
   }, [liveVersion]);
 
+  // Wait for typing to pause before querying. Language changes only rerender.
   useEffect(() => {
-    const fetchResumen = async () => {
-      if (!Object.keys(productosDict).length || !Object.keys(operadoresDict).length ||
-          !Object.keys(actividadesDict).length) return;
+    const timer = setTimeout(() => { setSearch(filtroIdx); setPage(1); }, 300);
+    return () => clearTimeout(timer);
+  }, [filtroIdx]);
 
-      const PAGE = 1000;
-      let from = 0;
-      let todo = [];
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setShippingError("");
+    supabase.rpc("shipping_summary_page", {
+      p_page: page, p_page_size: pageSize, p_idx: search,
+      p_from: fechaInicio ? new Date(`${fechaInicio}T00:00:00`).toISOString() : null,
+      p_to: fechaFin ? new Date(`${fechaFin}T23:59:59.999`).toISOString() : null,
+    }).then(({ data, error }) => {
+      if (!active) return;
+      if (error) throw error;
+      setResult({ activities: data?.activities || [], captures: data?.captures || {}, total: data?.total || 0 });
+      if (data?.page && data.page !== page) setPage(data.page);
+    }).catch(error => { if (active) setShippingError(error.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [page, pageSize, search, fechaInicio, fechaFin, liveVersion]);
 
-      while (true) {
-        const { data: chunk, error } = await supabase
-          .from("actividades_realizadas")
-          .select("*")
-          .order("createdAt", { ascending: true }) // o "hora_inicio" si prefieres
-          .range(from, from + PAGE - 1);
-
-        if (error) {
-          return;
-        }
-        if (!chunk || chunk.length === 0) break;
-
-        todo = todo.concat(chunk);
-
-        // Si el tramo vino más chico que PAGE, ya no hay más páginas
-        if (chunk.length < PAGE) break;
-
-        from += PAGE;
-      }
-
-      // Trabajaremos con 'data' como antes
-      const data = todo;
-      if (!data.length) { setResumenData([]); return; }
-      let capturas;
-      try {
-        capturas = await fetchShippingCaptures();
-        setShippingError("");
-      } catch (error) {
-        setShippingError(error.message || t("shipping_captures_error"));
-        return;
-      }
+  const filasPagina = useMemo(() => {
+    const data = result.activities;
+    const capturas = result.captures;
       const agrupadas = {};
 
       data.forEach((act) => {
         if (act.estado !== "finalizada" || !act.idx) return;
-
-        const fecha = new Date(act.hora_inicio);
-        if (fechaInicio && fecha < new Date(`${fechaInicio}T00:00:00`)) return;
-        if (fechaFin && fecha > new Date(`${fechaFin}T23:59:59.999`)) return;
 
         const key = act.idx;
         if (!agrupadas[key]) {
@@ -230,33 +194,18 @@ export default function Resumen() {
         return b.idx.localeCompare(a.idx, undefined, { numeric: true, sensitivity: "base" });
       });
 
-      // 🧹 Aplicar filtro de búsqueda por IDX si existe
-      const filtrado = filtroIdx
-        ? resultado.filter((r) => r.idx?.toLowerCase().includes(filtroIdx.toLowerCase()))
-        : resultado;
-      // 💾 Actualizar estado
-      setResumenData(filtrado);
-      setPage(1);
-    };
-
-    fetchResumen();
-   }, [productosDict, partesDict, operadoresDict, actividadesDict, filtroIdx, fechaInicio, fechaFin, t,liveVersion]);
-
-  // ==========================
-  // Paginado: cálculo de filas
-  // ==========================
-  const totalRows = resumenData.length;
-  const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize));
+      return resultado;
+  }, [result, productosDict, partesDict, operadoresDict, actividadesDict, t]);
+  const totalRows = result.total;
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const filasPagina = resumenData.slice(startIndex, endIndex);
 
   return (
     <div className="page-container page-container--fluid">
       <div className="card">
         <h2>{t("summary")}</h2>
-        {shippingError && <p role="alert" style={{ color: "#b91c1c" }}>{shippingError}</p>}
+        {(shippingError || catalogError) && <p role="alert" style={{ color: "#b91c1c" }}>{t("shipping_captures_error")}: {shippingError || catalogError}</p>}
+        {(loading || catalogLoading) && <p role="status">{t("loading")}</p>}
         <div style={{ marginBottom: 12 }}>
           <DSInput
             type="text"
@@ -268,24 +217,25 @@ export default function Resumen() {
           <DSDate
             type="date"
             value={fechaInicio}
-            onChange={(e) => setFechaInicio(e.target.value)}
+            onChange={(e) => { setFechaInicio(e.target.value); setPage(1); }}
             style={{ marginRight: 10, padding: 4 }}
           />
           <DSDate
             type="date"
             value={fechaFin}
-            onChange={(e) => setFechaFin(e.target.value)}
+            onChange={(e) => { setFechaFin(e.target.value); setPage(1); }}
             style={{ padding: 4 }}
           />
           <BtnSecondary type="button" style={{ marginLeft: 10 }} onClick={() => {
             setFiltroIdx("");
+            setSearch("");
             setFechaInicio("");
             setFechaFin("");
             setPage(1);
           }}>{t("clear_filters")}</BtnSecondary>
         </div>
 
-        <div className="table-wrap">
+        <div className="table-wrap" aria-busy={loading || catalogLoading}>
           <table className="table summary-table">
             <colgroup>
               {[7, 10, 6, 13, 13, 13, 15, 7, 7, 9].map((width, i) =>
@@ -306,8 +256,8 @@ export default function Resumen() {
               </tr>
             </thead>
             <tbody>
-              {filasPagina.map((fila, i) => (
-                <tr key={i}>
+              {filasPagina.map((fila) => (
+                <tr key={fila.idx}>
                   <td className="summary-nowrap" title={fila.idx}>{fila.idx}</td>
                   <td>
                     {fila.productos?.length
