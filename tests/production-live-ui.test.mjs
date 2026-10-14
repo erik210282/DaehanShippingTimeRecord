@@ -37,10 +37,14 @@ try{
  return route.fulfill({json:{attainment:90,performance:'warning'}});
  });
  await page.goto('http://127.0.0.1:4174/'+name+'.html');
+ await page.getByRole('cell',{name:'70%',exact:true}).waitFor();
+ assert.equal(await page.locator('.live-line').count(),0,'Dashboard hides station/product cards');
+ assert.equal(await page.locator('.live-kpi-strip').count(),1,'Dashboard retains indicators');
+ assert.equal(await page.locator('input[type=date]').count(),1,'Dashboard retains date filter');
+ assert.equal(await page.locator('.live-table tbody tr').first().evaluate(el=>getComputedStyle(el.firstElementChild).backgroundColor),'rgb(255, 241, 242)');
+ await page.goto('http://127.0.0.1:4174/'+name+'.html?mode=partial');
  await page.getByRole('button',{name:'Record progress',exact:true}).waitFor();
  await page.getByText('70%',{exact:true}).first().waitFor();
- assert.equal(await page.getByRole('cell',{name:'70%',exact:true}).count(),1,'Dashboard efficiency must match card attainment');
- assert.equal(await page.locator('.live-table tbody tr').first().evaluate(el=>getComputedStyle(el.firstElementChild).backgroundColor),'rgb(255, 241, 242)');
  assert.equal(await page.locator('.live-line').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 241, 242)');
  await page.getByRole('button',{name:'Edit',exact:true}).first().click();
  const assertSolidDialog=async()=>{assert.equal(await page.locator('.live-dialog').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');assert.equal(await page.locator('.live-dialog').evaluate(el=>getComputedStyle(el).opacity),'1');};
@@ -197,7 +201,7 @@ try{
  await confirmation.waitFor({state:'hidden'});
  assert.equal(dailyCaptured.p_action,'post');
 
- await page.getByRole('button',{name:'Station raw materials',exact:true}).click();
+ await page.getByRole('button',{name:'Station Raw Materials',exact:true}).click();
  await page.getByRole('button',{name:'Load / replenish material',exact:true}).first().click();
  let supplyDialog=page.getByRole('dialog',{name:'Load / replenish material',exact:true});
  await supplyDialog.getByRole('combobox',{name:'Workstation',exact:true}).click();await page.getByRole('option',{name:'M-01 · Assembly',exact:true}).click();
@@ -207,7 +211,7 @@ try{
  await supplyDialog.getByLabel('Alert lead time (minutes)',{exact:true}).fill('60');
  await supplyDialog.getByRole('button',{name:'Save',exact:true}).click();await supplyDialog.waitFor({state:'hidden'});
  assert.equal(supplyCaptured.p_action,'load');assert.equal(supplyCaptured.p_data.quantity,'1000');
- await page.getByRole('button',{name:'Start shifts',exact:true}).click();
+ await page.getByRole('button',{name:'Shifts Start',exact:true}).click();
  await page.getByRole('button',{name:'Start selected machines',exact:true}).click();
  supplyDialog=page.getByRole('dialog',{name:'Start selected machines',exact:true});
  assert.equal(await supplyDialog.getByLabel('Start date',{exact:true}).inputValue(),new Date().toISOString().slice(0,10));
@@ -220,7 +224,7 @@ try{
  assert.equal(supplyCaptured.p_action,'start');assert.deepEqual(supplyCaptured.p_data.stations,[{station_code:'M-01',item_ids:['item']}]);
 
  supplyState={materials:[],runs:[{...run,session_id:'session',closed_at:null}],wip:[],loads:[],baselines:[]};
- await page.reload();await page.getByRole('button',{name:'Start shifts',exact:true}).click();
+ await page.reload();await page.getByRole('button',{name:'Shifts Start',exact:true}).click();
  await page.getByRole('button',{name:'End session',exact:true}).click();
  await page.getByLabel('Finish time',{exact:true}).waitFor();
  assert.equal(await page.getByLabel('Finish time',{exact:true}).inputValue(),'');
@@ -229,7 +233,7 @@ try{
  await page.reload();
  const materialAlert=page.getByRole('dialog',{name:'Raw material replenishment needed',exact:true});
  await materialAlert.waitFor();await materialAlert.getByRole('button',{name:'OK',exact:true}).click();await materialAlert.waitFor({state:'hidden'});
- await page.getByRole('button',{name:'Station raw materials',exact:true}).click();
+ await page.getByRole('button',{name:'Station Raw Materials',exact:true}).click();
  await page.getByText('Unpacked product · carryover',{exact:true}).waitFor();
  await page.getByRole('cell',{name:'25',exact:true}).waitFor();
 
