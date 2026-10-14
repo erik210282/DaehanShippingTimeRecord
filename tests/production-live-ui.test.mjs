@@ -138,6 +138,7 @@ try{
 
  machineGroup=true;
  await page.reload();
+ await page.getByRole('button',{name:'Record progress',exact:true}).first().waitFor();
  assert.equal(await page.getByRole('button',{name:'Record progress',exact:true}).count(),1,'One shared capture action for machine session');
  assert.equal(await page.locator('.live-machine').count(),1,'One card per machine');
  await page.getByText('PN-100 · Test product',{exact:true}).first().waitFor();
