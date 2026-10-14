@@ -238,7 +238,7 @@ try{
  await page.getByText('Unpacked product · carryover',{exact:true}).waitFor();
  await page.getByRole('cell',{name:'25',exact:true}).waitFor();
 
- showReview=false;showProgressDraft=true;
+ showReview=false;showProgressDraft=true;supplyState={materials:[],runs:[],wip:[],loads:[],baselines:[]};
  await page.goto('http://127.0.0.1:4174/'+name+'.html?daily=1&production=records');
  await page.getByRole('button',{name:'Complete Report',exact:true}).first().click();
  await page.getByLabel('People at the station',{exact:true}).waitFor();
