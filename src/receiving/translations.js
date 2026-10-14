@@ -83,6 +83,7 @@ Object.assign(phrases, {
  all_locations:['Sin Preasignación: Todas Las Ubicaciones Activas.','No Assignments: All Active Locations.','미지정: 모든 활성 위치.'],
  setup:['Faltan Proveedores O Productos Activos. Solicita Su Registro En Catálogos.','Active Suppliers Or Products Are Missing. Request Setup In Catalogs.','활성 공급업체 또는 제품이 없습니다. 카탈로그에 등록해 주세요.'],
 });
+Object.assign(phrases,{title:['Recepción','Receiving','입고'],po_number:['Número de PO','PO Number','발주 번호'],expendable:['Desechable','Expendable','일회용']});
 export function registerReceiving(i18n) {
   ['es','en','ko'].forEach((lang, index) => i18n.addResourceBundle(lang, 'translation', Object.fromEntries(Object.entries(phrases).map(([key, values]) => [`rc_${key}`, values[index]])), true, false));
 }

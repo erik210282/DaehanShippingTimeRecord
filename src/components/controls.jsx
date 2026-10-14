@@ -71,8 +71,11 @@ export const DSSelect = ({
   menuPosition = "fixed",
   isMulti,
   closeMenuOnSelect,
+  noOptionsMessage,
+  loadingMessage,
   ...rest
 }) => {
+  const {t}=useTranslation();
   const effectiveClose =
     typeof closeMenuOnSelect === "boolean"
       ? closeMenuOnSelect
@@ -81,6 +84,8 @@ export const DSSelect = ({
   return (
     <Select
       {...rest}
+      noOptionsMessage={noOptionsMessage||(()=>t('select_no_options'))}
+      loadingMessage={loadingMessage||(()=>t('loading'))}
       isMulti={isMulti}  
       closeMenuOnSelect={effectiveClose} 
       styles={{ ...RS_COMMON_STYLES, ...(styles || {}) }}

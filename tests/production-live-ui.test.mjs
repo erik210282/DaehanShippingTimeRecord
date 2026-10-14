@@ -211,7 +211,7 @@ try{
  await supplyDialog.getByLabel('Loaded quantity',{exact:true}).fill('1000');
  await supplyDialog.getByLabel('Alert lead time (minutes)',{exact:true}).fill('60');
  await supplyDialog.getByRole('button',{name:'Save',exact:true}).click();await supplyDialog.waitFor({state:'hidden'});
- assert.equal(supplyCaptured.p_action,'load');assert.equal(supplyCaptured.p_data.quantity,'1000');
+ assert.equal(supplyCaptured.p_action,'load-batch');assert.equal(supplyCaptured.p_data.entries[0].quantity,'1000');
  await page.getByRole('button',{name:'Shifts Start',exact:true}).click();
  await page.getByRole('button',{name:'Start selected machines',exact:true}).click();
  supplyDialog=page.getByRole('dialog',{name:'Start selected machines',exact:true});
