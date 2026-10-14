@@ -202,7 +202,7 @@ try{
  showReview=true;
  await page.reload();
  await page.getByRole('button',{name:'Details / review',exact:true}).click();
- await page.getByText('Test Operator',{exact:true}).waitFor();
+ await page.getByText('Reported by: Test Operator',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Post to inventory',exact:true}).click();
  const confirmation=page.getByRole('dialog',{name:'Confirm consumption and output',exact:true});
  await confirmation.waitFor();
