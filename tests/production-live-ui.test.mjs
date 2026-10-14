@@ -28,7 +28,7 @@ try{
 
  await page.route('**/rest/v1/rpc/production_live_*',async route=>{
  const url=route.request().url();
- if(url.endsWith('production_live_snapshot_range'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',target_8h:800,target_10h:1200,warning_percent:90,critical_percent:75},{item_id:'item2',target_8h:400,target_10h:500,warning_percent:90,critical_percent:75}],runs:machineGroup?[{...run,session_id:'session'},{...run,id:'run2',item_id:'item2',attainment:95,session_id:'session'}]:[run],checkpoints:[{id:'cp',run_id:'run',recorded_at:run.period_at,quantity:run.period_quantity,created_by:'test-user'}]}});
+ if(url.endsWith('production_live_snapshot_range'))return route.fulfill({json:{server_now:new Date().toISOString(),targets:[{item_id:'item',target_8h:800,target_10h:1200,warning_percent:90,critical_percent:75},{item_id:'item2',target_8h:400,target_10h:500,warning_percent:90,critical_percent:75}],runs:machineGroup?[{...run,attainment:70,session_id:'session'},{...run,id:'run2',item_id:'item2',attainment:95,session_id:'session'}]:[run],checkpoints:[{id:'cp',run_id:'run',recorded_at:run.period_at,quantity:run.period_quantity,created_by:'test-user'}]}});
  const body=route.request().postDataJSON();captured=body;
  if(body.p_action==='finish_batch')run={...run,closed_at:new Date().toISOString()};
  if(body.p_action.startsWith('delete_')||body.p_action.startsWith('restore_'))return route.fulfill({json:{saved:true}});
@@ -202,7 +202,7 @@ try{
  showReview=true;
  await page.reload();
  await page.getByRole('button',{name:'Details / review',exact:true}).click();
- await page.getByText('Reported by: Test Operator',{exact:true}).waitFor();
+ await page.getByText('Test Operator',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Post to inventory',exact:true}).click();
  const confirmation=page.getByRole('dialog',{name:'Confirm consumption and output',exact:true});
  await confirmation.waitFor();

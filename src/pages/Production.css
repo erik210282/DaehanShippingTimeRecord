@@ -92,3 +92,5 @@
 .live-machine-table .live-pending .live-progress>div{background:#64748b}
 .live-machine-table .live-progress{min-width:140px;height:8px}
 .live-machine-table td,.live-machine-table th{width:auto!important}
+
+.live-machine-table tr,.live-machine-table thead,.live-machine-table tbody{background:transparent!important}

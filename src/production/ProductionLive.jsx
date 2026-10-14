@@ -43,13 +43,13 @@ export function MachineLineCard({group,items,station,t,format,checkpoints,report
  {key:'pl_shift',values:runs.map(r=>r.shift_hours+' h')},
  {key:'pl_shift_target',values:runs.map((r,i)=>format(adjustedTarget(r,stats[i].at||new Date())))},
  {key:'pl_last',values:stats.map(k=>k.at?new Date(k.at).toLocaleString(i18n.language):'—')},
- {key:'performance',label:'status',values:stats.map(k=>t('pl_status_'+k.performance))},
- {key:'status',values:runs.map(r=>t(r.closed_at?'pl_closed':'pl_active'))}
+ {key:'performance',label:'pl_production_status',values:stats.map(k=>t('pl_status_'+k.performance))},
+ {key:'status',label:'pl_session_status',values:runs.map(r=>t(r.closed_at?'pl_closed':'pl_active'))}
  ];
  return <article className={'live-line live-machine live-'+performance}>
  <div className="live-card-heading"><h3>{[group.station_code,station?.name].filter(Boolean).join(' · ')}</h3></div>
  <div className="table-wrap"><table className="table live-machine-table"><thead><tr><th>{t('inv_part')}</th>{runs.map(r=><th className={'live-product live-'+stats[runs.indexOf(r)].performance} key={r.id}><span>{partLabel(items.find(i=>i.id===r.item_id))}</span><small>{new Date(r.started_at).toLocaleString(i18n.language)}</small></th>)}</tr></thead><tbody>
- {rows.map(row=><tr key={row.key}><th scope="row">{t(row.label||row.key)}</th>{row.values.map((value,i)=><td className={'live-product live-'+stats[i].performance+(row.key==='pl_attainment'?' live-product-attainment':'')} key={runs[i].id}>{row.key==='pl_attainment'?<><strong>{value}</strong><div className="live-progress" role="progressbar" aria-label={t('pl_attainment')} aria-valuenow={Math.min(100,Math.max(0,stats[i].attainment))} aria-valuemin={0} aria-valuemax={100}><div style={{width:Math.min(100,Math.max(0,stats[i].attainment))+'%'}}/></div></>:row.key==='ps_contributors'?<span>{t(row.key)}: {value}</span>:value}</td>)}</tr>)}
+ {rows.map(row=><tr key={row.key}><th scope="row">{t(row.label||row.key)}</th>{row.values.map((value,i)=><td className={'live-product live-'+stats[i].performance+(row.key==='pl_attainment'?' live-product-attainment':'')} key={runs[i].id}>{row.key==='pl_attainment'?<><strong>{value}</strong><div className="live-progress" role="progressbar" aria-label={t('pl_attainment')} aria-valuenow={Math.min(100,Math.max(0,stats[i].attainment))} aria-valuemin={0} aria-valuemax={100}><div style={{width:Math.min(100,Math.max(0,stats[i].attainment))+'%'}}/></div></>:value}</td>)}</tr>)}
  <tr><th scope="row">{t('actions')}</th>{runs.map(r=><td className={'live-product live-'+stats[runs.indexOf(r)].performance} key={r.id}><div className="live-row-actions">{r.can_manage!==false&&<><BtnEditDark onClick={()=>onEdit(r)}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={()=>onDelete(r)}>{t('delete')}</BtnDanger></>}</div></td>)}</tr>
  </tbody></table></div>
  <div className="live-machine-sessions">{sessionGroups(runs.filter(r=>!r.closed_at&&r.can_continue!==false)).map(session=><div key={session.key} className="live-row-actions">{sessionGroups(runs.filter(r=>!r.closed_at)).length>1&&<span>{new Date(session.runs[0].started_at).toLocaleString(i18n.language)}</span>}<BtnPrimary onClick={()=>onCapture(session.runs[0])}>{t('pl_capture')}</BtnPrimary><BtnSecondary onClick={()=>onClose(session.runs[0])}>{t('pl_close_run')}</BtnSecondary></div>)}</div>
