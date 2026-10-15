@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const mobile=fs.existsSync('ProductionMobile.js'),root=mobile?'production/':'src/production/';
+const m=vm.createContext({});vm.runInContext(fs.readFileSync(root+(mobile?'parameters.js':'parameters.mjs'),'utf8').replaceAll('export ',''),m);
+const plain=x=>JSON.parse(JSON.stringify(x));
+for(const [reference,minimum,maximum] of [['110 ± 20 kg/cm²',90,130],['2–8 kg/cm²',2,8],['5–22 °C (41–71.6°F)',5,22],['4 ± 2 MPa',2,6],['-5--1 °C',-5,-1],['1,5 +/- 0,2',1.3,1.7],['100 ± 10%',90,110]])assert.deepEqual(plain(m.referenceBounds(reference)),{minimum,maximum});
+for(const ref of ['','Nominal 110','110','8–2','10 ± -2','110 ± 2.3.4','2–8.2.3'])assert.equal(m.referenceBounds(ref),null,ref);
+const field={id:'f',key:'pressure',label:'Pressure',input_type:'numeric',reference:'10 ± 3',minimum:0,maximum:99};
+assert.equal(m.parameterField(field).minimum,7);assert.equal(m.parameterField(field,{reference:'pending'}).minimum,'');assert.equal(m.parameterField(field,{input_type:'text'}).maximum,'');
+const source={id:'original',name:'Press',version:8,created_by:'old',active:false,machine_types:['Press','Forming'],item_ids:['a'],fields:[field]};
+let seq=0;const copy=m.duplicateTemplate(source,()=>`new-${++seq}`);
+assert.equal(copy.id,'new-1');assert.equal(copy.fields[0].id,'new-2');assert.equal(copy.version,undefined);assert.equal(copy.created_by,undefined);assert.equal(copy.active,true);assert.equal(copy.name,'');
+copy.fields[0].label='Changed';copy.item_ids.push('b');assert.equal(source.fields[0].label,'Pressure');assert.equal(source.item_ids.length,1);
+assert.equal(m.templateProblem(copy,[source]),'pp_duplicate_rename');copy.name=' press ';assert.equal(m.templateProblem(copy,[source]),'pp_duplicate_rename');copy.name='Other';assert.equal(m.templateProblem(copy,[source,{id:'another',name:'OTHER'}]),'pp_duplicate_name_exists');copy.name='Press B';assert.equal(m.templateProblem(copy,[source]),null);
+const groups=plain(m.templateGroups([source,{...source,id:'b',machine_types:['Press','Press']}]));assert.deepEqual(groups.map(g=>[g.type,g.templates.length]),[['Forming',1],['Press',2]]);
+console.log('PASS reference limits, decimal/negative/percentage ranges, malformed references, independent copies, unique names and machine groups');
