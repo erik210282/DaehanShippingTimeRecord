@@ -32,7 +32,6 @@ export function supplierAddress(supplier) {
 }
 export function ProductCatalogFields({edit,setEdit,materials,locations,suppliers,packingItems=[]}) {
  const {t}=useTranslation();const raw=edit.category==='RAW',fg=edit.category==='FG',packing=edit.category==='PACKAGING';
- const boxSelect=(key,type,label)=>{const current=edit[key]||'';const options=packingItems.filter(i=>i.packing_type===type&&(i.active||i.part_number===current)).map(i=>({value:i.part_number,label:i.part_number+' · '+(i.part_name||i.description)}));if(current&&!options.some(o=>o.value===current))options.push({value:current,label:current});return <CatalogSelect label={t(label)} value={current} onChange={value=>setEdit({...edit,[key]:value})} options={options}/>;};
  const input=(key,label,numeric=false)=><CatalogInput key={key} label={t(label)} type={numeric?'number':'text'} min={numeric?0:undefined} step={numeric?'any':undefined} value={edit[key]??''} onChange={e=>setEdit({...edit,[key]:e.target.value})}/>;
  return <div className="catalog-fields">
  <CatalogSelect label={t('rc_type')} value={edit.material_type} onChange={material_type=>setEdit({...edit,material_type,category:materials.find(type=>type.code===material_type)?.category})} options={materials.filter(type=>(type.active||type.code===edit.material_type)&&type.category!=='HOLD'&&(!edit.producto_id||type.category==='FG')).map(type=>({value:type.code,label:materialLabel(type,t)}))}/>
@@ -44,7 +43,7 @@ export function ProductCatalogFields({edit,setEdit,materials,locations,suppliers
  {raw && <><CatalogSelect label={t('rc_supplier')} value={edit.supplier_id||''} onChange={supplier_id=>setEdit({...edit,supplier_id})} options={suppliers.filter(supplier=>supplier.active||supplier.id===edit.supplier_id).map(supplier=>({value:supplier.id,label:supplier.code+' · '+supplier.name}))}/>
  <CatalogInput label={t('rc_supplier_location')} readOnly value={supplierAddress(suppliers.find(supplier=>supplier.id===edit.supplier_id))}/>
  <CatalogInput label={t('rc_lead_time')} type="number" min="0" step="1" value={edit.lead_time_days??''} onChange={e=>setEdit({...edit,lead_time_days:e.target.value})}/></>}
- {fg && <>{input('peso_por_pieza','weight_piece',true)}{input('bin_type','bin_type')}{boxSelect('tipo_empaque_retornable','returnable','returnablebox')}{boxSelect('tipo_empaque_expendable','expendable','expendablebox')}{input('peso_caja_retornable','returnablebw',true)}{input('peso_caja_expendable','expendablebw',true)}{input('cantidad_por_caja_retornable','units_returnable',true)}{input('cantidad_por_caja_expendable','units_expendable',true)}</>}
+ {fg && <>{input('peso_por_pieza','weight_piece',true)}{input('peso_caja_retornable','returnablebw',true)}{input('peso_caja_expendable','expendablebw',true)}</>}
  <label className="catalog-checkbox"><input type="checkbox" checked={!!edit.activo} onChange={e=>setEdit({...edit,activo:e.target.checked})}/>{t('active')}</label>
  </div>;
 }

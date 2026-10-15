@@ -264,7 +264,8 @@ async function save() {
       if(tab==='productos') {
         if(!edit.part_number?.trim())throw Error(t('fill_all_fields'));
         const shipping={...edit};
-        for(const key of ['peso_por_pieza','peso_caja_retornable','peso_caja_expendable','cantidad_por_caja_retornable','cantidad_por_caja_expendable'])shipping[key]=shipping[key]===''?null:shipping[key];
+        for(const key of ["bin_type","tipo_empaque_retornable","tipo_empaque_expendable","cantidad_por_caja_retornable","cantidad_por_caja_expendable"])delete shipping[key];
+        for(const key of ['peso_por_pieza','peso_caja_retornable','peso_caja_expendable'])shipping[key]=shipping[key]===''?null:shipping[key];
         data={...(edit.category==='PACKAGING'?{packing_type:edit.packing_type||null,packing_weight:edit.packing_weight===''?null:quantity(edit.packing_weight,true),packing_weight_unit:edit.packing_weight_unit||'kg',packing_measures:edit.packing_measures||null}:{}),id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,part_name:edit.nombre,supplier_id:edit.supplier_id||null,lead_time_days:edit.lead_time_days===''?null:Number(edit.lead_time_days),material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.category==='FG'?'shipping':'receiving',default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
       } else if(kind==='material')data={...edit,id:undefined};
       data={...data,is_new:isNew,...(tab==='productos'&&edit.category==='FG'&&edit.copyRecipe?{copy_recipe_from_part:edit.sourcePart}:{})};
@@ -478,13 +479,8 @@ async function save() {
           [t("description")]: r.descripcion || "",
           "Weight/Piece": r.peso_por_pieza ?? "",
           "Packing Weight":r.packing_weight??"","Packing Weight Unit":r.packing_weight_unit||"kg",Measures:r.packing_measures||"",'Preassigned location':r.default_location||"",
-          "bin_type": r.bin_type?? "",
-          "Returnable Type": r.tipo_empaque_retornable || "",
-          "Expendable Type": r.tipo_empaque_expendable || "",
           "Returnable Box W.": r.peso_caja_retornable ?? "",
           "Expendable Box W.": r.peso_caja_expendable ?? "",
-          "Units/Returnable Box": r.cantidad_por_caja_retornable ?? "",
-          "Units/Expendable Box": r.cantidad_por_caja_expendable ?? "",
           [t("status")]: r.activo ? t("active") : t("inactive"),
         };
       }
@@ -580,11 +576,6 @@ async function save() {
                     <th>{t("description")}</th>
                     <th>{t('rc_type')}</th>{(!typeFilter||typeFilter==='PACKAGING')&&<><th>{t('rc_packing_weight')}</th><th>{t('rc_packing_measures')}</th></>}<th>{t('inv_min_stock')}</th><th>{t('rc_uom')}</th><th>{t(typeFilter==='PACKAGING'?'rc_preassigned_location':'rc_allowed')}</th>
                     {typeFilter!=='FG'&&typeFilter!=='PACKAGING'&&<><th>{t('rc_supplier')}</th><th>{t('rc_supplier_location')}</th><th>{t('rc_lead_time')}</th></>}{(!typeFilter||typeFilter==='FG')&&<><th>{t("weight_piece")}</th>
-                    <th>{t("bin_type")}</th>
-                    <th>{t("returnablebox")}</th>
-                    <th>{t("expendablebox")}</th>
-                    <th>{t("units_returnable")}</th>
-                    <th>{t("units_expendable")}</th>
                     </>}<th>{t("status")}</th>
                     <th>{t("actions")}</th>
                   </>
@@ -639,11 +630,6 @@ async function save() {
                         <td>{r.descripcion}</td>
                         <td>{materialLabel(materials.find(m=>m.code===r.material_type),t)}{r.category==='PACKAGING'&&r.packing_type&&<> · {t('rc_'+r.packing_type)}</>}</td>{(!typeFilter||typeFilter==='PACKAGING')&&<><td>{r.packing_weight!==''&&r.packing_weight!=null?r.packing_weight+' '+(r.packing_weight_unit||'kg'):'—'}</td><td>{r.packing_measures||'—'}</td></>}<td>{r.minimum_quantity}</td><td>{r.uom}</td><td>{typeFilter==='PACKAGING'?(r.default_location||'—'):(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', ')||t('rc_all')}</td>
                         {typeFilter!=='FG'&&typeFilter!=='PACKAGING'&&<><td>{suppliers.find(s=>s.id===r.supplier_id)?.name||'—'}</td><td>{supplierAddress(suppliers.find(s=>s.id===r.supplier_id))||'—'}</td><td>{r.lead_time_days??'—'}</td></>}{(!typeFilter||typeFilter==='FG')&&<><td>{r.peso_por_pieza}</td>
-                        <td>{r.bin_type}</td>
-                        <td>{r.tipo_empaque_retornable}</td>
-                        <td>{r.tipo_empaque_expendable}</td>
-                        <td>{r.cantidad_por_caja_retornable}</td>
-                        <td>{r.cantidad_por_caja_expendable}</td>
                         </>}<td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
                           <BtnEditDark disabled={!canManage} onClick={() => { setEdit(r); setIsNew(false); }}>

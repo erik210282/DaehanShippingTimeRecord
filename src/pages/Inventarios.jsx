@@ -1,3 +1,6 @@
+import ShippingPacking from '../components/ShippingPacking';
+import {useShippingPacking,packingError,packingTotal,allocationsFor,resolvePacking} from '../inventory/shippingPacking';
+import {registerShippingPacking} from '../inventory/shippingPackingTranslations';
 import {CatalogInput,CatalogSelect} from '../components/SharedCatalogFields';
 import {BtnPrimary,BtnSecondary} from '../components/controls';
 import {SectionPermission} from '../RoleAccess';
@@ -65,6 +68,7 @@ const choose = (items, category) => items.filter(i => i.active && (!category || 
 
 export default function Inventarios({ access,permissionDepartment='inventory' }) {
   const { t, i18n } = useTranslation();
+  registerShippingPacking(i18n);
   const locale = i18n.language?.startsWith('ko') ? 'ko-KR' : i18n.language?.startsWith('en') ? 'en-US' : 'es-MX';
   const fmt = value => n(value).toLocaleString('en-US',{ maximumFractionDigits: 3 });
   const sectionLabel = key => t(sections.find(section => section[0] === key)?.[1] || 'inv_overview');
@@ -90,7 +94,7 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
  const [demandParts,setDemandParts]=useState([]);
   const [selectedIdx, setSelectedIdx] = useState('');
   const [dispatchDate, setDispatchDate] = useState(today());
-  const [perBox, setPerBox] = useState({});
+  const packing=useShippingPacking(supabase,selectedIdx);
   const [pendingParts, setPendingParts] = useState(new Set());
   const [countedParts, setCountedParts] = useState(new Set());
   useEffect(() => { setMessage(''); }, [i18n.language]);
@@ -243,22 +247,17 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
     {tab === 'counts' && <PhysicalCounts items={items} balances={balances} counts={counts} access={access} fileRows={fileRows} saveCsv={saveCsv} onChanged={refresh}/>}
     {tab === 'dispatch' && <section className="inv-card"><h2>{t('inv_dispatch_title')}</h2>{filterBar(true)}
       <p>{t('inv_dispatch_intro')}</p>
-      {can('shipping',true) && <><div className="inv-form"><select value={selectedIdx} onChange={e=>{setSelectedIdx(e.target.value);setPerBox({});}}>
+      {can('shipping',true) && <><div className="inv-form"><select value={selectedIdx} onChange={e=>{setSelectedIdx(e.target.value);}}>
         <option value="">{t('inv_select_idx')}</option>{pendingIdx.map(idx=><option key={idx}>{idx}</option>)}</select>
         <input type="date" max={today()} value={dispatchDate} onChange={e=>setDispatchDate(e.target.value)}/></div>
-        {!!selectedIdx && <><div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th><th>{t('inv_boxes')}</th><th>{t('inv_pieces_per_box')}</th><th>{t('inv_pieces_deducted')}</th></tr></thead><tbody>
-          {selectedLines.filter(l=>matchPart(items.find(i=>i.part_number===l.productos?.part_number)||{id:'',part_number:l.productos?.part_number})).map(l=>{const product=l.productos;const a=n(product?.cantidad_por_caja_retornable),b=n(product?.cantidad_por_caja_expendable);
-            const initial=a>0&&a===b?a:(!b&&a>0?a:(!a&&b>0?b:''));
-            const value=perBox[l.id] ?? initial;
-            return <tr key={l.id}><td>{product?.part_number}</td><td>{l.cantidad_cajas}</td>
-              <td><input type="number" min="0.000001" step="any" value={value} onChange={e=>setPerBox({...perBox,[l.id]:e.target.value})}/></td>
-              <td>{value ? fmt(n(l.cantidad_cajas)*n(value)) : t('inv_enter_box_pieces')}</td></tr>;})}</tbody></table></div>
-          <button disabled={busy} onClick={()=>act(async()=>{
-            const lineData=selectedLines.map(l=>{const p=l.productos;const a=n(p?.cantidad_por_caja_retornable),b=n(p?.cantidad_por_caja_expendable);
-              return {line_id:l.id,pieces_per_box:Number(perBox[l.id] ?? (a>0&&a===b?a:(!b&&a>0?a:(!a&&b>0?b:0))))};});
-            if(lineData.some(l=>!l.pieces_per_box||l.pieces_per_box<=0))throw Error(t('inv_confirm_box_pieces'));
-            await unwrap(supabase.rpc('inventory_confirm_dispatch',{p_idx:selectedIdx,p_date:dispatchDate,p_lines:lineData,p_note:t('inv_mobile_dispatch_note')}));
-            setSelectedIdx('');setPerBox({});
+        {!!selectedIdx && <><ShippingPacking model={packing} disabled={busy}/>
+          {packing.context?.lines.map(line=><p key={line.id}>{line.product.part_number}: {fmt(packingTotal(resolvePacking(line,allocationsFor(line,packing.draft))))} {t('inv_pieces_deducted')}</p>)}
+          <button disabled={busy||packing.loading||!packing.valid} onClick={()=>act(async()=>{
+            try {
+              const saved=await packing.save();
+              await unwrap(supabase.rpc('shipping_confirm_packing',{p_idx:selectedIdx,p_date:dispatchDate,p_lines:saved.lines.map(line=>({line_id:line.id,saved_at:line.saved_at}))}));
+              setSelectedIdx('');
+            } catch(error){throw Error(packingError(error,t));}
           },t('inv_shipment_confirmed'))}>{t('inv_confirm_idx')}</button></>}</>}
       <h3>{t('inv_confirmed_shipments')}</h3>{dispatches.filter(d=>(!filters.from||d.ship_date>=filters.from)&&(!filters.to||d.ship_date<=filters.to)&&(!filters.parts.length||shippingLines.some(l=>l.idx===d.idx&&filters.parts.includes(items.find(i=>i.part_number===l.productos?.part_number)?.id)))&&[d.idx,d.ship_date,...shippingLines.filter(l=>l.idx===d.idx).map(l=>l.productos?.part_number)].join(' ').toLowerCase().includes(filters.search.toLowerCase())).map(d=><p key={d.idx}>{d.ship_date} · IDX {d.idx} · {t('inv_confirmed_at')} {new Date(d.confirmed_at).toLocaleString(locale)}</p>)}</section>}
 

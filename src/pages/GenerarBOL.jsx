@@ -1,3 +1,6 @@
+import ShippingPacking from '../components/ShippingPacking';
+import {useShippingPacking,packingError,allocationsFor,resolvePacking} from '../inventory/shippingPacking';
+import {registerShippingPacking} from '../inventory/shippingPackingTranslations';
 import {useLiveVersion} from '../useLiveVersion';
 import React from "react";
 import { supabase } from "../supabase/client";
@@ -47,7 +50,8 @@ export default function GenerarBOL() {
  const liveVersion=useLiveVersion('GenerarBOL');
 
   // wrapper seguro: si t no es función (por cualquier motivo), usa fallback
-  const { t: maybeT } = useTranslation();
+  const { t: maybeT, i18n } = useTranslation();
+  registerShippingPacking(i18n);
   const t = (key, fallback) =>
     typeof maybeT === "function" ? maybeT(key) : (fallback || key);
 
@@ -66,11 +70,8 @@ export default function GenerarBOL() {
     setDockNo("");
     setSealNo("");
     setPackingSlip("");
-    setPackType("");
 
     // limpiar previews/datos auxiliares
-    setLineasIdx([]);
-    setProductosById({});
     setPoData([]);
     setShipperData(null);
 
@@ -78,6 +79,7 @@ export default function GenerarBOL() {
 
   const [idxOptions, setIdxOptions] = React.useState([]);
   const [selectedIdx, setSelectedIdx] = React.useState("");
+  const packing=useShippingPacking(supabase,selectedIdx);
 
   const [poOptions, setPoOptions] = React.useState([]);
   const [selectedPoIds, setSelectedPoIds] = React.useState([]);
@@ -95,12 +97,8 @@ export default function GenerarBOL() {
     return hoy.toISOString().split("T")[0]; // formato YYYY-MM-DD
   });
 
-  // "returnable" | "expendable"
-  const [packType, setPackType] = React.useState("");
 
   // datos para construir el PDF
-  const [lineasIdx, setLineasIdx] = React.useState([]);
-  const [productosById, setProductosById] = React.useState({});
   const [poData, setPoData] = React.useState([]);
   const [billToData, setBillToData] = React.useState(null);
   const [shipperData, setShipperData] = React.useState(null);
@@ -292,83 +290,6 @@ export default function GenerarBOL() {
 
   /* ------ Cargar detalle del IDX y datos del PO ------- */
   React.useEffect(() => {
-    async function cargarDetalleIdx() {
-      setLineasIdx([]);
-      setProductosById({});
-      if (!selectedIdx) return;
-
-      // 1) Lee TODO para no fallar por columnas inexistentes
-      const { data: acts, error: errActs } = await supabase
-        .from("actividades_realizadas")
-        .select("*")
-        .eq("idx", selectedIdx)
-        .order("createdAt", { ascending: true })
-        .limit(5000);
-
-      if (errActs) {
-        toast.error(errActs.message);
-        return;
-      }
-      setLineasIdx(acts || []);
-
-      // 2) Extrae items normalizados { producto_id, cantidad }
-      // 2.1) Obtiene los IDs de actividad presentes y trae sus nombres
-        const actIds = Array.from(new Set((acts || []).map(a => a?.actividad).filter(Boolean)));
-        let loadIds = new Set();
-        if (actIds.length) {
-          const { data: actsCat } = await supabase
-          .from("actividades")
-            .select("id, nombre")
-            .in("id", actIds);
-          (actsCat || []).forEach(x => { if (/(^|\s)load(\s|$)/i.test(String(x?.nombre||""))) loadIds.add(x.id); });
-        }
-        const items = [];
-        (acts || [])
-          // Solo actividad Load y estado finalizada
-          .filter(a => loadIds.has(a?.actividad) && String(a?.estado||"").trim().toLowerCase()==="finalizada")
-          .forEach((a) => {
-        // caso 1: columnas simples
-        const candKeys = ["producto", "producto_id", "product_id", "product", "prod_id"];
-        let pid = null;
-        for (const k of candKeys) {
-          if (a && a[k] != null) { pid = a[k]; break; }
-        }
-        const qty = Number(a?.cantidad ?? 0);
-
-        if (pid != null) {
-          items.push({ producto_id: pid, cantidad: isNaN(qty) ? 0 : qty });
-        }
-
-        // caso 2: array JSON en `productos`
-        if (Array.isArray(a?.productos)) {
-          a.productos.forEach((it) => {
-            const pid2 = it?.producto ?? it?.producto_id ?? it?.id ?? it?.product_id ?? null;
-            const qty2 = Number(it?.cantidad ?? it?.qty ?? 0);
-            if (pid2 != null) {
-              items.push({ producto_id: pid2, cantidad: isNaN(qty2) ? 0 : qty2 });
-            }
-          });
-        }
-      });
-
-      // 3) fetch de productos necesarios
-      const ids = Array.from(new Set(items.map((x) => x.producto_id))).filter((v) => v != null);
-      if (ids.length) {
-        const { data: prods, error: errProds } = await supabase
-          .from("productos")
-          .select("*")
-          .in("id", ids);
-
-        if (!errProds) {
-          const map = {};
-          (prods || []).forEach((p) => { if (p?.id != null) map[p.id] = p; });
-          setProductosById(map);
-        }
-      }
-      setLineasIdx(items);
-    }
-
-
     async function cargarPo() {
       setPoData([]);
       if (!selectedPoIds || selectedPoIds.length === 0) return;
@@ -391,7 +312,6 @@ export default function GenerarBOL() {
       if (!error) setShipperData(data || null);
     }
 
-    cargarDetalleIdx();
     cargarPo();
     cargarShipper();
   }, [selectedIdx, selectedPoIds, selectedShipperId]);
@@ -722,132 +642,21 @@ export default function GenerarBOL() {
         year: "numeric"
       }).replace(/ /g, "/").replace(",", ""); // convierte espacios en "/" 
 
-      // --------- 1) Normaliza items (cajas por producto) ---------
-      const cajasPorProducto = {};
-      (lineasIdx || []).forEach((it) => {
-        const pid = it?.producto_id;
-        if (pid == null) return;
-        const cajas = Number(it?.cantidad ?? 0);
-        cajasPorProducto[pid] = (cajasPorProducto[pid] || 0) + (isNaN(cajas) ? 0 : cajas);
-      });
-
-      // --------- 2) Arma las filas de la tabla + cálculos de peso ---------
-      const rows = [];
-      let totalUnits = 0;
-      let totalWeight = 0;
-
-      // --- Helpers para dimensiones por paquete ---
-      // Convierte "24x18x12", "24 x 18 x 12", "24*18*12" a {L,W,H}
-      function parseDimsFromText(s) {
-        if (!s) return null;
-        const str = String(s).trim();
-        const m = str.replace(/,/g, 'x').match(/(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)/i);
-        if (!m) return null;
-        return { L: m[1], W: m[2], H: m[3] };
-      }
-      // Toma el primer valor no vacío entre varias claves del producto
-      function pick(p, ...keys) {
-        for (const k of keys) {
-          const v = p?.[k];
-          if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+      if(!packing.valid)throw Error('sp_required');
+      const saved=await packing.save();
+      const rows=[];let totalUnits=0,totalWeight=0;
+      for(const line of saved.lines){
+        const allocations=line.historical?resolvePacking(line,allocationsFor(line,packing.draft)):line.allocations;
+        for(const row of allocations){
+          const boxes=Number(row.boxes),perBox=Number(row.pieces_per_box);
+          if(!boxes||!perBox)throw Error('sp_required');
+          const weight=perBox*Number(row.piece_weight||0)+Number(row.box_weight||0);
+          const lineWeight=boxes*weight;totalUnits+=boxes;totalWeight+=lineWeight;
+          rows.push({pkgQty:String(boxes),pkgType:row.package_label||(row.packing_type==='returnable'?'Returnable':'Expendable'),
+            desc:[line.product.part_number,line.product.descripcion].filter(Boolean).join(' '),
+            dim:row.dimensions||'-',wPer:fmt(weight),wTot:fmt(lineWeight),uom:'LB'});
         }
-        return "";
       }
-      // Resuelve la dimensión por paquete del producto según packType
-      function getPackageDimensions(p, packType) {
-        if (!p) return "—";
-
-        if (packType === "returnable") {
-          // 1) Texto del tipo de empaque (ej. "24x18x12")
-          const text = pick(
-            p,
-            "tipo_empaque_retornable", "empaque_retornable",
-            "returnable_pack_type", "packaging_returnable", "pack_type_returnable"
-          );
-          const tDims = parseDimsFromText(text);
-          if (tDims) return `${tDims.L} x ${tDims.W} x ${tDims.H} IN`;
-
-          // 2) Campos numéricos por eje (retornable)
-          const L = pick(p, "ret_l", "ret_length_in", "length_in_ret", "dim_ret_l",
-                            "returnable_l", "largo_ret", "largo_ret_in", "dim_l_ret");
-          const W = pick(p, "ret_w", "ret_width_in", "width_in_ret", "dim_ret_w",
-                            "returnable_w", "ancho_ret", "ancho_ret_in", "dim_w_ret");
-          const H = pick(p, "ret_h", "ret_height_in", "height_in_ret", "dim_ret_h",
-                            "returnable_h", "alto_ret", "alto_ret_in", "dim_h_ret");
-          if (L && W && H) return `${L} x ${W} x ${H} IN`;
-        } else {
-          // expendable
-          const text = pick(
-            p,
-            "tipo_empaque_expendable", "empaque_expendable",
-            "expendable_pack_type", "packaging_expendable", "pack_type_expendable"
-          );
-          const tDims = parseDimsFromText(text);
-          if (tDims) return `${tDims.L} x ${tDims.W} x ${tDims.H} IN`;
-
-          const L = pick(p, "exp_l", "exp_length_in", "length_in_exp", "dim_exp_l",
-                            "expendable_l", "largo_exp", "largo_exp_in", "dim_l_exp");
-          const W = pick(p, "exp_w", "exp_width_in", "width_in_exp", "dim_exp_w",
-                            "expendable_w", "ancho_exp", "ancho_exp_in", "dim_w_exp");
-          const H = pick(p, "exp_h", "exp_height_in", "height_in_exp", "dim_exp_h",
-                            "expendable_h", "alto_exp", "alto_exp_in", "dim_h_exp");
-          if (L && W && H) return `${L} x ${W} x ${H} IN`;
-        }
-
-        // 3) Fallback genérico si no hay campos específicos de empaque
-        const Lg = pick(p, "dim_l", "length_in", "largo_in", "largo");
-        const Wg = pick(p, "dim_w", "width_in",  "ancho_in", "ancho");
-        const Hg = pick(p, "dim_h", "height_in", "alto_in",  "alto");
-        if (Lg && Wg && Hg) return `${Lg} x ${Wg} x ${Hg} IN`;
-
-        return "—";
-      }
-
-      Object.keys(cajasPorProducto).forEach((pid) => {
-        const p = productosById[pid] || {};
-        const cajas = Number(cajasPorProducto[pid] ?? 0) || 0;
-        if (cajas <= 0) return;
-
-        // piezas por caja
-        const piezasPorCaja = (packType === "returnable")
-          ? Number(p?.cantidad_por_caja_retornable ?? p?.cant_por_caja_retornable ?? 1)
-          : Number(p?.cantidad_por_caja_expendable ?? p?.cant_por_caja_expendable ?? 1);
-
-        // pesos
-        const pesoPieza = Number(p?.peso_por_pieza ?? p?.peso_unitario ?? 0);       // LB
-        const pesoCaja  = (packType === "returnable")
-          ? Number(p?.peso_caja_retornable ?? p?.peso_por_caja_retornable ?? 0)
-          : Number(p?.peso_caja_expendable ?? p?.peso_por_caja_expendable ?? 0);
-
-        // dimensiones 
-        const L = p?.dim_l ?? p?.length_in ?? p?.largo_in ?? p?.largo ?? "";
-        const W = p?.dim_w ?? p?.width_in  ?? p?.ancho_in ?? p?.ancho ?? "";
-        const H = p?.dim_h ?? p?.height_in ?? p?.alto_in  ?? p?.alto ?? "";
-        const dimText = (L && W && H) ? `${L} x ${W} x ${H} IN` : "—";
-
-
-        // --- Reglas de peso ---
-        // Peso por paquete (1 caja): (piezasPorCaja * pesoPieza) + pesoCaja
-        const pesoPorPaquete = ( (isNaN(piezasPorCaja)?0:piezasPorCaja) * (isNaN(pesoPieza)?0:pesoPieza) ) + (isNaN(pesoCaja)?0:pesoCaja);
-        // Peso por producto (todas sus cajas): cajas * pesoPorPaquete
-        const pesoLinea = cajas * pesoPorPaquete;
-
-        totalUnits  += cajas;
-        totalWeight += pesoLinea;
-
-        rows.push({
-          pkgQty: String(cajas),
-          pkgType:
-            packType === "expendable"
-              ? "Box" // cuando es desechable, fuerza "Box"
-              : (p?.bin_type),
-          desc: `${p?.part_number || p?.codigo || ""} ${p?.descripcion || ""}`.trim(),
-          dim: getPackageDimensions(p, packType),
-          wPer: fmt(pesoPorPaquete),
-          wTot: fmt(pesoLinea),
-          uom: "LB",
-        });
-      });
 
       // --------- 3) Medimos el alto que necesitamos (versión compacta) ---------
       const W = 215.9;   // carta mm
@@ -1477,7 +1286,7 @@ export default function GenerarBOL() {
       toast.success(t("generated_ok", "BOL generado correctamente"));
       resetForm();
     } catch (e) {
-      toast.error(t("error_generating", "Error al generar el BOL"));
+      toast.error(packingError(e,t));
     } finally {
       setIsGenerating(false);
     }
@@ -1581,13 +1390,6 @@ export default function GenerarBOL() {
             </div>
           )}
 
-          {/* Packaging type */}
-          <DSNativeSelect value={packType} onChange={(e) => setPackType(e.target.value)}>
-            <option value="">{t("select_pack")}</option>
-            <option value="expendable">{t("expendable", "Expendable")}</option>
-            <option value="returnable">{t("returnable", "Retornable")}</option>
-          </DSNativeSelect>
-
           {/* Date */}
           <DSDate
             value={bolDate}
@@ -1595,12 +1397,14 @@ export default function GenerarBOL() {
           />
 
           {/* Botón GENERAR BOL */}
-          <BtnPrimary onClick={generarPDF}>
+          <BtnPrimary disabled={isGenerating||packing.loading||!packing.valid} onClick={generarPDF}>
             {isGenerating
               ? t("loading", "Generando...")
               : t("generate_bol", "Generar BOL y Cover Sheet")}
           </BtnPrimary>
         </div>
+
+        {!!selectedIdx&&<ShippingPacking model={packing} disabled={isGenerating}/>}
 
         <div className="card" style={{ padding: 12 }}>
           <strong>{t("preview_hint", "Vista previa")}</strong>
