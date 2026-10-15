@@ -29,7 +29,7 @@ export function downtimeSchedule(report) {
 }
 export function normalizeCapture(report) {
  if(!report)return report;
- return {...report,downtime_events:downtimeSchedule(report).events};
+ return {...report,downtime_events:downtimeSchedule(report).events.map(({_downtime_key,...event})=>event)};
 }
 export function maximumCompleteBoxes(good,piecesPerBox) {
  const pieces=Number(piecesPerBox),available=Number(good);

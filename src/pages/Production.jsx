@@ -1,3 +1,4 @@
+import {affectedIds,selectedDowntime,applySelectedDowntime} from '../production/downtimeSelection.mjs';
 import {partLabel} from '../production/supply.mjs';
 import ProductionRework from '../production/ProductionRework';
 import {SectionPermission,useRoleAccess} from '../RoleAccess';
@@ -401,7 +402,7 @@ export default function Production({access}) {
 
   </div><label className="catalog-checkbox"><input type="checkbox" checked={edit.ends_next_day} onChange={ev=>setEdit({...edit,ends_next_day:ev.target.checked})}/>{t('pr_next_day')}</label><ProductionStaffNames report={edit} onChange={setEdit}/><p className="inv-muted">{t('pr_time_format')}</p></section>
 
-  {dailyProducts(edit).length>1&&<CatalogSelect label={t('pl_downtime_product')} value={edit.item_id} onChange={id=>setEdit(switchProduct(edit,id))} options={dailyProducts(edit).map(r=>({value:r.item_id,label:partLabel(itemFor(r))}))}/>}<ProductionDowntimes report={edit} captured={captured} onChange={setEdit}/>
+  {dailyProducts(edit).length>1&&<CatalogSelect multi label={t('pl_downtime_product')} value={affectedIds(edit,dailyProducts(edit))} onChange={downtime_item_ids=>setEdit({...edit,downtime_item_ids})} options={dailyProducts(edit).map(r=>({value:r.item_id,label:partLabel(itemFor(r))}))}/>}<ProductionDowntimes disabled={dailyProducts(edit).length>1&&!affectedIds(edit,dailyProducts(edit)).length} report={{...edit,downtime_events:selectedDowntime(edit,dailyProducts(edit))}} captured={captured} onChange={report=>setEdit(applySelectedDowntime(edit,report.downtime_events,dailyProducts(edit)))}/>
 
   {scheduleError&&edit.start_time&&edit.end_time&&<p role="alert" className="inv-message">{t(scheduleError)}</p>}
 

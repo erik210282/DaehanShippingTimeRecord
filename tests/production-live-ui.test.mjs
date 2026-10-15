@@ -148,6 +148,22 @@ try{
  assert.ok(columnColors.every(colors=>colors[0]==='rgb(255, 241, 242)'&&colors[1]==='rgb(240, 253, 244)'),JSON.stringify(columnColors));
  assert.ok(await page.locator('.live-product-attainment strong').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize))>=32,'Attainment percentage must stand out');
  
+ await page.getByRole('button',{name:'Record progress',exact:true}).first().click();
+ await page.getByRole('combobox',{name:'Products affected by downtime',exact:true}).waitFor();
+ const affectedField=page.locator('label.catalog-field').filter({has:page.getByRole('combobox',{name:'Products affected by downtime',exact:true})});
+ assert.equal(await affectedField.getByLabel('Remove PN-100 · Test product',{exact:true}).count(),1);
+ assert.equal(await affectedField.getByLabel('Remove PN-200 · Second product',{exact:true}).count(),1);
+ await affectedField.getByLabel('Remove PN-200 · Second product',{exact:true}).click();
+ await page.getByRole('button',{name:'Add downtime',exact:true}).click();
+ await page.getByRole('combobox',{name:'Downtime type',exact:true}).click();
+ await page.getByRole('option',{name:'Breaks (15 min)',exact:true}).click();
+ await page.getByLabel('Downtime start',{exact:true}).fill(new Date(now-45*60000).toTimeString().slice(0,5));
+ assert.equal(await page.getByLabel('Downtime end',{exact:true}).count(),0);
+ assert.equal(await page.getByLabel('Duration (min)',{exact:true}).count(),0);
+ await page.getByLabel('Produced quantity · PN-100 · Test product',{exact:true}).fill('185');
+ await page.getByLabel('Produced quantity · PN-200 · Second product',{exact:true}).fill('100');
+ await page.getByRole('button',{name:'Save',exact:true}).click();await page.locator('.live-dialog').waitFor({state:'hidden'});
+ assert.equal(captured.p_action,'checkpoint_batch');assert.deepEqual(captured.p_data.products.map(p=>p.downtime_events.length),[1,0]);
  await page.getByRole('button',{name:'End session',exact:true}).first().click();
  assert.equal(await page.getByLabel('Finish time',{exact:true}).inputValue(),'');
  assert.equal(await page.getByLabel('Finish date',{exact:true}).count(),0);

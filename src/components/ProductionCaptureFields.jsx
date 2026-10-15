@@ -1,4 +1,4 @@
-import {plannedType,plannedChange} from '../production/breaks.mjs';
+import {plannedType,plannedChange,downtimeTypeLabel} from '../production/breaks.mjs';
 import {useBreakSettings} from '../production/useBreakSettings';
 import React from 'react';
 import {useTranslation} from 'react-i18next';
@@ -15,14 +15,14 @@ export function ProductionStaffNames({report,onChange}) {
  const {t}=useTranslation();
  return Number(report.people)>0||report.staff_names?<label className="catalog-field production-staff"><span>{t('pr_staff_names_optional')}</span><TextAreaStyle aria-label={t('pr_staff_names_optional')} rows={3} maxLength={2000} value={report.staff_names||''} onChange={event=>onChange({...report,staff_names:event.target.value})}/></label>:null;
 }
-export function ProductionDowntimes({report,captured,onChange}) {
+export function ProductionDowntimes({report,captured,onChange,disabled=false}) {
  const {t}=useTranslation(),{settings}=useBreakSettings(),events=report.downtime_events||[];
- return <section className="production-section"><div className="production-section-heading"><h3>{t('pr_downtime_section')}</h3><BtnSecondary type="button" onClick={()=>onChange({...report,downtime_events:[...events,blankTimedDowntime()]})}>{t('pr_downtime_add')}</BtnSecondary></div><p className="inv-muted">{t('pr_downtime_hint')}</p>
+ return <section className="production-section"><div className="production-section-heading"><h3>{t('pr_downtime_section')}</h3><BtnSecondary type="button" disabled={disabled} onClick={()=>onChange({...report,downtime_events:[...events,blankTimedDowntime()]})}>{t('pr_downtime_add')}</BtnSecondary></div><p className="inv-muted">{t('pr_downtime_hint')}</p>
  {!events.length&&<p className="production-empty">{t('pr_downtime_empty')}</p>}
  {events.map((d,index)=>{const change=patch=>onChange({...report,downtime_events:events.map((row,k)=>k===index?plannedChange(row,patch,settings):row)}),timed=Object.hasOwn(d,'start_time')||Object.hasOwn(d,'end_time');
  return <div className="production-downtime-row production-downtime-timed" key={index}>
- <CatalogSelect label={t('pr_downtime_type')} value={d.type} onChange={type=>change({type})} options={downtimeTypes.map(value=>({value,label:t('pr_downtime_'+value)}))}/>
- {timed?<><ProductionClockInput label={t('pr_downtime_start')} value={d.start_time} onChange={start_time=>change({start_time})}/>{!plannedType(d.type)&&<><ProductionClockInput label={t('pr_downtime_end')} value={d.end_time} onChange={end_time=>change({end_time})}/><CatalogInput label={t('pr_downtime_duration')} readOnly value={downtimeDuration(d)}/></>}{plannedType(d.type)&&<small className="inv-muted">{downtimeDuration(d)||d.auto_minutes||settings[d.type+'_minutes']} min</small>}</>:<CatalogInput label={t('pr_downtime_duration')} required type="number" min="0.001" step="any" value={d.minutes} onChange={event=>change({minutes:event.target.value})}/>}
+ <CatalogSelect label={t('pr_downtime_type')} value={d.type} onChange={type=>change({type})} options={downtimeTypes.map(value=>({value,label:downtimeTypeLabel(value,t,settings,d)}))}/>
+ {timed?<><ProductionClockInput label={t('pr_downtime_start')} value={d.start_time} onChange={start_time=>change({start_time})}/>{!plannedType(d.type)&&<><ProductionClockInput label={t('pr_downtime_end')} value={d.end_time} onChange={end_time=>change({end_time})}/><CatalogInput label={t('pr_downtime_duration')} readOnly value={downtimeDuration(d)}/></>}</>:<CatalogInput label={t('pr_downtime_duration')} required type="number" min="0.001" step="any" value={d.minutes} onChange={event=>change({minutes:event.target.value})}/>}
  <CatalogInput label={t('pr_downtime_note')} value={d.note||''} onChange={event=>change({note:event.target.value})}/>
  <BtnDanger type="button" onClick={()=>onChange({...report,downtime_events:events.filter((_,k)=>k!==index)})}>{t('delete')}</BtnDanger>
  </div>;})}

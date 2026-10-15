@@ -8,3 +8,9 @@ export function plannedChange(event,patch,settings=defaultBreakSettings){
  const [h,m]=next.start_time.split(':').map(Number),end=(h*60+m+minutes)%1440;
  return {...next,auto_minutes:minutes,minutes,end_time:String(Math.floor(end/60)).padStart(2,'0')+':'+String(end%60).padStart(2,'0')};
 }
+
+export function downtimeTypeLabel(type,t,settings=defaultBreakSettings,event){
+ const label=t('pr_downtime_'+type);if(!plannedType(type))return label;
+ const minutes=event?.type===type?(event.auto_minutes??(Number(event.minutes)>0?event.minutes:settings[type+'_minutes'])):settings[type+'_minutes'];
+ return label+' ('+minutes+' min)';
+}
