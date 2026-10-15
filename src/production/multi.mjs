@@ -33,9 +33,9 @@ export function selectLiveProducts(edit,ids,newId){
 
 export function registerMulti(i18n){
  const resources={
- en:{pm_products:'Products',pm_shared_hint:'The machine, shift and staff are shared. Capture downtime and quantities separately for each product.',pm_quantity_for:'Produced quantity � {{part}}'},
- es:{pm_products:'Productos',pm_shared_hint:'La m�quina, el horario y el personal se comparten. Los paros y las cantidades se capturan por producto.',pm_quantity_for:'Cantidad producida � {{part}}'},
- ko:{pm_products:'??',pm_shared_hint:'??, ?? ??, ??? ?????. ?? ??? ??? ???? ?????.',pm_quantity_for:'?? ?? � {{part}}'}
+ en:{pm_products:'Products',pm_shared_hint:'The machine, shift and staff are shared. Capture downtime and quantities separately for each product.',pm_quantity_for:'Produced quantity · {{part}}'},
+ es:{pm_products:'Productos',pm_shared_hint:'La máquina, el horario y el personal se comparten. Los paros y las cantidades se capturan por producto.',pm_quantity_for:'Cantidad producida · {{part}}'},
+ ko:{pm_products:'제품',pm_shared_hint:'기계, 근무 시간, 인원은 공유됩니다. 정지 시간과 수량은 제품별로 입력하세요.',pm_quantity_for:'생산 수량 · {{part}}'}
  };
  for(const [lang,values] of Object.entries(resources))i18n.addResourceBundle(lang,'translation',values,true,true);
 }
