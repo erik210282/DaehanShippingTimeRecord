@@ -1,5 +1,5 @@
 
-const productFields=['id','live_run_id','item_id','machine_quantity','scrap_quantity','rework_quantity','packaging_type','full_boxes','pallets','pieces_per_box','note','rework_completed','catalog_packing'];
+const productFields=['id','live_run_id','item_id','machine_quantity','scrap_quantity','rework_quantity','packaging_type','full_boxes','pallets','pieces_per_box','note','rework_completed','catalog_packing','downtime_events'];
 const pick=r=>Object.fromEntries(productFields.map(k=>[k,r[k]]));
 export function dailyProducts(edit){
  const rows=Array.isArray(edit.products)?edit.products:edit.item_id?[pick(edit)]:[];
@@ -33,9 +33,9 @@ export function selectLiveProducts(edit,ids,newId){
 
 export function registerMulti(i18n){
  const resources={
- en:{pm_products:'Products',pm_shared_hint:'The machine, shift, staff and downtime are shared. Enter quantities and packing for each selected product.',pm_quantity_for:'Produced quantity · {{part}}'},
- es:{pm_products:'Productos',pm_shared_hint:'La máquina, el horario, el personal y los paros se comparten. Captura las cantidades y el empaque de cada producto seleccionado.',pm_quantity_for:'Cantidad producida · {{part}}'},
- ko:{pm_products:'제품',pm_shared_hint:'기계, 근무 시간, 작업자 및 중단 시간을 공유합니다. 선택한 제품별 수량과 포장을 입력하세요.',pm_quantity_for:'생산 수량 · {{part}}'}
+ en:{pm_products:'Products',pm_shared_hint:'The machine, shift and staff are shared. Capture downtime and quantities separately for each product.',pm_quantity_for:'Produced quantity � {{part}}'},
+ es:{pm_products:'Productos',pm_shared_hint:'La m�quina, el horario y el personal se comparten. Los paros y las cantidades se capturan por producto.',pm_quantity_for:'Cantidad producida � {{part}}'},
+ ko:{pm_products:'??',pm_shared_hint:'??, ?? ??, ??? ?????. ?? ??? ??? ???? ?????.',pm_quantity_for:'?? ?? � {{part}}'}
  };
  for(const [lang,values] of Object.entries(resources))i18n.addResourceBundle(lang,'translation',values,true,true);
 }

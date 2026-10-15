@@ -4,7 +4,7 @@ import vm from 'node:vm';
 const file=fs.existsSync('src/production/supply.mjs')?'src/production/supply.mjs':'production/supply.js';
 const source=fs.readFileSync(file,'utf8').replace(/export /g,'');
 const {partLabel,contributorNames,supplyRows,shiftCapture}=vm.runInNewContext(source+'\n({partLabel,contributorNames,supplyRows,shiftCapture})');
-assert.equal(partLabel({part_number:'PN',productos:{nombre:'Assembly'}}),'PN · Assembly');
+assert.equal(partLabel({part_number:'PN',productos:{nombre:'Assembly'}}),'PN � Assembly');
 assert.equal(contributorNames({id:'r'},[{run_id:'r',created_by:'a'},{run_id:'r',created_by:'b'},{run_id:'r',created_by:'a'}],[{uid:'a',nombre:'Ana'},{uid:'b',nombre:'Luis'}]),'Ana, Luis');
 assert.equal(contributorNames({id:'r',contributors:[{uid:'a',name:'Ana'},{uid:'b',name:'Luis'}]},[],[]),'Ana, Luis');
 const at=new Date('2026-10-11T10:00:00Z');
@@ -23,5 +23,12 @@ assert.equal(shiftCapture(edit,'',[],()=> 'row').live_run_id,null);
 row=supplyRows({...base,materials:[{...base.materials[0],tracked_at:at.toISOString()}]},at)[0];assert.equal(row.estimated,1000,'First physical loading excludes elapsed time before loading');
 console.log('Station forecasts, handoff attribution and shift-linked capture passed');
 
-const handoff=shiftCapture({id:'new'},'session',[{id:'r',session_id:'session',station_code:'M',item_id:'p',started_at:'2026-10-13T13:00:00Z',closed_at:'2026-10-13T23:30:00Z',latest_quantity:474,latest_at:'2026-10-13T23:30:00Z'}],()=> 'new-row',[{id:'existing',live_run_id:'r',item_id:'p',status:'draft',capture_group_id:'session',people:null,machine_quantity:474,scrap_quantity:null,downtime_events:[]}]);
+const handoff=shiftCapture({id:'new'},'closed:r',[{id:'r',session_id:'session',station_code:'M',item_id:'p',started_at:'2026-10-13T13:00:00Z',closed_at:'2026-10-13T23:30:00Z',latest_quantity:474,latest_at:'2026-10-13T23:30:00Z'}],()=> 'new-row',[{id:'existing',live_run_id:'r',item_id:'p',status:'draft',capture_group_id:'session',people:null,machine_quantity:474,scrap_quantity:null,downtime_events:[]}]);
 assert.equal(handoff.id,'existing');assert.equal(handoff.products[0].id,'existing');assert.equal(handoff.people,'');assert.equal(handoff.scrap_quantity,'');assert.equal(handoff.machine_quantity,474);
+
+const runs=[{id:'one',session_id:'shared',item_id:'p',started_at:'2026-10-13T06:00:00Z',closed_at:'2026-10-13T12:00:00Z',downtime_events:[{type:'breakdown',start_at:'2026-10-13T08:00:00Z',end_at:'2026-10-13T08:15:00Z'}]},{id:'two',session_id:'shared',item_id:'q',started_at:'2026-10-13T06:00:00Z',downtime_events:[]}];
+assert.deepEqual(Array.from(shiftCapture({},'shared',runs,()=> 'x').products,p=>p.item_id),['q']);
+assert.deepEqual(Array.from(shiftCapture({},'closed:one',runs,()=> 'x').products,p=>p.item_id),['p']);
+const together=shiftCapture({},'shared',runs.map(r=>({...r,closed_at:null})),()=> 'x');
+assert.equal(together.products[0].downtime_events.length,1);assert.equal(together.products[1].downtime_events.length,0);
+console.log('PASS independent closed handoffs and product downtime isolation');

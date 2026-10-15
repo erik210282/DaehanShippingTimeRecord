@@ -7,10 +7,11 @@ export function synchronizedTargets(target,key,value){
  const n=Number(value),uph=key==='target_10h'?n/9.3:n/7.5;
  return {...target,[key]:value,...(Number.isFinite(uph)&&uph>0?{[key==='target_10h'?'target_8h':'target_10h']:String(Number((uph*(key==='target_10h'?7.5:9.3)).toFixed(4)))}:{})};
 }
-export function eventsInEditor(run){return (run?.downtime_events||[]).map(d=>({...d,start_time:new Date(d.start_at).toTimeString().slice(0,5),end_time:new Date(d.end_at).toTimeString().slice(0,5)}));}
+export function eventsInEditor(run){return (run?.downtime_events||[]).map(d=>({...d,...(['break','lunch'].includes(d.type)?{auto_minutes:(new Date(d.end_at)-new Date(d.start_at))/60000}:{}),start_time:new Date(d.start_at).toTimeString().slice(0,5),end_time:new Date(d.end_at).toTimeString().slice(0,5)}));}
 export function progressCapture(edit,now=new Date()){
  const start=edit.started_at||localStart(edit.date,edit.time);
- const end=edit.action==='finish'?localStart(edit.finish_date,edit.finish_time):now.toISOString();
+ const finishDay=new Date(start);if(edit.ends_next_day)finishDay.setDate(finishDay.getDate()+1);
+ const end=edit.action==='finish'?localStart(edit.finish_date||localDate(finishDay),edit.finish_time):now.toISOString();
  if(!start||!end||new Date(end)<=new Date(start)||new Date(end)>now)return {error:'pl_finish_invalid'};
  const a=new Date(start),b=new Date(end),report={start_time:a.toTimeString().slice(0,5),end_time:b.toTimeString().slice(0,5),ends_next_day:localDate(a)!==localDate(b),downtime_events:edit.downtime_events||[]};
  const schedule=downtimeSchedule(report);
