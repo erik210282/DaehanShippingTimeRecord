@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {packingWeight,normalizePackingContext,optionLabel} from '../src/inventory/shippingPacking.js';
+const option={option_id:'config:complete',pieces_per_box:10,source_option_ids:['report:1','report:2','bom:1'],materials:[{id:'config:complete',part_number:'BOX + PALLET',packing_type:'expendable'}],production_reports:[{id:'report:1',date:'2026-10-11'},{id:'report:2',date:'2026-10-14'}]};
+const raw={confirmed:false,lines:[{id:'line',options:[option],allocations:[{boxes:3,option_id:'report:1',material_id:'box',pieces_per_box:10,dimensions:'box-only'}]}]};
+const normalized=normalizePackingContext(raw);
+assert.deepEqual(normalized.lines[0].allocations,[{boxes:3,option_id:'config:complete',material_id:'config:complete'}]);
+assert.equal(raw.lines[0].allocations[0].material_id,'box');
+const history={...raw,confirmed:true};assert.equal(normalizePackingContext(history),history);
+const label=optionLabel(option,key=>key);assert.match(label,/BOX \+ PALLET/);assert.doesNotMatch(label,/2026|report:/);
+const complete={assembly_version:2,weight_complete:true,boxes:3,pieces_per_box:10,piece_weight:2,components:[{quantity:1,basis:'box',weight_lb:36.1},{quantity:1,basis:'box',weight_lb:45}]};
+assert.ok(Math.abs(packingWeight(complete).total-303.3)<1e-8);
+const partial={assembly_version:2,weight_complete:true,boxes:3,pieces_per_box:6,piece_weight:1,boxes_per_pallet:8,components:[{quantity:1,basis:'box',weight_lb:5.51},{quantity:1,basis:'pallet',weight_lb:7.5}]};
+assert.ok(Math.abs(packingWeight(partial).total-42.03)<1e-8);
+assert.equal(packingWeight({boxes:2,pieces_per_box:5,piece_weight:3,box_weight:7}).total,44);
+console.log('PASS complete packaging labels, unconfirmed migration, frozen history, complete weights and whole partial pallets');

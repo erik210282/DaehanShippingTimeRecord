@@ -1,5 +1,5 @@
 import ShippingPacking from '../components/ShippingPacking';
-import {useShippingPacking,packingError,allocationsFor,resolvePacking} from '../inventory/shippingPacking';
+import {useShippingPacking,packingError,allocationsFor,resolvePacking,packingWeight} from '../inventory/shippingPacking';
 import {registerShippingPacking} from '../inventory/shippingPackingTranslations';
 import {useLiveVersion} from '../useLiveVersion';
 import React from "react";
@@ -650,8 +650,8 @@ export default function GenerarBOL() {
         for(const row of allocations){
           const boxes=Number(row.boxes),perBox=Number(row.pieces_per_box);
           if(!boxes||!perBox)throw Error('sp_required');
-          const weight=perBox*Number(row.piece_weight||0)+Number(row.box_weight||0);
-          const lineWeight=boxes*weight;totalUnits+=boxes;totalWeight+=lineWeight;
+          const {perPackage:weight,total:lineWeight}=packingWeight(row);
+          totalUnits+=boxes;totalWeight+=lineWeight;
           rows.push({pkgQty:String(boxes),pkgType:row.package_label||(row.packing_type==='returnable'?'Returnable':'Expendable'),
             desc:[line.product.part_number,line.product.descripcion].filter(Boolean).join(' '),
             dim:row.dimensions||'-',wPer:fmt(weight),wTot:fmt(lineWeight),uom:'LB'});

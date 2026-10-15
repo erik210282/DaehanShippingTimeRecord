@@ -19,17 +19,14 @@ export default function ShippingPacking({model,disabled=false}) {
    <label style={{flex:'1 1 320px'}}>{t('sp_variant')}<select aria-label={t('sp_variant')} style={{width:'100%'}} value={row.option_id} onChange={e=>{const o=line.options.find(o=>o.option_id===e.target.value);change(line,index,{option_id:e.target.value,material_id:o?.materials.length===1?o.materials[0].id:''});}}>
     <option value="">{t('select_pack')}</option>
     {row.pieces_per_box!=null&&!option&&<option value={row.option_id}>{row.material_part_number} | {row.pieces_per_box} {t('inv_pieces_per_box')}</option>}
-    {line.options.map(o=><option key={o.option_id} value={o.option_id}>{optionLabel(o,t)}</option>)}
+    {line.options.filter(o=>o.option_id===row.option_id||!allocationsFor(line,draft).some(other=>other.option_id===o.option_id)).map(o=><option key={o.option_id} value={o.option_id}>{optionLabel(o,t)}</option>)}
    </select></label>
-   {!!option&&<label style={{flex:'1 1 220px'}}>{t('sp_material')}<select aria-label={t('sp_material')} style={{width:'100%'}} value={row.material_id} onChange={e=>change(line,index,{material_id:e.target.value})}>
-    <option value="">{t('sp_material')}</option>{option.materials.map(m=><option key={m.id} value={m.id}>{m.part_number} | {m.dimensions}</option>)}
-   </select></label>}
    <span>{resolved.pieces_per_box?`${t('rc_'+resolved.packing_type)} | ${resolved.pieces_per_box} ${t('inv_pieces_per_box')} | ${resolved.dimensions||''}`:''}</span>
    {allocationsFor(line,draft).length>1&&<button type="button" onClick={()=>remove(line,index)}>{t('delete')}</button>}
   </div>;
  })}
  <p>{allocationsFor(line,draft).reduce((sum,row)=>sum+Number(row.boxes||0),0)} / {line.cantidad_cajas} {t('inv_boxes')}</p>
- <button type="button" onClick={()=>add(line)}>{t('sp_split')}</button>
+ {line.options.length>allocationsFor(line,draft).length&&<button type="button" onClick={()=>add(line)}>{t('sp_split')}</button>}
  </fieldset>)}
  </section>;
 }

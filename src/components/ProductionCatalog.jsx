@@ -1,3 +1,4 @@
+import {registerShippingPacking} from '../inventory/shippingPackingTranslations';
 import ErrorPopup from './ErrorPopup';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplication';
@@ -18,7 +19,7 @@ import { BtnPrimary, BtnSecondary, BtnEditDark, BtnDanger, TablePagination } fro
 
 const unwrap = async query => { const { data, error } = await query; if(error) throw error; return data; };
 const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, filter='', hideInactive=false, externalControls=false }, ref) {
- const {t,i18n}=useTranslation();
+ const {t,i18n}=useTranslation();registerShippingPacking(i18n);
  const [rows,setRows]=useState([]),[items,setItems]=useState([]),[products,setProducts]=useState([]);
  const [search,setSearch]=useState(''),[edit,setEdit]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25),[expanded,setExpanded]=useState(null);
@@ -72,7 +73,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    if(edit.packing.some(p=>p.enabled&&p.lines.some((l,k)=>l.ingredient_id&&p.lines.some((other,j)=>j!==k&&other.ingredient_id===l.ingredient_id))))throw Error('pr_pack_material_duplicate');
    const lines=edit.lines.map(l=>({ingredient_id:l.ingredient_id,quantity_per_unit:Number(l.quantity_per_unit),waste_rate:Number(l.waste)/100}));
    if(!edit.product_part_number.trim()||!lines.length||lines.some(l=>!l.ingredient_id||!Number.isFinite(l.quantity_per_unit)||l.quantity_per_unit<=0||!Number.isFinite(l.waste_rate)||l.waste_rate<0||l.waste_rate>=1))throw Error('catalog_recipe_required');
-   await unwrap(supabase.rpc('inventory_catalog_recipe',{p_action:'save',p_data:{id:edit.id,product_part_number:edit.product_part_number,version:edit.version||null,active:edit.active,notes:edit.notes,lines,packaging:edit.packing.filter(p=>p.enabled).map(p=>({packaging_type:p.packaging_type,box_name:p.box_name,pieces_per_box:Number(p.pieces_per_box),boxes_per_pallet:p.lines.some(l=>l.basis==='pallet')?Number(p.boxes_per_pallet):null,lines:p.lines.map(l=>({ingredient_id:l.ingredient_id,quantity:Number(l.quantity),basis:l.basis,waste_rate:Number(l.waste)/100}))}))}}));
+   await unwrap(supabase.rpc('inventory_catalog_recipe',{p_action:'save',p_data:{id:edit.id,product_part_number:edit.product_part_number,version:edit.version||null,active:edit.active,notes:edit.notes,lines,packaging:edit.packing.filter(p=>p.enabled).map(p=>({packaging_type:p.packaging_type,box_name:p.box_name,shipping_dimensions:p.shipping_dimensions||null,pieces_per_box:Number(p.pieces_per_box),boxes_per_pallet:p.lines.some(l=>l.basis==='pallet')?Number(p.boxes_per_pallet):null,lines:p.lines.map(l=>({ingredient_id:l.ingredient_id,quantity:Number(l.quantity),basis:l.basis,waste_rate:Number(l.waste)/100}))}))}}));
   }
  }
  function remove(r){

@@ -5,6 +5,16 @@ export function allocationsFor(line,draft) {
  return draft[line.id] || line.allocations || [blankAllocation(line.cantidad_cajas)];
 }
 export function packingTotal(rows) {return rows.reduce((total,row)=>total+Number(row.boxes||0)*Number(row.pieces_per_box||0),0);}
+export function packingWeight(row){
+ const boxes=Number(row.boxes),capacity=Number(row.pieces_per_box);
+ let empty=boxes*Number(row.box_weight||0);
+ if(row.assembly_version>=2&&row.weight_complete&&row.components?.length){
+  empty=row.components.reduce((sum,c)=>sum+Number(c.weight_lb||0)*Number(c.quantity)*
+   (c.basis==='piece'?boxes*capacity:c.basis==='pallet'?Math.ceil(boxes/Number(row.boxes_per_pallet)):boxes),0);
+ }
+ const total=boxes*capacity*Number(row.piece_weight||0)+empty;
+ return {total,perPackage:total/boxes};
+}
 export function packingValid(line,rows) {
  return rows.length>0 && rows.every(row=>Number.isInteger(Number(row.boxes))&&Number(row.boxes)>0 &&
  line.options.some(o=>o.option_id===row.option_id&&o.materials.some(m=>m.id===row.material_id))) &&
@@ -23,7 +33,15 @@ export function resolvePacking(line,rows) {
 }
 export function optionLabel(option,t) {
  const kinds=[...new Set(option.materials.map(m=>m.packing_type))].map(k=>t('rc_'+k)).join('/');
- return `${kinds} | ${option.pieces_per_box} ${t('inv_pieces_per_box')} | ${option.materials.map(m=>m.part_number).join(', ')} | ${option.report_id?`${t('sp_production')} ${option.production_date} (${option.report_id.slice(0,8)})`:t(option.legacy?'sp_legacy':'sp_existing_stock')}`;
+ return kinds+' | '+option.pieces_per_box+' '+t('inv_pieces_per_box')+' | '+option.materials.map(m=>m.part_number).join(' + ');
+}
+export function normalizePackingContext(context){
+ if(!context||context.confirmed)return context;
+ return {...context,lines:context.lines.map(line=>({...line,allocations:line.allocations?.map(row=>{
+  if(row.assembly_version>=2||row.legacy)return row;
+  const option=line.options.find(o=>o.option_id===row.option_id||o.source_option_ids?.includes(row.option_id));
+  return option?{boxes:row.boxes,option_id:option.option_id,material_id:option.materials[0].id}:row;
+ })}))};
 }
 export function packingError(error,t) {
  const key=String(error?.message||error).match(/sp_[a-z_]+/)?.[0];
@@ -37,7 +55,7 @@ export function useShippingPacking(client,idx) {
   if(!idx){setLoading(false);return;}
   setLoading(true);
   try {const {data,error:failure}=await client.rpc('shipping_packing_context',{p_idx:idx});if(failure)throw failure;
-   if(token===epoch.current)setContext(data);
+   if(token===epoch.current)setContext(normalizePackingContext(data));
   }catch(failure){if(token===epoch.current)setError(failure);}
   finally{if(token===epoch.current)setLoading(false);}
  },[client,idx]);
@@ -50,7 +68,7 @@ export function useShippingPacking(client,idx) {
  const remove=(line,index)=>setDraft(previous=>({...previous,[line.id]:allocationsFor(line,previous).filter((_,i)=>i!==index)}));
  const valid=!!context?.lines.length && context.lines.every(line=>{
   // An existing snapshot can still be used after its BOM was archived.
-  if(!draft[line.id]&&line.allocations)return line.allocations.reduce((sum,a)=>sum+Number(a.boxes),0)===Number(line.cantidad_cajas);
+  if(!draft[line.id]&&line.allocations?.every(row=>row.pieces_per_box!=null))return line.allocations.reduce((sum,a)=>sum+Number(a.boxes),0)===Number(line.cantidad_cajas);
   return packingValid(line,allocationsFor(line,draft));
  });
  async function save(){

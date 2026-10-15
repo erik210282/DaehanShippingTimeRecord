@@ -37,7 +37,7 @@ begin
  begin perform public.shipping_save_packing('PACKING-ROLLBACK-TEST',payload);raise exception 'Stale update accepted';
  exception when others then if sqlerrm<>'sp_stale' then raise; end if; end;
  -- Catalog changes must not recalculate a previously saved snapshot.
- update public.inventory_items set packing_measures='999 x 999 x 999 in' where id=(first_option->'materials'->0->>'id')::uuid;
+ update public.inventory_items set packing_measures='999 x 999 x 999 in' where id=coalesce(first_option->'materials'->0->'components'->0->>'id',first_option->'materials'->0->>'id')::uuid;
  payload:=jsonb_set(payload,'{0,saved_at}',line->'saved_at');
  context:=public.shipping_save_packing('PACKING-ROLLBACK-TEST',payload);
  if context->'lines'->0->'allocations'<>line->'allocations' then raise exception 'Snapshot changed with catalog'; end if;
@@ -62,12 +62,12 @@ begin
  update public.productos set activo=false where id=p;
  options:=rls_internal.shipping_packing_options(p,false);
  if exists(select 1 from jsonb_array_elements(options) o where (o->>'legacy')::boolean is not true) then raise exception 'Inactive values changed'; end if;
- -- A chosen production report must remain linked to its exact saved capacity.
+ -- Grouped production references retain the report and its saved capacity.
  select r.*,i.producto_id into report from public.production_station_reports r join public.inventory_items i on i.id=r.item_id
  join public.productos p on p.id=i.producto_id where r.status='posted' and r.packed_quantity>0 and r.pieces_per_box>0 and p.activo and i.active limit 1;
  if report.id is not null then
   options:=rls_internal.shipping_packing_options(report.producto_id,false);
-  select o into first_option from jsonb_array_elements(options) o where o->>'report_id'=report.id::text;
+  select o into first_option from jsonb_array_elements(options) o where o->'production_reports' @> jsonb_build_array(jsonb_build_object('id',report.id::text));
   if first_option is null then raise exception 'Production report option missing'; end if;
   insert into public.shipping_lines(idx,idx_line,producto,cantidad_cajas,primera_etiqueta)
   values('PACKING-ROLLBACK-PRODUCTION','PACKING-ROLLBACK-PRODUCTION-1',report.producto_id,1,'0001') returning id into lid;
@@ -78,7 +78,7 @@ begin
   begin perform public.shipping_save_packing('PACKING-ROLLBACK-PRODUCTION',changed);raise exception 'Changed catalog capacity accepted';
   exception when others then if sqlerrm<>'sp_stale' then raise; end if; end;
   context:=public.shipping_save_packing('PACKING-ROLLBACK-PRODUCTION',payload);
-  if context->'lines'->0->'allocations'->0->>'report_id'<>report.id::text then raise exception 'Production link lost'; end if;
+  if not coalesce(context->'lines'->0->'allocations'->0->'production_reports' @> jsonb_build_array(jsonb_build_object('id',report.id::text)),false) then raise exception 'Production link lost'; end if;
  end if;
 end $$;
 select 'PASS: variants, materials, splits, totals, stale edits, snapshots, confirmation, inventory, 63 inches, inactive fallback and anonymous denial' as shipping_packing_test;
