@@ -15,3 +15,12 @@ copy.fields[0].label='Changed';copy.item_ids.push('b');assert.equal(source.field
 assert.equal(m.templateProblem(copy,[source]),'pp_duplicate_rename');copy.name=' press ';assert.equal(m.templateProblem(copy,[source]),'pp_duplicate_rename');copy.name='Other';assert.equal(m.templateProblem(copy,[source,{id:'another',name:'OTHER'}]),'pp_duplicate_name_exists');copy.name='Press B';assert.equal(m.templateProblem(copy,[source]),null);
 const groups=plain(m.templateGroups([source,{...source,id:'b',machine_types:['Press','Press']}]));assert.deepEqual(groups.map(g=>[g.type,g.templates.length]),[['Forming',1],['Press',2]]);
 console.log('PASS reference limits, decimal/negative/percentage ranges, malformed references, independent copies, unique names and machine groups');
+for(const [reference,minimum,maximum] of [['2,000-4,000 bar',2000,4000],['2,000-5,000 bar',2000,5000],['2,000.5 ± 500.25',1500.25,2500.75],['1,000,000–2,000,000',1000000,2000000],['0,125 ± 0,025',.1,.15]])assert.deepEqual(plain(m.referenceBounds(reference)),{minimum,maximum});
+assert.equal(m.referenceBounds('1,23,456–5,000'),null);
+assert.equal(m.parseParameterNumber('2,000'),2000);assert.equal(m.parseParameterNumber('1,5'),1.5);assert.equal(m.parseParameterNumber('bad'),null);
+const multi={...source,active:true,station_codes:['M1','M2'],station_code:null};
+assert.equal(m.matchingTemplates([multi],{code:'M2',machine_type:'Press'},['a']).length,1);assert.equal(m.matchingTemplates([multi],{code:'M3',machine_type:'Press'},['a']).length,0);
+assert.equal(m.matchingTemplates([{...multi,deleted_at:'today'}],{code:'M1',machine_type:'Press'}).length,0);
+assert.equal(m.templateGroups([{...multi,deleted_at:'today'}]).length,0);
+const reading={station_code:'M1',item_ids:['a'],template:{fields:[{id:'f',input_type:'numeric'}]},values:{f:{value:'2,500'}}};assert.equal(m.captureProblem(reading),null);assert.equal(m.captureValues(reading)[0].value,'2500');assert.equal(m.readingOutside({input_type:'numeric',minimum:2000,maximum:4000},'2,500'),false);
+console.log('PASS thousands, decimal commas, multi-workstation scope and deleted configuration filtering');
