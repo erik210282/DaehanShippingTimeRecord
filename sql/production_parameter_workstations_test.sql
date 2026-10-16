@@ -9,10 +9,11 @@ begin
  select code into a from public.inventory_workstations where active and machine_type=machine order by code limit 1;
  select code into b from public.inventory_workstations where active and machine_type=machine and code<>a order by code limit 1;
  if a is null or b is null then raise exception 'Need two active workstations';end if;
- payload:=jsonb_build_object('id',tid,'name','Workstation rollback test','machine_types',jsonb_build_array(machine),'station_codes',jsonb_build_array(a,b),'item_ids','[]'::jsonb,'fields',jsonb_build_array(jsonb_build_object('id','f','label','Pressure','input_type','numeric','reference','2,000-4,000','minimum',2000,'maximum',4000)));
+ payload:=jsonb_build_object('id',tid,'name','Workstation rollback test','machine_types',jsonb_build_array(machine),'station_codes',jsonb_build_array(a,b),'item_ids','[]'::jsonb,'fields',jsonb_build_array(jsonb_build_object('id','f','label','Pressure','input_type','numeric','reference','2,000-4,000','minimum',2,'maximum',4)));
  perform public.production_parameter_action('template',payload);
  select * into tpl from public.production_parameter_templates where id=tid;
  if cardinality(tpl.station_codes)<>2 or not(a=any(tpl.station_codes)) or not(b=any(tpl.station_codes)) or tpl.station_code is not null then raise exception 'Multiple stations lost';end if;
+ if (tpl.fields->0->>'minimum')::numeric<>2000 or (tpl.fields->0->>'maximum')::numeric<>4000 then raise exception 'Older client thousands not corrected';end if;
  select id into product from public.inventory_items where active and category in ('FG','SEMI') limit 1;
  perform public.production_parameter_action('capture',jsonb_build_object('id',capture,'station_code',b,'item_ids',jsonb_build_array(product),'template_id',tid,'template_version',tpl.version,'recorded_at',now()-interval '1 minute','timezone','UTC','values',jsonb_build_array(jsonb_build_object('id','f','value','2500'))));
  if not exists(select 1 from public.production_parameter_checks where capture_group_id=capture and station_code=b and not out_of_range) then raise exception 'Second station capture failed';end if;
@@ -41,6 +42,9 @@ begin
  payload:=(payload-'station_codes')||jsonb_build_object('id',gen_random_uuid(),'station_code',a);
  perform public.production_parameter_action('template',payload);
  if not exists(select 1 from public.production_parameter_templates where id=(payload->>'id')::uuid and station_codes=array[a]) then raise exception 'Legacy scope lost';end if;
+ payload:=payload||jsonb_build_object('id',gen_random_uuid(),'fields',jsonb_build_array(jsonb_build_object('id','f','label','Pressure','input_type','numeric','reference','1,000 ± 10%','minimum',0,'maximum',0)));
+ perform public.production_parameter_action('template',payload);
+ if not exists(select 1 from public.production_parameter_templates where id=(payload->>'id')::uuid and (fields->0->>'minimum')::numeric=900 and (fields->0->>'maximum')::numeric=1100) then raise exception 'Grouped tolerance failed';end if;
  perform set_config('request.jwt.claim.sub','',true);
  begin
   perform public.production_parameter_action('reactivate',jsonb_build_object('id',tid,'version',1));
