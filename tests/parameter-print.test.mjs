@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {parameterShift,printPeople,printRows,productGroups,parameterSheet,escapePrint} from '../src/production/parameterPrint.mjs';
+const staff=[{id:'lead',name:'Leader',role:'lider'},{id:'boss',name:'Supervisor',role:'supervisor'},{id:'other',name:'Other supervisor',role:'supervisor'}];
+for(const [time,shift] of [['06:00','DAY SHIFT'],['13:18','DAY SHIFT'],['17:59','DAY SHIFT'],['18:00','NIGHT SHIFT'],['02:00','NIGHT SHIFT']])assert.equal(parameterShift(time),shift);
+const report={leader_id:'boss',leader_name:'Supervisor',author_role:'supervisor',recorded_time:'13:18',recorded_date:'2026-10-16',station_name:'Assembly <&>',products:[{part_number:'PN1',part_name:'Product A'},{part_number:'PN2',part_name:'Product B'}],readings:[{label:'Tank 1',reference:'150–210 ℃',value:'180',unit:'℃',note:'Checked',out_of_range:false}]};
+const defaults=printPeople(report,staff);assert.equal(defaults.supervisor,'Supervisor');assert.equal(defaults.facilitator,'Supervisor');assert.equal(defaults.isLeader,false);assert.equal(defaults.facilitators.length,3);assert.equal(defaults.supervisors.length,2);
+assert.equal(printPeople({...report,leader_id:'lead',leader_name:'Original leader',author_role:'lider'},staff).isLeader,true);
+assert.equal(printPeople({...report,leader_name:'Former user',leader_id:'inactive'},staff).facilitators.at(-1).value,'Former user');
+assert.equal(escapePrint('<script>'),'&lt;script&gt;');const html=parameterSheet(report,defaults,productGroups(report)[0],printRows(report),'/logo.png');for(const value of ['Assembly &lt;&amp;&gt;','PN1 - Product A','PN2 - Product B','150–210 ℃','180','Checked','2026-10-16','DAY SHIFT'])assert.ok(html.includes(value),value);assert.ok(!html.includes('version'));
+const long={...report,readings:[{...report.readings[0],note:'x'.repeat(1000),value:'y'.repeat(500)}]};const rows=printRows(long);assert.equal(rows.map(r=>r.remarks).join(''),'x'.repeat(1000));assert.equal(rows.map(r=>r.result).join(''),'y'.repeat(500));assert.equal(rows.filter(r=>r.unit).length,1);
+console.log('PASS shift boundaries, supervisor choices, leader defaults, saved fields, escaped content and lossless continuation rows');
