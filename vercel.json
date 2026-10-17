@@ -1,7 +1,28 @@
 {
   "rewrites": [
-    { "source": "/support", "destination": "/support.html" },
-    { "source": "/support/", "destination": "/support.html" },
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/privacy/",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/support",
+      "destination": "/support.html"
+    },
+    {
+      "source": "/support/",
+      "destination": "/support.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
   ]
 }
