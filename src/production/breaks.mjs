@@ -10,7 +10,7 @@ export function plannedChange(event,patch,settings=defaultBreakSettings){
 }
 
 export function downtimeTypeLabel(type,t,settings=defaultBreakSettings,event){
- const label=t('pr_downtime_'+type);if(!plannedType(type))return label;
+ const label=event?.code?[event.code,event.code_name].filter(Boolean).join(' - '):t('pr_downtime_'+type);if(!plannedType(type))return label;
  const minutes=event?.type===type?(event.auto_minutes??(Number(event.minutes)>0?event.minutes:settings[type+'_minutes'])):settings[type+'_minutes'];
  return label+' ('+minutes+' min)';
 }

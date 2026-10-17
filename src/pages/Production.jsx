@@ -1,3 +1,5 @@
+import DailyPrintDialog from '../production/DailyPrintDialog';
+import {codeLabel} from '../production/downtimeCodes.mjs';
 import {affectedIds,selectedDowntime,applySelectedDowntime} from '../production/downtimeSelection.mjs';
 import {partLabel} from '../production/supply.mjs';
 import ProductionRework from '../production/ProductionRework';
@@ -96,7 +98,7 @@ export default function Production({access}) {
 
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25),[edit,setEdit]=useState(null),[review,setReview]=useState(null);
 
- const [confirming,setConfirming]=useState(false);
+ const [confirming,setConfirming]=useState(false),[printReport,setPrintReport]=useState(null);
 
  const lock=useRef(false),live=useRef(true),request=useRef(0),form=useRef(null);
 
@@ -271,7 +273,7 @@ export default function Production({access}) {
 
    [t('pr_total_hours')]:r.elapsed_minutes/60,[t('pr_worked_hours')]:reportMetrics(r).worked/60,[t('pr_labor_hours')]:reportMetrics(r).laborHours,
 
-   [t('pr_machine_minutes')]:r.machine_minutes,[t('pr_total_downtime')]:reportMetrics(r).totalDowntime,[t('pr_downtime_section')]:reportDowntimes(r).map(d=>t('pr_downtime_'+d.type)+': '+d.minutes+' '+(d.note||'')).join(' / '),[t('pr_people')]:r.people,
+   [t('pr_machine_minutes')]:r.machine_minutes,[t('pr_total_downtime')]:reportMetrics(r).totalDowntime,[t('pr_downtime_section')]:reportDowntimes(r).map(d=>codeLabel(d,t)+': '+d.minutes+' '+(d.note||'')).join(' / '),[t('pr_people')]:r.people,
 
    [t('pr_machine_quantity')]:r.machine_quantity,[t('pr_good')]:r.good_quantity,[t('pr_scrap')]:r.scrap_quantity,[t('pr_rework')]:r.rework_quantity,
 
@@ -311,7 +313,7 @@ export default function Production({access}) {
 
  if(!allowed)return <Navigate to="/inicio" replace/>;
 
- return <><div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav department="production" value={tab} onChange={setTab} label={t('global_production')} items={[...(manage||roleAccess?.can('production','dashboard')?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'summary',label:t('pr_summary')},{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},{key:'materials',label:t('ps_materials')},...(manage?[{key:'parameters',label:t('pp_capture')}]:[]),{key:'rework',label:t('rw_title')},...(manage?[{key:'shifts',label:t('ps_shifts')}]:[]),...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),...(supervisor?[{key:'parameter-settings',label:t('pp_settings')}]:[])]} /></div>
+ return <>{printReport&&<DailyPrintDialog report={printReport} onClose={()=>setPrintReport(null)}/>}<div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav department="production" value={tab} onChange={setTab} label={t('global_production')} items={[...(manage||roleAccess?.can('production','dashboard')?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'summary',label:t('pr_summary')},{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},{key:'materials',label:t('ps_materials')},...(manage?[{key:'parameters',label:t('pp_capture')}]:[]),{key:'rework',label:t('rw_title')},...(manage?[{key:'shifts',label:t('ps_shifts')}]:[]),...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),...(supervisor?[{key:'parameter-settings',label:t('pp_settings')}]:[])]} /></div>
 
  <ProductionSupplyAlerts enabled={manage&&!edit&&!review} items={data.items} rows={supply.rows}/>
  <main className="page-container page-container--fluid production-page">
@@ -359,7 +361,7 @@ export default function Production({access}) {
 
      <BtnSecondary disabled={busy} onClick={()=>{setError('');setConfirming(false);setReview(r);}}>{t('pr_details')}</BtnSecondary>
 
-     {editable(r)&&<><BtnEditDark disabled={busy} onClick={()=>{setError('');setEdit({...openCapture(r,data.reports),start_time:String(r.start_time||'').slice(0,5),end_time:String(r.end_time||'').slice(0,5),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})});}}>{t(r.progress_draft?'ps_complete_daily':'edit')}</BtnEditDark>{(manage||r.created_by===access.userId)&&<BtnDanger disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',r)}>{t('delete')}</BtnDanger>}</>}
+     {manage&&<BtnEditDark disabled={busy} onClick={()=>setPrintReport(r)}>{t('dt_print')}</BtnEditDark>}{editable(r)&&<><BtnEditDark disabled={busy} onClick={()=>{setError('');setEdit({...openCapture(r,data.reports),start_time:String(r.start_time||'').slice(0,5),end_time:String(r.end_time||'').slice(0,5),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})});}}>{t(r.progress_draft?'ps_complete_daily':'edit')}</BtnEditDark>{(manage||r.created_by===access.userId)&&<BtnDanger disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',r)}>{t('delete')}</BtnDanger>}</>}
 
     </div></td></tr>)}
 
@@ -466,7 +468,7 @@ export default function Production({access}) {
 
   <p>{t('pr_packing_type')}: {packingName(review)||'—'} · {t('pr_pallets')}: {review.pallets} · {t('pr_turns')}: {review.turns??'—'}</p>
 
-  <section className="production-section"><h3>{t('pr_downtime_section')}</h3>{reportDowntimes(review).length?<ul>{reportDowntimes(review).map((d,k)=><li key={k}>{t('pr_downtime_'+d.type)}{d.start_time&&d.end_time?' · '+d.start_time+' — '+d.end_time:''} · {fmt(d.minutes)} min{d.note?' · '+d.note:''}</li>)}</ul>:<p>{t('pr_downtime_empty')}</p>}</section>{review.staff_names&&<p>{t('pr_staff_names')}: {review.staff_names}</p>}<p>{t('inv_notes')}: {review.note||'—'}</p>
+  <section className="production-section"><h3>{t('pr_downtime_section')}</h3>{reportDowntimes(review).length?<ul>{reportDowntimes(review).map((d,k)=><li key={k}>{codeLabel(d,t)}{d.start_time&&d.end_time?' · '+d.start_time+' — '+d.end_time:''} · {fmt(d.minutes)} min{d.note?' · '+d.note:''}</li>)}</ul>:<p>{t('pr_downtime_empty')}</p>}</section>{review.staff_names&&<p>{t('pr_staff_names')}: {review.staff_names}</p>}<p>{t('inv_notes')}: {review.note||'—'}</p>
 
   <h3>{t(review.status==='posted'?'pr_consumed':'pr_consumption_preview')}</h3>{consumptionTable(review)}
 

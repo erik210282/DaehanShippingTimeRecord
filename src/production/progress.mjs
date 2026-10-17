@@ -19,14 +19,14 @@ export function progressCapture(edit,now=new Date()){
  const events=schedule.events.map(d=>{
   const first=new Date(a);if(d.start_time<a.toTimeString().slice(0,5))first.setDate(first.getDate()+1);
   const last=new Date(a);if(d.end_time<a.toTimeString().slice(0,5))last.setDate(last.getDate()+1);
-  return {type:d.type,note:d.note||'',start_at:localStart(localDate(first),d.start_time),end_at:localStart(localDate(last),d.end_time)};
+  return {...d,type:d.type,note:d.note||'',start_at:localStart(localDate(first),d.start_time),end_at:localStart(localDate(last),d.end_time)};
  });
  return {start,end,events,report:{...report,downtime_events:schedule.events}};
 }
 export function stoppedMinutes(run,from,to,unplannedOnly=false){
  const a=new Date(from).getTime(),b=new Date(to).getTime();
  return (run.downtime_events||[]).reduce((sum,d)=>{
-  if(unplannedOnly&&['break','lunch'].includes(d.type))return sum;
+  if(unplannedOnly&&(d.planned===true||['break','lunch'].includes(d.type)))return sum;
   return sum+Math.max(0,Math.min(b,new Date(d.end_at).getTime())-Math.max(a,new Date(d.start_at).getTime()))/60000;
  },0);
 }

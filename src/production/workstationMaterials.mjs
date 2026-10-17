@@ -1,0 +1,4 @@
+export function materialProduct(material,items){return items.find(i=>i.id===material.item_id);}
+export function linkedMaterial(material,item){return {...material,item_id:item?.id||null,client_part_number:item?.part_number||'',client_part_name:item?.part_name||item?.description||''};}
+export function materialClientLabel(material,items){const item=materialProduct(material,items);return [item?.part_number||material.client_part_number,item?.part_name||item?.description||material.client_part_name].filter(Boolean).join(' - ');}
+export function validWorkstationMaterials(materials,items){const seen=new Set();return materials.every(m=>{const code=String(m.erp_material||'').trim().toUpperCase();if(!code||!String(m.product||m.operation||'').trim()||seen.has(code))return false;seen.add(code);return !m.item_id||items.some(i=>i.id===m.item_id&&['RAW','FG'].includes(i.category));});}
