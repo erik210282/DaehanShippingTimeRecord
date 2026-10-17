@@ -50,6 +50,7 @@ jobs:
       - run: node tests/inventory-count-flow.test.mjs
       - run: npm install --no-save --package-lock=false playwright@1.55.1
       - run: npx playwright install --with-deps chromium
+      - run: node tests/native-shipping-ui.test.mjs
       - run: node tests/inventory-count-ui.test.mjs
       - run: node tests/production-parameters.test.mjs
       - run: node tests/production-supply.test.mjs
@@ -68,6 +69,5 @@ jobs:
       - run: node tests/multiple-part-selection.test.mjs
       - run: node tests/inventory-navigation-ui.test.mjs
       - run: node tests/shipping-summary-ui.test.mjs
-      - run: node tests/native-shipping-ui.test.mjs
       - run: npm run build
 
