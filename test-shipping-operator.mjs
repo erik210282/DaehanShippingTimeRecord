@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {validateLoad,canFinish,pausedMinutes,needsLabel,operatorApi} from './src/shipping/operatorApi.mjs';
+import {roleAllowed} from './src/roleAccessModel.js';
+const catalog=['stage','label','scan','load','unload'].map(id=>({id,nombre:id,activo:true})),products=[{id:'p',nombre:'Part A'},{id:'e',nombre:'Empty Crates'}],row={id:'a',idx:'IDX 1',actividad:'load',estado:'iniciada',productos:[{producto:'p',cantidad:3}]};
+for(const role of ['supervisor','lider'])for(const route of ['/shipping/start','/shipping/finish']){assert.equal(roleAllowed([],[{department:'shipping',role}],false,'shipping',route),true);assert.equal(roleAllowed([{department:'shipping',role,activities:[]}],[{department:'shipping',role}],false,'shipping',route),false);}
+assert.equal(roleAllowed([],[{department:'production',role:'supervisor'}],false,'shipping','/shipping/start'),false);
+assert.throws(()=>validateLoad(row,{},products,catalog),/so_load_required/);
+assert.throws(()=>validateLoad(row,{trailer:'TR1',dock:'2',label:'12'},products,catalog),/so_label_required/);
+assert.throws(()=>validateLoad({...row,hora_inicio:'now',trailer:'TR1',puerta:'DOCK 2'},{trailer:'TR2',dock:'2',label:'1234'},products,catalog),/so_mismatch/);
+assert.throws(()=>validateLoad({...row,hora_inicio:'now',etiqueta_inicio_manual:'1234'},{trailer:'TR1',dock:'2',label:'1234'},products,catalog),/so_other_label/);
+validateLoad(row,{trailer:'TR1',dock:'2',label:'5678'},products,catalog,{trailer:'TR1',puerta:'DOCK 2'});
+validateLoad({...row,productos:[{producto:'e',cantidad:1}]},{trailer:'TR1',dock:'2'},products,catalog);
+assert.equal(needsLabel({...row,productos:[{producto:'e',cantidad:1}]},products),false);
+assert.equal(canFinish(row,[{id:'b',idx:row.idx,actividad:'scan',estado:'pausada'}],catalog),false);
+assert.equal(canFinish(row,[{id:'b',idx:'other',actividad:'scan',estado:'iniciada'}],catalog),true);
+assert.equal(pausedMinutes([{tipo:'pausa',timestamp:'2026-01-01T10:00:00Z'},{tipo:'reanudar',timestamp:'2026-01-01T10:05:00Z'},{tipo:'pausa',timestamp:'2026-01-01T10:10:00Z'}],'2026-01-01T10:12:00Z'),7);
+const calls=[];const db={auth:{getUser:async()=>({data:{user:{id:'user'}}})},rpc:async(name,args)=>{calls.push({name,args});return {data:'id'};},from(table){const q={filters:[],select(){return q;},eq(k,v){q.filters.push([k,v]);return q;},in(){return q;},limit(){return q;},maybeSingle(){q.single=true;return q;},then(resolve){return Promise.resolve({data:table==='operadores'?{id:'self',nombre:'Leader',activo:true}:table==='shipping_activity_labels'?{trailer:'TR1',puerta:'DOCK 2'}:table==='actividades_realizadas'?(q.single?{...row,estado:'iniciada'}:q.filters.some(([k])=>k==='tarea_id')?[]:[row]):[]}).then(resolve);}};return q;}};
+const api=operatorApi(db),data={catalog,products,operators:[{id:'extra'}],lines:[{idx:row.idx}],active:[row]};
+await api.begin({...row,id:'task'},{trailer:'tr1',dock:'2',label:'1234',operators:['fake','extra']},data);
+assert.deepEqual(calls[0],{name:'shipping_begin_activity',args:{p_tarea:'task',p_etiqueta:'1234',p_operadores:['self','extra'],p_trailer:'TR1',p_puerta:'DOCK 2'}});
+await api.finish(row,{trailer:'tr1',dock:'2',label:'5678',notes:'Checked'},data);
+assert.equal(calls[1].name,'shipping_end_activity');assert.equal(calls[1].args.p_comentario,'Checked');
+console.log('PASS role permissions and revocations, LOAD validation, empty containers, finish order, pause accounting, authenticated operator identity, and planned LOAD RPCs');

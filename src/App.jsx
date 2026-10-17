@@ -26,6 +26,10 @@ import { useParams, Navigate } from 'react-router-dom';
 import Inventarios from './pages/Inventarios';
 import Receiving from './pages/Receiving';
 import Production from './pages/Production';
+import ShippingOperator from './pages/ShippingOperator';
+import {registerShippingOperator} from './shipping/operatorTranslations';
+import translationInstance from './i18n/i18n';
+registerShippingOperator(translationInstance);
 // IMPORTANTE: El ToastContainer y CSS SOLO deben estar aquí en App.jsx
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -213,7 +217,7 @@ const Navbar = () => {
     navigate("/");
   };
 
-  const shippingItems = [['/tareas-pendientes','pending_tasks'],['/resumen','summary'],['/registros','records'],['/generarbol','generate_bol'],['/comunicaciones','communications'],['/productividad','productivity']].map(([key,label])=>({key,label:t(label),badge:key==='/comunicaciones'?unreadCount:0}));
+  const shippingItems = [['/tareas-pendientes','pending_tasks'],['/resumen','summary'],['/registros','records'],['/generarbol','generate_bol'],['/comunicaciones','communications'],['/productividad','productivity'],['/shipping/start','so_start'],['/shipping/finish','so_finish']].map(([key,label])=>({key,label:t(label),badge:key==='/comunicaciones'?unreadCount:0}));
   return <>
     <header className="navbar app-header">
       <div className="app-header-left">{location.pathname !== '/inicio' && <button className="app-header-button" onClick={() => navigate('/inicio')}>{t('global_back')}</button>}
@@ -264,6 +268,8 @@ const PrivateArea = () => {
           <Route path="/departamento/:name" element={<DepartmentRoute access={access} />} />
           <Route path="/inventarios" element={access.admin || access.memberships.some(m => ['inventory', 'shipping', 'production', 'receiving', 'quality'].includes(m.department))
             ? <Inventarios access={access} /> : <Navigate to="/inicio" replace />} />
+          <Route path="/shipping/start" element={<ProtectedRoute><SectionPermission department="shipping" activity="start"><ShippingOperator mode="start" /></SectionPermission></ProtectedRoute>} />
+          <Route path="/shipping/finish" element={<ProtectedRoute><SectionPermission department="shipping" activity="finish"><ShippingOperator mode="finish" /></SectionPermission></ProtectedRoute>} />
           <Route path="/tareas-pendientes" element={<ProtectedRoute><SectionPermission department="shipping" activity="pending"><TareasPendientes /></SectionPermission></ProtectedRoute>} />
           <Route path="/resumen" element={<ProtectedRoute><SectionPermission department="shipping" activity="summary"><Resumen /></SectionPermission></ProtectedRoute>} />
           <Route path="/registros" element={<ProtectedRoute><SectionPermission department="shipping" activity="records"><Registros /></SectionPermission></ProtectedRoute>} />
