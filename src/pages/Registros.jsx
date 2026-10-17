@@ -1,3 +1,4 @@
+import {saveShippingFile} from '../nativeShippingBridge';
 import {useLiveVersion} from '../useLiveVersion';
 import React, { useEffect, useState } from "react";
 import Modal from "react-modal";
@@ -551,7 +552,7 @@ useEffect(() => {
   }
 };
 
-  const exportarCSV = () => {
+  const exportarCSV = async () => {
   const datosCSV = filtrados.flatMap((d) => {
     const inicio = new Date(d.horaInicio);
     const fin = new Date(d.horaFin);
@@ -585,13 +586,7 @@ useEffect(() => {
 
   const csv = Papa.unparse(datosCSV);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", "registros.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  try { await saveShippingFile(blob, "registros.csv"); } catch(error) { toast.error(error.message); return; }
 
   toast.success(t("export_success") || "CSV exportado correctamente");
 };

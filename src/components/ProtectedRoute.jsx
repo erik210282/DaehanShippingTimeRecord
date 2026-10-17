@@ -14,10 +14,16 @@ const ProtectedRoute = ({ children }) => {
         setIsAuthenticated(false);
         return;
       }
-      const { data: profile, error } = await supabase.from("operadores")
-        .select("activo, role").eq("uid", user.id).maybeSingle();
+      const [person,membership,admin] = await Promise.all([
+        supabase.from("operadores").select("activo").eq("uid",user.id).maybeSingle(),
+        supabase.from("global_department_memberships").select("role").eq("user_id",user.id).eq("department","shipping").eq("active",true),
+        supabase.from("global_system_admins").select("user_id").eq("user_id",user.id).maybeSingle(),
+      ]);
       if (!mounted) return;
-      const allowed = !error && profile?.activo === true && profile.role === "supervisor";
+      const profile=person.data,error=person.error||membership.error||admin.error;
+      // Page-level permissions are enforced separately by SectionPermission.
+      const allowed = !error && profile?.activo === true &&
+        (!!admin.data || membership.data?.some(m=>["operador","lider","supervisor"].includes(m.role)));
       setIsAuthenticated(allowed);
       if (!profile?.activo && !error) await supabase.auth.signOut({ scope: "local" });
     };

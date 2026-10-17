@@ -2,6 +2,13 @@ name: Production modal layout
 on:
   pull_request:
     paths:
+      - 'src/NativeShipping*'
+      - 'src/nativeShippingBridge.js'
+      - 'src/components/ProtectedRoute.jsx'
+      - 'src/pages/Registros.jsx'
+      - 'src/pages/GenerarBOL.jsx'
+      - 'src/pages/Productividad.jsx'
+      - 'tests/native-shipping-ui.test.mjs'
       - 'src/pages/Resumen.jsx'
       - 'tests/shipping-summary-ui.test.mjs'
       - 'src/pages/Production.jsx'
@@ -61,5 +68,6 @@ jobs:
       - run: node tests/multiple-part-selection.test.mjs
       - run: node tests/inventory-navigation-ui.test.mjs
       - run: node tests/shipping-summary-ui.test.mjs
+      - run: node tests/native-shipping-ui.test.mjs
       - run: npm run build
 

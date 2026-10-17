@@ -1,3 +1,5 @@
+import NativeShippingGate from './NativeShippingGate';
+import {nativeShipping} from './nativeShippingBridge';
 import {RoleAccessProvider,SectionPermission} from './RoleAccess';
 import ModuleHeading from './components/ModuleHeading';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
@@ -259,7 +261,7 @@ const PrivateArea = () => {
   if (!isGlobalRoute && !access.admin && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
   const portal = <>
     <div className="app-container">
-      <Navbar />
+      {!nativeShipping && <Navbar />}
       <div className="content">
         <Routes>
           <Route path="/inicio" element={<GlobalHome access={access} />} />
@@ -313,7 +315,7 @@ const AppContent = () => (
 
 const App = () => (
   <Router>
-    <AppContent />
+    <NativeShippingGate><AppContent /></NativeShippingGate>
   </Router>
 );
 
