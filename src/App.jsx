@@ -251,7 +251,7 @@ const PrivateArea = () => {
   if (access.error) return <div className="global-loading" role="alert">{access.error}</div>;
   if (!announcements.ready) return <div className="global-loading">{t('loading')}…</div>;
   if (announcements.error && !announcements.items.length) return <div className="global-loading" role="alert">{announcements.error}<button onClick={announcements.load}>{t('global_retry')}</button></div>;
-  if (announcements.gate && location.pathname !== '/announcements') {
+  if (!nativeShipping && announcements.gate && location.pathname !== '/announcements') {
     returnPath.current = location.pathname + location.search;
     try { sessionStorage.setItem('announcement-return', returnPath.current); } catch {}
     return <Navigate to="/announcements" replace />;
@@ -285,7 +285,7 @@ const PrivateArea = () => {
         </Routes>
       </div>
     </div>
-    {announcements.notice && !announcements.gate && <AnnouncementNotice onOpen={() => { returnPath.current = location.pathname + location.search;
+    {!nativeShipping && announcements.notice && !announcements.gate && <AnnouncementNotice onOpen={() => { returnPath.current = location.pathname + location.search;
     try { sessionStorage.setItem('announcement-return', returnPath.current); } catch {} announcements.open(); navigate('/announcements'); }} />}
   </>;
   return <RoleAccessProvider access={access}>{portal}</RoleAccessProvider>;
