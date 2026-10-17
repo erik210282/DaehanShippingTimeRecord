@@ -20,6 +20,7 @@ try{
  await page.route('**/rest/v1/**',route=>{
   const table=new URL(route.request().url()).pathname.split('/').pop();
   if(table==='production_station_reports'&&showProgressDraft)return route.fulfill({json:[{id:'progress-draft',live_run_id:'run',capture_group_id:'session',production_date:'2026-10-13',station_code:'M-01',item_id:'item',created_by:'other-leader',status:'draft',progress_draft:true,machine_quantity:474,good_quantity:474,packed_quantity:0,scrap_quantity:null,rework_quantity:null,full_boxes:null,people:null,elapsed_minutes:630,machine_minutes:630,start_time:'06:00',end_time:'16:30',downtime_events:[],report_mode:'production',rework_completed:true}]});
+  if(table==='production_downtime_codes')return route.fulfill({json:[{id:'break-code',code:'BREAK',name:'Break',planned:true,fixed_type:'break',active:true}]});
   if(table==='production_supply_snapshot')return route.fulfill({json:supplyState});
   if(table==='production_supply_action'){supplyCaptured=route.request().postDataJSON();return route.fulfill({json:{saved:true}});}
   if(table==='production_station_action'){dailyCaptured=route.request().postDataJSON();return route.fulfill({json:'group'});}
@@ -155,8 +156,8 @@ try{
  assert.equal(await affectedField.getByLabel('Remove PN-200 · Second product',{exact:true}).count(),1);
  await affectedField.getByLabel('Remove PN-200 · Second product',{exact:true}).click();
  await page.getByRole('button',{name:'Add downtime',exact:true}).click();
- await page.getByRole('combobox',{name:'Downtime type',exact:true}).click();
- await page.getByRole('option',{name:'Breaks (15 min)',exact:true}).click();
+ await page.getByRole('combobox',{name:'Downtime code',exact:true}).click();
+ await page.getByRole('option',{name:'Planned - BREAK - Breaks (15 min)',exact:true}).click();
  await page.getByLabel('Downtime start',{exact:true}).fill(new Date(now-45*60000).toTimeString().slice(0,5));
  assert.equal(await page.getByLabel('Downtime end',{exact:true}).count(),0);
  assert.equal(await page.getByLabel('Duration (min)',{exact:true}).count(),0);

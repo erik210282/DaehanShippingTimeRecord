@@ -1,3 +1,5 @@
+import NativeShippingGate from './NativeShippingGate';
+import {nativeShipping} from './nativeShippingBridge';
 import {RoleAccessProvider,SectionPermission} from './RoleAccess';
 import ModuleHeading from './components/ModuleHeading';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
@@ -249,7 +251,7 @@ const PrivateArea = () => {
   if (access.error) return <div className="global-loading" role="alert">{access.error}</div>;
   if (!announcements.ready) return <div className="global-loading">{t('loading')}…</div>;
   if (announcements.error && !announcements.items.length) return <div className="global-loading" role="alert">{announcements.error}<button onClick={announcements.load}>{t('global_retry')}</button></div>;
-  if (announcements.gate && location.pathname !== '/announcements') {
+  if (!nativeShipping && announcements.gate && location.pathname !== '/announcements') {
     returnPath.current = location.pathname + location.search;
     try { sessionStorage.setItem('announcement-return', returnPath.current); } catch {}
     return <Navigate to="/announcements" replace />;
@@ -259,7 +261,7 @@ const PrivateArea = () => {
   if (!isGlobalRoute && !access.admin && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
   const portal = <>
     <div className="app-container">
-      <Navbar />
+      {!nativeShipping && <Navbar />}
       <div className="content">
         <Routes>
           <Route path="/inicio" element={<GlobalHome access={access} />} />
@@ -283,7 +285,7 @@ const PrivateArea = () => {
         </Routes>
       </div>
     </div>
-    {announcements.notice && !announcements.gate && <AnnouncementNotice onOpen={() => { returnPath.current = location.pathname + location.search;
+    {!nativeShipping && announcements.notice && !announcements.gate && <AnnouncementNotice onOpen={() => { returnPath.current = location.pathname + location.search;
     try { sessionStorage.setItem('announcement-return', returnPath.current); } catch {} announcements.open(); navigate('/announcements'); }} />}
   </>;
   return <RoleAccessProvider access={access}>{portal}</RoleAccessProvider>;
@@ -313,7 +315,7 @@ const AppContent = () => (
 
 const App = () => (
   <Router>
-    <AppContent />
+    <NativeShippingGate><AppContent /></NativeShippingGate>
   </Router>
 );
 

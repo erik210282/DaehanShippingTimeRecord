@@ -1,3 +1,4 @@
+import {saveShippingFile} from '../nativeShippingBridge';
 import ShippingPacking from '../components/ShippingPacking';
 import {useShippingPacking,packingError,allocationsFor,resolvePacking,packingWeight} from '../inventory/shippingPacking';
 import {registerShippingPacking} from '../inventory/shippingPackingTranslations';
@@ -1281,7 +1282,7 @@ export default function GenerarBOL() {
 
       // Guardar
       const fileName = `BOL_${String(selectedIdx)}_${String(shipmentNo || "Shipment")}.pdf`;
-      doc.save(fileName);
+      await saveShippingFile(new Blob([doc.output("arraybuffer")], {type:"application/pdf"}), fileName);
 
       toast.success(t("generated_ok", "BOL generado correctamente"));
       resetForm();

@@ -1,3 +1,4 @@
+import {saveShippingFile} from '../nativeShippingBridge';
 import {useLiveVersion} from '../useLiveVersion';
 // Productividad.jsx (reemplazo completo)
 import React, { useEffect, useState, useMemo, useCallback } from "react";
@@ -327,7 +328,7 @@ export default function Productividad() {
     ],
   };
 
-  const exportarCSV = () => {
+  const exportarCSV = async () => {
     const datosCSV = (agrupadoPor2 ? etiquetasCruzadas : etiquetas).map((etiqueta, i) => ({
       [agrupadoPor2
         ? `${traducirAgrupacion(agrupadoPor)} - ${traducirAgrupacion(agrupadoPor2)}`
@@ -338,13 +339,7 @@ export default function Productividad() {
 
     const csv = Papa.unparse(datosCSV);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "productividad.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try { await saveShippingFile(blob, "productividad.csv"); } catch(error) { toast.error(error.message); return; }
     toast.success(t("export_success"));
   };
 
