@@ -19,6 +19,7 @@ try{
  for(let i=0;i<100;i++){try{if((await fetch('http://127.0.0.1:4173/'+fixture+'.html')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  browser=await chromium.launch();
  const page=await browser.newPage();
+ await page.route('**/rest/v1/production_downtime_codes*',route=>route.fulfill({json:[{id:'break-code',code:'BREAK',name:'Break',planned:true,fixed_type:'break',active:true}]}));
  for(const viewport of [{width:1885,height:969},{width:1280,height:720},{width:390,height:844}]){
   await page.setViewportSize(viewport);await page.goto('http://127.0.0.1:4173/'+fixture+'.html');await page.getByRole('dialog').waitFor();
   const geometry=await page.getByRole('dialog').evaluate(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,scroll:el.scrollHeight,client:el.clientHeight};});
@@ -72,12 +73,12 @@ try{
  await page.getByLabel('Shift end',{exact:true}).fill('1600');
  assert.equal(await page.getByLabel('Shift start',{exact:true}).inputValue(),'08:00');
  await page.getByRole('button',{name:'Add downtime',exact:true}).click();
- assert.equal(await page.getByRole('combobox',{name:'Downtime type',exact:true}).inputValue(),'');
- await page.getByRole('combobox',{name:'Downtime type',exact:true}).click();
- await page.getByRole('option',{name:'Breaks',exact:true}).click();
+ assert.equal(await page.getByRole('combobox',{name:'Downtime code',exact:true}).inputValue(),'');
+ await page.getByRole('combobox',{name:'Downtime code',exact:true}).click();
+ await page.getByRole('option',{name:'Planned - BREAK - Breaks (15 min)',exact:true}).click();
  await page.getByLabel('Downtime start',{exact:true}).fill('1000');
- await page.getByLabel('Downtime end',{exact:true}).fill('1015');
- assert.equal(await page.getByLabel('Duration (min)',{exact:true}).inputValue(),'15');
+ assert.equal(await page.getByLabel('Downtime end',{exact:true}).count(),0,'Fixed Break uses its configured duration');
+ assert.equal(await page.getByLabel('Duration (min)',{exact:true}).count(),0);
  assert.equal(await page.getByLabel('Note (optional)',{exact:true}).evaluate(el=>el.required),false);
  assert.equal(await page.getByLabel('Effective minutes',{exact:true}).textContent(),'465');
  const boxes=page.getByLabel('Full boxes',{exact:true});
