@@ -1294,13 +1294,13 @@ export default function GenerarBOL() {
   }
   /* ----------------------- UI ----------------------- */
   return (
-    <div className="page-container page-container--fluid">
+    <div className="page-container page-container--fluid shipping-page shipping-bol">
       <div className="card">
         <h2>{t("generate_bol_coversheet", "Generar BOL y Cover Sheet")}</h2>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(200px, 1fr))", gap: 8, marginBottom: 10 }}>
+        <div className="shipping-bol-fields" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(200px, 1fr))", gap: 8, marginBottom: 10 }}>
           {/* IDX (searchable) */}
-          <DSSelect
+          <DSSelect classNamePrefix="shipping-select"
             isClearable
             placeholder={t("select_idx", "Seleccionar IDX")}
             noOptionsMessage={() => t("no_results_found", "No hay resultados")}
@@ -1338,7 +1338,7 @@ export default function GenerarBOL() {
           <DSInput placeholder={t("trailer_number", "No. de Trailer/Contenedor")} value={trailerNo} onChange={(e) => setTrailerNo(e.target.value)}/>
 
           {/* PO (multi-select: SOLO misma dirección de Consignee) */}
-          <DSSelect
+          <DSSelect classNamePrefix="shipping-select"
             isMulti
             options={filteredPoOptions}
             noOptionsMessage={() => t("no_results_found", "No hay resultados")}

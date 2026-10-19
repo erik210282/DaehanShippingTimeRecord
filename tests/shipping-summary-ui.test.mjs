@@ -7,7 +7,7 @@ const files=[fixture+'.html',fixture+'.jsx',fixture+'-page.jsx'];
 const source=fs.readFileSync('src/pages/Resumen.jsx','utf8')
  .replace("from '../useLiveVersion'","from './src/useLiveVersion'")
  .replace('import {useLiveVersion}', 'import {useLiveVersion}')
- .replace("import {useLiveVersion} from './src/useLiveVersion';","const useLiveVersion = () => 0;")
+ .replace("import {useLiveVersion} from './src/useLiveVersion';","const useLiveVersion = () => { const [v, setV] = React.useState(0); window.refreshSummary = () => setV(n => n + 1); return v; };")
  .replace('import { supabase } from "../supabase/client";','const supabase = window.summaryClient;')
  .replaceAll('from "../components/','from "./src/components/')
  .replaceAll('from "../utils/','from "./src/utils/');
@@ -31,11 +31,22 @@ try{
  await page.getByRole('cell',{name:'2999',exact:true}).waitFor();
  assert.equal(await page.evaluate(()=>window.requests.length),1,'One page request even when catalogs settle');
  assert.deepEqual(await page.evaluate(()=>window.catalogRequests.sort()),['actividades','operadores','productos']);
+ await page.evaluate(()=>{
+  window.refreshLoading=[];
+  window.refreshObserver=new MutationObserver(()=>{if(document.querySelector('[role=status]'))window.refreshLoading.push(true);});
+  window.refreshObserver.observe(document.getElementById('root'),{childList:true,subtree:true});
+  window.refreshSummary();
+ });
+ await page.waitForFunction(()=>window.requests.length>=2);
+ await page.waitForTimeout(150);
+ assert.equal(await page.evaluate(()=>window.refreshLoading.length),0,'Background polling does not insert a loading message or move the table');
+ await page.evaluate(()=>window.refreshObserver.disconnect());
+ const requestsAfterRefresh=await page.evaluate(()=>window.requests.length);
  await page.getByText('✓ Verified',{exact:true}).waitFor();
  assert.match(await page.locator('tbody').innerText(),/1234/);assert.match(await page.locator('tbody').innerText(),/5678/);
  await page.evaluate(()=>window.i18n.changeLanguage('es'));
  await page.getByPlaceholder('Buscar IDX').waitFor();await page.waitForTimeout(400);
- assert.equal(await page.evaluate(()=>window.requests.length),1,'Language does not redownload history');
+ assert.equal(await page.evaluate(()=>window.requests.length),requestsAfterRefresh,'Language does not redownload history');
  await page.getByRole('button',{name:'2',exact:true}).click();await page.getByRole('cell',{name:'2998',exact:true}).waitFor();
  assert.equal(await page.evaluate(()=>window.requests.at(-1).args.p_page),2);
  const search=page.getByPlaceholder('Buscar IDX');

@@ -1,10 +1,13 @@
+import NativeShippingTableHint from "../components/NativeShippingTableHint";
 import {useLiveVersion} from '../useLiveVersion';
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../supabase/client";
 import { format } from "date-fns";
 import { DSInput, DSDate, BtnSecondary, TablePagination } from "../components/controls";
 import { isShippingVerified, legacyShippingCapture } from "../utils/shippingValidation";
+
+const keepEqual = (previous, next) => JSON.stringify(previous) === JSON.stringify(next) ? previous : next;
 
 const SHIPPING_PHASES = ["stage", "label", "scan", "load"];
 const labelLastFour = (value) => String(value || "").match(/\d{4}$/)?.[0] || "—";
@@ -15,6 +18,7 @@ export default function Resumen() {
   const { t } = useTranslation();
   const [result, setResult] = useState({ activities: [], captures: {}, total: 0 });
   const [loading, setLoading] = useState(true);
+  const previousQuery = useRef(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
   const [search, setSearch] = useState("");
@@ -50,7 +54,6 @@ export default function Resumen() {
   // Catalogs load concurrently; an empty catalog must not block the table.
   useEffect(() => {
     let active = true;
-    setCatalogLoading(true);
     Promise.all([
       supabase.from("actividades").select("id, nombre"),
       supabase.from("productos").select("id, nombre, part_number"),
@@ -60,10 +63,10 @@ export default function Resumen() {
       const error = activities.error || products.error || operators.error;
       if (error) { setCatalogError(error.message); return; }
       setCatalogError("");
-      setActividadesDict(Object.fromEntries((activities.data || []).map(a => [a.id, a.nombre?.toLowerCase().trim()])));
-      setProductosDict(Object.fromEntries((products.data || []).map(p => [p.id, p.nombre])));
-      setPartesDict(Object.fromEntries((products.data || []).map(p => [p.id, p.part_number || ""])));
-      setOperadoresDict(Object.fromEntries((operators.data || []).map(o => [o.id, o.nombre])));
+      setActividadesDict(previous => keepEqual(previous, Object.fromEntries((activities.data || []).map(a => [a.id, a.nombre?.toLowerCase().trim()]))));
+      setProductosDict(previous => keepEqual(previous, Object.fromEntries((products.data || []).map(p => [p.id, p.nombre]))));
+      setPartesDict(previous => keepEqual(previous, Object.fromEntries((products.data || []).map(p => [p.id, p.part_number || ""]))));
+      setOperadoresDict(previous => keepEqual(previous, Object.fromEntries((operators.data || []).map(o => [o.id, o.nombre]))));
     }).catch(error => { if (active) setCatalogError(error.message); })
       .finally(() => { if (active) setCatalogLoading(false); });
     return () => { active = false; };
@@ -77,8 +80,9 @@ export default function Resumen() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setShippingError("");
+    const query = JSON.stringify([page, pageSize, search, fechaInicio, fechaFin]);
+    if (previousQuery.current !== query) setLoading(true);
+    previousQuery.current = query;
     supabase.rpc("shipping_summary_page", {
       p_page: page, p_page_size: pageSize, p_idx: search,
       p_from: fechaInicio ? new Date(`${fechaInicio}T00:00:00`).toISOString() : null,
@@ -86,7 +90,9 @@ export default function Resumen() {
     }).then(({ data, error }) => {
       if (!active) return;
       if (error) throw error;
-      setResult({ activities: data?.activities || [], captures: data?.captures || {}, total: data?.total || 0 });
+      const next = { activities: data?.activities || [], captures: data?.captures || {}, total: data?.total || 0 };
+      setResult(previous => keepEqual(previous, next));
+      setShippingError("");
       if (data?.page && data.page !== page) setPage(data.page);
     }).catch(error => { if (active) setShippingError(error.message); })
       .finally(() => { if (active) setLoading(false); });
@@ -201,12 +207,12 @@ export default function Resumen() {
   const currentPage = Math.min(Math.max(page, 1), totalPages);
 
   return (
-    <div className="page-container page-container--fluid">
+    <div className="page-container page-container--fluid shipping-page shipping-summary">
       <div className="card">
         <h2>{t("summary")}</h2>
         {(shippingError || catalogError) && <p role="alert" style={{ color: "#b91c1c" }}>{t("shipping_captures_error")}: {shippingError || catalogError}</p>}
         {(loading || catalogLoading) && <p role="status">{t("loading")}</p>}
-        <div style={{ marginBottom: 12 }}>
+        <div className="shipping-filters" style={{ marginBottom: 12 }}>
           <DSInput
             type="text"
             placeholder={t("buscaridx")}
@@ -235,7 +241,8 @@ export default function Resumen() {
           }}>{t("clear_filters")}</BtnSecondary>
         </div>
 
-        <div className="table-wrap" aria-busy={loading || catalogLoading}>
+        <NativeShippingTableHint/>
+        <div className="table-wrap shipping-table-scroll" aria-busy={loading || catalogLoading}>
           <table className="table summary-table">
             <colgroup>
               {[7, 10, 6, 13, 13, 13, 15, 7, 7, 9].map((width, i) =>

@@ -102,25 +102,25 @@ export const DSSelect = ({
 
 // --------- Botones ----------
 export const BtnPrimary = ({ children, style, ...p }) => (
-  <button {...p} style={{ ...primaryBtn, ...style }}>
+  <button {...p} data-button-tone="primary" style={{ ...primaryBtn, ...style }}>
     {children}
   </button>
 );
 
 export const BtnSecondary = ({ children, style, ...p }) => (
-  <button {...p} style={{ ...secondaryBtn, ...style }}>
+  <button {...p} data-button-tone="secondary" style={{ ...secondaryBtn, ...style }}>
     {children}
   </button>
 );
 
 export const BtnEditDark = ({ children, style, ...p }) => (
-  <button {...p} style={{ ...editBtnDark, ...style }}>
+  <button {...p} data-button-tone="edit" style={{ ...editBtnDark, ...style }}>
     {children}
   </button>
 );
 
 export const BtnDanger = ({ children, style, ...p }) => (
-  <button {...p} style={{ ...dangerBtn, ...style }}>
+  <button {...p} data-button-tone="danger" style={{ ...dangerBtn, ...style }}>
     {children}
   </button>
 );
@@ -231,7 +231,7 @@ export const TablePagination = ({
   };
 
   return (
-    <div style={containerStyle}>
+    <div className="table-pagination" style={containerStyle}>
       {/* info izquierda */}
       <div style={textStyle}>
         {totalRows === 0

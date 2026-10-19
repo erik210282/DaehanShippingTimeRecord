@@ -1,3 +1,4 @@
+import NativeShippingTableHint from "../components/NativeShippingTableHint";
 import {useLiveVersion} from '../useLiveVersion';
 import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from "../supabase/client";
@@ -559,7 +560,7 @@ export default function TareasPendientes() {
   const filasPagina = tareas.slice(startIndex, endIndex);
 
   return (
-    <div className="page-container page-container--fluid">
+    <div className="page-container page-container--fluid shipping-page shipping-pending">
       <style>{`
         .drag-handle {
           cursor: grab;
@@ -583,7 +584,8 @@ export default function TareasPendientes() {
           ➕ {t("add_task")}
         </BtnPrimary>
 
-        <div className="table-wrap">
+        <NativeShippingTableHint/>
+        <div className="table-wrap shipping-table-scroll">
           <table className="table pending-table">
             <colgroup>
               {[7, 2, 8, 8, 16, 7, 11, 14, 10, 17].map((width, i) =>

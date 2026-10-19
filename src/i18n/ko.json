@@ -1,4 +1,6 @@
 {
+  "dt_product_multi_hint": "동일한 자재와 설비에 여러 RAW / FG 제품을 선택할 수 있습니다.",
+  "shipping_swipe_table": "모든 열을 보려면 표를 좌우로 밀어 주세요.",
   "actions": "작업",
   "activity": "활동",
   "activity_finished": "활동 완료됨",

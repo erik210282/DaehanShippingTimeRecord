@@ -1,6 +1,6 @@
 import {registerShippingPacking} from '../inventory/shippingPackingTranslations';
 import {registerDowntime} from '../production/downtimeCodes.mjs';
-import {linkedMaterial,materialClientLabel,validWorkstationMaterials} from '../production/workstationMaterials.mjs';
+import {materialItemIds,groupWorkstationMaterials,expandWorkstationMaterials,materialClientLabel,validWorkstationMaterials} from '../production/workstationMaterials.mjs';
 import ErrorPopup from './ErrorPopup';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplication';
@@ -55,12 +55,12 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   setEdit(stations?{code:'',name:'',machine_type:'',materials:[],active:true,isNew:true}:{product_part_number:'',version:'',active:true,notes:'',lines:[blankIngredient()],packing:recipePacking({}),isNew:true});
  }
  function editRow(r){
-  setEdit(stations?{...r,materials:r.materials.map(m=>({...m})),isNew:false}:{...r,lines:r.inventory_bom_lines.length?r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})):[blankIngredient()],packing:recipePacking(r,products),isNew:false});
+  setEdit(stations?{...r,materials:groupWorkstationMaterials(r.materials),isNew:false}:{...r,lines:r.inventory_bom_lines.length?r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})):[blankIngredient()],packing:recipePacking(r,products),isNew:false});
  }
  function duplicate(r){
   if(!manage||busy)return;
   const copy=duplicateCatalogRow(r,stations?'code':'product_part_number');
-  setEdit(stations?{...copy,materials:r.materials.map(m=>({...m})),isNew:true,duplicated:true}:{...copy,version:'',lines:r.inventory_bom_lines.length?r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})):[blankIngredient()],packing:recipePacking(r).map(p=>({...p,packaging_type:crypto.randomUUID()})),isNew:true,duplicated:true});
+  setEdit(stations?{...copy,materials:groupWorkstationMaterials(r.materials),isNew:true,duplicated:true}:{...copy,version:'',lines:r.inventory_bom_lines.length?r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})):[blankIngredient()],packing:recipePacking(r).map(p=>({...p,packaging_type:crypto.randomUUID()})),isNew:true,duplicated:true});
  }
  async function save(){
   const key=stations?'code':'product_part_number';
@@ -68,9 +68,10 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   if(edit.isNew&&hasDuplicateIdentifier(rows,key,edit[key]))throw Error('catalog_duplicate_identifier');
   if(stations){
    if(!edit.code.trim()||!edit.name.trim()||!edit.machine_type.trim())throw Error('fill_all_fields');
-   if(!validWorkstationMaterials(edit.materials,items))throw Error('dt_link_required');
-   if(edit.materials.some((m,k)=>!m.item_id&&(edit.isNew||!rows.find(r=>r.code===edit.code)?.materials?.some(old=>old.erp_material===m.erp_material))))throw Error('dt_link_required');
-   const payload={code:edit.code.trim().toUpperCase(),name:edit.name.trim(),machine_type:edit.machine_type.trim(),materials:edit.materials,active:!!edit.active};
+   const materials=expandWorkstationMaterials(edit.materials,items);
+   if(!validWorkstationMaterials(materials,items))throw Error('dt_link_required');
+   if(materials.some((m,k)=>!m.item_id&&(edit.isNew||!rows.find(r=>r.code===edit.code)?.materials?.some(old=>old.erp_material===m.erp_material))))throw Error('dt_link_required');
+   const payload={code:edit.code.trim().toUpperCase(),name:edit.name.trim(),machine_type:edit.machine_type.trim(),materials,active:!!edit.active};
    if(edit.isNew)await unwrap(supabase.from('inventory_workstations').insert(payload));
    else {const updated=await unwrap(supabase.from('inventory_workstations').update(payload).eq('code',edit.code).select('code'));if(!updated.length)throw Error('receiving_forbidden');}
   }else{
@@ -138,7 +139,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    <th>{t('status')}</th><th>{t('actions')}</th>
   </tr></thead><tbody>
    {visible.slice((currentPage-1)*pageSize,currentPage*pageSize).map(r=><React.Fragment key={r.id||r.code}><tr>
-    {stations?<><td>{r.code}</td><td>{r.name}</td><td>{t(({Assembly:'inv_machine_ASY',Foaming:'inv_machine_FOA','WaterJet / Forming':'inv_machine_WAT','Press / Trim':'inv_machine_PRE',Forming:'inv_machine_PET'})[r.machine_type]||r.machine_type)}</td><td><ul className="station-material-list">{(r.materials||[]).map((m,k)=><li key={k}><strong>{m.erp_material}</strong>{(m.product||m.operation)&&<> · {m.product||m.operation}</>}{materialClientLabel(m,items)&&<div>{materialClientLabel(m,items)}</div>}</li>)}</ul></td></>:<><td>{r.product_part_number}</td><td>{nameFor(r)}</td><td>{r.version}</td><td><BtnSecondary onClick={()=>setExpanded(expanded===r.id?null:r.id)}>{t('cat_ingredients',{count:r.inventory_bom_lines.length})}</BtnSecondary></td></>}
+    {stations?<><td>{r.code}</td><td>{r.name}</td><td>{t(({Assembly:'inv_machine_ASY',Foaming:'inv_machine_FOA','WaterJet / Forming':'inv_machine_WAT','Press / Trim':'inv_machine_PRE',Forming:'inv_machine_PET'})[r.machine_type]||r.machine_type)}</td><td><ul className="station-material-list">{groupWorkstationMaterials(r.materials).map((m,k)=><li key={k}><strong>{m.erp_material}</strong>{(m.product||m.operation)&&<> · {m.product||m.operation}</>}{materialClientLabel(m,items)&&<div>{materialClientLabel(m,items)}</div>}</li>)}</ul></td></>:<><td>{r.product_part_number}</td><td>{nameFor(r)}</td><td>{r.version}</td><td><BtnSecondary onClick={()=>setExpanded(expanded===r.id?null:r.id)}>{t('cat_ingredients',{count:r.inventory_bom_lines.length})}</BtnSecondary></td></>}
     <td>{t(stations?(r.active?'active':'inactive'):status(r))}</td>
     <td><div className="catalog-row-actions"><BtnEditDark disabled={!manage||busy} onClick={()=>editRow(r)}>{t('edit')}</BtnEditDark> <BtnSecondary disabled={!manage||busy} onClick={()=>duplicate(r)}>{t('cat_duplicate')}</BtnSecondary> <BtnDanger disabled={!manage||busy} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></div></td>
    </tr>
@@ -166,10 +167,10 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
      <CatalogInput label={t('inv_notes')} value={edit.notes||''} onChange={e=>setEdit({...edit,notes:e.target.value})}/></>}
      <label className="catalog-checkbox"><input type="checkbox" checked={edit.active} onChange={e=>setEdit({...edit,active:e.target.checked})}/>{t('active')}</label>
     </div>
-    {stations?<><h3>{t('inv_station_materials')}</h3>{edit.materials.map((m,k)=><div className="catalog-fields" key={k}>
+    {stations?<><h3>{t('inv_station_materials')}</h3><p className="inv-muted">{t('dt_product_multi_hint')}</p>{edit.materials.map((m,k)=><div className="catalog-fields" key={k}>
      <CatalogInput label={t('dt_erp')} value={m.erp_material||''} onChange={e=>setEdit({...edit,materials:edit.materials.map((x,j)=>j===k?{...x,erp_material:e.target.value}:x)})}/>
      <CatalogInput label={t('dt_erp_name')} value={m.product||m.operation||''} onChange={e=>setEdit({...edit,materials:edit.materials.map((x,j)=>j===k?{...x,product:e.target.value}:x)})}/>
-     <CatalogSelect label={t('dt_product')} value={m.item_id||''} onChange={id=>setEdit({...edit,materials:edit.materials.map((x,j)=>j===k?linkedMaterial(x,items.find(i=>i.id===id)):x)})} options={items.filter(i=>['RAW','FG'].includes(i.category)&&(i.active||i.id===m.item_id)).map(i=>({value:i.id,label:i.part_number+' - '+(i.part_name||i.description)+' ('+i.category+')'}))}/>
+     <CatalogSelect multi label={t('dt_product')} value={materialItemIds(m)} onChange={item_ids=>setEdit(current=>({...current,materials:current.materials.map((x,j)=>j===k?{...x,item_ids}:x)}))} options={items.filter(i=>['RAW','FG'].includes(i.category)&&(i.active||materialItemIds(m).includes(i.id))).map(i=>({value:i.id,label:i.part_number+' - '+(i.part_name||i.description)+' ('+i.category+')'}))}/>
      <BtnDanger type="button" onClick={()=>setEdit({...edit,materials:edit.materials.filter((_,j)=>j!==k)})}>{t('delete')}</BtnDanger>
     </div>)}<BtnSecondary type="button" onClick={()=>setEdit({...edit,materials:[...edit.materials,{erp_material:'',product:''}]})}>{t('add')}</BtnSecondary></>:<>
      <h3>{t('inv_recipe')}</h3><p className="inv-muted">{t('pr_repack_hint')}</p>{repackEdit&&<p className="inv-message">{t('pr_repack_exclusive')}</p>}<div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('inv_qty_per_fg')}</th><th>{t('cat_waste')}</th><th>{t('actions')}</th></tr></thead><tbody>

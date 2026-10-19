@@ -1,3 +1,4 @@
+import NativeShippingTableHint from "../components/NativeShippingTableHint";
 import {saveShippingFile} from '../nativeShippingBridge';
 import {useLiveVersion} from '../useLiveVersion';
 import React, { useEffect, useState } from "react";
@@ -602,12 +603,12 @@ useEffect(() => {
   const filasPagina = filtrados.slice(startIndex, endIndex);
 
   return (
-    <div className="page-container page-container--fluid">
+    <div className="page-container page-container--fluid shipping-page shipping-records">
       <div className="card">
       <h2>{t("records")}</h2>
 
       <div>
-          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <div className="shipping-filters" style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
             <DSInput placeholder={t("search")} value={busquedaTexto} onChange={(e) => setBusquedaTexto(e.target.value)} />
             {errorBusqueda && <p style={{ color: "red" }}>{errorBusqueda}</p>}
             <DSDate value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
@@ -615,13 +616,13 @@ useEffect(() => {
             {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(150px, 1fr))", gap: "10px", marginBottom: "10px"}}>
-            <DSSelect isMulti options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
-            <DSSelect isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
-            <DSSelect isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
+          <div className="shipping-filters" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(150px, 1fr))", gap: "10px", marginBottom: "10px"}}>
+            <DSSelect classNamePrefix="shipping-select" isMulti options={selectActividades} value={actividadFiltro} onChange={setActividadFiltro} placeholder={t("select_activity")} />
+            <DSSelect classNamePrefix="shipping-select" isMulti options={selectProductos} value={productoFiltro} onChange={setProductoFiltro} placeholder={t("select_product")} />
+            <DSSelect classNamePrefix="shipping-select" isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
           </div>
 
-          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <div className="shipping-filter-actions" style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
             <BtnSecondary onClick={() => {
               setActividadFiltro([]); setProductoFiltro([]); setOperadorFiltro([]);
               setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
@@ -632,7 +633,8 @@ useEffect(() => {
             </BtnPrimary>        
           </div>  
 
-          <div className="table-wrap">
+          <NativeShippingTableHint/>
+        <div className="table-wrap shipping-table-scroll">
             <table className="table records-table">
               <colgroup>
                 {[6, 5, 8, 4, 9, 8, 8, 6, 9, 7, 8, 6, 11, 5].map((width, i) =>
@@ -849,7 +851,7 @@ useEffect(() => {
              </div>
            )}
           <div style={{ marginTop: 12 }}></div>
-          <DSSelect isMulti options={operadoresEditables} value={operadoresEditables.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
+          <DSSelect classNamePrefix="shipping-select" isMulti options={operadoresEditables} value={operadoresEditables.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <TextAreaStyle value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={3} style={{ marginTop: 10, minHeight: 90, width: "85%", }} />
            <div className="records-edit-grid">
              <label>{t("start_time")}

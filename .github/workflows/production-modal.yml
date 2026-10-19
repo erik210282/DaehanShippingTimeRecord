@@ -11,6 +11,11 @@ on:
       - 'tests/native-shipping-ui.test.mjs'
       - 'src/pages/Resumen.jsx'
       - 'tests/shipping-summary-ui.test.mjs'
+      - 'tests/shipping-mobile-layout.test.mjs'
+      - 'tests/workstation-products-ui.test.mjs'
+      - 'src/components/NativeShippingTableHint.jsx'
+      - 'src/components/controls.jsx'
+      - 'src/catalog/productionExport.mjs'
       - 'src/pages/Production.jsx'
       - 'src/pages/Production.css'
       - 'src/components/ProductionCaptureFields.jsx'
@@ -69,5 +74,7 @@ jobs:
       - run: node tests/multiple-part-selection.test.mjs
       - run: node tests/inventory-navigation-ui.test.mjs
       - run: node tests/shipping-summary-ui.test.mjs
+      - run: node tests/shipping-mobile-layout.test.mjs
+      - run: node tests/workstation-products-ui.test.mjs
       - run: npm run build
 
