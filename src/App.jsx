@@ -247,7 +247,7 @@ const PrivateArea = () => {
   const location = useLocation();
   const announcements = useAnnouncementGate(access.userId);
   const returnPath = useRef(location.pathname === '/announcements' ? (()=>{try{return sessionStorage.getItem('announcement-return') || '/inicio';}catch{return '/inicio';}})() : location.pathname + location.search);
-  if (access.loading) return <div className="global-loading">Cargando…</div>;
+  if (access.loading) return <div className="global-loading">{t('loading')}</div>;
   if (access.error) return <div className="global-loading" role="alert">{access.error}</div>;
   if (!announcements.ready) return <div className="global-loading">{t('loading')}…</div>;
   if (announcements.error && !announcements.items.length) return <div className="global-loading" role="alert">{announcements.error}<button onClick={announcements.load}>{t('global_retry')}</button></div>;

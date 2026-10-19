@@ -6,6 +6,9 @@ import es from './es.json';
 import en from './en.json';
 import ko from './ko.json';
 
+const nativeLanguage = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('nativeShipping') === '1'
+  ? new URLSearchParams(window.location.search).get('lang') : null;
+
 i18n
   .use(initReactI18next)
   .init({
@@ -14,7 +17,7 @@ i18n
       en: { translation: en },
       ko: { translation: ko },
     },
-    lng: 'es',
+    lng: ['es','en','ko'].includes(nativeLanguage) ? nativeLanguage : 'es',
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false,

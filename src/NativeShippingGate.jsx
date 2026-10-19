@@ -17,7 +17,7 @@ export default function NativeShippingGate({children}) {
     supabase.auth.stopAutoRefresh();
     const receive=event=>{
       const data=event.detail;
-      if(data?.type==='shipping:language' && ['en','es','ko'].includes(data.language)) i18n.changeLanguage(data.language);
+      if(['shipping:language','shipping:session'].includes(data?.type) && ['en','es','ko'].includes(data.language)) i18n.changeLanguage(data.language);
       if(data?.type!=='shipping:session' || typeof data.access_token!=='string' || typeof data.refresh_token!=='string') return;
       if(data.access_token===lastToken) {
         if(authenticatedToken===lastToken) postShippingMessage({type:'shipping:authenticated'});
@@ -31,7 +31,6 @@ export default function NativeShippingGate({children}) {
           supabase.auth.stopAutoRefresh();
           if(!active)return;
           if(result.error || !result.data.session) throw result.error || new Error('Session unavailable');
-          if(['en','es','ko'].includes(data.language)) await i18n.changeLanguage(data.language);
           if(!active)return;
           authenticatedToken=data.access_token;
           clearInterval(retry);
