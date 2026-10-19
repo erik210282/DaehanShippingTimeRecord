@@ -39,3 +39,8 @@ assert.equal(irregular.columns[1].time,null,'Different shift times cannot share 
 const initial=dashboardTable([firstShift],[{id:'zero',run_id:'first',recorded_at:d(6),quantity:7},{id:'next',run_id:'first',recorded_at:d(7),quantity:50}],'2026-10-13',new Date(d(18)));
 assert.deepEqual(initial.rows[0].cells,[7,50],'Opening reading belongs to Start, followed by report 1');
 console.log('PASS: ordinal reports, initial readings, irregular timestamps, independent second shifts and no overwritten captures');
+const actualFinish=d(12),lateCapture=d(14);
+const lateRun={...firstShift,closed_at:actualFinish,latest_quantity:200,latest_at:actualFinish};
+const lateTable=dashboardTable([lateRun],[{id:'partial',run_id:'first',recorded_at:lateCapture,quantity:100},{id:'final',run_id:'first',recorded_at:actualFinish,quantity:200}],'2026-10-13',new Date(d(15)));
+assert.equal(lateTable.rows[0].quantity,200);assert.equal(lateTable.rows[0].recordedTimes.at(-1).toISOString(),actualFinish);assert.equal(lateTable.rows[0].cells.at(-1),200);assert.equal(lateTable.rows[0].recordedTimes[1].toISOString(),lateCapture,'Late capture timestamp remains visible');
+console.log('PASS final quantities and actual closing time prevail over late-captured partials');

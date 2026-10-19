@@ -22,7 +22,7 @@ export function supplyRows(snapshot,now=new Date()){
   }
   const confirmed=Number(m.loaded_quantity)-Number(m.confirmed_consumption||0)+Number(m.confirmed_baseline||0);
   const estimated=confirmed-pending,minutes=rate>0?Math.max(0,estimated)/rate*60:null;
-  const low=estimated<=0||minutes!==null&&minutes<=Number(m.alert_minutes);
+  const low=rate>0&&(estimated<=0||minutes!==null&&minutes<=15);
   return {...m,confirmed,pending,estimated,rate,minutes,low,missingRecipe};
  });
 }
@@ -44,3 +44,19 @@ export function shiftOptions(runs,items){
 }
 
 export function loadCounterRuns(data,edit){if(!edit||data.materials?.some(m=>m.station_code===edit.station_code&&m.item_id===edit.item_id))return [];return (data.runs||[]).filter(r=>!r.closed_at&&r.station_code===edit.station_code&&r.raw_recipe?.some(l=>l.item_id===edit.item_id));}
+
+// The server resolves assigned RAW plus the materials in the station products' BOMs.
+// No station assignment means an empty list, never the complete RAW catalog.
+export function stationRawIds(data,stations,items,stationCode){
+ if(!stationCode)return [];
+ const configured=(stations.find(s=>s.code===stationCode)?.materials||[]).flatMap(m=>m.item_ids||[m.item_id]);
+ const ids=new Set([...configured,...(data.station_materials||[]).filter(m=>m.station_code===stationCode).map(m=>m.item_id)]);
+ return items.filter(i=>i.active&&i.category==='RAW'&&ids.has(i.id)).map(i=>i.id);
+}
+export function updateLoadEntry(edit,itemId,patch,getEntries){
+ const entries=getEntries(edit).map(row=>row.item_id===itemId?{...row,...patch}:row);
+ return {...edit,...(edit.item_id===itemId?patch:{}),entries};
+}
+export function materialLoadPayload(data,edit,getEntries){
+ return {entries:getEntries(edit).map(row=>({...row,alert_minutes:15,baselines:loadCounterRuns(data,row).map(r=>({run_id:r.id,quantity:row.counters?.[r.id]??''}))}))};
+}

@@ -15,6 +15,7 @@ on:
       - 'tests/workstation-products-ui.test.mjs'
       - 'tests/workstation-defaults.test.mjs'
       - 'tests/workstation-defaults-ui.test.mjs'
+      - 'tests/production-floor-ui.test.mjs'
       - 'src/components/NativeShippingTableHint.jsx'
       - 'src/components/controls.jsx'
       - 'src/catalog/productionExport.mjs'
@@ -80,5 +81,6 @@ jobs:
       - run: node tests/workstation-products-ui.test.mjs
       - run: node tests/workstation-defaults.test.mjs
       - run: node tests/workstation-defaults-ui.test.mjs
+      - run: node tests/production-floor-ui.test.mjs
       - run: npm run build
 

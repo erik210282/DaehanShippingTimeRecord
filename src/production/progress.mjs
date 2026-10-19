@@ -62,6 +62,9 @@ export function dashboardTable(runs,checkpoints,day,now=new Date()){
   const start=new Date(run.started_at).getTime();
   const reports=checkpoints.filter(c=>c.run_id===run.id&&new Date(c.recorded_at)>=start&&new Date(c.recorded_at)<dayEnd&&new Date(c.recorded_at)<=now).sort((a,b)=>new Date(a.recorded_at)-new Date(b.recorded_at)||String(a.id).localeCompare(String(b.id)));
   const initial=reports.filter(c=>new Date(c.recorded_at).getTime()===start).at(-1),captures=reports.filter(c=>new Date(c.recorded_at).getTime()>start);
+  // A final reading uses actual closure even when an earlier partial was captured late.
+  const final=run.closed_at&&reports.find(c=>new Date(c.recorded_at).getTime()===new Date(run.closed_at).getTime());
+  if(final){reports.splice(reports.indexOf(final),1);reports.push(final);captures.splice(0,captures.length,...reports.filter(c=>new Date(c.recorded_at).getTime()>start));}
   const latest=reports.at(-1),at=latest?.recorded_at||run.period_at||run.latest_at;
   const end=Math.min(dayEnd,run.closed_at?new Date(run.closed_at).getTime():Math.max(new Date(at||run.started_at).getTime(),Math.min(now.getTime(),dayEnd)));
   const quantity=Number(latest?.quantity??run.period_quantity??run.latest_quantity??0);

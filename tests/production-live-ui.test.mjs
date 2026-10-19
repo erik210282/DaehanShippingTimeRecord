@@ -16,7 +16,7 @@ try{
  let run={id:'run',station_code:'M-01',item_id:'item',started_at:new Date(now-2*3600000).toISOString(),latest_at:new Date(now).toISOString(),latest_quantity:140,pieces_per_hour:100,shift_hours:8,shift_target:750,period_quantity:140,period_at:new Date(now).toISOString(),warning_percent:90,critical_percent:75,expected_quantity:200,attainment:70,performance:'critical',overdue:false};
  let captured,machineGroup=false;
 
- let dailyCaptured,showReview=false,showProgressDraft=false,supplyCaptured;let supplyState={runs:[],materials:[],wip:[],loads:[],baselines:[]};
+ let dailyCaptured,showReview=false,showProgressDraft=false,supplyCaptured;let supplyState={station_materials:[{station_code:'M-01',item_id:'raw'}],runs:[],materials:[],wip:[],loads:[],baselines:[]};
  await page.route('**/rest/v1/**',route=>{
   const table=new URL(route.request().url()).pathname.split('/').pop();
   if(table==='production_station_reports'&&showProgressDraft)return route.fulfill({json:[{id:'progress-draft',live_run_id:'run',capture_group_id:'session',production_date:'2026-10-13',station_code:'M-01',item_id:'item',created_by:'other-leader',status:'draft',progress_draft:true,machine_quantity:474,good_quantity:474,packed_quantity:0,scrap_quantity:null,rework_quantity:null,full_boxes:null,people:null,elapsed_minutes:630,machine_minutes:630,start_time:'06:00',end_time:'16:30',downtime_events:[],report_mode:'production',rework_completed:true}]});
@@ -233,12 +233,11 @@ try{
  await page.getByRole('button',{name:'Load / replenish material',exact:true}).first().click();
  let supplyDialog=page.getByRole('dialog',{name:'Load / replenish material',exact:true});
  await supplyDialog.getByRole('combobox',{name:'Workstation',exact:true}).click();await page.getByRole('option',{name:'M-01 · Assembly',exact:true}).click();
- await supplyDialog.getByRole('combobox',{name:'Part',exact:true}).click();await page.getByRole('option',{name:'RAW-100 · Steel · kg',exact:true}).click();
- assert.equal(await supplyDialog.getByLabel('Loaded quantity',{exact:true}).inputValue(),'');
- await supplyDialog.getByLabel('Loaded quantity',{exact:true}).fill('1000');
- await supplyDialog.getByLabel('Alert lead time (minutes)',{exact:true}).fill('60');
+ assert.equal(await supplyDialog.getByLabel('Loaded quantity · RAW-100 · Steel (kg)',{exact:true}).inputValue(),'');
+ await supplyDialog.getByLabel('Loaded quantity · RAW-100 · Steel (kg)',{exact:true}).fill('1000');
+ assert.equal(await supplyDialog.getByLabel('Alert lead time (minutes)',{exact:true}).count(),0);
  await supplyDialog.getByRole('button',{name:'Save',exact:true}).click();await supplyDialog.waitFor({state:'hidden'});
- assert.equal(supplyCaptured.p_action,'load-batch');assert.equal(supplyCaptured.p_data.entries[0].quantity,'1000');
+ assert.equal(supplyCaptured.p_action,'load-batch');assert.equal(supplyCaptured.p_data.entries[0].quantity,'1000');assert.equal(supplyCaptured.p_data.entries[0].alert_minutes,15);
  await page.getByRole('button',{name:'Shifts Start',exact:true}).click();
  await page.getByRole('button',{name:'Start selected machines',exact:true}).click();
  supplyDialog=page.getByRole('dialog',{name:'Start selected machines',exact:true});

@@ -26,12 +26,13 @@ try{
   const dialog=page.getByRole('dialog').first(),stationLabel=screen==='daily'?'Code':'Workstation';
   await choose(dialog,stationLabel,'M1 · Assembly');
   const productFields=dialog.locator('label.catalog-field').filter({has:page.getByRole('combobox',{name:'Part',exact:true})}),selection=productFields.first();
-  const raw=screen==='materials',first=raw?'RAW-1 · Material 1 · kg':'PN-A · Part A',second=raw?'RAW-2 · Material 2 · kg':'PN-B · Part B',extra=raw?'RAW-3 · Material 3 · kg':'PN-C · Part C';
+  const raw=screen==='materials',first=raw?'RAW-1 · Material 1 · kg':'PN-A · Part A',second=raw?'RAW-2 · Material 2 · kg':'PN-B · Part B',extra=raw?'RAW-1 · Material 1 · kg':'PN-C · Part C';
   await selection.getByLabel('Remove '+first,{exact:true}).waitFor();
   await selection.getByLabel('Remove '+second,{exact:true}).waitFor();
   let reading;
   if(screen==='parameters'){reading=dialog.getByLabel('Actual reading · Pressure',{exact:true});await reading.fill('10');}
   await selection.getByLabel('Remove '+second,{exact:true}).click();
+  if(raw)await selection.getByLabel('Remove '+first,{exact:true}).click();
   await choose(dialog,'Part',extra);
   assert.equal(await selection.getByLabel('Remove '+second,{exact:true}).count(),0);
   assert.equal(await selection.getByLabel('Remove '+extra,{exact:true}).count(),1);
