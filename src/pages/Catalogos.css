@@ -31,9 +31,11 @@
 .catalog-current-title {white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .catalog-current-title span {font:inherit;}
 .catalog-row-actions {display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
-.catalog-workstations-table {table-layout:fixed;width:100%;min-width:1100px;}
+.catalog-workstations-table {table-layout:fixed;width:100%;min-width:1550px;}
 .catalog-workstations-table .station-code {width:96px;}
-.catalog-workstations-table .station-name {width:19%;}
+.catalog-workstations-table .station-name {width:250px;}
+.catalog-workstations-table .station-materials {width:340px;}
+.catalog-workstations-table .station-raw {width:340px;}
 .catalog-workstations-table .station-type {width:160px;}
 .catalog-workstations-table .station-status {width:96px;}
 .catalog-workstations-table .station-actions {width:280px;}

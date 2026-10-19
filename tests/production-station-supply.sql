@@ -10,7 +10,7 @@ begin
  insert into public.inventory_bom_lines(bom_id,ingredient_id,quantity_per_unit) values(bom_a,raw,2),(bom_b,raw,3);
  perform public.production_live_action('target_batch',jsonb_build_object('products',jsonb_build_array(jsonb_build_object('item_id',a,'target_8h','800','target_10h','1000','warning_percent','90','critical_percent','75'),jsonb_build_object('item_id',b,'target_8h','400','target_10h','500','warning_percent','90','critical_percent','75'))));
 
- update public.inventory_workstations set materials=jsonb_build_array(jsonb_build_object('item_id',raw)) where code=station;
+ update public.inventory_workstations set raw_material_ids=array[raw] where code=station;
  perform public.production_supply_action('load',jsonb_build_object('id',gen_random_uuid(),'station_code',station,'item_id',raw,'quantity',1000,'alert_minutes',60));
  perform public.production_supply_action('start',jsonb_build_object('id',grp,'started_at',start_at,'shift_hours',8,'stations',jsonb_build_array(jsonb_build_object('station_code',station,'item_ids',jsonb_build_array(a,b)))));
  perform public.production_supply_action('start',jsonb_build_object('id',grp,'started_at',start_at,'shift_hours',8,'stations',jsonb_build_array(jsonb_build_object('station_code',station,'item_ids',jsonb_build_array(a,b)))));
@@ -51,6 +51,7 @@ begin
 
  station:=station||'-BASE';
  insert into public.inventory_workstations(code,name,machine_type) values(station,'Opening counter test','test');
+ update public.inventory_workstations set raw_material_ids=array[raw] where code=station;
  perform public.production_supply_action('start',jsonb_build_object('id',gen_random_uuid(),'started_at',start_at,'shift_hours',8,'stations',jsonb_build_array(jsonb_build_object('station_code',station,'item_ids',jsonb_build_array(a)))));
  select id into r1 from public.production_live_runs where station_code=station;
  begin

@@ -13,6 +13,7 @@ on:
       - 'tests/shipping-summary-ui.test.mjs'
       - 'tests/shipping-mobile-layout.test.mjs'
       - 'tests/workstation-products-ui.test.mjs'
+      - 'tests/workstation-raw-ui.test.mjs'
       - 'tests/workstation-defaults.test.mjs'
       - 'tests/workstation-defaults-ui.test.mjs'
       - 'tests/production-floor-ui.test.mjs'
@@ -79,6 +80,7 @@ jobs:
       - run: node tests/shipping-summary-ui.test.mjs
       - run: node tests/shipping-mobile-layout.test.mjs
       - run: node tests/workstation-products-ui.test.mjs
+      - run: node tests/workstation-raw-ui.test.mjs
       - run: node tests/workstation-defaults.test.mjs
       - run: node tests/workstation-defaults-ui.test.mjs
       - run: node tests/production-floor-ui.test.mjs

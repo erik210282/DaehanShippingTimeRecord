@@ -45,11 +45,13 @@ export function shiftOptions(runs,items){
 
 export function loadCounterRuns(data,edit){if(!edit||data.materials?.some(m=>m.station_code===edit.station_code&&m.item_id===edit.item_id))return [];return (data.runs||[]).filter(r=>!r.closed_at&&r.station_code===edit.station_code&&r.raw_recipe?.some(l=>l.item_id===edit.item_id));}
 
-// The server resolves assigned RAW plus the materials in the station products' BOMs.
+// RAW choices are assigned explicitly per workstation, independently of product BOMs.
 // No station assignment means an empty list, never the complete RAW catalog.
 export function stationRawIds(data,stations,items,stationCode){
  if(!stationCode)return [];
- const configured=(stations.find(s=>s.code===stationCode)?.materials||[]).flatMap(m=>m.item_ids||[m.item_id]);
+ const station=stations.find(s=>s.code===stationCode);
+ if(Array.isArray(station?.raw_material_ids))return items.filter(i=>i.active&&i.category==='RAW'&&station.raw_material_ids.includes(i.id)).map(i=>i.id);
+ const configured=(station?.materials||[]).flatMap(m=>m.item_ids||[m.item_id]);
  const ids=new Set([...configured,...(data.station_materials||[]).filter(m=>m.station_code===stationCode).map(m=>m.item_id)]);
  return items.filter(i=>i.active&&i.category==='RAW'&&ids.has(i.id)).map(i=>i.id);
 }

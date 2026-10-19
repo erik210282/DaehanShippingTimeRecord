@@ -4,7 +4,7 @@ do $test$
 declare station text:='FLOOR-'||substr(gen_random_uuid()::text,1,8); raw1 uuid:=gen_random_uuid();raw2 uuid:=gen_random_uuid();other uuid:=gen_random_uuid();product uuid:=gen_random_uuid();bom uuid:=gen_random_uuid();run uuid:=gen_random_uuid();cp uuid:=gen_random_uuid();final_id uuid:=gen_random_uuid();batch jsonb;result jsonb;started timestamptz:=clock_timestamp()-interval '3 hours';finished timestamptz:=clock_timestamp()-interval '1 hour';captured timestamptz;legacy text[];
 begin
  insert into public.inventory_items(id,part_number,category) values(raw1,'FLOOR-RAW1-'||raw1,'RAW'),(raw2,'FLOOR-RAW2-'||raw2,'RAW'),(other,'FLOOR-OTHER-'||other,'RAW'),(product,'FLOOR-FG-'||product,'FG');
- insert into public.inventory_workstations(code,name,machine_type,materials) values(station,'Floor test','test',jsonb_build_array(jsonb_build_object('item_id',product)));
+ insert into public.inventory_workstations(code,name,machine_type,materials,raw_material_ids) values(station,'Floor test','test',jsonb_build_array(jsonb_build_object('item_id',product)),array[raw1,raw2]);
  insert into public.inventory_boms(id,finished_item_id,version,active) values(bom,product,1,true);
  insert into public.inventory_bom_lines(bom_id,ingredient_id,quantity_per_unit) values(bom,raw1,2),(bom,raw2,3);
  if (select count(*) from rls_internal.production_station_raw_ids(station))<>2 then raise exception 'station recipe RAW filtering failed';end if;
@@ -33,8 +33,7 @@ begin
  if not exists(select 1 from public.production_station_reports where live_run_id=run and machine_quantity=20 and elapsed_minutes=extract(epoch from finished-started)/60) then raise exception 'daily draft uses capture time instead of actual duration';end if;
  result:=public.production_live_snapshot_range(started-interval '1 minute',clock_timestamp()+interval '1 minute');
  if not exists(select 1 from jsonb_array_elements(result->'runs') r where r->>'id'=run::text and (r->>'period_quantity')::numeric=20 and (r->>'period_at')::timestamptz=finished) then raise exception 'snapshot uses late partial instead of final total';end if;
- select array_agg(i.part_number order by i.part_number) into legacy from rls_internal.production_station_raw_ids('N-FOA01') r join public.inventory_items i on i.id=r.item_id;
- if not legacy @> array['W200GE01054A','W200GE02036A','W200GE22013A']::text[] or 'W200GE29009A'=any(legacy) or 'WT05TC27001B'=any(legacy) then raise exception 'legacy operation RAW hierarchy incorrect: %',legacy;end if;
+
 end $test$;
-select 'PASS independent quantities, fixed 15 min alerts, station filtering, atomic batches, actual finish before late capture, draft and snapshot totals, legacy ERP mapping' as result;
+select 'PASS independent quantities, fixed 15 min alerts, station filtering, atomic batches, actual finish before late capture, draft and snapshot totals' as result;
 rollback;

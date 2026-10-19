@@ -561,7 +561,7 @@
   "inv_station_code": "Código",
   "inv_station_name": "Estación",
   "inv_station_type": "Tipo de máquina",
-  "inv_station_materials": "Materiales reportados",
+  "inv_station_materials": "Productos / referencia ERP",
   "inv_ref_description": "Descripción",
   "inv_ref_fg": "Producto relacionado",
   "inv_ref_quantity": "Cantidad original",
@@ -627,5 +627,9 @@
   "pl_hours": "Turno de Referencia",
   "rc_title": "Recepción",
   "rc_po_number": "Número de PO",
-  "select_no_options": "Sin Resultados"
+  "select_no_options": "Sin Resultados",
+  "dt_raw_materials": "Materiales RAW",
+  "dt_raw_hint": "Selecciona las materias primas que utiliza esta máquina por número de parte y nombre. Esta lista controla los materiales disponibles en Cargar / recargar material. Puedes agregar o quitar varios materiales.",
+  "dt_raw_none": "Sin materiales RAW asignados",
+  "dt_raw_invalid": "Selecciona materiales RAW válidos sin repetir."
 }

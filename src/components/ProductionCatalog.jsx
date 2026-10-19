@@ -42,7 +42,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  const nameFor=r=>productFor(r)?.nombre||'—';
  const status=r=>!r.finished_item_id?'cat_pending_product':productFor(r)?.activo===false?'cat_inactive_product':r.active?'inv_active':'inv_draft';
  const query=(externalControls?filter:search).trim().toLowerCase();
- const visible=rows.filter(r=>(!hideInactive||(r.active&&(stations||productFor(r)?.activo!==false)))&&(JSON.stringify(r).toLowerCase().includes(query)||(!stations&&nameFor(r).toLowerCase().includes(query))));
+ const visible=rows.filter(r=>(!hideInactive||(r.active&&(stations||productFor(r)?.activo!==false)))&&(JSON.stringify(r).toLowerCase().includes(query)||(stations&&(r.raw_material_ids||[]).some(id=>{const i=items.find(x=>x.id===id);return [i?.part_number,i?.part_name,i?.description].join(' ').toLowerCase().includes(query);}))||(!stations&&nameFor(r).toLowerCase().includes(query))));
  useEffect(()=>{setPage(1);},[filter,hideInactive]);
  const totalPages=Math.max(1,Math.ceil(visible.length/pageSize)),currentPage=Math.min(page,totalPages);
  const fmt=value=>Number(value||0).toLocaleString('en-US',{maximumFractionDigits:6});
@@ -52,7 +52,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  }
  function add(){
   if(!manage||busy)return;
-  setEdit(stations?{code:'',name:'',machine_type:'',materials:[],active:true,isNew:true}:{product_part_number:'',version:'',active:true,notes:'',lines:[blankIngredient()],packing:recipePacking({}),isNew:true});
+  setEdit(stations?{code:'',name:'',machine_type:'',materials:[],raw_material_ids:[],active:true,isNew:true}:{product_part_number:'',version:'',active:true,notes:'',lines:[blankIngredient()],packing:recipePacking({}),isNew:true});
  }
  function editRow(r){
   setEdit(stations?{...r,materials:groupWorkstationMaterials(r.materials),isNew:false}:{...r,lines:r.inventory_bom_lines.length?r.inventory_bom_lines.map(l=>({...l,waste:String(Number(l.waste_rate)*100)})):[blankIngredient()],packing:recipePacking(r,products),isNew:false});
@@ -71,7 +71,9 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    const materials=expandWorkstationMaterials(edit.materials,items);
    if(!validWorkstationMaterials(materials,items))throw Error('dt_link_required');
    if(materials.some((m,k)=>!m.item_id&&(edit.isNew||!rows.find(r=>r.code===edit.code)?.materials?.some(old=>old.erp_material===m.erp_material))))throw Error('dt_link_required');
-   const payload={code:edit.code.trim().toUpperCase(),name:edit.name.trim(),machine_type:edit.machine_type.trim(),materials,active:!!edit.active};
+   const raw_material_ids=[...new Set(edit.raw_material_ids||[])];
+   if(raw_material_ids.some(id=>!items.some(i=>i.id===id&&i.category==='RAW')))throw Error('dt_raw_invalid');
+   const payload={raw_material_ids,code:edit.code.trim().toUpperCase(),name:edit.name.trim(),machine_type:edit.machine_type.trim(),materials,active:!!edit.active};
    if(edit.isNew)await unwrap(supabase.from('inventory_workstations').insert(payload));
    else {const updated=await unwrap(supabase.from('inventory_workstations').update(payload).eq('code',edit.code).select('code'));if(!updated.length)throw Error('receiving_forbidden');}
   }else{
@@ -134,12 +136,12 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('description')}</th><th>{t('actions')}</th></tr></thead><tbody>{missing.filter(noticeMatch).map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td><td>{recipeActions(p)}</td></tr>)}</tbody></table></div></details>
    <details><summary>{t('pr_missing_packing',{count:missingPacking.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('actions')}</th></tr></thead><tbody>{missingPacking.filter(noticeMatch).map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{recipeActions(p)}</td></tr>)}</tbody></table></div></details>
   </div>}
-  <div className="table-wrap catalog-table-scroll"><table className={'table '+(stations?'catalog-workstations-table':'catalog-bom-table')}>{stations&&<colgroup><col className="station-code"/><col className="station-name"/><col className="station-type"/><col className="station-materials"/><col className="station-status"/><col className="station-actions"/></colgroup>}<thead><tr>
-   {stations?<><th>{t('inv_station_code')}</th><th>{t('name')}</th><th>{t('inv_station_type')}</th><th>{t('inv_station_materials')}</th></>:<><th>{t('inv_ref_fg')}</th><th>{t('name')}</th><th>{t('inv_version')}</th><th>{t('inv_recipe')}</th></>}
-   <th>{t('status')}</th><th>{t('actions')}</th>
+  <div className="table-wrap catalog-table-scroll"><table className={'table '+(stations?'catalog-workstations-table':'catalog-bom-table')}>{stations&&<colgroup><col className="station-code"/><col className="station-name"/><col className="station-type"/><col className="station-materials"/><col className="station-raw"/><col className="station-status"/><col className="station-actions"/></colgroup>}<thead><tr>
+   {stations?<><th scope="col">{t('inv_station_code')}</th><th scope="col">{t('name')}</th><th scope="col">{t('inv_station_type')}</th><th scope="col">{t('inv_station_materials')}</th><th scope="col">{t('dt_raw_materials')}</th></>:<><th scope="col">{t('inv_ref_fg')}</th><th scope="col">{t('name')}</th><th scope="col">{t('inv_version')}</th><th scope="col">{t('inv_recipe')}</th></>}
+   <th scope="col">{t('status')}</th><th scope="col">{t('actions')}</th>
   </tr></thead><tbody>
    {visible.slice((currentPage-1)*pageSize,currentPage*pageSize).map(r=><React.Fragment key={r.id||r.code}><tr>
-    {stations?<><td>{r.code}</td><td>{r.name}</td><td>{t(({Assembly:'inv_machine_ASY',Foaming:'inv_machine_FOA','WaterJet / Forming':'inv_machine_WAT','Press / Trim':'inv_machine_PRE',Forming:'inv_machine_PET'})[r.machine_type]||r.machine_type)}</td><td><ul className="station-material-list">{groupWorkstationMaterials(r.materials).map((m,k)=><li key={k}><strong>{m.erp_material}</strong>{(m.product||m.operation)&&<> · {m.product||m.operation}</>}{materialClientLabel(m,items)&&<div>{materialClientLabel(m,items)}</div>}</li>)}</ul></td></>:<><td>{r.product_part_number}</td><td>{nameFor(r)}</td><td>{r.version}</td><td><BtnSecondary onClick={()=>setExpanded(expanded===r.id?null:r.id)}>{t('cat_ingredients',{count:r.inventory_bom_lines.length})}</BtnSecondary></td></>}
+    {stations?<><td>{r.code}</td><td>{r.name}</td><td>{t(({Assembly:'inv_machine_ASY',Foaming:'inv_machine_FOA','WaterJet / Forming':'inv_machine_WAT','Press / Trim':'inv_machine_PRE',Forming:'inv_machine_PET'})[r.machine_type]||r.machine_type)}</td><td><ul className="station-material-list">{groupWorkstationMaterials(r.materials).map((m,k)=><li key={k}><strong>{m.erp_material}</strong>{(m.product||m.operation)&&<> · {m.product||m.operation}</>}{materialClientLabel(m,items)&&<div>{materialClientLabel(m,items)}</div>}</li>)}</ul></td><td><ul className="station-material-list">{(r.raw_material_ids||[]).map(id=>{const i=items.find(x=>x.id===id);return <li key={id}><strong>{i?.part_number||id}</strong><div>{i?.part_name||i?.description||'—'}</div></li>;})}</ul>{!r.raw_material_ids?.length&&<span className="inv-muted">{t('dt_raw_none')}</span>}</td></>:<><td>{r.product_part_number}</td><td>{nameFor(r)}</td><td>{r.version}</td><td><BtnSecondary onClick={()=>setExpanded(expanded===r.id?null:r.id)}>{t('cat_ingredients',{count:r.inventory_bom_lines.length})}</BtnSecondary></td></>}
     <td>{t(stations?(r.active?'active':'inactive'):status(r))}</td>
     <td><div className="catalog-row-actions"><BtnEditDark disabled={!manage||busy} onClick={()=>editRow(r)}>{t('edit')}</BtnEditDark> <BtnSecondary disabled={!manage||busy} onClick={()=>duplicate(r)}>{t('cat_duplicate')}</BtnSecondary> <BtnDanger disabled={!manage||busy} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></div></td>
    </tr>
@@ -148,7 +150,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
     {(r.inventory_bom_packaging_lines||[]).map(l=>{const i=items.find(x=>x.id===l.ingredient_id),profile=r.inventory_bom_packaging.find(p=>p.packaging_type===l.packaging_type);return <tr key={l.id}><td>{i?.part_number}</td><td>{i?.part_name||i?.description}</td><td>{fmt(l.quantity)}</td><td>{i?.uom}</td><td>{fmt(Number(l.waste_rate)*100)}</td><td>{profile?.box_name} · {profile?.pieces_per_box} {t('pr_pieces_per_box')}</td><td>{t('pr_per_'+l.basis)}</td></tr>;})}
    </tbody></table></td></tr>}
    </React.Fragment>)}
-   {!visible.length&&<tr><td colSpan="6">{t('no_results_found')}</td></tr>}
+   {!visible.length&&<tr><td colSpan={stations?7:6}>{t('no_results_found')}</td></tr>}
   </tbody></table><TablePagination totalRows={visible.length} page={currentPage} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}}/></div>
   <Modal isOpen={!!edit} onRequestClose={()=>!busy&&setEdit(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0008',display:'flex',alignItems:'center',justifyContent:'center',padding:16,boxSizing:'border-box'},content:{position:'relative',top:'auto',right:'auto',bottom:'auto',left:'auto',width:'min(1100px, 100%)',maxHeight:'calc(100dvh - 32px)',transform:'none',boxSizing:'border-box',borderRadius:14,padding:24}}}>
    {edit&&<form className="catalog-page catalog-dialog catalog-recipe-dialog" onSubmit={e=>{e.preventDefault();perform(save);}}>
@@ -167,7 +169,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
      <CatalogInput label={t('inv_notes')} value={edit.notes||''} onChange={e=>setEdit({...edit,notes:e.target.value})}/></>}
      <label className="catalog-checkbox"><input type="checkbox" checked={edit.active} onChange={e=>setEdit({...edit,active:e.target.checked})}/>{t('active')}</label>
     </div>
-    {stations?<><h3>{t('inv_station_materials')}</h3><p className="inv-muted">{t('dt_product_multi_hint')}</p>{edit.materials.map((m,k)=><div className="catalog-fields" key={k}>
+    {stations?<><h3>{t('dt_raw_materials')}</h3><p className="inv-muted">{t('dt_raw_hint')}</p><CatalogSelect multi label={t('dt_raw_materials')} value={edit.raw_material_ids||[]} onChange={raw_material_ids=>setEdit(current=>({...current,raw_material_ids}))} options={items.filter(i=>i.category==='RAW'&&(i.active||(edit.raw_material_ids||[]).includes(i.id))).map(i=>({value:i.id,label:i.part_number+' - '+(i.part_name||i.description||'')+' · '+(i.uom||'')}))}/><h3>{t('inv_station_materials')}</h3><p className="inv-muted">{t('dt_product_multi_hint')}</p>{edit.materials.map((m,k)=><div className="catalog-fields" key={k}>
      <CatalogInput label={t('dt_erp')} value={m.erp_material||''} onChange={e=>setEdit({...edit,materials:edit.materials.map((x,j)=>j===k?{...x,erp_material:e.target.value}:x)})}/>
      <CatalogInput label={t('dt_erp_name')} value={m.product||m.operation||''} onChange={e=>setEdit({...edit,materials:edit.materials.map((x,j)=>j===k?{...x,product:e.target.value}:x)})}/>
      <CatalogSelect multi label={t('dt_product')} value={materialItemIds(m)} onChange={item_ids=>setEdit(current=>({...current,materials:current.materials.map((x,j)=>j===k?{...x,item_ids}:x)}))} options={items.filter(i=>['RAW','FG'].includes(i.category)&&(i.active||materialItemIds(m).includes(i.id))).map(i=>({value:i.id,label:i.part_number+' - '+(i.part_name||i.description)+' ('+i.category+')'}))}/>

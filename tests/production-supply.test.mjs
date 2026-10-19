@@ -51,3 +51,7 @@ assert.equal(supplyRows(forecast,at)[0].low,true);
 assert.equal(supplyRows({...forecast,materials:[{...forecast.materials[0],loaded_quantity:226}]},at)[0].low,false);
 assert.equal(supplyRows({...forecast,runs:[] ,materials:[{...forecast.materials[0],loaded_quantity:0}]},at)[0].low,false,'No replenishment pop-up for inactive machinery');
 console.log('PASS separate load fields/payload, station filtering, fixed 15-minute threshold and active machine alerts');
+
+assert.deepEqual(Array.from(stationRawIds(stationData,[{code:'M1',raw_material_ids:['b'],materials:[{item_id:'a'}]}],materialItems,'M1')),['b'],'Explicit station RAW assignment overrides stale legacy or snapshot choices');
+assert.equal(stationRawIds(stationData,[{code:'M1',raw_material_ids:[]}],materialItems,'M1').length,0,'Clearing workstation RAW must not fall back to BOM or previous assignments');
+console.log('PASS explicit workstation RAW list and intentionally empty selection');

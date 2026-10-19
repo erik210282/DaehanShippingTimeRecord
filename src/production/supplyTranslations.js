@@ -4,7 +4,7 @@ Object.assign(phrases,{
  station_material_invalid:['Este material no está vinculado a la estación seleccionada.','This material is not linked to the selected workstation.','이 자재는 선택한 작업대에 연결되어 있지 않습니다.'],
  quantity_for:['Cantidad cargada · {{part}} ({{unit}})','Loaded quantity · {{part}} ({{unit}})','적재 수량 · {{part}} ({{unit}})'],
  fixed_alert:['Se avisará al líder y al supervisor mediante una ventana emergente cuando queden 15 minutos de material, según el consumo estimado.','A pop-up alerts the leader and supervisor when an estimated 15 minutes of material remain.','자재 예상 잔여 시간이 15분이 되면 리더와 관리자에게 팝업으로 알립니다.'],
- no_station_materials:['Esta estación no tiene materia prima vinculada. Revisa sus productos asignados y sus recetas en el catálogo.','This workstation has no linked RAW materials. Check its assigned products and BOMs in the catalog.','이 작업대에 연결된 원자재가 없습니다. 카탈로그에서 배정 제품과 BOM을 확인하세요.'],
+ no_station_materials:['Esta estación no tiene materiales RAW asignados. Configúralos en Catálogos → Estaciones de trabajo → Materiales RAW.','This workstation has no linked RAW materials. Assign them in Catalogs → Workstations → RAW Materials.','이 작업대에 배정된 원자재가 없습니다. 카탈로그 → 작업대 → 원자재 (RAW)에서 설정하세요.'],
  load_invalid:['Captura una cantidad mayor a cero para cada material de la estación y los contadores requeridos.','Enter a positive quantity for each workstation material and any required output counters.','작업대의 각 자재에 양수 수량과 필요한 생산 카운터를 입력하세요.']
 });
 export function registerSupply(i18n){for(const [index,lang] of ['es','en','ko'].entries())i18n.addResourceBundle(lang,'translation',Object.fromEntries(Object.entries(phrases).map(([key,values])=>['ps_'+key,values[index]])),true,true);}
