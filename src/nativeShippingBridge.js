@@ -1,8 +1,9 @@
-// Only enabled by the native app; no session is ever accepted from URL parameters.
+// Enter the gated mode before Android has finished injecting its message bridge.
+// The URL selects the layout only; no session is accepted from URL parameters.
 export const nativeShipping = typeof window !== 'undefined' &&
-  !!window.ReactNativeWebView && new URLSearchParams(window.location.search).get('nativeShipping') === '1';
+  new URLSearchParams(window.location.search).get('nativeShipping') === '1';
 export function postShippingMessage(message) {
-  if (nativeShipping) window.ReactNativeWebView.postMessage(JSON.stringify(message));
+  if (nativeShipping) window.ReactNativeWebView?.postMessage(JSON.stringify(message));
 }
 export async function saveShippingFile(blob, filename) {
   if (!nativeShipping) {

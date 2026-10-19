@@ -13,6 +13,33 @@ try{
  for(let i=0;i<100;i++){try{if((await fetch('http://127.0.0.1:4185/'+files[0])).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  browser=await chromium.launch();const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
+ // Android can deliver the first ready event before its load-start callback.
+ // The host then drops the session response while the WebView is still loading.
+ await page.goto('http://127.0.0.1:4185/'+files[0]+'?nativeShipping=1');
+ await page.waitForFunction(()=>window.bridgeMessages?.some(m=>m.type==='shipping:ready'));
+ await page.waitForFunction(()=>window.bridgeMessages.filter(m=>m.type==='shipping:ready').length>=2,{},{timeout:4000});
+ await page.evaluate(()=>window.sendSession('recovered-token'));
+ await page.getByText('Shipping Content',{exact:true}).waitFor();
+ const readyCount=await page.evaluate(()=>window.bridgeMessages.filter(m=>m.type==='shipping:ready').length);
+ await page.waitForTimeout(1000);
+ assert.equal(await page.evaluate(()=>window.bridgeMessages.filter(m=>m.type==='shipping:ready').length),readyCount,'Stop requesting the session after authentication');
+ await page.evaluate(()=>window.sendSession('recovered-token'));
+ await page.waitForFunction(()=>window.bridgeMessages.filter(m=>m.type==='shipping:authenticated').length>=2,{},{timeout:2000});
+ assert.equal(await page.evaluate(()=>window.authCalls.length),1,'Duplicate delivery must not set the session again');
+ // The Android bridge can also appear after the application modules execute.
+ await page.route('**/.native-shipping-test.jsx',async route=>{
+  const response=await route.fetch();
+  const source=(await response.text()).replace('window.ReactNativeWebView={postMessage(raw)', 'window.lateBridge={postMessage(raw)');
+  await route.fulfill({response,body:source});
+ });
+ await page.goto('http://127.0.0.1:4185/'+files[0]+'?nativeShipping=1');
+ await page.waitForFunction(()=>window.sendSession);
+ assert.equal(await page.getByText('Shipping Content',{exact:true}).count(),0);
+ await page.evaluate(()=>{window.ReactNativeWebView=window.lateBridge;});
+ await page.waitForFunction(()=>window.bridgeMessages.some(m=>m.type==='shipping:ready'),{},{timeout:4000});
+ await page.evaluate(()=>window.sendSession('late-bridge-token'));
+ await page.getByText('Shipping Content',{exact:true}).waitFor();
+ await page.unroute('**/.native-shipping-test.jsx');
  for(const role of ['lider','supervisor','outsider','inactive']){
   await page.goto('http://127.0.0.1:4185/'+files[0]+'?nativeShipping=1&role='+role);
   await page.waitForFunction(()=>window.bridgeMessages?.some(m=>m.type==='shipping:ready'));
@@ -33,5 +60,5 @@ try{
  assert.equal(pdf.filename,'BOL.pdf');assert.equal(pdf.mime,'application/pdf');assert.ok(Buffer.from(pdf.base64,'base64').toString().startsWith('%PDF'));
  await page.evaluate(()=>window.downloadCSV());assert.equal(await page.evaluate(()=>window.bridgeMessages.at(-1).filename),'registros.csv');
  assert.deepEqual(errors,[]);
- console.log('PASS: native handshake, token-free URL, session failures/recovery, leader/supervisor Shipping access, department/inactive denial, PDF/CSV sharing');
+ console.log('PASS: lost initial message, delayed Android bridge, duplicate acknowledgement, native handshake, token-free URL, session failures/recovery, leader/supervisor Shipping access, department/inactive denial, PDF/CSV sharing');
 }finally{await browser?.close();server.kill();for(const file of files)fs.rmSync(file,{force:true});}
