@@ -61,7 +61,7 @@ export default function Catalogos({ access }) {
   const [tab, setTab] = usePageSection('catalog', 'productos', ['productos', ...Object.keys(catalogKinds), 'pos', 'shipper', 'actividades', 'bom', 'stations']);
   const [snapshot, setSnapshot] = useState({ tab: null, rows: [] });
   const rows = snapshot.tab === tab ? snapshot.rows : [];
-  const request = useRef(0), currentTab = useRef(tab);
+  const request = useRef(0), currentTab = useRef(tab), loadedTab = useRef(null);
   currentTab.current = tab;
   const setRows = next => setSnapshot({ tab, rows: next });
   const [locations,setLocations]=useState([]),[materials,setMaterials]=useState([]),[suppliers,setSuppliers]=useState([]),[packingItems,setPackingItems]=useState([]);
@@ -176,7 +176,7 @@ export default function Catalogos({ access }) {
     if (tab==='bom' || tab==='stations') { setLoading(false); return; }
     const version = ++request.current;
     const current = () => version === request.current && currentTab.current === tab;
-    setLoading(true);
+    if(loadedTab.current!==tab)setLoading(true);
     try {
       const [stock,products,locs,types,assignments,itemTypes,supplierRows] = await Promise.all([
         unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active,part_name,supplier_id,lead_time_days,packing_type,packing_weight,packing_weight_unit,packing_measures').order('part_number')),
@@ -202,7 +202,7 @@ export default function Catalogos({ access }) {
       if (!current()) return;
       toast.error(e.message || t("error_loading") || "Error al cargar.");
     } finally {
-      if (current()) setLoading(false);
+      if (current()) { loadedTab.current=tab;setLoading(false); }
     }
   }
 
@@ -266,7 +266,7 @@ async function save() {
         const shipping={...edit};
         for(const key of ["bin_type","tipo_empaque_retornable","tipo_empaque_expendable","cantidad_por_caja_retornable","cantidad_por_caja_expendable"])delete shipping[key];
         for(const key of ['peso_por_pieza','peso_caja_retornable','peso_caja_expendable'])shipping[key]=shipping[key]===''?null:shipping[key];
-        data={...(edit.category==='PACKAGING'?{packing_type:edit.packing_type||null,packing_weight:edit.packing_weight===''?null:quantity(edit.packing_weight,true),packing_weight_unit:edit.packing_weight_unit||'kg',packing_measures:edit.packing_measures||null}:{}),id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,part_name:edit.nombre,supplier_id:edit.supplier_id||null,lead_time_days:edit.lead_time_days===''?null:Number(edit.lead_time_days),material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.category==='FG'?'shipping':'receiving',default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
+        data={...(edit.category==='PACKAGING'?{packing_type:edit.packing_type||null,packing_weight:edit.packing_weight===''?null:quantity(edit.packing_weight,true),packing_weight_unit:edit.packing_weight_unit||'kg',packing_measures:edit.packing_measures||null}:{}),id:edit.inventory_id,producto_id:edit.producto_id || (edit.category==='FG' && !isNew?edit.id:undefined),part_number:edit.part_number,description:edit.descripcion||edit.nombre,part_name:edit.nombre,supplier_id:edit.supplier_id||null,lead_time_days:edit.lead_time_days===''?null:Number(edit.lead_time_days),material_type:edit.material_type,uom:edit.uom,minimum_quantity:quantity(edit.minimum_quantity,true),responsible_department:edit.category==='FG'?'shipping':edit.category==='SEMI'?'production':'receiving',default_location:edit.default_location,active:edit.activo,locations:edit.locations||[],shipping};
       } else if(kind==='material')data={...edit,id:undefined};
       data={...data,is_new:isNew,...(tab==='productos'&&edit.category==='FG'&&edit.copyRecipe?{copy_recipe_from_part:edit.sourcePart}:{})};
       await unwrap(supabase.rpc('shared_catalog',{p_kind:kind||'item',p_data:data}));
@@ -562,7 +562,7 @@ async function save() {
           <BtnPrimary disabled={!canManage} onClick={()=>production?productionRef.current?.add():openNew()}>➕ {t("add")}</BtnPrimary>
         </div>
         <div className="catalog-filters">
-         {tab==='productos'&&<CatalogSelect label={t('rc_type')} value={typeFilter} onChange={value=>{setTypeFilter(value);setPage(1);}} options={[{value:'',label:t('rc_all')},...['RAW','FG','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))]}/>}
+         {tab==='productos'&&<CatalogSelect label={t('rc_type')} value={typeFilter} onChange={value=>{setTypeFilter(value);setPage(1);}} options={[{value:'',label:t('rc_all')},...['RAW','SEMI','FG','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))]}/>}
          <label className="catalog-checkbox"><input type="checkbox" checked={hideInactive} onChange={e=>{setHideInactive(e.target.checked);setPage(1);}}/>{t('rc_hide_inactive')}</label>
         </div></div>
         {production ? <ProductionCatalog ref={productionRef} key={tab} mode={tab} access={access} filter={filter} hideInactive={hideInactive} externalControls/> : <><div className="table-wrap catalog-table-scroll">

@@ -72,7 +72,7 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
   const locale = i18n.language?.startsWith('ko') ? 'ko-KR' : i18n.language?.startsWith('en') ? 'en-US' : 'es-MX';
   const fmt = value => n(value).toLocaleString('en-US',{ maximumFractionDigits: 3 });
   const sectionLabel = key => t(sections.find(section => section[0] === key)?.[1] || 'inv_overview');
-  const areaLabel = area => t(`inv_area_${area}`);
+  const areaLabel = area => area==='SEMI'?t('rc_SEMI'):t(`inv_area_${area}`);
   const [tab, setTab] = usePageSection(permissionDepartment, 'overview', sections.map(([key])=>key));
   const [items, setItems] = useState([]);
   const [balances, setBalances] = useState([]);
@@ -131,11 +131,11 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
     catch (error) { setMessage(error.message || String(error)); }
     finally { setBusy(false); }
   }
-  const qty = (id, area) => n(balances.find(b => b.item_id === id && b.area === area)?.quantity);
+  const qty = (id, area) => n(balances.find(b => b.item_id === id && b.area === (area==='SEMI'?'WIP':area))?.quantity);
   const stockItems = area => area === 'WIP' ? items.filter(i=>['FG','SEMI'].includes(i.category)) : choose(items, area === 'WIP' ? 'FG' : area === 'PACKAGING' ? 'PACKAGING' : area === 'RAW' ? 'RAW' : area === 'FG' ? 'FG' : null);
   const verifiedAreas = new Set(counts.filter(c => c.status === 'approved').map(c => c.area));
   const warnings = items.filter(i => i.active &&
-    (verifiedAreas.has(i.category) || balances.some(b => b.item_id === i.id && b.area === i.category)) &&
+    (verifiedAreas.has(i.category==='SEMI'?'WIP':i.category) || balances.some(b => b.item_id === i.id && b.area === (i.category==='SEMI'?'WIP':i.category))) &&
     qty(i.id, i.category) <= n(i.minimum_quantity));
   const currentImport = imports.find(i => i.status === 'active');
   const canCatalog = can('inventory', true);
@@ -220,10 +220,10 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
       </section></div>}
 
     {['RAW','WIP','FG','PACKAGING'].includes(tab) && <section className="inv-card">
-      <h2>{sectionLabel(tab)}</h2>{filterBar()}
+      <h2>{sectionLabel(tab)}</h2>{tab==='WIP'&&<p className="inv-muted">{t('inv_semi_hint')}</p>}{filterBar()}
       <p className="inv-muted">{t('inv_negative_hint')}</p>
       <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_part')}</th>{tab==='FG'&&<th>{t('name')}</th>}<th>{t('inv_description')}</th><th>{t('inv_unit')}</th><th>{t('rw_available')}</th><th>{t('rw_quarantine')}</th><th>{t('inv_minimum')}</th><th>{t('inv_location')}</th>{tab==='RAW'&&<th>{t('inv_notes')}</th>}</tr></thead>
-        <tbody>{stockItems(tab).filter(stockMatches).map(i => <tr key={i.id}><td>{i.part_number}</td>{tab==='FG'&&<td>{i.part_name||'—'}</td>}<td>{i.description}</td><td>{i.uom}</td>
+        <tbody>{stockItems(tab).filter(stockMatches).map(i => <tr key={i.id}><td>{i.part_number}</td>{tab==='FG'&&<td>{i.part_name||'—'}</td>}<td>{i.description}{tab==='WIP'&&<small>{t('rc_'+i.category)}</small>}</td><td>{i.uom}</td>
           <td className={qty(i.id,tab)<0 ? 'inv-negative' : qty(i.id,tab)<=n(i.minimum_quantity) ? 'inv-low' : ''}>{fmt(qty(i.id,tab))}</td><td>{fmt(qty(i.id,'HOLD'))}</td>
           <td>{fmt(i.minimum_quantity)}</td><td>{i.default_location || '—'}</td>{tab==='RAW'&&<td>{pendingParts.has(i.part_number)?t(qty(i.id,tab)===0?'inv_ref_missing_count':'inv_ref_balance_pending'):!countedParts.has(i.part_number)&&qty(i.id,tab)===0?t('inv_ref_missing_count'):'—'}</td>}</tr>)}</tbody></table></div>
       {tab==='WIP'&&!stockItems('WIP').length&&<p className="inv-muted">{t('inv_wip_empty')}</p>}

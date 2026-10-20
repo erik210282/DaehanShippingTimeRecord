@@ -1,5 +1,5 @@
 {
-  "dt_product_multi_hint": "Puedes seleccionar varios productos RAW / FG para el mismo material y máquina.",
+  "dt_product_multi_hint": "Puedes seleccionar varios productos de salida para la misma máquina, incluidos los semiproductos (SEMI).",
   "shipping_swipe_table": "Desliza la tabla hacia los lados para ver todas las columnas.",
   "actions": "Acciones",
   "activo": "Activo",
@@ -631,5 +631,7 @@
   "dt_raw_materials": "Materiales RAW",
   "dt_raw_hint": "Selecciona las materias primas que utiliza esta máquina por número de parte y nombre. Esta lista controla los materiales disponibles en Cargar / recargar material. Puedes agregar o quitar varios materiales.",
   "dt_raw_none": "Sin materiales RAW asignados",
-  "dt_raw_invalid": "Selecciona materiales RAW válidos sin repetir."
+  "dt_raw_invalid": "Selecciona materiales RAW válidos sin repetir.",
+  "rc_SEMI": "Semiproducto (SEMI)",
+  "inv_semi_hint": "Los semiproductos (SEMI) generados en procesos intermedios se registran en WIP y pueden utilizarse en la siguiente etapa."
 }

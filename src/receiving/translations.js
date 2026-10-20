@@ -1,4 +1,5 @@
 const phrases = {
+ SEMI:['Semiproducto (SEMI)','Semi-finished product (SEMI)','반제품 (SEMI)'],
  additional_operators: ['Operadores Adicionales (Opcional)','Additional Operators (Optional)','추가 작업자 (선택 사항)'],
  operator_busy: ['Pausa La Actividad En Curso Antes De Iniciar Otra.','Pause The Running Activity Before Starting Another.','다른 작업을 시작하기 전에 진행 중인 작업을 일시 중지하세요.'],
  title: ['Receiving', 'Receiving', '입고'],

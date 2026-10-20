@@ -24,4 +24,4 @@ export function expandWorkstationMaterials(materials,items){
   return [{...base,item_id:null,...(base.item_id?{client_part_number:'',client_part_name:''}:{})}];
  });
 }
-export function validWorkstationMaterials(materials,items){const seen=new Set();return materials.every(m=>{const code=String(m.erp_material||'').trim().toUpperCase(),key=JSON.stringify([code,m.item_id||null]);if(!code||!String(m.product||m.operation||'').trim()||seen.has(key))return false;seen.add(key);return !m.item_id||items.some(i=>i.id===m.item_id&&['RAW','FG'].includes(i.category));});}
+export function validWorkstationMaterials(materials,items){const seen=new Set();return materials.every(m=>{const code=String(m.erp_material||'').trim().toUpperCase(),key=JSON.stringify([code,m.item_id||null]);if(!code||!String(m.product||m.operation||'').trim()||seen.has(key))return false;seen.add(key);return !m.item_id||items.some(i=>i.id===m.item_id&&['RAW','FG','SEMI'].includes(i.category));});}

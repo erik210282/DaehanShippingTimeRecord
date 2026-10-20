@@ -18,7 +18,7 @@ export function SharedCatalogFields({kind,edit,setEdit,materials}){
  return <div className="catalog-fields">
  {['code','name',...(kind==='supplier'?addressFields:kind==='location'?['area']:[])].map(key=><CatalogInput key={key} label={t(`rc_${key}`)} aria-label={t(`rc_${key}`)} type={key==='phone'?'tel':'text'} value={kind==='material'&&key==='name'&&edit.builtin?materialLabel(edit,t):edit[key]||''} disabled={kind==='material'&&((key==='code'&&!!edit.id)||(key==='name'&&edit.builtin))} onChange={e=>setEdit({...edit,[key]:e.target.value})}/>)}
  {kind==='location'&&<CatalogSelect label={t('rc_type')} value={edit.material_type} onChange={material_type=>setEdit({...edit,material_type})} options={materials.filter(m=>m.active||m.code===edit.material_type).map(m=>({value:m.code,label:materialLabel(m,t)}))}/>}
- {kind==='material'&&<CatalogSelect disabled={edit.builtin} label={t('rc_stock_category')} value={edit.category} onChange={category=>setEdit({...edit,category})} options={['RAW','FG','PACKAGING','HOLD'].map(value=>({value,label:t(`rc_${value}`)}))}/>}
+ {kind==='material'&&<CatalogSelect disabled={edit.builtin} label={t('rc_stock_category')} value={edit.category} onChange={category=>setEdit({...edit,category})} options={['RAW','SEMI','FG','PACKAGING','HOLD'].map(value=>({value,label:t(`rc_${value}`)}))}/>}
  <label className="catalog-checkbox"><input type="checkbox" checked={edit.active} onChange={e=>setEdit({...edit,active:e.target.checked})}/>{t('rc_active')}</label>
  </div>;
 }

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {spawn} from 'node:child_process';
 import {chromium} from 'playwright';
 import {groupWorkstationMaterials,expandWorkstationMaterials,validWorkstationMaterials} from '../src/production/workstationMaterials.mjs';
-const items=[{id:'fg1',part_number:'PN-001',part_name:'Headliner left',category:'FG',active:true},{id:'fg2',part_number:'PN-002',part_name:'Headliner right',category:'FG',active:true},{id:'raw',part_number:'RAW-001',part_name:'Foam',category:'RAW',active:true}];
+const items=[{id:'fg1',part_number:'PN-001',part_name:'Headliner left',category:'FG',active:true},{id:'fg2',part_number:'PN-002',part_name:'Headliner right',category:'FG',active:true},{id:'raw',part_number:'RAW-001',part_name:'Foam',category:'RAW',active:true},{id:'semi',part_number:'SEMI-001',part_name:'Formed panel',category:'SEMI',active:true}];
 let station={code:'M-01',name:'WaterJet machine',machine_type:'WaterJet',active:true,materials:[{erp_material:'SAP-1',product:'TUB',item_id:'fg1',client_part_number:'PN-001',client_part_name:'Headliner left'}]};
 const legacy={erp_material:'LEGACY',product:'Imported material',item_id:null,client_part_number:'OLD-PN',client_part_name:'Old name'};
 assert.deepEqual(expandWorkstationMaterials(groupWorkstationMaterials([legacy]),items),[legacy],'Retain imported labels without an item link');
@@ -27,9 +27,10 @@ try{
  const selector=page.getByRole('combobox',{name:'Client product (RAW / FG)',exact:true});
  await selector.click();await page.getByRole('option',{name:'PN-002 - Headliner right (FG)',exact:true}).click();
  await selector.click();await page.getByRole('option',{name:'RAW-001 - Foam (RAW)',exact:true}).click();
+ await selector.click();await page.getByRole('option',{name:'SEMI-001 - Formed panel (SEMI)',exact:true}).click();
  await page.getByRole('button',{name:'Save',exact:true}).click();
  await page.getByRole('dialog').waitFor({state:'hidden'});
- assert.deepEqual(station.materials.map(m=>m.item_id),['fg1','fg2','raw']);
+ assert.deepEqual(station.materials.map(m=>m.item_id),['fg1','fg2','raw','semi']);
  assert.ok(station.materials.every(m=>m.erp_material==='SAP-1'&&m.product==='TUB'&&!('item_ids' in m)),'Preserve existing stored JSON shape');
  assert.ok(validWorkstationMaterials(station.materials,items));
  assert.ok(!validWorkstationMaterials([...station.materials,station.materials[0]],items),'Reject duplicate code/product pairs');
@@ -38,7 +39,7 @@ try{
  await page.locator('.catalog-workstations-table').getByRole('button',{name:'Edit',exact:true}).click();
  await page.getByLabel('Remove PN-002 - Headliner right (FG)',{exact:true}).click();
  await page.getByRole('button',{name:'Save',exact:true}).click();await page.getByRole('dialog').waitFor({state:'hidden'});
- assert.deepEqual(station.materials.map(m=>m.item_id),['fg1','raw'],'Removing one selection preserves the others');
+ assert.deepEqual(station.materials.map(m=>m.item_id),['fg1','raw','semi'],'Removing one selection preserves the others');
  assert.deepEqual(errors,[]);
  console.log('PASS: Workstation multiple product selection, existing association preservation, save/reopen, remove one, RAW/FG compatibility and duplicate protection');
 }finally{await browser?.close();server.kill();for(const f of files)fs.rmSync(f,{force:true});}

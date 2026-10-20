@@ -1,5 +1,5 @@
 {
-  "dt_product_multi_hint": "You can select multiple RAW / FG products for the same material and machine.",
+  "dt_product_multi_hint": "You can select multiple output products for the same machine, including semi-finished products (SEMI).",
   "shipping_swipe_table": "Swipe the table sideways to see all columns.",
   "actions": "Actions",
   "activity": "Activity",
@@ -631,5 +631,7 @@
   "dt_raw_materials": "RAW Materials",
   "dt_raw_hint": "Select the raw materials this machine uses by part number and name. This list controls the options in Load / replenish material. You can add or remove multiple materials.",
   "dt_raw_none": "No RAW materials assigned",
-  "dt_raw_invalid": "Select valid RAW materials without duplicates."
+  "dt_raw_invalid": "Select valid RAW materials without duplicates.",
+  "rc_SEMI": "Semi-finished product (SEMI)",
+  "inv_semi_hint": "Semi-finished products (SEMI) made in intermediate processes are recorded in WIP and can be used in the next stage."
 }

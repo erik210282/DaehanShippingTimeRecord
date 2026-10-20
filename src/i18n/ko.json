@@ -1,5 +1,5 @@
 {
-  "dt_product_multi_hint": "동일한 자재와 설비에 여러 RAW / FG 제품을 선택할 수 있습니다.",
+  "dt_product_multi_hint": "반제품(SEMI)을 포함하여 같은 기계의 여러 생산 제품을 선택할 수 있습니다.",
   "shipping_swipe_table": "모든 열을 보려면 표를 좌우로 밀어 주세요.",
   "actions": "작업",
   "activity": "활동",
@@ -631,5 +631,7 @@
   "dt_raw_materials": "원자재 (RAW)",
   "dt_raw_hint": "이 기계에서 사용하는 원자재를 부품 번호와 이름으로 선택하세요. 이 목록이 자재 적재 / 보충의 선택 항목을 결정합니다. 여러 자재를 추가하거나 제거할 수 있습니다.",
   "dt_raw_none": "배정된 원자재 없음",
-  "dt_raw_invalid": "중복 없이 유효한 원자재를 선택하세요."
+  "dt_raw_invalid": "중복 없이 유효한 원자재를 선택하세요.",
+  "rc_SEMI": "반제품 (SEMI)",
+  "inv_semi_hint": "중간 공정에서 생산된 반제품(SEMI)은 재공품(WIP)으로 기록되며 다음 공정에 사용할 수 있습니다."
 }

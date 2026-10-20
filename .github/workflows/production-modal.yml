@@ -56,6 +56,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - run: node tests/realtime-refresh.test.mjs
       - run: node tests/inventory-count-flow.test.mjs
       - run: npm install --no-save --package-lock=false playwright@1.55.1
       - run: npx playwright install --with-deps chromium
@@ -79,6 +80,7 @@ jobs:
       - run: node tests/inventory-navigation-ui.test.mjs
       - run: node tests/shipping-summary-ui.test.mjs
       - run: node tests/shipping-mobile-layout.test.mjs
+      - run: node tests/catalog-refresh-semi-ui.test.mjs
       - run: node tests/workstation-products-ui.test.mjs
       - run: node tests/workstation-raw-ui.test.mjs
       - run: node tests/workstation-defaults.test.mjs
