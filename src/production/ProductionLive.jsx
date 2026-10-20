@@ -1,3 +1,4 @@
+import {reportRange,matchRun,exportWorkbook,registerReportTools} from './reportTools.mjs';
 import {workstationProductIds} from './workstationDefaults.mjs';
 import {affectedIds,activeFirst,liveEditor,liveSubmission,downtimeEditor,changeProductDowntime} from './liveEditor.mjs';
 import {machineGroups,sessionGroups} from './machineCards.mjs';
@@ -18,7 +19,7 @@ import ErrorPopup from '../components/ErrorPopup';
 import {localStart,localDate,dayRange,liveKpis} from './live.mjs';
 import {registerLive} from './liveTranslations';
 import i18n from '../i18n/i18n';
-registerSupply(i18n);registerLive(i18n);registerMulti(i18n);
+registerReportTools(i18n);registerSupply(i18n);registerLive(i18n);registerMulti(i18n);
 const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return data;};
 const red={background:'#dc3545',color:'#fff',borderColor:'#dc3545'};
 // Custom ReactModal classes omit default content styles; keep the surface opaque.
@@ -59,14 +60,14 @@ export function MachineLineCard({group,items,station,t,format,checkpoints,report
 }
 
 export default function ProductionLive({items,stations,supervisor,reporterName,reporters=[],mode='partial',finishRun,onFinishHandled}){
- const {t}=useTranslation(),[snapshot,setSnapshot]=useState({targets:[],runs:[],checkpoints:[]}),[ready,setReady]=useState(false),[error,setError]=useState(''),[edit,setEdit]=useState(null),[target,setTarget]=useState(null),[confirmation,setConfirmation]=useState(null),[undo,setUndo]=useState(null),[busy,setBusy]=useState(false),[filter,setFilter]=useState(''),[day,setDay]=useState(localDate());
+ const {t}=useTranslation(),[snapshot,setSnapshot]=useState({targets:[],runs:[],checkpoints:[]}),[ready,setReady]=useState(false),[error,setError]=useState(''),[edit,setEdit]=useState(null),[target,setTarget]=useState(null),[confirmation,setConfirmation]=useState(null),[undo,setUndo]=useState(null),[busy,setBusy]=useState(false),[filter,setFilter]=useState(''),[day,setDay]=useState(localDate()),[endDay,setEndDay]=useState(localDate()),[search,setSearch]=useState(''),[status,setStatus]=useState(''),[exporting,setExporting]=useState(false);
  const live=useRef(true),lock=useRef(false),seq=useRef(0);
- const refresh=useCallback(async()=>{const range=dayRange(day);if(!range)throw Error('pl_start_invalid');const n=++seq.current;const s=await unwrap(supabase.rpc('production_live_snapshot_range',range));if(live.current&&n===seq.current){setSnapshot(s);setReady(true);}},[day]);
+ const refresh=useCallback(async()=>{const range=reportRange(day,endDay);if(!range)throw Error('pl_start_invalid');const n=++seq.current;const s=await unwrap(supabase.rpc('production_live_snapshot_range',range));if(live.current&&n===seq.current){setSnapshot(s);setReady(true);}},[day,endDay]);
  useEffect(()=>{live.current=true;setReady(false);refresh().catch(e=>live.current&&setError(t(e.message,{defaultValue:t('pr_load_error')})));const off=subscribeUpdates(supabase,'production-live',['catalog_updates'],()=>refresh().catch(()=>{}));const wake=()=>{if(document.visibilityState==='visible')refresh().catch(()=>{});};document.addEventListener('visibilitychange',wake);return()=>{live.current=false;++seq.current;off();document.removeEventListener('visibilitychange',wake);};},[refresh,t]);
  const format=v=>Number(v||0).toLocaleString('en-US',{maximumFractionDigits:1});
- const runs=activeFirst(snapshot.runs.filter(r=>!filter||r.station_code===filter)),active=runs.filter(r=>!r.closed_at);
+ const runs=activeFirst(snapshot.runs.filter(r=>(!filter||r.station_code===filter)&&matchRun(r,items,search,status))),active=runs.filter(r=>!r.closed_at);
  const reports=snapshot.checkpoints.filter(c=>runs.some(r=>r.id===c.run_id));
- const dashboard=dashboardTable(runs,reports,day);
+ const dashboard=dashboardTable(runs,reports,day,new Date(),endDay);
  const open=(r,action='checkpoint',only=false)=>setEdit(liveEditor(r,action,snapshot.runs,()=>crypto.randomUUID(),only));
  useEffect(()=>{if(ready&&finishRun){open(finishRun,'finish',!!finishRun.finish_only);onFinishHandled?.();}},[ready,finishRun]);
  const reportEdit=c=>setEdit({action:'edit_checkpoint',id:c.id,run_id:c.run_id,quantity:String(c.quantity),recorded_at:c.recorded_at,existing:true});
@@ -80,7 +81,7 @@ export default function ProductionLive({items,stations,supervisor,reporterName,r
  else if(action.startsWith('restore_'))setUndo(null);
 
 
- if(['checkpoint','checkpoint_batch','finish','finish_batch'].includes(action)&&day!==localDate())setDay(localDate());
+ if(['checkpoint','checkpoint_batch','finish','finish_batch'].includes(action)&&day!==localDate()){setDay(localDate());setEndDay(localDate());}
  else await refresh().catch(()=>setError(t('pr_load_error')));
  }catch(e){setError(t(e.message,{defaultValue:t('pr_save_error')}));}finally{lock.current=false;setBusy(false);}}
  function save(e){e.preventDefault();const result=liveSubmission(edit);if(result.error){setError(t(result.error));return;}send(result.action,result.payload);}
@@ -90,7 +91,19 @@ export default function ProductionLive({items,stations,supervisor,reporterName,r
  <header className="live-page-header"><div><p className="live-eyebrow">{t('global_production')}</p><h2>{t(mode==='targets'?'pl_targets':mode==='dashboard'?'pl_dashboard':'pl_partial')}</h2><p className="live-page-description">{t(mode==='targets'?'pl_target_hint':'pl_hint')}</p></div>
  {mode==='targets'?<BtnPrimary disabled={busy} onClick={()=>setTarget({item_id:'',target_8h:'',target_10h:'',warning_percent:'90',critical_percent:'75'})}>＋ {t('add')}</BtnPrimary>:<BtnPrimary disabled={!ready||busy} onClick={()=>open(null)}>＋ {t('pl_new_run')}</BtnPrimary>}</header>
  {undo&&<div className="live-undo" role="status"><span>{t('pl_deleted')}</span><BtnSecondary disabled={busy} onClick={()=>send(undo.action,undo.payload)}>{t('pl_undo')}</BtnSecondary></div>}
- {mode!=='targets'&&<div className="live-filter-bar"><CatalogInput label={t('pl_day')} type="date" value={day} onChange={e=>{if(e.target.value)setDay(e.target.value);}}/><Select label={t('pr_station')} value={filter} onChange={setFilter} options={[{value:'',label:t('pl_all')},...stations.map(s=>({value:s.code,label:s.code+' · '+s.name}))]}/><BtnSecondary onClick={()=>{setDay(localDate());setFilter('');}}>{t('pl_today')}</BtnSecondary></div>}
+ {mode!=='targets'&&<div className="catalog-filters production-filters">
+<CatalogInput label={t('rt_from')} type="date" value={day} max={endDay} onChange={e=>{if(e.target.value)setDay(e.target.value);}}/>
+<CatalogInput label={t('rt_to')} type="date" value={endDay} min={day} onChange={e=>{if(e.target.value)setEndDay(e.target.value);}}/>
+<Select label={t('pr_station')} value={filter} onChange={setFilter} options={[{value:'',label:t('pl_all')},...stations.map(s=>({value:s.code,label:s.code+' · '+s.name}))]}/>
+<CatalogInput label={t('search')} value={search} onChange={e=>setSearch(e.target.value)}/>
+<Select label={t('status')} value={status} onChange={setStatus} options={[{value:'',label:t('pl_all')},{value:'active',label:t('pl_active')},{value:'closed',label:t('pl_closed')}]}/>
+<BtnSecondary onClick={()=>{setDay(localDate());setEndDay(localDate());setFilter('');setSearch('');setStatus('');}}>{t('clear_filters')}</BtnSecondary>
+<BtnPrimary disabled={!ready||exporting} onClick={async()=>{setExporting(true);try{
+const headers=mode==='dashboard'?['pr_date','pr_station','inv_part',...dashboard.columns.map(c=>dashboardColumnLabel(c,t,i18n.language)),'pl_result','pl_efficiency','pl_average_uph','pl_uph_target','pl_working_hours','pl_unplanned_minutes'].map(k=>t(k)):
+['pr_station','inv_part','pr_reporter','pl_last','pl_quantity','pl_expected','pl_attainment'].map(k=>t(k));
+const rows=mode==='dashboard'?dashboard.rows.map(r=>[localDate(r.run.started_at),r.run.station_code,partLabel(items.find(i=>i.id===r.run.item_id)),...r.cells,r.quantity,r.efficiency,r.average,r.target,r.working,r.downtime]):reports.map(c=>{const r=runs.find(r=>r.id===c.run_id);return [r.station_code,partLabel(items.find(i=>i.id===r.item_id)),c.reporter_name||reporterName,c.recorded_at,Number(c.quantity),Number(c.expected_quantity),Number(c.attainment)];});
+await exportWorkbook('Production_'+mode+'_'+day+'_'+endDay,headers,rows);
+}catch(e){setError(t('pr_save_error'));}finally{setExporting(false);}}}>{t('rt_excel')}</BtnPrimary></div>}
  {!ready?<p>{t('loading')}</p>:mode==='targets'?<>
  <div className="table-wrap"><table className="table live-table"><thead><tr>{['inv_part','pl_target8','pl_target10','pl_uph_target','pl_warning','pl_critical','actions'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>{snapshot.targets.map(g=><tr key={g.item_id}><td><strong>{items.find(i=>i.id===g.item_id)?.part_number}</strong><span className="live-target-name"> · {items.find(i=>i.id===g.item_id)?.part_name||items.find(i=>i.id===g.item_id)?.description}</span></td><td>{format(g.target_8h)}</td><td>{format(g.target_10h)}</td><td>{format(uphTarget(g))}{Math.abs(Number(g.target_10h)/9.3-uphTarget(g))>.01&&<span title={t('pl_target_mismatch')}> ⚠</span>}</td><td>{format(g.warning_percent)}%</td><td>{format(g.critical_percent)}%</td><td><div className="live-row-actions"><BtnEditDark onClick={()=>setTarget({...g,existing:true})}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={()=>confirm('delete_target',{item_id:g.item_id})}>{t('delete')}</BtnDanger></div></td></tr>)}</tbody></table></div>{!snapshot.targets.length&&<p className="live-empty">{t('pl_no_targets')}</p>}
  </>:<>
@@ -98,7 +111,7 @@ export default function ProductionLive({items,stations,supervisor,reporterName,r
  <p className="live-legend">{t('pl_performance_hint')}</p>
  {mode!=='dashboard'&&<div className="live-lines">{machineGroups(runs).map(group=><MachineLineCard key={group.key} group={group} items={items} station={stations.find(s=>s.code===group.station_code)} checkpoints={snapshot.checkpoints} reporters={reporters} t={t} format={format} onCapture={open} onClose={closeRun} onEdit={r=>open(r,'edit_run')} onDelete={deleteLatest}/>)}</div>}
  {!runs.length&&<p className="live-empty">{t('pl_no_active')}</p>}
- {mode==='dashboard'?<><div className="live-section-heading"><h3>{t('pl_dashboard_summary')}</h3><span>{day}</span></div><div className="table-wrap"><table className="table live-table"><thead><tr><th>{t('pr_station')}</th><th>{t('inv_part')}</th>{dashboard.columns.map(column=><th key={column.index}>{dashboardColumnLabel(column,t,i18n.language)}</th>)}{['result','efficiency','average_uph','uph_target','working_hours','unplanned_minutes'].map(k=><th key={k}>{t('pl_'+k)}</th>)}</tr></thead><tbody>{dashboard.rows.map(row=><tr key={row.run.id} className={'live-report-row live-'+(row.efficiency<Number(row.run.critical_percent)?'critical':row.efficiency<Number(row.run.warning_percent)?'warning':'on_track')}><td>{row.run.station_code}</td><td>{partLabel(items.find(i=>i.id===row.run.item_id))}</td>{row.cells.map((n,index)=><td key={index} title={row.recordedTimes[index]?.toLocaleString(i18n.language)}>{n===null?'—':format(n)}{!dashboard.columns[index].time&&<small>{row.scheduledTimes[index]?.toLocaleTimeString(i18n.language,{hour:'numeric',minute:'2-digit'})}</small>}</td>)}<td>{format(row.quantity)}</td><td>{format(row.efficiency)}%</td><td>{format(row.average)}</td><td>{format(row.target)}</td><td>{format(row.working)}</td><td>{format(row.downtime)}</td></tr>)}</tbody></table></div></>:<> <div className="live-section-heading"><h3>{t('pl_history')}</h3><span>{day} · {reports.length}</span></div>
+ {mode==='dashboard'?<><div className="live-section-heading"><h3>{t('pl_dashboard_summary')}</h3><span>{day} — {endDay}</span></div><div className="table-wrap"><table className="table live-table"><thead><tr><th>{t('pr_date')}</th><th>{t('pr_station')}</th><th>{t('inv_part')}</th>{dashboard.columns.map(column=><th key={column.index}>{dashboardColumnLabel(column,t,i18n.language)}</th>)}{['result','efficiency','average_uph','uph_target','working_hours','unplanned_minutes'].map(k=><th key={k}>{t('pl_'+k)}</th>)}</tr></thead><tbody>{dashboard.rows.map(row=><tr key={row.run.id} className={'live-report-row live-'+(row.efficiency<Number(row.run.critical_percent)?'critical':row.efficiency<Number(row.run.warning_percent)?'warning':'on_track')}><td>{localDate(row.run.started_at)}</td><td>{row.run.station_code}</td><td>{partLabel(items.find(i=>i.id===row.run.item_id))}</td>{row.cells.map((n,index)=><td key={index} title={row.recordedTimes[index]?.toLocaleString(i18n.language)}>{n===null?'—':format(n)}{!dashboard.columns[index].time&&<small>{row.scheduledTimes[index]?.toLocaleTimeString(i18n.language,{hour:'numeric',minute:'2-digit'})}</small>}</td>)}<td>{format(row.quantity)}</td><td>{format(row.efficiency)}%</td><td>{format(row.average)}</td><td>{format(row.target)}</td><td>{format(row.working)}</td><td>{format(row.downtime)}</td></tr>)}</tbody></table></div></>:<> <div className="live-section-heading"><h3>{t('pl_history')}</h3><span>{day} — {endDay} · {reports.length}</span></div>
  <div className="table-wrap"><table className="table live-table"><thead><tr>{['pr_station','inv_part','pr_reporter','pl_last','pl_quantity','pl_expected','pl_attainment','status','actions'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>{reports.map(c=>{const r=snapshot.runs.find(r=>r.id===c.run_id),performance=liveKpis({...r,attainment:c.attainment,period_at:c.recorded_at}).performance;return <tr key={c.id} className={'live-report-row live-'+performance}><td>{r.station_code}</td><td>{partLabel(items.find(i=>i.id===r.item_id))}</td><td>{c.reporter_name||reporters.find(person=>person.uid===c.created_by)?.nombre||'—'}</td><td>{new Date(c.recorded_at).toLocaleString(i18n.language)}</td><td>{format(c.quantity)}</td><td>{format(c.expected_quantity)}</td><td><strong>{format(c.attainment)}%</strong></td><td><span className={'live-badge live-'+performance}>{t('pl_status_'+performance)}</span></td><td><div className="live-row-actions">{r.can_manage!==false&&<><BtnEditDark onClick={()=>reportEdit(c)}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={()=>confirm('delete_checkpoint',{id:c.id})}>{t('delete')}</BtnDanger></>}</div></td></tr>;})}</tbody></table></div>
 </>}
  {!reports.length&&<p className="live-empty">{t('pl_no_history')}</p>}

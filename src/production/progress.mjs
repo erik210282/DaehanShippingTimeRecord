@@ -55,8 +55,8 @@ export function reportingCuts(run,end,closed=true){
  if(closed&&last>start)cuts.push(last);
  return cuts;
 }
-export function dashboardTable(runs,checkpoints,day,now=new Date()){
- const range=dayRange(day);if(!range||!runs.length)return {columns:[],rows:[]};
+export function dashboardTable(runs,checkpoints,day,now=new Date(),endDay=day){
+ const first=dayRange(day),last=dayRange(endDay),range=first&&last?{p_from:first.p_from,p_to:last.p_to}:null;if(!range||!runs.length)return {columns:[],rows:[]};
  const dayEnd=new Date(range.p_to).getTime();
  const rows=runs.map(run=>{
   const start=new Date(run.started_at).getTime();

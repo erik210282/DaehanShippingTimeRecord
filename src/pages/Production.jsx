@@ -1,3 +1,4 @@
+import {exportWorkbook,registerReportTools} from '../production/reportTools.mjs';
 import {workstationProductIds} from '../production/workstationDefaults.mjs';
 import DailyPrintDialog from '../production/DailyPrintDialog';
 import {codeLabel} from '../production/downtimeCodes.mjs';
@@ -58,7 +59,7 @@ import './Production.css';
 
 import './Catalogos.css';
 
-registerSupply(i18n);registerProduction(i18n);registerCaptureHints(i18n);registerMulti(i18n);
+registerReportTools(i18n);registerSupply(i18n);registerProduction(i18n);registerCaptureHints(i18n);registerMulti(i18n);
 
 const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return data;};
 
@@ -262,9 +263,9 @@ export default function Production({access}) {
 
  },{}));
 
- function exportCsv() {
+ async function exportCsv(excel=false) {
 
-  const csv=Papa.unparse(filtered.map(r=>({
+  const records=filtered.map(r=>({
 
    [t('pr_date')]:r.production_date,[t('inv_station_code')]:r.station_code,[t('name')]:stationFor(r)?.name,
 
@@ -282,8 +283,9 @@ export default function Production({access}) {
 
    [t('pr_turns')]:r.turns??'',[t('status')]:t('pr_'+r.status),[t('inv_notes')]:r.note
 
-  })),{escapeFormulae:true});
+  }));const csv=Papa.unparse(records,{escapeFormulae:true});
 
+  if(excel===true){try{await exportWorkbook('Production_'+tab,Object.keys(records[0]||{[t('pr_date')]:''}),records.map(r=>Object.values(r)));}catch(e){setError(t('pr_save_error'));}return;}
   const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='production.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 
  }
@@ -339,7 +341,7 @@ export default function Production({access}) {
 
     <BtnSecondary onClick={()=>{setFilter('');setStationFilter('');setStatusFilter('');setFrom('');setTo('');}}>{t('clear_filters')}</BtnSecondary>
 
-    <BtnSecondary onClick={exportCsv}>{t('export_csv')}</BtnSecondary>
+    <BtnSecondary onClick={()=>exportCsv()}>{t('export_csv')}</BtnSecondary><BtnPrimary onClick={()=>exportCsv(true)}>{t('rt_excel')}</BtnPrimary>
 
     <BtnPrimary disabled={busy||loading} onClick={()=>{setError('');setEdit({...blank(),group_id:crypto.randomUUID()});}}>➕ {t('pr_new_report')}</BtnPrimary>
 
