@@ -43,7 +43,7 @@ export function progressRate(run,at,quantity){
 export function adjustedTarget(run,at=new Date()){
  return Number(run.shift_target||0)/effectiveShiftHours(run.shift_hours)*runHours(run,at).working;
 }
-// Reporting cadence pauses for lunch; other downtime affects rates, not the clock labels.
+// Reporting cadence pauses for lunch and closed-product intervals; other downtime only affects rates.
 export function reportingCuts(run,end,closed=true){
  const start=new Date(run.started_at).getTime(),last=new Date(end).getTime();
  const lunches=mergeShiftEvents(run.started_at,end,run.downtime_events||[]).filter(d=>d.type==='lunch'||d.type==='inactive').map(d=>[new Date(d.start_at).getTime(),new Date(d.end_at).getTime()]).sort((a,b)=>a[0]-b[0]);
