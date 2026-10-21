@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {fixedShiftEvents,mergeShiftEvents,reportWithAutomaticBreaks} from '../src/production/automaticBreaks.mjs';
+import {downtimeSchedule,normalizeCapture} from '../src/production/capture.mjs';
+import {progressCapture,runHours} from '../src/production/progress.mjs';
+const times=events=>events.map(e=>new Date(e.start_at).toTimeString().slice(0,5));
+assert.deepEqual(times(fixedShiftEvents('2026-10-21T05:00:00','2026-10-21T18:45:00')),['08:00','10:00','12:00','14:30','16:30','18:30']);
+assert.deepEqual(times(fixedShiftEvents('2026-10-21T17:00:00','2026-10-22T03:45:00')),['19:00','21:00','23:00','01:30','03:30']);
+assert.equal(fixedShiftEvents('2026-10-21T06:00:00','2026-10-21T08:00:00').length,0);
+const partial=reportWithAutomaticBreaks({production_date:'2026-10-21',start_time:'06:00',end_time:'08:07',downtime_events:[]});
+assert.equal(partial.downtime_events[0].minutes,7);
+const day=normalizeCapture({production_date:'2026-10-21',start_time:'06:00',end_time:'14:30',downtime_events:[]});
+assert.equal(day.downtime_events.reduce((n,e)=>n+e.minutes,0),60);
+assert.deepEqual(day,normalizeCapture(day));
+const duplicate=mergeShiftEvents('2026-10-21T06:00:00','2026-10-21T09:00:00',[{type:'break',start_at:'2026-10-21T08:00:00',end_at:'2026-10-21T08:15:00'}]);assert.equal(duplicate.length,1);
+const overlap=mergeShiftEvents('2026-10-21T06:00:00','2026-10-21T09:00:00',[{type:'maintenance',start_at:'2026-10-21T07:50:00',end_at:'2026-10-21T08:30:00'}]);assert.equal(overlap.length,3);assert.equal(overlap.reduce((sum,e)=>sum+(new Date(e.end_at)-new Date(e.start_at))/60000,0),40);
+assert.equal(runHours({started_at:'2026-10-21T06:00:00',downtime_events:[]},new Date('2026-10-21T14:30:00')).working,7.5);
+const capture=progressCapture({action:'finish',started_at:new Date('2026-10-21T17:00:00').toISOString(),finish_time:'03:45',ends_next_day:true,downtime_events:[]},new Date('2026-10-22T04:00:00'));assert.equal(capture.error,undefined);assert.equal(capture.events.length,5);assert.equal(capture.events.filter(e=>e.type==='lunch').length,1);
+console.log('PASS fixed day/night/overtime and early start; elapsed clipping, exact working hours, idempotence, duplicate/overlap handling, overnight finish');

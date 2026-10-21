@@ -2,7 +2,7 @@ import {useShippingForceText} from "../shipping/forceFinish";
 import NativeShippingTableHint from "../components/NativeShippingTableHint";
 import {saveShippingFile} from '../nativeShippingBridge';
 import {useLiveVersion} from '../useLiveVersion';
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Modal from "react-modal";
 import Papa from "papaparse";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,7 @@ import { isAfter, isBefore, format } from "date-fns";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { supabase } from "../supabase/client";
-import { fetchShippingCaptures, isShippingVerified, legacyShippingCapture } from "../utils/shippingValidation";
+import { isShippingVerified, legacyShippingCapture } from "../utils/shippingValidation";
 import {
   DSInput,
   DSSelect,
@@ -26,6 +26,7 @@ import {
 
 Modal.setAppElement("#root");
 
+const nextLocalDay = value => {const d=new Date(value+"T00:00:00");d.setDate(d.getDate()+1);return d.toISOString();};
 const roundMinutes = (value) => Math.round(value * 100) / 100;
 const labelLastFour = (value) => String(value || "").match(/\d{4}$/)?.[0] || "—";
 const elapsedMinutes = (start, end) => {
@@ -75,6 +76,11 @@ export default function Registros() {
 
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
 
+  const [totalRows,setTotalRows]=useState(0),[loadingRecords,setLoadingRecords]=useState(true),[recordsError,setRecordsError]=useState(""),[exporting,setExporting]=useState(false);
+  const querySeq=useRef(0),mounted=useRef(true);
+  const [queryKey,setQueryKey]=useState("{}");
+  const filtersKey=JSON.stringify({activities:actividadFiltro.map(x=>x.value),products:productoFiltro.map(x=>x.value),operators:operadorFiltro.map(x=>x.value),search:busquedaTexto.trim(),from:fechaDesde?new Date(fechaDesde+"T00:00:00").toISOString():null,to:fechaHasta?nextLocalDay(fechaHasta):null});
+  useEffect(()=>{const timer=setTimeout(()=>{setQueryKey(filtersKey);setPage(1);},250);return()=>clearTimeout(timer);},[filtersKey]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -150,89 +156,25 @@ const cargarCatalogos = async () => {
   }
 };
 
-const actualizarRegistros = async () => {
-  const PAGE = 1000;
-  let from = 0;
-  let acumulado = [];
-
-  while (true) {
-    const { data: chunk, error } = await supabase
-      .from("actividades_realizadas")
-      .select("*")
-      .order("hora_inicio", { ascending: false }) // puedes usar "createdAt" si prefieres
-      .range(from, from + PAGE - 1);
-
-    if (error) {
-      return;
-    }
-    if (!chunk || chunk.length === 0) break;
-
-    acumulado = acumulado.concat(chunk);
-    if (chunk.length < PAGE) break;
-    from += PAGE;
-  }
-
-  let capturas;
-  try {
-    capturas = await fetchShippingCaptures();
-  } catch (error) {
-    toast.error(error.message || t("shipping_captures_error"));
-    return;
-  }
-
-  const nuevos = (acumulado || []).map((doc) => ({
-    id: doc.id,
-    idx: doc.idx || "",
-    ...doc,
-    shipping_capture: capturas[doc.id] || legacyShippingCapture(doc),
-    operadores: Array.isArray(doc.operadores)
-      ? doc.operadores
-      : typeof doc.operador === "string" && doc.operador.trim()
-      ? [doc.operador]
-      : [],
-    horaInicio: parseFecha(doc.hora_inicio),
-    horaFin: parseFecha(doc.hora_fin),
-    duracion: doc.duracion ?? "",
-  }));
-
-  // orden descendente por horaInicio como ya lo tenías
-  nuevos.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
-  setRegistros(nuevos);
-  setFiltrados(nuevos);
-};
-
-  useEffect(() => {
-  cargarCatalogos();
-  actualizarRegistros(); // carga inicial
-
-  const refreshOperators = () => {
-    if (document.visibilityState === "visible") cargarCatalogos();
-  };
-  window.addEventListener("focus", refreshOperators);
-  document.addEventListener("visibilitychange", refreshOperators);
-
-  const canal = supabase
-    .channel("Registros - onSnapshot Actualizar registros 4")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "actividades_realizadas",
-      },
-      () => {
-        actualizarRegistros(); // recarga en tiempo real
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(canal);
-    window.removeEventListener("focus", refreshOperators);
-    document.removeEventListener("visibilitychange", refreshOperators);
-  };
-}, [liveVersion]);
-
+const shapeRecords=(result)=>(result.records||[]).map(doc=>({...doc,idx:doc.idx||"",shipping_capture:result.captures?.[doc.id]||legacyShippingCapture(doc),operadores:Array.isArray(doc.operadores)?doc.operadores:[],horaInicio:parseFecha(doc.hora_inicio),horaFin:parseFecha(doc.hora_fin),duracion:doc.duracion??""}));
+const actualizarRegistros=useCallback(async()=>{
+ const seq=++querySeq.current;setLoadingRecords(true);setRecordsError("");
+ try{
+  const {data,error}=await supabase.rpc("shipping_records_page",{p_page:page,p_page_size:pageSize,p_filters:JSON.parse(queryKey)});
+  if(error)throw error;
+  if(!mounted.current||seq!==querySeq.current)return;
+  const rows=shapeRecords(data);setRegistros(rows);setFiltrados(rows);setTotalRows(data.total||0);
+  if(data.page!==page)setPage(data.page);
+ }catch(error){if(mounted.current&&seq===querySeq.current)setRecordsError(error.message||t("shipping_captures_error"));}
+ finally{if(mounted.current&&seq===querySeq.current)setLoadingRecords(false);}
+},[page,pageSize,queryKey,t]);
+useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;++querySeq.current;};},[]);
+useEffect(()=>{actualizarRegistros();},[actualizarRegistros,liveVersion]);
+useEffect(()=>{
+ cargarCatalogos();
+ const wake=()=>{if(document.visibilityState==="visible")cargarCatalogos();};
+ window.addEventListener("focus",wake);return()=>window.removeEventListener("focus",wake);
+},[liveVersion]);
   useEffect(() => {
   if (errorFecha) {
     setErrorFecha(t("invalid_date_range")); // Vuelve a traducir el error al cambiar idioma
@@ -252,76 +194,6 @@ useEffect(() => {
     }
   }
 }, [fechaDesde, fechaHasta, t]);
-
- useEffect(() => {
-  const texto = busquedaTexto.toLowerCase();
-
-  const resultados = registros.filter((r) => {
-    if (!r.horaFin) return false;
-
-    const cumpleActividad =
-      actividadFiltro.length === 0 ||
-      actividadFiltro.some((a) => a.value === r.actividad);
-
-    const cumpleProducto =
-      productoFiltro.length === 0 ||
-      (Array.isArray(r.productos) &&
-        productoFiltro.some((o) => 
-          r.productos.some((p) => mapaProductos[p.producto]?.toLowerCase().includes(o.label.toLowerCase()))
-        ));
-
-    const cumpleOperador =
-      operadorFiltro.length === 0 ||
-      (Array.isArray(r.operadores) &&
-        operadorFiltro.some((o) => r.operadores.includes(o.value)));
-
-    const cumpleTexto =
-      !texto ||
-      mapaActividades[r.actividad]?.toLowerCase().includes(texto) ||
-      r.productos?.some(
-        (p) => mapaProductos[p.producto]?.toLowerCase().includes(texto)
-      ) ||
-      r.operadores?.some(
-        (id) => mapaOperadores[id]?.toLowerCase().includes(texto)
-      ) ||
-      (r.idx && r.idx.toLowerCase().includes(texto)) ||
-      [r.shipping_capture?.trailer, r.shipping_capture?.puerta,
-        r.shipping_capture?.etiqueta_inicio, r.shipping_capture?.etiqueta_fin]
-        .some((valor) => valor?.toLowerCase().includes(texto));
-
-    const fechaInicio =
-      r.horaInicio instanceof Date ? r.horaInicio : new Date(r.horaInicio);
-
-    const limiteDesde = fechaDesde ? new Date(`${fechaDesde}T00:00:00`) : null;
-    const limiteHasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999`) : null;
-    const cumpleDesde = !limiteDesde || fechaInicio >= limiteDesde;
-    const cumpleHasta = !limiteHasta || fechaInicio <= limiteHasta; 
-
-    return (
-      cumpleActividad &&
-      cumpleProducto &&
-      cumpleOperador &&
-      cumpleTexto &&
-      cumpleDesde &&
-      cumpleHasta
-    );
-  });
-
-  resultados.sort((a, b) => new Date(b.horaInicio) - new Date(a.horaInicio));
-
-  setFiltrados(resultados);
-  setErrorBusqueda(texto && resultados.length === 0 ? t("no_results_found") : "");
-  setPage(1);
-}, [
-  actividadFiltro,
-  productoFiltro,
-  operadorFiltro,
-  busquedaTexto,
-  fechaDesde,
-  fechaHasta,
-  registros,
-  t,
-]);
 
  const abrirModal = (registro) => {
   setLineasRegistro([]);
@@ -556,7 +428,15 @@ useEffect(() => {
 };
 
   const exportarCSV = async () => {
-  const datosCSV = filtrados.flatMap((d) => {
+  if(exporting)return;setExporting(true);
+  try{
+  const all=[];
+  for(let number=1;;number++){
+   const {data,error}=await supabase.rpc("shipping_records_page",{p_page:number,p_page_size:1000,p_filters:JSON.parse(queryKey)});
+   if(error)throw error;all.push(...shapeRecords(data));
+   if(all.length>=data.total||!data.records.length)break;
+  }
+  const datosCSV = all.flatMap((d) => {
     const inicio = new Date(d.horaInicio);
     const fin = new Date(d.horaFin);
 
@@ -592,22 +472,22 @@ useEffect(() => {
   try { await saveShippingFile(blob, "registros.csv"); } catch(error) { toast.error(error.message); return; }
 
   toast.success(t("export_success") || "CSV exportado correctamente");
+  }catch(error){toast.error(error.message||t("shipping_captures_error"));}finally{setExporting(false);}
 };
 
   // ==========================
   // Paginado: cálculo de filas
   // ==========================
-  const totalRows = filtrados.length;
   const totalPages = Math.max(1, Math.ceil((totalRows || 0) / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const filasPagina = filtrados.slice(startIndex, endIndex);
+  const filasPagina = filtrados;
 
   return (
     <div className="page-container page-container--fluid shipping-page shipping-records">
       <div className="card">
-      <h2>{t("records")}</h2>
+      <h2>{t("records")}</h2>{loadingRecords&&<p role="status">{t("loading")}</p>}{recordsError&&<p role="alert">{recordsError}</p>}
 
       <div>
           <div className="shipping-filters" style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
@@ -625,12 +505,12 @@ useEffect(() => {
           </div>
 
           <div className="shipping-filter-actions" style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <BtnSecondary onClick={() => {
+            <BtnSecondary data-record-action="clear" onClick={() => {
               setActividadFiltro([]); setProductoFiltro([]); setOperadorFiltro([]);
               setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
             }}>{t("clear_filters")}</BtnSecondary>
-            <BtnSecondary onClick={exportarCSV}>{t("export_csv")}</BtnSecondary>
-            <BtnPrimary  onClick={() => abrirModal()}>
+            <BtnSecondary data-record-action="export" disabled={exporting||loadingRecords} onClick={exportarCSV}>{t("export_csv")}</BtnSecondary>
+            <BtnPrimary data-record-action="new" onClick={() => abrirModal()}>
               ➕ {t("add_record")}
             </BtnPrimary>        
           </div>  

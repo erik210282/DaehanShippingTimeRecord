@@ -94,3 +94,10 @@
 .global-inactive-filter {display:inline-flex;align-items:center;gap:9px;min-height:42px;padding:8px 14px;border:1px solid #dce3ec;border-radius:10px;background:#fff;color:#334155;font-size:14px;font-weight:600;cursor:pointer;box-sizing:border-box;}
 .global-inactive-filter input {width:17px;height:17px;margin:0;accent-color:#2563eb;flex-shrink:0;}
 .global-inactive-filter:focus-within {outline:2px solid #2563eb;outline-offset:2px;}
+
+/* Action controls follow the shared Shipping palette. Navigation cards keep their layout. */
+.global-panel button:not(.global-user-row),.global-settings-action,.global-announcement-message button,.global-announcement-editor button,.global-announcement-admin-row button,.global-announcement-notice button{min-height:44px;padding:10px 14px;border:1px solid #15803d;border-radius:10px;background:#15803d;color:#fff;font-size:14px;font-family:inherit;font-weight:600;line-height:20px}
+.global-panel .global-action-secondary{background:#fff;color:#166534;border-color:#15803d}
+.global-panel .global-action-secondary:hover:not(:disabled){background:#f0fdf4}
+.global-panel .global-action-danger{background:#dc2626;color:#fff;border-color:#dc2626}
+.global-panel .global-action-danger:hover:not(:disabled){background:#b91c1c}

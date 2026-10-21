@@ -730,3 +730,16 @@ button {
 
 .module-surface input:not([type="checkbox"]):not([type="hidden"]),.module-surface select {background:#333;color:#fff;border-color:#333;box-sizing:border-box;}
 .module-surface input[type="date"] {color-scheme:dark;}
+
+/* Shared Shipping palette across every department. */
+button[data-button-tone]{font-family:inherit!important;font-size:14px!important;font-weight:600!important;line-height:20px!important;min-height:40px;border-radius:10px!important;padding:9px 14px!important}
+button[data-button-tone="primary"],button[data-button-tone="edit"]{background:#15803d!important;border:1px solid #15803d!important;color:#fff!important;box-shadow:none!important}
+button[data-button-tone="secondary"]{background:#fff!important;border:1px solid #15803d!important;color:#166534!important;box-shadow:none!important}
+button[data-button-tone="danger"]{background:#dc2626!important;border:1px solid #dc2626!important;color:#fff!important;box-shadow:none!important}
+button[data-button-tone]:disabled{opacity:.55;cursor:not-allowed}
+.compact-leader .shipping-filters,.compact-leader .records-filters{display:none!important}
+
+.compact-leader .shipping-records .shipping-filters~div:has([data-record-action="new"]){display:flex!important}
+.compact-leader .shipping-records [data-record-action="clear"],.compact-leader .shipping-records [data-record-action="export"]{display:none!important}
+
+body.native-shipping.compact-leader .shipping-filters{display:none!important}

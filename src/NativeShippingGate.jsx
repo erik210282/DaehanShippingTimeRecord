@@ -14,6 +14,7 @@ export default function NativeShippingGate({children}) {
     const requestSession=()=>postShippingMessage({type:'shipping:ready'});
     const retry=setInterval(requestSession,750);
     document.body.classList.add('native-shipping');
+    if(new URLSearchParams(window.location.search).get('compactLeader')==='1')document.body.classList.add('compact-leader');
     supabase.auth.stopAutoRefresh();
     const receive=event=>{
       const data=event.detail;
@@ -44,7 +45,7 @@ export default function NativeShippingGate({children}) {
     };
     window.addEventListener('daehan-native',receive);
     requestSession();
-    return()=>{active=false;clearInterval(retry);window.removeEventListener('daehan-native',receive);document.body.classList.remove('native-shipping');};
+    return()=>{active=false;clearInterval(retry);window.removeEventListener('daehan-native',receive);document.body.classList.remove('native-shipping','compact-leader');};
   },[]);
   if(!nativeShipping)return children;
   if(!ready)return <div role={error?'alert':'status'} style={{padding:24}}>{error||t('loading')}</div>;

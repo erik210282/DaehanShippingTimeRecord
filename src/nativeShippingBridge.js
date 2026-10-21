@@ -3,7 +3,10 @@
 export const nativeShipping = typeof window !== 'undefined' &&
   new URLSearchParams(window.location.search).get('nativeShipping') === '1';
 export function postShippingMessage(message) {
-  if (nativeShipping) window.ReactNativeWebView?.postMessage(JSON.stringify(message));
+  if (nativeShipping) {
+    if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify(message));
+    else if(embeddedParentOrigin())window.parent.postMessage(message,embeddedParentOrigin());
+  }
 }
 export async function saveShippingFile(blob, filename) {
   if (!nativeShipping) {
@@ -33,3 +36,16 @@ export async function saveShippingFile(blob, filename) {
     postShippingMessage({ type: 'shipping:file', id, filename, mime: blob.type.split(';')[0], base64 });
   });
 }
+
+export function embeddedParentOrigin(){
+ if(typeof window==='undefined'||window.parent===window)return null;
+ try{const value=new URLSearchParams(window.location.search).get('parentOrigin'),u=new URL(value);
+ const trusted=u.origin===window.location.origin||['localhost','127.0.0.1','[::1]'].includes(u.hostname)||u.protocol==='https:'&&(/\.(expo\.app|exp\.direct)$/.test(u.hostname));
+ return trusted&&u.origin===value?u.origin:null;}catch{return null;}
+}
+if(typeof window!=='undefined')window.addEventListener('message',event=>{
+ const origin=embeddedParentOrigin();
+ if(!origin||event.origin!==origin||event.source!==window.parent)return;
+ const data=event.data;if(!['shipping:session','shipping:language','shipping:file-result'].includes(data?.type))return;
+ window.dispatchEvent(new CustomEvent('daehan-native',{detail:data}));
+});

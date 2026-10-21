@@ -21,7 +21,7 @@ export function liveSubmission(edit,now=new Date()){
   if(!/^\d{1,12}$/.test(row.quantity??''))return {error:'pl_quantity_invalid'};
   const merged={...edit,...row,products:undefined,started_at:edit.started_at||start,downtime_events:row.downtime_events??edit.downtime_events??[]};
   const capture=progressCapture(merged,now);if(capture.error)return capture;
-  products.push({...merged,started_at:start,downtime_events:capture.events,...(edit.action==='finish'?{finished_at:capture.end,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone}:{} )});
+  products.push({...merged,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,started_at:start,downtime_events:capture.events,...(edit.action==='finish'?{finished_at:capture.end,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone}:{} )});
  }
  return edit.products?.length>1?{action:edit.action==='finish'?'finish_batch':'checkpoint_batch',payload:{products}}:{action:edit.action,payload:products[0]};
 }

@@ -759,7 +759,7 @@ export default function TareasPendientes() {
                         </BtnPrimary>
                       )}
                       {canForce && ["iniciada","pausada"].includes(tarea.estado) && (
-                        <BtnSecondary onClick={()=>{setForceTask(tarea);setForceReason("");}}>{f("force")}</BtnSecondary>
+                        <BtnPrimary onClick={()=>{setForceTask(tarea);setForceReason("");}}>{f("force")}</BtnPrimary>
                       )}
                       {esSupervisor && isLoad(tarea.actividad) && (
                         <BtnSecondary onClick={() => abrirEtiquetas(tarea)}>

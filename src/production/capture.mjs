@@ -1,3 +1,4 @@
+import {reportWithAutomaticBreaks} from './automaticBreaks.mjs';
 
 export function formatTimeInput(value) {
  const digits=String(value??'').replace(/[^0-9]/g,'').slice(0,4);
@@ -9,6 +10,7 @@ export function clockMinutes(value) {
 }
 export const blankTimedDowntime=()=>({type:'',start_time:'',end_time:'',minutes:'',note:''});
 export function downtimeSchedule(report) {
+ report=reportWithAutomaticBreaks(report);
  const events=report.downtime_events||[],shiftStart=clockMinutes(report.start_time),shiftEnd=clockMinutes(report.end_time);
  if(shiftStart===null||shiftEnd===null)return {events,error:'pr_time_invalid'};
  const finish=shiftEnd+(report.ends_next_day?1440:0);
