@@ -1,0 +1,75 @@
+begin;
+create temp table force_test_results(name text);
+do $test$
+declare
+ leader uuid; supervisor uuid; operator_uid uuid; operator_id uuid; act uuid; prod uuid;
+ task uuid:=gen_random_uuid(); rec uuid:=gen_random_uuid(); line uuid:=gen_random_uuid();
+ idx text:='QA-FORCE-'||gen_random_uuid()::text; products jsonb; record jsonb; capture jsonb;
+ denied boolean;
+begin
+ select o.uid into leader from public.operadores o join public.global_department_memberships m on m.user_id=o.uid where o.activo and m.active and m.department='shipping' and m.role='lider' limit 1;
+ select o.uid into supervisor from public.operadores o join public.global_department_memberships m on m.user_id=o.uid where o.activo and m.active and m.department='shipping' and m.role='supervisor' limit 1;
+ select o.uid,o.id into operator_uid,operator_id from public.operadores o join public.global_department_memberships m on m.user_id=o.uid where o.activo and m.active and m.department='shipping' and m.role='operador' limit 1;
+ select id into act from public.actividades where lower(nombre)='load' limit 1;
+ select id into prod from public.productos where activo and lower(nombre) not in('delivery','empty','empty crates') limit 1;
+ products:=jsonb_build_array(jsonb_build_object('producto',prod::text,'cantidad',2));
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',supervisor,'role','authenticated')::text,true);
+ insert into public.tareas_pendientes(id,idx,actividad,productos,estado,operadores) values(task,idx,act,products,'iniciada',array[operator_id::text]);
+ insert into public.actividades_realizadas(id,idx,actividad,tarea_id,productos,operadores,estado,hora_inicio,"createdAt")
+ values(rec,idx,act,task,products,jsonb_build_array(operator_id::text),'pausada',now()-interval '1 hour',now());
+ insert into public.shipping_lines(id,idx,idx_line,producto,cantidad_cajas,primera_etiqueta) values(line,idx,'01',prod,2,'6JQAFORCE1001');
+ insert into public.shipping_labels(codigo,line_id,idx,producto) values('6JQAFORCE1001',line,idx,prod),('6JQAFORCE1002',line,idx,prod);
+ insert into public.shipping_activity_labels(actividad_id,line_id,etiqueta_inicio,trailer,puerta) values(rec,line,'6JQAFORCE1001','TRAILER A','DOCK 1');
+ insert into public.pausas_historial(actividad_id,tipo,"timestamp") values(rec::text,'pausa',now()-interval '10 minutes');
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',operator_uid,'role','authenticated')::text,true);
+ denied:=false;
+ begin perform public.shipping_force_finish_task(task,'Operator should fail');exception when others then denied:=true;end;
+ if not denied then raise exception 'FAIL operator authorized';end if;
+ insert into force_test_results values('operator denied');
+ denied:=false;
+ begin update public.actividades_realizadas set estado='finalizada',hora_fin=now() where id=rec;exception when others then denied:=true;end;
+ if not denied then raise exception 'FAIL ordinary invalid finish allowed';end if;
+ denied:=false;
+ begin update public.tareas_pendientes set estado='finalizada' where id=task;exception when others then denied:=true;end;
+ if not denied then raise exception 'FAIL ordinary task finish allowed';end if;
+ insert into force_test_results values('normal activity/task guards still block invalid closure');
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',leader,'role','authenticated')::text,true);
+ perform public.shipping_force_finish_task(task,'Scanner error reviewed by leader');
+ if not exists(select 1 from public.actividades_realizadas where id=rec and estado='finalizada' and force_review_pending and force_closed_at is not null and abs(pausa_total-10)<0.01 and abs(duracion-50)<0.01) then raise exception 'FAIL force close state/time';end if;
+ if not exists(select 1 from public.tareas_pendientes where id=task and estado='finalizada') then raise exception 'FAIL task close';end if;
+ if (select etiqueta_fin from public.shipping_activity_labels where actividad_id=rec) is not null then raise exception 'FAIL fabricated capture';end if;
+ perform public.shipping_force_finish_task(task,'Repeated request does not duplicate');
+ if (select count(*) from public.shipping_supervisor_actions where activity_id=rec and action='force_finish')<>1 then raise exception 'FAIL duplicate';end if;
+ if not exists(select 1 from public.pausas_historial where actividad_id=rec::text and tipo='reanudar') then raise exception 'FAIL open pause after closure';end if;
+ insert into force_test_results values('leader forced paused LOAD, preserved captures, exact pause and idempotent audit');
+ select to_jsonb(a) into record from public.actividades_realizadas a where id=rec;
+ capture:=jsonb_build_object('etiqueta_inicio','1001','etiqueta_fin','1002','trailer','TRAILER A','trailer_fin','TRAILER B','puerta','1','puerta_fin','1');
+ perform public.shipping_supervisor_edit_record(rec,record,capture);
+ if not (select force_review_pending from public.actividades_realizadas where id=rec) then raise exception 'FAIL mismatch validated';end if;
+ insert into force_test_results values('mismatched trailer remains pending');
+ capture:=jsonb_set(capture,'{trailer_fin}','"TRAILER A"');
+ perform public.shipping_supervisor_edit_record(rec,record,capture);
+ if (select force_review_pending from public.actividades_realizadas where id=rec) then raise exception 'FAIL corrected capture not validated';end if;
+ if not exists(select 1 from rls_internal.shipping_forced_closures where activity_id=rec and reviewed_by=leader and reviewed_at is not null) then raise exception 'FAIL missing review audit';end if;
+ insert into force_test_results values('leader corrected labels and trailer: validated with audit');
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',supervisor,'role','authenticated')::text,true);
+ if not public.shipping_can_force_finish() then raise exception 'FAIL supervisor denied';end if;
+ perform set_config('request.jwt.claims','{"role":"anon"}',true);
+ if public.shipping_can_force_finish() then raise exception 'FAIL anon allowed';end if;
+ insert into force_test_results values('supervisor allowed; anonymous denied');
+ perform set_config('qa.force_rec',rec::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',leader,'role','authenticated')::text,true);
+end $test$;
+grant select,insert on force_test_results to authenticated;
+set local role authenticated;
+do $guard$
+declare denied boolean:=false;
+begin
+ begin update public.actividades_realizadas set force_review_pending=true where id=current_setting('qa.force_rec')::uuid;
+ exception when others then denied:=true;end;
+ if not denied then raise exception 'FAIL direct status bypass';end if;
+ insert into force_test_results values('direct client review flag update denied');
+end $guard$;
+reset role;
+select * from force_test_results;
+rollback;
