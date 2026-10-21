@@ -1,3 +1,5 @@
+import {actionTone} from './actionTheme.mjs';
+import './actionTheme.css';
 // src/components/controls.jsx
 import React from "react";
 import Select, { components } from "react-select";
@@ -101,29 +103,16 @@ export const DSSelect = ({
 };
 
 // --------- Botones ----------
-export const BtnPrimary = ({ children, style, ...p }) => (
-  <button {...p} data-button-tone="primary" style={{ ...primaryBtn, ...style }}>
-    {children}
-  </button>
-);
-
-export const BtnSecondary = ({ children, style, ...p }) => (
-  <button {...p} data-button-tone="secondary" style={{ ...secondaryBtn, ...style }}>
-    {children}
-  </button>
-);
-
-export const BtnEditDark = ({ children, style, ...p }) => (
-  <button {...p} data-button-tone="edit" style={{ ...editBtnDark, ...style }}>
-    {children}
-  </button>
-);
-
-export const BtnDanger = ({ children, style, ...p }) => (
-  <button {...p} data-button-tone="danger" style={{ ...dangerBtn, ...style }}>
-    {children}
-  </button>
-);
+function actionText(children){return React.Children.toArray(children).map(c=>typeof c==='string'||typeof c==='number'?String(c):React.isValidElement(c)?actionText(c.props.children):'').join(' ');}
+export function AppAction({children,style,tone='primary',...props}){
+ const {t}=useTranslation(),resolved=actionTone(actionText(children),t,tone,props.className);
+ const base=resolved==='danger'?dangerBtn:resolved==='primary'?primaryBtn:secondaryBtn;
+ return <button {...props} data-button-tone={resolved} style={{...base,...style}}>{children}</button>;
+}
+export const BtnPrimary=props=><AppAction {...props}/>;
+export const BtnSecondary=props=><AppAction {...props} tone="secondary"/>;
+export const BtnEditDark=props=><AppAction {...props} tone="secondary"/>;
+export const BtnDanger=props=><AppAction {...props} tone="danger"/>;
 
 export const BtnTinyRound = ({ children, style, ...p }) => (
   <button {...p} style={{ ...tinyRoundBtn, ...style }}>

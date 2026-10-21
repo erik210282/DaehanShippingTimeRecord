@@ -120,33 +120,11 @@ export const pillInputNumber = {
 };
 export const textAreaStyle = { ...pillInput, resize: "vertical" };
 
-export const primaryBtn = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "none",
-  background: "linear-gradient(180deg,#3b82f6,#1d4ed8)",
-  color: "#fff",
-  cursor: "pointer",
-  boxShadow: "0 4px 10px rgba(6, 26, 136, 0.25)",
-};
-export const secondaryBtn = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "1px solid #111",
-  background: "#111",
-  color: "#fff",
-  cursor: "pointer",
-};
-export const editBtnDark = { ...secondaryBtn };
-
-export const dangerBtn = {
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "1px solid #111",
-  background: "#111",
-  color: "#fd2b1cff",
-  cursor: "pointer",
-};
+const actionBase={padding:'9px 14px',minHeight:40,borderRadius:10,fontSize:14,fontWeight:600,lineHeight:'20px',fontFamily:FIELD_FONT,display:'inline-flex',alignItems:'center',justifyContent:'center',textAlign:'center',gap:6,cursor:'pointer',boxSizing:'border-box',boxShadow:'none'};
+export const primaryBtn={...actionBase,background:'#15803d',border:'1px solid #15803d',color:'#fff'};
+export const secondaryBtn={...actionBase,background:'#111111',border:'1px solid #111111',color:'#fff'};
+export const editBtnDark={...secondaryBtn};
+export const dangerBtn={...actionBase,background:'#dc2626',border:'1px solid #dc2626',color:'#fff'};
 export const tinyRoundBtn = {
   width: 34,
   height: 34,

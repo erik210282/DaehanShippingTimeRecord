@@ -1,3 +1,4 @@
+import {AppAction} from './components/controls';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -41,10 +42,10 @@ export default function SetPassword() {
     <div className="global-heading"><span>DAEHAN APP</span><h1>{t('global_set_password')}</h1></div>
     <section className="global-panel" style={{ maxWidth: 500 }}>
       {error && <p role="alert">{error}</p>}
-      {done ? <><p>{t('global_password_ready')}</p><button className="global-settings-action" onClick={() => navigate('/')}>{t('global_sign_in')}</button></> : ready ? <form onSubmit={save}>
+      {done ? <><p>{t('global_password_ready')}</p><AppAction className="global-settings-action" onClick={() => navigate('/')}>{t('global_sign_in')}</AppAction></> : ready ? <form onSubmit={save}>
         <label>{t('global_new_password')}<input type="password" required minLength={8} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} /></label>
         <label>{t('global_confirm_password')}<input type="password" required minLength={8} autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)} /></label>
-        <button disabled={busy}>{t('global_set_password')}</button>
+        <AppAction disabled={busy}>{t('global_set_password')}</AppAction>
       </form> : !error && <p>{t('loading')}…</p>}
     </section>
   </main>;

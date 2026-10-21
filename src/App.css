@@ -743,3 +743,9 @@ button[data-button-tone]:disabled{opacity:.55;cursor:not-allowed}
 .compact-leader .shipping-records [data-record-action="clear"],.compact-leader .shipping-records [data-record-action="export"]{display:none!important}
 
 body.native-shipping.compact-leader .shipping-filters{display:none!important}
+
+/* Stable action alignment at every role and viewport. */
+.pending-table{min-width:1280px}
+.pending-table .pending-status,.pending-table .pending-actions-heading{text-align:center!important}
+.pending-table .pending-actions{justify-content:center;align-items:center;flex-wrap:wrap;gap:6px}
+.pending-table td{vertical-align:middle}

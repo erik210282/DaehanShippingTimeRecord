@@ -1,3 +1,4 @@
+import {AppAction} from '../components/controls';
 import ShippingPacking from '../components/ShippingPacking';
 import {useShippingPacking,packingError,packingTotal,allocationsFor,resolvePacking} from '../inventory/shippingPacking';
 import {registerShippingPacking} from '../inventory/shippingPackingTranslations';
@@ -238,7 +239,7 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
         <CatalogSelect multi label={t('inv_part')} value={demandParts} onChange={setDemandParts} options={[...new Map(items.filter(i=>['FG','SEMI'].includes(i.category)).map(i=>[i.part_number,{value:i.part_number,label:i.part_number+' · '+(i.part_name||i.description||'')}])).values()]}/><input placeholder={t('inv_filter_part')} value={demandFilter} onChange={e=>setDemandFilter(e.target.value)}/>
         <select value={demandMode} onChange={e=>setDemandMode(e.target.value)}>
           <option value="all">{t('inv_all')}</option><option value="backlog">{t('inv_backlog')}</option><option value="future">{t('inv_future_demand')}</option></select>
-        <button>{t('inv_search')}</button></form>
+        <AppAction>{t('inv_search')}</AppAction></form>
       <p className="inv-muted">{t('inv_max_500')}</p>
       <div className="inv-table-wrap"><table><thead><tr><th>{t('inv_ship_date')}</th><th>{t('inv_po_line')}</th><th>{t('inv_part')}</th><th>{t('inv_destination')}</th><th>{t('inv_quantity')}</th><th>{t('inv_catalog')}</th></tr></thead><tbody>
         {demand.map((r,index) => <tr key={index}><td>{r.ship_date}</td><td>{r.po} / {r.po_line}</td><td>{r.part_number}</td><td>{r.destination}</td><td>{fmt(r.quantity)} {r.uom}</td>
@@ -252,13 +253,13 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
         <input type="date" max={today()} value={dispatchDate} onChange={e=>setDispatchDate(e.target.value)}/></div>
         {!!selectedIdx && <><ShippingPacking model={packing} disabled={busy}/>
           {packing.context?.lines.map(line=><p key={line.id}>{line.product.part_number}: {fmt(packingTotal(resolvePacking(line,allocationsFor(line,packing.draft))))} {t('inv_pieces_deducted')}</p>)}
-          <button disabled={busy||packing.loading||!packing.valid} onClick={()=>act(async()=>{
+          <AppAction disabled={busy||packing.loading||!packing.valid} onClick={()=>act(async()=>{
             try {
               const saved=await packing.save();
               await unwrap(supabase.rpc('shipping_confirm_packing',{p_idx:selectedIdx,p_date:dispatchDate,p_lines:saved.lines.map(line=>({line_id:line.id,saved_at:line.saved_at}))}));
               setSelectedIdx('');
             } catch(error){throw Error(packingError(error,t));}
-          },t('inv_shipment_confirmed'))}>{t('inv_confirm_idx')}</button></>}</>}
+          },t('inv_shipment_confirmed'))}>{t('inv_confirm_idx')}</AppAction></>}</>}
       <h3>{t('inv_confirmed_shipments')}</h3>{dispatches.filter(d=>(!filters.from||d.ship_date>=filters.from)&&(!filters.to||d.ship_date<=filters.to)&&(!filters.parts.length||shippingLines.some(l=>l.idx===d.idx&&filters.parts.includes(items.find(i=>i.part_number===l.productos?.part_number)?.id)))&&[d.idx,d.ship_date,...shippingLines.filter(l=>l.idx===d.idx).map(l=>l.productos?.part_number)].join(' ').toLowerCase().includes(filters.search.toLowerCase())).map(d=><p key={d.idx}>{d.ship_date} · IDX {d.idx} · {t('inv_confirmed_at')} {new Date(d.confirmed_at).toLocaleString(locale)}</p>)}</section>}
 
     {tab === 'quality' && <section className="inv-card"><h2>{t('inv_quality_title')}</h2>
@@ -267,3 +268,4 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
     </div>
   </main></SectionPermission></>;
 }
+

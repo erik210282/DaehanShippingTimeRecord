@@ -1,3 +1,4 @@
+import {AppAction} from './components/controls';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -77,7 +78,7 @@ export function AnnouncementNotice({ onOpen }) {
   const { t } = useTranslation();
   return <div className="global-announcement-notice" role="alertdialog" aria-label={t('global_new_announcement')}>
     <strong>{t('global_new_announcement')}</strong>
-    <button onClick={onOpen}>{t('global_view_announcement')}</button>
+    <AppAction onClick={onOpen}>{t('global_view_announcement')}</AppAction>
   </div>;
 }
 
@@ -128,9 +129,9 @@ export function GlobalAnnouncements({ access, announcements, onContinue, onBack 
       <h2>{translatedAnnouncement(current, 'title', i18n.language)}</h2>
       <p>{translatedAnnouncement(current, 'body', i18n.language)}</p>
       <small>{t('global_progress', { current: announcements.items.length - announcements.pending.length + 1, total: announcements.items.length })}</small>
-      <button disabled={busy} onClick={async () => { setBusy(true); const done = await onContinue(); if (done) onBack(); setBusy(false); }}>{t('global_continue')}</button>
+      <AppAction disabled={busy} onClick={async () => { setBusy(true); const done = await onContinue(); if (done) onBack(); setBusy(false); }}>{t('global_continue')}</AppAction>
     </section> : <>
-      <button className="global-back" onClick={() => navigate('/inicio')}>← {t('global_back')}</button>
+      <AppAction className="global-back" onClick={() => navigate('/inicio')}>← {t('global_back')}</AppAction>
       <section className="global-panel"><h2>{t('global_announcements')}</h2>
         {announcements.items.length ? announcements.items.map(a => <article key={a.id} className="global-announcement-row"><strong>{translatedAnnouncement(a, 'title', i18n.language)}</strong><small>{t(a.audience === 'all' ? 'global_everyone' : 'global_individual')}</small><p>{translatedAnnouncement(a, 'body', i18n.language)}</p></article>) : <p>{t('global_no_announcements')}</p>}
       </section>
@@ -142,20 +143,20 @@ export function GlobalAnnouncements({ access, announcements, onContinue, onBack 
             <label>{t('global_title')}<input required={lang === 'es'} maxLength={140} value={translations[lang].title} onChange={e => setTranslations(v => ({ ...v, [lang]: { ...v[lang], title: e.target.value } }))} /></label>
             <label>{t('global_message')}<textarea required={lang === 'es'} rows={3} value={translations[lang].body} onChange={e => setTranslations(v => ({ ...v, [lang]: { ...v[lang], body: e.target.value } }))} /></label>
           </fieldset>)}
-          <button disabled={busy}>{t('global_publish')}</button>
+          <AppAction disabled={busy}>{t('global_publish')}</AppAction>
         </form>
         <p>{t('global_translation_hint')}</p>
       </section>}
       {access.admin && <section className="global-panel"><h2>{t('global_manage_announcements')}</h2>
         {adminItems.map(item => <div className="global-announcement-admin-row" key={item.id}>
           <span>{translatedAnnouncement(item, 'title', i18n.language)} · {t(item.audience === 'all' ? 'global_everyone' : 'global_individual')}</span>
-          <button disabled={busy} onClick={async () => {
+          <AppAction disabled={busy} onClick={async () => {
             setBusy(true); setStatus('');
             const { error } = await supabase.from('global_announcements').update({ active: !item.active }).eq('id', item.id);
             if (error) setStatus(error.message);
             else { await Promise.all([announcements.load(), loadAdminItems()]); setStatus(t('global_saved')); }
             setBusy(false);
-          }}>{t(item.active ? 'global_disable' : 'global_enable')}</button>
+          }}>{t(item.active ? 'global_disable' : 'global_enable')}</AppAction>
         </div>)}
       </section>}
     </>}

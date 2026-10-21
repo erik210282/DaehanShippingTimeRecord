@@ -1,3 +1,4 @@
+import {AppAction} from './controls';
 import React, { useEffect, useState } from 'react';
 import { supabase } from "../supabase/client";
 import Papa from 'papaparse';
@@ -106,7 +107,7 @@ export default function ExportCSV() {
         />
       </div>
 
-      <button onClick={exportarDatos}>Exportar a CSV</button>
+      <AppAction onClick={exportarDatos}>Exportar a CSV</AppAction>
     </div>
   );
 }

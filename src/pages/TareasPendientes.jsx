@@ -605,7 +605,7 @@ export default function TareasPendientes() {
         <div className="table-wrap shipping-table-scroll">
           <table className="table pending-table">
             <colgroup>
-              {[7, 2, 8, 8, 16, 7, 11, 14, 10, 17].map((width, i) =>
+              {[6, 2, 8, 7, 15, 6, 10, 13, 7, 26].map((width, i) =>
                 <col key={i} style={{ width: `${width}%` }} />)}
             </colgroup>
             <thead>
@@ -618,8 +618,8 @@ export default function TareasPendientes() {
                 <th>{t("amount")}</th>
                 <th>{t("operator")}</th>
                 <th>{t("notes")}</th>
-                <th>{t("status")}</th>
-                <th>{t("actions")}</th>
+                <th className="pending-status">{t("status")}</th>
+                <th className="pending-actions-heading">{t("actions")}</th>
               </tr>
             </thead>
             <tbody key={i18n.language}>
@@ -727,7 +727,7 @@ export default function TareasPendientes() {
                       : "-"}
                   </td>
                   <td>{tarea.notas || "-"}</td>
-                  <td className="pending-nowrap" style={{ fontWeight: "bold" }}>
+                  <td className="pending-nowrap pending-status" style={{ fontWeight: "bold" }}>
                     {(() => {
                       const estadoVisual = obtenerEstadoVisual(tarea.estado);
                       return (
@@ -759,7 +759,7 @@ export default function TareasPendientes() {
                         </BtnPrimary>
                       )}
                       {canForce && ["iniciada","pausada"].includes(tarea.estado) && (
-                        <BtnPrimary onClick={()=>{setForceTask(tarea);setForceReason("");}}>{f("force")}</BtnPrimary>
+                        <BtnSecondary onClick={()=>{setForceTask(tarea);setForceReason("");}}>{f("force")}</BtnSecondary>
                       )}
                       {esSupervisor && isLoad(tarea.actividad) && (
                         <BtnSecondary onClick={() => abrirEtiquetas(tarea)}>

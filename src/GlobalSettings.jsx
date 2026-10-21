@@ -1,3 +1,4 @@
+import {AppAction} from './components/controls';
 import DepartmentNav from './components/DepartmentNav';
 import RoleAccessSettings from './RoleAccessSettings';
 import {usePageSection} from './usePageSection';
@@ -100,7 +101,7 @@ export default function GlobalSettings({ access }) {
   return <main className="global-page">
     <div className="global-heading"><span>DAEHAN APP</span><h1>{t('global_settings')}</h1></div>
     {status && <p role="status">{status}</p>}
-    {link && <div className="global-panel"><strong>{t('global_password_link')}</strong><p>{t('global_link_private')}</p><div className="global-link-output">{link}</div><button className="global-settings-action" onClick={() => navigator.clipboard.writeText(link)}>{t('global_copy_link')}</button></div>}
+    {link && <div className="global-panel"><strong>{t('global_password_link')}</strong><p>{t('global_link_private')}</p><div className="global-link-output">{link}</div><AppAction className="global-settings-action" onClick={() => navigator.clipboard.writeText(link)}>{t('global_copy_link')}</AppAction></div>}
     <div className="global-settings-toolbar"><DepartmentNav label={t('ra_menu')} value={section} onChange={setSection} items={[{key:'users',label:t('global_users')},{key:'access',label:t('global_access')},{key:'create',label:t('global_create_user')},{key:'roles',label:t('ra_roles')}]}/>
     {['users','access'].includes(section)&&<label className="global-inactive-filter"><input type="checkbox" checked={hideInactive} onChange={e=>setHideInactive(e.target.checked)}/><span>{t('ra_hide_inactive')}</span></label>}</div>
     <div className="global-settings-sections">
@@ -119,14 +120,14 @@ export default function GlobalSettings({ access }) {
         <label>{t('global_user')}<select value={selected} onChange={e => selectUser(e.target.value)}><option value="">—</option>{visiblePeople.map(u => <option key={u.uid} value={u.uid}>{u.nombre}</option>)}</select></label>
         {person && <><p>{person.nombre} · {person.email}</p>{Choices({values:draft,onChange:setDraft,userId:selected})}
           <div className="global-access-actions">
-            <button className="global-settings-action" disabled={busy || !person.activo} onClick={() => perform(saveAssignments)}>{t('global_save_access')}</button>
-            {person.activo && <button className="global-settings-action global-action-secondary" disabled={busy} onClick={() => perform(async () => { const result = await invoke({ action: 'link', user_id: selected }); setLink(result.link); })}>{t('global_generate_link')}</button>}
+            <AppAction className="global-settings-action" disabled={busy || !person.activo} onClick={() => perform(saveAssignments)}>{t('global_save_access')}</AppAction>
+            {person.activo && <AppAction className="global-settings-action global-action-secondary" disabled={busy} onClick={() => perform(async () => { const result = await invoke({ action: 'link', user_id: selected }); setLink(result.link); })}>{t('global_generate_link')}</AppAction>}
           </div>
           {access.admin && selected !== access.userId && <section className="global-account-actions" aria-label={t('global_account_actions')}>
             <h3>{t('global_account_actions')}</h3>
             <div className="global-user-actions">
-              <button className="global-settings-action global-action-secondary" disabled={busy} onClick={() => perform(async () => { await invoke({ action: person.activo ? 'deactivate' : 'reactivate', user_id: selected }); await refresh(); })}>{t(person.activo ? 'global_disable_user' : 'global_enable_user')}</button>
-              <button className="global-settings-action global-action-danger" disabled={busy} onClick={() => { if (window.confirm(t('global_confirm_delete'))) perform(async () => { await invoke({ action: 'delete', user_id: selected }); setSelected(''); setDraft({}); await refresh(); }); }}>{t('global_delete_unused')}</button>
+              <AppAction className="global-settings-action global-action-secondary" disabled={busy} onClick={() => perform(async () => { await invoke({ action: person.activo ? 'deactivate' : 'reactivate', user_id: selected }); await refresh(); })}>{t(person.activo ? 'global_disable_user' : 'global_enable_user')}</AppAction>
+              <AppAction className="global-settings-action global-action-danger" disabled={busy} onClick={() => { if (window.confirm(t('global_confirm_delete'))) perform(async () => { await invoke({ action: 'delete', user_id: selected }); setSelected(''); setDraft({}); await refresh(); }); }}>{t('global_delete_unused')}</AppAction>
             </div>
           </section>}
         </>}
@@ -145,7 +146,7 @@ export default function GlobalSettings({ access }) {
           <label>{t('global_name')}<input required minLength={2} maxLength={100} value={name} onChange={e => setName(e.target.value)} /></label>
           <label>{t('email')}<input required type="email" value={email} onChange={e => setEmail(e.target.value)} /></label>
           <strong>{t('global_access')}</strong>{Choices({values:newDraft,onChange:setNewDraft})}
-          <button disabled={busy}>{t('global_create_and_link')}</button>
+          <AppAction disabled={busy}>{t('global_create_and_link')}</AppAction>
         </form>
       </section>}
     </div>

@@ -1,10 +1,11 @@
+import {AppAction} from './controls';
 import React from 'react';
 import {useTranslation} from 'react-i18next';
 import {allocationsFor,resolvePacking,optionLabel,packingError} from '../inventory/shippingPacking';
 export default function ShippingPacking({model,disabled=false}) {
  const {t}=useTranslation();const {context,draft,change,add,remove}=model;
  if(model.loading)return <p role="status">{t('loading')}</p>;
- if(model.error)return <p role="alert">{packingError(model.error,t)} <button type="button" onClick={model.reload}>{t('sp_reload')}</button></p>;
+ if(model.error)return <p role="alert">{packingError(model.error,t)} <AppAction type="button" onClick={model.reload}>{t('sp_reload')}</AppAction></p>;
  if(!context)return null;
  return <section className="inv-card"><h3>{t('sp_title')}</h3><p>{t('sp_help')}</p>
  {!context.lines.length&&<p role="alert">{t('sp_no_lines')}</p>}
@@ -22,11 +23,11 @@ export default function ShippingPacking({model,disabled=false}) {
     {line.options.filter(o=>o.option_id===row.option_id||!allocationsFor(line,draft).some(other=>other.option_id===o.option_id)).map(o=><option key={o.option_id} value={o.option_id}>{optionLabel(o,t)}</option>)}
    </select></label>
    <span>{resolved.pieces_per_box?`${t('rc_'+resolved.packing_type)} | ${resolved.pieces_per_box} ${t('inv_pieces_per_box')} | ${resolved.dimensions||''}`:''}</span>
-   {allocationsFor(line,draft).length>1&&<button type="button" onClick={()=>remove(line,index)}>{t('delete')}</button>}
+   {allocationsFor(line,draft).length>1&&<AppAction type="button" onClick={()=>remove(line,index)}>{t('delete')}</AppAction>}
   </div>;
  })}
  <p>{allocationsFor(line,draft).reduce((sum,row)=>sum+Number(row.boxes||0),0)} / {line.cantidad_cajas} {t('inv_boxes')}</p>
- {line.options.length>allocationsFor(line,draft).length&&<button type="button" onClick={()=>add(line)}>{t('sp_split')}</button>}
+ {line.options.length>allocationsFor(line,draft).length&&<AppAction type="button" onClick={()=>add(line)}>{t('sp_split')}</AppAction>}
  </fieldset>)}
  </section>;
 }
