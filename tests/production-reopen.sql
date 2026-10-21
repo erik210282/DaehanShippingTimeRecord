@@ -26,7 +26,7 @@ begin
  perform public.production_live_action('finish',jsonb_build_object('id',cp,'run_id',run,'quantity',250,'finished_at',a+interval '5 hours','timezone','America/Los_Angeles','downtime_events','[]'::jsonb));
  select * into lr from public.production_live_runs where id=run;
  select * into daily from public.production_station_reports where live_run_id=run;
- if daily.id<>daily_id or daily.machine_quantity<>250 or daily.elapsed_minutes<>240 or daily.downtime_minutes<>0 or lr.latest_quantity<>250 then raise exception 'QA final totals/draft wrong %',to_jsonb(daily);end if;
+ if daily.id<>daily_id or daily.capture_group_id<>cp or daily.machine_quantity<>250 or daily.elapsed_minutes<>240 or daily.downtime_minutes<>0 or lr.latest_quantity<>250 then raise exception 'QA final totals/draft wrong %',to_jsonb(daily);end if;
  if abs((select expected_quantity from public.production_checkpoints where id=cp)-100*daily.machine_minutes/60)>0.001 then raise exception 'QA final target counts closed time';end if;
  if exists(select 1 from jsonb_array_elements(lr.downtime_events) e,jsonb_array_elements(lr.downtime_events) f where e->>'type'='inactive' and f->>'type'<>'inactive' and tstzrange((e->>'start_at')::timestamptz,(e->>'end_at')::timestamptz,'[)') && tstzrange((f->>'start_at')::timestamptz,(f->>'end_at')::timestamptz,'[)')) then raise exception 'QA breaks overlap closed interval';end if;
  bad:=false;
