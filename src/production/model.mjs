@@ -25,7 +25,7 @@ export function automaticPallets(r,bom,profile) {
 export function prepareReport(r,bom,profile) {
  if(!Array.isArray(r.downtime_events))return r;
  const m=reportMetrics(r,profile),breaks=r.downtime_events.filter(d=>['break','lunch'].includes(d.type));
- return {...r,machine_minutes:m.machine,downtime_minutes:m.totalDowntime-m.breaks,break_count:breaks.length,break_minutes:m.breaks,downtime_reason:r.downtime_events.filter(d=>!['break','lunch'].includes(d.type)).map(d=>d.type+(d.note?': '+d.note:'')).join('; '),pallets:automaticPallets(r,bom,profile)};
+ return {...r,machine_minutes:m.machine,downtime_minutes:m.totalDowntime+m.inactive-m.breaks,break_count:breaks.length,break_minutes:m.breaks,downtime_reason:r.downtime_events.filter(d=>!['break','lunch'].includes(d.type)).map(d=>d.type+(d.note?': '+d.note:'')).join('; '),pallets:automaticPallets(r,bom,profile)};
 }
 
 export function reportMetrics(r,profile) {
@@ -36,12 +36,13 @@ export function reportMetrics(r,profile) {
  const automatic=Array.isArray(r.downtime_events);
  const totalDowntime=automatic?r.downtime_events.reduce((sum,d)=>sum+Number(d.minutes),0):Number(r.downtime_minutes||0)+Number(r.break_minutes||0);
  const breaks=automatic?r.downtime_events.filter(d=>['break','lunch'].includes(d.type)).reduce((sum,d)=>sum+Number(d.minutes),0):Number(r.break_minutes||0);
- const worked=elapsed-breaks,machine=automatic?elapsed-totalDowntime:Number(r.machine_minutes||0);
- return {elapsed,good,packed,wip:Math.max(0,good-packed),worked,machine,totalDowntime,breaks,laborHours:worked*Number(r.people||0)/60,idle:automatic?0:worked-(totalDowntime-breaks)-machine};
+ const inactive=automatic?r.downtime_events.filter(d=>d.type==='inactive').reduce((sum,d)=>sum+Number(d.minutes),0):0;
+ const worked=elapsed-breaks-inactive,machine=automatic?elapsed-totalDowntime:Number(r.machine_minutes||0);
+ return {elapsed:elapsed-inactive,wallElapsed:elapsed,inactive,good,packed,wip:Math.max(0,good-packed),worked,machine,totalDowntime:totalDowntime-inactive,breaks,laborHours:worked*Number(r.people||0)/60,idle:automatic?0:worked-(totalDowntime-breaks)-machine};
 }
 export function validateReport(r,{station,bom,profile,forSubmit=true}={}) {
  if(Array.isArray(r.downtime_events)){
-  if(r.downtime_events.length>1000||r.downtime_events.some(d=>!downtimeTypes.includes(d.type)||d.minutes===''||!Number.isFinite(Number(d.minutes))||Number(d.minutes)<=0))return 'pr_downtime_invalid';
+  if(r.downtime_events.length>1000||r.downtime_events.some(d=>!(downtimeTypes.includes(d.type)||d.type==='inactive')||d.minutes===''||!Number.isFinite(Number(d.minutes))||Number(d.minutes)<=0))return 'pr_downtime_invalid';
   r=prepareReport(r,bom,profile);
   if(r.pallets===null)return 'pr_pallet_capacity';
  }

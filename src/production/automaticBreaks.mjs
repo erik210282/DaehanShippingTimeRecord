@@ -10,12 +10,15 @@ export function fixedShiftEvents(startedAt,endedAt){
  }return events;
 }
 export function mergeShiftEvents(start,end,events=[]){
- const fixed=fixedShiftEvents(start,end),result=[...fixed],lo=+new Date(start),hi=+new Date(end);
- for(const event of events){if(event.automatic)continue;const a0=+new Date(event.start_at),b0=+new Date(event.end_at);
+ const lo=+new Date(start),hi=+new Date(end);
+ const inactive=events.filter(e=>e.type==='inactive').flatMap(e=>{const a=Math.max(lo,+new Date(e.start_at)),b=Math.min(hi,+new Date(e.end_at));return b>a?[{...e,automatic:true,planned:true,start_at:new Date(a).toISOString(),end_at:new Date(b).toISOString()}]:[];});
+ const subtract=(spans,masks)=>masks.reduce((all,f)=>{const a=+new Date(f.start_at),b=+new Date(f.end_at);return all.flatMap(([x,y])=>y<=a||x>=b?[[x,y]]:[[x,Math.min(y,a)],[Math.max(x,b),y]].filter(([l,r])=>r>l));},spans);
+ const fixed=fixedShiftEvents(start,end).flatMap(e=>subtract([[+new Date(e.start_at),+new Date(e.end_at)]],inactive).map(([a,b])=>({...e,start_at:new Date(a).toISOString(),end_at:new Date(b).toISOString()}))),result=[...inactive,...fixed];
+ for(const event of events){if(event.automatic||event.type==='inactive')continue;const a0=+new Date(event.start_at),b0=+new Date(event.end_at);
   if(Number.isFinite(a0)&&Number.isFinite(b0)&&(a0<lo||b0>hi||b0<=a0)){result.push(event);continue;}
   let spans=[[Math.max(lo,a0),Math.min(hi,b0)]];
   if(!Number.isFinite(spans[0][0])||!Number.isFinite(spans[0][1])){result.push(event);continue;}
-  for(const f of fixed){const a=+new Date(f.start_at),b=+new Date(f.end_at);spans=spans.flatMap(([x,y])=>y<=a||x>=b?[[x,y]]:[[x,Math.min(y,a)],[Math.max(x,b),y]].filter(([l,r])=>r>l));}
+  for(const f of [...fixed,...inactive]){const a=+new Date(f.start_at),b=+new Date(f.end_at);spans=spans.flatMap(([x,y])=>y<=a||x>=b?[[x,y]]:[[x,Math.min(y,a)],[Math.max(x,b),y]].filter(([l,r])=>r>l));}
   for(const [a,b]of spans)if(b>a)result.push({...event,start_at:new Date(a).toISOString(),end_at:new Date(b).toISOString()});
  }return result.sort((a,b)=>new Date(a.start_at)-new Date(b.start_at));
 }

@@ -27,14 +27,15 @@ export function progressCapture(edit,now=new Date()){
 export function stoppedMinutes(run,from,to,unplannedOnly=false){
  const a=new Date(from).getTime(),b=new Date(to).getTime();
  return mergeShiftEvents(run.started_at,to,run.downtime_events||[]).reduce((sum,d)=>{
-  if(unplannedOnly&&(d.planned===true||['break','lunch'].includes(d.type)))return sum;
+  if(unplannedOnly&&(d.type==='inactive'||d.planned===true||['break','lunch'].includes(d.type)))return sum;
   return sum+Math.max(0,Math.min(b,new Date(d.end_at).getTime())-Math.max(a,new Date(d.start_at).getTime()))/60000;
  },0);
 }
 export function runHours(run,at=new Date()){
  const end=new Date(Math.min(new Date(at).getTime(),run.closed_at?new Date(run.closed_at).getTime():Infinity));
  const elapsed=Math.max(0,(end-new Date(run.started_at))/3600000);
- return {elapsed,working:Math.max(0,elapsed-stoppedMinutes(run,run.started_at,end)/60),downtime:stoppedMinutes(run,run.started_at,end,true)};
+ const inactive=(run.downtime_events||[]).filter(d=>d.type==='inactive').reduce((sum,d)=>sum+Math.max(0,Math.min(+end,+new Date(d.end_at))-Math.max(+new Date(run.started_at),+new Date(d.start_at)))/3600000,0);
+ return {elapsed:Math.max(0,elapsed-inactive),working:Math.max(0,elapsed-stoppedMinutes(run,run.started_at,end)/60),downtime:stoppedMinutes(run,run.started_at,end,true)};
 }
 export function progressRate(run,at,quantity){
  const hours=runHours(run,at).working;return hours>0?Number(quantity||0)/hours:0;
@@ -45,7 +46,7 @@ export function adjustedTarget(run,at=new Date()){
 // Reporting cadence pauses for lunch; other downtime affects rates, not the clock labels.
 export function reportingCuts(run,end,closed=true){
  const start=new Date(run.started_at).getTime(),last=new Date(end).getTime();
- const lunches=mergeShiftEvents(run.started_at,end,run.downtime_events||[]).filter(d=>d.type==='lunch').map(d=>[new Date(d.start_at).getTime(),new Date(d.end_at).getTime()]).sort((a,b)=>a[0]-b[0]);
+ const lunches=mergeShiftEvents(run.started_at,end,run.downtime_events||[]).filter(d=>d.type==='lunch'||d.type==='inactive').map(d=>[new Date(d.start_at).getTime(),new Date(d.end_at).getTime()]).sort((a,b)=>a[0]-b[0]);
  const cuts=[start];let previous=start;
  while(previous<last){
   let next=previous+7200000;
