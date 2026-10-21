@@ -107,7 +107,7 @@ export default function ExportCSV() {
         />
       </div>
 
-      <AppAction onClick={exportarDatos}>Exportar a CSV</AppAction>
+      <AppAction tone="secondary" onClick={exportarDatos}>Exportar a CSV</AppAction>
     </div>
   );
 }

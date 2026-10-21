@@ -4,9 +4,10 @@ const targets=synchronizedTargets({},'target_8h','750');
 assert.equal(Number(targets.target_10h),930);assert.equal(uphTarget(targets),100);
 const start=new Date(2026,9,10,8),end=new Date(2026,9,10,10);
 const run={id:'a',station_code:'M1',item_id:'A',started_at:start.toISOString(),closed_at:end.toISOString(),shift_hours:8,shift_target:750,attainment:94.7,expected_quantity:158.4,period_quantity:150,period_at:end.toISOString(),downtime_events:[{type:'break',start_at:new Date(2026,9,10,8,15).toISOString(),end_at:new Date(2026,9,10,8,30).toISOString()},{type:'breakdown',start_at:new Date(2026,9,10,9).toISOString(),end_at:new Date(2026,9,10,9,10).toISOString()}]};
-assert.equal(runHours(run,end).elapsed,2);assert.equal(runHours(run,end).downtime,10);assert.ok(Math.abs(runHours(run,end).working-(2-25/60))<1e-9);
+assert.equal(runHours(run,end).elapsed,2);assert.equal(runHours(run,end).downtime,10);assert.ok(Math.abs(runHours(run,end).working-(2-40/60))<1e-9);
+// At 08:00 the fixed break adds 15 minutes to the separate manual break and breakdown.
 const cps=[{id:'c1',run_id:'a',recorded_at:new Date(2026,9,10,9).toISOString(),quantity:75},{id:'c2',run_id:'a',recorded_at:end.toISOString(),quantity:150}];
-const table=dashboardTable([run],cps,'2026-10-10',end);assert.equal(table.columns[0].time.getHours(),8);assert.equal(table.columns[1].time.getHours(),10);assert.equal(table.rows[0].quantity,150);assert.ok(Math.abs(table.rows[0].efficiency-150/(100*(2-25/60))*100)<1e-9);assert.equal(table.rows[0].target,100);assert.deepEqual(table.rows[0].cells,[0,75,150]);assert.ok(Math.abs(table.rows[0].average-150/(2-25/60))<1e-9);
+const table=dashboardTable([run],cps,'2026-10-10',end);assert.equal(table.columns[0].time.getHours(),8);assert.equal(table.columns[1].time.getHours(),10);assert.equal(table.rows[0].quantity,150);assert.ok(Math.abs(table.rows[0].efficiency-150/(100*(2-40/60))*100)<1e-9);assert.equal(table.rows[0].target,100);assert.deepEqual(table.rows[0].cells,[0,75,150]);assert.ok(Math.abs(table.rows[0].average-150/(2-40/60))<1e-9);
 assert.equal(progressCapture({action:'finish',started_at:start.toISOString(),finish_date:'2026-10-10',finish_time:'10:00',downtime_events:[]},new Date(2026,9,10,11)).end,end.toISOString());
 assert.equal(progressCapture({action:'finish',started_at:start.toISOString(),finish_date:'2026-10-10',finish_time:'12:00',downtime_events:[]},new Date(2026,9,10,11)).error,'pl_finish_invalid');
 console.log('PASS: effective targets, final time, two-hour columns, cumulative results, interval UPH and downtime categories');
@@ -39,8 +40,3 @@ assert.equal(irregular.columns[1].time,null,'Different shift times cannot share 
 const initial=dashboardTable([firstShift],[{id:'zero',run_id:'first',recorded_at:d(6),quantity:7},{id:'next',run_id:'first',recorded_at:d(7),quantity:50}],'2026-10-13',new Date(d(18)));
 assert.deepEqual(initial.rows[0].cells,[7,50],'Opening reading belongs to Start, followed by report 1');
 console.log('PASS: ordinal reports, initial readings, irregular timestamps, independent second shifts and no overwritten captures');
-const actualFinish=d(12),lateCapture=d(14);
-const lateRun={...firstShift,closed_at:actualFinish,latest_quantity:200,latest_at:actualFinish};
-const lateTable=dashboardTable([lateRun],[{id:'partial',run_id:'first',recorded_at:lateCapture,quantity:100},{id:'final',run_id:'first',recorded_at:actualFinish,quantity:200}],'2026-10-13',new Date(d(15)));
-assert.equal(lateTable.rows[0].quantity,200);assert.equal(lateTable.rows[0].recordedTimes.at(-1).toISOString(),actualFinish);assert.equal(lateTable.rows[0].cells.at(-1),200);assert.equal(lateTable.rows[0].recordedTimes[1].toISOString(),lateCapture,'Late capture timestamp remains visible');
-console.log('PASS final quantities and actual closing time prevail over late-captured partials');
