@@ -18,7 +18,7 @@ export async function fetchShippingCaptures() {
 }
 
 export function isShippingVerified(activity, capture, activityName) {
-  if (!capture || capture.legacy || activity.estado !== "finalizada" ||
+  if (activity.force_review_pending || !capture || (capture.legacy && !activity.force_closed_at) || activity.estado !== "finalizada" ||
       activityName?.toLowerCase().trim() !== "load" ||
       !capture.etiqueta_inicio || !capture.etiqueta_fin ||
       capture.etiqueta_inicio === capture.etiqueta_fin) return false;

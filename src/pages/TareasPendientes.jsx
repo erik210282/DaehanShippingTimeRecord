@@ -1,3 +1,4 @@
+import {useShippingForceText} from "../shipping/forceFinish";
 import NativeShippingTableHint from "../components/NativeShippingTableHint";
 import {useLiveVersion} from '../useLiveVersion';
 import React, { useEffect, useState, useMemo } from "react";
@@ -29,6 +30,21 @@ const EMPTY_CONTAINER_PRODUCTS = new Set(["delivery", "empty crates", "empty"]);
 export default function TareasPendientes() {
  const liveVersion=useLiveVersion('TareasPendientes');
 
+  const f = useShippingForceText();
+  const [canForce,setCanForce]=useState(false);
+  const [forceTask,setForceTask]=useState(null);
+  const [forceReason,setForceReason]=useState("");
+  const [forcing,setForcing]=useState(false);
+  const forceFinish=async()=>{
+    if(forcing||!forceTask)return;
+    if(forceReason.trim().length<5){toast.error(f("required"));return;}
+    setForcing(true);
+    try{
+      const {error}=await supabase.rpc("shipping_force_finish_task",{p_tarea:forceTask.id,p_reason:forceReason.trim()});
+      if(error)throw error;
+      setForceTask(null);toast.success(f("saved"));await fetchTareas();
+    }catch(error){toast.error(error.message);}finally{setForcing(false);}
+  };
   const location = useLocation();
   const [tareas, setTareas] = useState([]);
   const [actividades, setActividades] = useState({});
@@ -168,6 +184,7 @@ export default function TareasPendientes() {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    supabase.rpc("shipping_can_force_finish").then(({data,error})=>setCanForce(!error&&data===true));
     fetchActividades();
     fetchProductos();
     fetchOperadores();
@@ -741,6 +758,9 @@ export default function TareasPendientes() {
                           {t(tarea.estado === "pendiente" ? "start" : "finish")}
                         </BtnPrimary>
                       )}
+                      {canForce && ["iniciada","pausada"].includes(tarea.estado) && (
+                        <BtnSecondary onClick={()=>{setForceTask(tarea);setForceReason("");}}>{f("force")}</BtnSecondary>
+                      )}
                       {esSupervisor && isLoad(tarea.actividad) && (
                         <BtnSecondary onClick={() => abrirEtiquetas(tarea)}>
                           {t("task_label_button")}
@@ -1036,6 +1056,15 @@ export default function TareasPendientes() {
           )}
         </Modal>
 
+        <Modal isOpen={Boolean(forceTask)} onRequestClose={()=>!forcing&&setForceTask(null)} className="modal" overlayClassName="modal-overlay">
+          <h3>{f("force")}: {forceTask?.idx}</h3>
+          <p>{f("notice")}</p>
+          <label>{f("reason")}<TextAreaStyle value={forceReason} onChange={e=>setForceReason(e.target.value)} maxLength={2000} style={{width:"100%"}} /></label>
+          <div className="supervisor-modal-actions">
+            <BtnSecondary disabled={forcing} onClick={()=>setForceTask(null)}>{t("cancel")}</BtnSecondary>
+            <BtnPrimary disabled={forcing} onClick={forceFinish}>{forcing?"…":f("force")}</BtnPrimary>
+          </div>
+        </Modal>
         {tareaAEliminar && (
           <Modal
             isOpen={true}

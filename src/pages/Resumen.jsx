@@ -1,3 +1,4 @@
+import {useShippingForceText} from "../shipping/forceFinish";
 import NativeShippingTableHint from "../components/NativeShippingTableHint";
 import {useLiveVersion} from '../useLiveVersion';
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -13,6 +14,7 @@ const SHIPPING_PHASES = ["stage", "label", "scan", "load"];
 const labelLastFour = (value) => String(value || "").match(/\d{4}$/)?.[0] || "—";
 
 export default function Resumen() {
+ const f=useShippingForceText();
  const liveVersion=useLiveVersion('Resumen');
 
   const { t } = useTranslation();
@@ -156,13 +158,14 @@ export default function Resumen() {
                    act.pausa_total === undefined ? "—" : Math.round(act.pausa_total)}m)</span>
                )}
              </span>
-            {nombreActividad === "load" && captura && (
+            {act.force_review_pending && <strong style={{color:"#b45309"}}>{f("pending")}</strong>}
+            {nombreActividad === "load" && captura && !act.force_review_pending && (
               <div className="summary-capture">
                 <div>{t("shipping_start_label")}: {labelLastFour(captura.etiqueta_inicio)}</div>
                 <div className="summary-capture-end">
                   <span>{t("shipping_end_label")}: {labelLastFour(captura.etiqueta_fin)}</span>
                   <strong style={{ color: verificada ? "#166534" : "#b45309" }}>
-                    {verificada ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
+                    {verificada ? `✓ ${t("shipping_verified")}` : (act.force_review_pending?f("pending"):t("shipping_pending_verification"))}
                   </strong>
                 </div>
               </div>
@@ -201,7 +204,7 @@ export default function Resumen() {
       });
 
       return resultado;
-  }, [result, productosDict, partesDict, operadoresDict, actividadesDict, t]);
+  }, [result, productosDict, partesDict, operadoresDict, actividadesDict, t, f]);
   const totalRows = result.total;
   const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);

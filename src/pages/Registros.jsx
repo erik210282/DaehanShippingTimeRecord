@@ -1,3 +1,4 @@
+import {useShippingForceText} from "../shipping/forceFinish";
 import NativeShippingTableHint from "../components/NativeShippingTableHint";
 import {saveShippingFile} from '../nativeShippingBridge';
 import {useLiveVersion} from '../useLiveVersion';
@@ -40,6 +41,7 @@ const formatRecordDate = (date, language) => {
 };
 
 export default function Registros() {
+ const f=useShippingForceText();
  const liveVersion=useLiveVersion('Registros');
 
   const { t, i18n } = useTranslation();
@@ -578,9 +580,9 @@ useEffect(() => {
       [t("shipping_trailer_end")]: d.shipping_capture?.trailer_fin || "",
       [t("shipping_door_start")]: d.shipping_capture?.puerta || "",
       [t("shipping_door_end")]: d.shipping_capture?.puerta_fin || "",
-      [t("shipping_validation")]: d.shipping_capture
+      [t("shipping_validation")]: d.force_review_pending ? f("pending") : d.shipping_capture
         ? (isShippingVerified(d, d.shipping_capture, mapaActividades[d.actividad])
-          ? t("shipping_verified") : t("shipping_pending_verification"))
+          ? t("shipping_verified") : (d.force_review_pending?f("pending"):t("shipping_pending_verification")))
         : "",
     }));
   });
@@ -710,9 +712,9 @@ useEffect(() => {
                            ? `${captura.trailer} → ${captura.trailer_fin}` : captura.trailer
                              || captura.trailer_fin
                          : "—"}</td>
-                      <td>{captura ? (
+                      <td>{r.force_review_pending ? <strong style={{color:"#b45309"}}>{f("pending")}</strong> : captura ? (
                         <strong style={{ color: validado ? "#166534" : "#b45309" }}>
-                          {validado ? `✓ ${t("shipping_verified")}` : t("shipping_pending_verification")}
+                          {validado ? `✓ ${t("shipping_verified")}` : (r.force_review_pending?f("pending"):t("shipping_pending_verification"))}
                         </strong>
                       ) : "—"}</td>
                        <td title={[r.instrucciones_supervisor, r.comentario_actividad ?? r.notas].filter(Boolean).join(" | ")}>
@@ -832,7 +834,7 @@ useEffect(() => {
           </BtnSecondary>
            {!esNuevo && (
              <div className="records-shipping-editor">
-               <h4>{t("shipping_capture_details")}</h4>
+               <h4>{t("shipping_capture_details")}</h4><p>{f("review")}</p>
                <div className="records-edit-grid">
                  {[
                    ["etiqueta_inicio", "shipping_start_label"],
