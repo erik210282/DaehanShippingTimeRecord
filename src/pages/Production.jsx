@@ -1,3 +1,4 @@
+import '../production/reportLayout.css';
 import {exportWorkbook,registerReportTools} from '../production/reportTools.mjs';
 import {workstationProductIds} from '../production/workstationDefaults.mjs';
 import DailyPrintDialog from '../production/DailyPrintDialog';
@@ -319,13 +320,13 @@ export default function Production({access}) {
  return <>{printReport&&<DailyPrintDialog report={printReport} onClose={()=>setPrintReport(null)}/>}<div className="module-department-nav"><ModuleHeading title={t('global_production')}/><DepartmentNav department="production" value={tab} onChange={setTab} label={t('global_production')} items={[...(manage||roleAccess?.can('production','dashboard')?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'summary',label:t('pr_summary')},{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},{key:'materials',label:t('ps_materials')},...(manage?[{key:'parameters',label:t('pp_capture')}]:[]),{key:'rework',label:t('rw_title')},...(manage?[{key:'shifts',label:t('ps_shifts')}]:[]),...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),...(supervisor?[{key:'parameter-settings',label:t('pp_settings')}]:[])]} /></div>
 
  <ProductionSupplyAlerts enabled={manage&&!edit&&!review} items={data.items} rows={supply.rows}/>
- <main className="page-container page-container--fluid production-page">
+ <main className="page-container page-container--fluid production-page production-report-surface">
 
   <SectionPermission department="production" activity={tab}>{tab==='rework'?<ProductionRework reporterName={access.name} canReview={access.admin||access.memberships.some(m=>m.department==='quality'&&m.role==='supervisor')}/>:['parameters','parameter-settings'].includes(tab)?<ProductionParameters mode={tab} manage={manage} supervisor={supervisor} reporterName={reporterName(access.userId)} items={data.items} stations={data.stations}/>:['materials','shifts'].includes(tab)?<ProductionSupply onCloseShift={r=>{setFinishRun(r);setTab('partial');}} mode={tab} items={data.items} stations={data.stations} manage={manage}/>:['partial','dashboard','targets'].includes(tab)?<ProductionLive finishRun={finishRun} onFinishHandled={()=>setFinishRun(null)} key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
 
-   <div className="catalog-toolbar"><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2>
+   <div className="catalog-toolbar"><header className="live-page-header"><div><p className="live-eyebrow">{t('global_production')}</p><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2></div><BtnPrimary disabled={busy||loading} onClick={()=>{setError('');setEdit({...blank(),group_id:crypto.randomUUID()});}}>➕ {t('pr_new_report')}</BtnPrimary></header>
 
-   <div className="catalog-filters production-filters">
+   <div className="report-filters">
 
     <CatalogInput label={t('pr_from')} type="date" value={from} onChange={ev=>setFrom(ev.target.value)}/>
 
@@ -337,13 +338,13 @@ export default function Production({access}) {
 
     <CatalogInput label={t('search')} value={filter} onChange={ev=>setFilter(ev.target.value)}/>
 
-   </div><div className="catalog-actions production-actions">
+   </div><div className="report-actions">
 
-    <BtnSecondary onClick={()=>{setFilter('');setStationFilter('');setStatusFilter('');setFrom('');setTo('');}}>{t('clear_filters')}</BtnSecondary>
+    <BtnSecondary data-report-action="clear" onClick={()=>{setFilter('');setStationFilter('');setStatusFilter('');setFrom('');setTo('');}}>{t('clear_filters')}</BtnSecondary>
 
-    <BtnSecondary onClick={()=>exportCsv()}>{t('export_csv')}</BtnSecondary><BtnPrimary onClick={()=>exportCsv(true)}>{t('rt_excel')}</BtnPrimary>
+    <BtnSecondary data-report-action="export" onClick={()=>exportCsv(true)}>{t('rt_excel')}</BtnSecondary>
 
-    <BtnPrimary disabled={busy||loading} onClick={()=>{setError('');setEdit({...blank(),group_id:crypto.randomUUID()});}}>➕ {t('pr_new_report')}</BtnPrimary>
+    
 
    </div></div>
 

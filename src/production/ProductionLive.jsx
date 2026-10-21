@@ -1,3 +1,4 @@
+import './reportLayout.css';
 import {reportRange,matchRun,exportWorkbook,registerReportTools} from './reportTools.mjs';
 import {workstationProductIds} from './workstationDefaults.mjs';
 import {affectedIds,activeFirst,liveEditor,liveSubmission,downtimeEditor,changeProductDowntime} from './liveEditor.mjs';
@@ -87,23 +88,24 @@ export default function ProductionLive({items,stations,supervisor,reporterName,r
  function save(e){e.preventDefault();const result=liveSubmission(edit);if(result.error){setError(t(result.error));return;}send(result.action,result.payload);}
  function saveTargets(){if(target.item_ids?.length>1)send('target_batch',{products:target.item_ids.map(item_id=>({...target,item_id}))});else send('target',target);}
  if(mode==='targets'&&!supervisor)return null;
- return <section className="card live-monitor">
+ return <section className="card live-monitor production-report-surface">
  <header className="live-page-header"><div><p className="live-eyebrow">{t('global_production')}</p><h2>{t(mode==='targets'?'pl_targets':mode==='dashboard'?'pl_dashboard':'pl_partial')}</h2><p className="live-page-description">{t(mode==='targets'?'pl_target_hint':'pl_hint')}</p></div>
  {mode==='targets'?<BtnPrimary disabled={busy} onClick={()=>setTarget({item_id:'',target_8h:'',target_10h:'',warning_percent:'90',critical_percent:'75'})}>＋ {t('add')}</BtnPrimary>:<BtnPrimary disabled={!ready||busy} onClick={()=>open(null)}>＋ {t('pl_new_run')}</BtnPrimary>}</header>
  {undo&&<div className="live-undo" role="status"><span>{t('pl_deleted')}</span><BtnSecondary disabled={busy} onClick={()=>send(undo.action,undo.payload)}>{t('pl_undo')}</BtnSecondary></div>}
- {mode!=='targets'&&<div className="catalog-filters production-filters">
+ {mode!=='targets'&&<div className="report-toolbar"><div className="report-filters">
 <CatalogInput label={t('rt_from')} type="date" value={day} max={endDay} onChange={e=>{if(e.target.value)setDay(e.target.value);}}/>
 <CatalogInput label={t('rt_to')} type="date" value={endDay} min={day} onChange={e=>{if(e.target.value)setEndDay(e.target.value);}}/>
 <Select label={t('pr_station')} value={filter} onChange={setFilter} options={[{value:'',label:t('pl_all')},...stations.map(s=>({value:s.code,label:s.code+' · '+s.name}))]}/>
-<CatalogInput label={t('search')} value={search} onChange={e=>setSearch(e.target.value)}/>
+
 <Select label={t('status')} value={status} onChange={setStatus} options={[{value:'',label:t('pl_all')},{value:'active',label:t('pl_active')},{value:'closed',label:t('pl_closed')}]}/>
-<BtnSecondary onClick={()=>{setDay(localDate());setEndDay(localDate());setFilter('');setSearch('');setStatus('');}}>{t('clear_filters')}</BtnSecondary>
-<BtnPrimary disabled={!ready||exporting} onClick={async()=>{setExporting(true);try{
+<CatalogInput label={t('search')} value={search} onChange={e=>setSearch(e.target.value)}/>
+</div><div className="report-actions"><BtnSecondary data-report-action="clear" onClick={()=>{setDay(localDate());setEndDay(localDate());setFilter('');setSearch('');setStatus('');}}>{t('clear_filters')}</BtnSecondary>
+<BtnSecondary data-report-action="export" disabled={!ready||exporting} onClick={async()=>{setExporting(true);try{
 const headers=mode==='dashboard'?['pr_date','pr_station','inv_part',...dashboard.columns.map(c=>dashboardColumnLabel(c,t,i18n.language)),'pl_result','pl_efficiency','pl_average_uph','pl_uph_target','pl_working_hours','pl_unplanned_minutes'].map(k=>t(k)):
 ['pr_station','inv_part','pr_reporter','pl_last','pl_quantity','pl_expected','pl_attainment'].map(k=>t(k));
 const rows=mode==='dashboard'?dashboard.rows.map(r=>[localDate(r.run.started_at),r.run.station_code,partLabel(items.find(i=>i.id===r.run.item_id)),...r.cells,r.quantity,r.efficiency,r.average,r.target,r.working,r.downtime]):reports.map(c=>{const r=runs.find(r=>r.id===c.run_id);return [r.station_code,partLabel(items.find(i=>i.id===r.item_id)),c.reporter_name||reporterName,c.recorded_at,Number(c.quantity),Number(c.expected_quantity),Number(c.attainment)];});
 await exportWorkbook('Production_'+mode+'_'+day+'_'+endDay,headers,rows);
-}catch(e){setError(t('pr_save_error'));}finally{setExporting(false);}}}>{t('rt_excel')}</BtnPrimary></div>}
+}catch(e){setError(t('pr_save_error'));}finally{setExporting(false);}}}>{t('rt_excel')}</BtnSecondary></div></div>}
  {!ready?<p>{t('loading')}</p>:mode==='targets'?<>
  <div className="table-wrap"><table className="table live-table"><thead><tr>{['inv_part','pl_target8','pl_target10','pl_uph_target','pl_warning','pl_critical','actions'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>{snapshot.targets.map(g=><tr key={g.item_id}><td><strong>{items.find(i=>i.id===g.item_id)?.part_number}</strong><span className="live-target-name"> · {items.find(i=>i.id===g.item_id)?.part_name||items.find(i=>i.id===g.item_id)?.description}</span></td><td>{format(g.target_8h)}</td><td>{format(g.target_10h)}</td><td>{format(uphTarget(g))}{Math.abs(Number(g.target_10h)/9.3-uphTarget(g))>.01&&<span title={t('pl_target_mismatch')}> ⚠</span>}</td><td>{format(g.warning_percent)}%</td><td>{format(g.critical_percent)}%</td><td><div className="live-row-actions"><BtnEditDark onClick={()=>setTarget({...g,existing:true})}>{t('edit')}</BtnEditDark><BtnDanger style={red} onClick={()=>confirm('delete_target',{item_id:g.item_id})}>{t('delete')}</BtnDanger></div></td></tr>)}</tbody></table></div>{!snapshot.targets.length&&<p className="live-empty">{t('pl_no_targets')}</p>}
  </>:<>
@@ -116,7 +118,7 @@ await exportWorkbook('Production_'+mode+'_'+day+'_'+endDay,headers,rows);
 </>}
  {!reports.length&&<p className="live-empty">{t('pl_no_history')}</p>}
  </>}
- <Modal className="live-dialog" isOpen={!!edit||!!target||!!confirmation} onRequestClose={()=>{if(!busy){setEdit(null);setTarget(null);setConfirmation(null);}}} style={modal} contentLabel={t(target?'pl_targets':confirmation?'pl_delete_title':edit?.action==='finish'?'pl_close_run':edit?.action==='edit_run'?'pl_edit_run':edit?.action==='edit_checkpoint'?'pl_edit_checkpoint':'pl_partial')}>
+ <Modal portalClassName="production-report-portal" className="live-dialog" isOpen={!!edit||!!target||!!confirmation} onRequestClose={()=>{if(!busy){setEdit(null);setTarget(null);setConfirmation(null);}}} style={modal} contentLabel={t(target?'pl_targets':confirmation?'pl_delete_title':edit?.action==='finish'?'pl_close_run':edit?.action==='edit_run'?'pl_edit_run':edit?.action==='edit_checkpoint'?'pl_edit_checkpoint':'pl_partial')}>
  {edit&&<form onSubmit={save}><header className="live-dialog-header"><h2>{t(edit.action==='finish'?'pl_close_run':edit.action==='edit_run'?'pl_edit_run':edit.action==='edit_checkpoint'?'pl_edit_checkpoint':'pl_partial')}</h2><p>{t(edit.action==='edit_checkpoint'?'pl_edit_time_hint':'pl_hint')}</p></header><fieldset disabled={busy} className="live-dialog-body"><p className="inv-muted">{t('pr_current_reporter')}: {reporterName||'—'}</p>
  {edit.action!=='edit_checkpoint'&&<><h3>{t('pl_section_details')}</h3><div className="live-form-grid">
  <Select disabled={edit.existing&&edit.action!=='edit_run'} label={t('pr_station')} value={edit.station_code} onChange={station_code=>setEdit(current=>{if(current.station_code===station_code)return current;const next={...current,station_code};return current.action==='checkpoint'&&!current.existing?selectLiveProducts(next,workstationProductIds(stations.find(s=>s.code===station_code),items.filter(i=>snapshot.targets.some(g=>g.item_id===i.id)),['FG','SEMI'],(current.products||[{item_id:current.item_id}]).map(p=>p.item_id).filter(Boolean)),()=>crypto.randomUUID()):next;})} options={stations.filter(s=>s.active||s.code===edit.station_code).map(s=>({value:s.code,label:s.code+' · '+s.name}))}/>

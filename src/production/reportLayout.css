@@ -1,0 +1,34 @@
+/* Shared production controls; dimensions and tones match across report pages. */
+.production-report-surface button[data-button-tone],.production-report-portal button[data-button-tone]{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;min-height:40px!important;height:auto;box-sizing:border-box;padding:9px 16px!important;border-radius:6px!important;font-family:inherit;line-height:20px!important;font-size:14px!important;font-weight:600!important;box-shadow:none!important;white-space:nowrap;border:1px solid transparent!important;color:#fff!important;margin:0!important}
+.production-report-surface button[data-button-tone="primary"],.production-report-portal button[data-button-tone="primary"]{background:#28a745!important;border-color:#28a745!important}
+.production-report-surface button[data-button-tone="secondary"],.production-report-surface button[data-button-tone="edit"],.production-report-portal button[data-button-tone="secondary"],.production-report-portal button[data-button-tone="edit"]{background:#111!important;border-color:#111!important}
+.production-report-surface button[data-button-tone="danger"],.production-report-portal button[data-button-tone="danger"],.production-report-surface button[data-report-action="clear"]{background:#dc3545!important;border-color:#dc3545!important}
+.production-report-surface button:disabled,.production-report-portal button:disabled{opacity:.55;cursor:not-allowed}
+.report-toolbar{margin:18px 0 22px}.report-filters{display:grid!important;grid-template-columns:150px 150px minmax(180px,1.1fr) minmax(140px,.85fr) minmax(190px,1.2fr);gap:14px;align-items:end;margin:14px 0}
+.report-filters>.catalog-field{width:auto!important;min-width:0;margin:0!important}
+.report-filters .catalog-field input{width:100%!important;min-height:40px!important;height:40px!important;box-sizing:border-box;margin:0!important;max-width:none!important}
+.report-filters .catalog-field>div{width:100%;min-width:0}
+.report-filters .catalog-field>div>div{min-height:40px;box-sizing:border-box}
+.report-filters .catalog-checkbox{grid-column:auto;align-self:end;min-height:40px!important;margin:0;font-weight:500}
+.report-actions,.report-row-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0}
+.report-row-actions{margin:0;gap:6px}.report-filters-parameters{grid-template-columns:150px 150px minmax(190px,1fr) minmax(200px,1.2fr) minmax(160px,1fr)}
+.production-report-surface .live-page-header{gap:12px;flex-wrap:wrap}
+.production-report-surface .live-page-header>div:first-child{flex:1 1 440px}
+.production-report-surface .table th,.production-report-surface .table td{font-size:13px;line-height:1.5;padding:12px 14px;vertical-align:top}
+.production-report-surface .table th{font-weight:600;white-space:normal}
+.production-report-surface .table td{overflow-wrap:break-word}
+.report-parameter-table,.report-schedule-table{table-layout:fixed;width:100%;border-collapse:collapse}
+.report-parameter-table{min-width:1180px}.report-schedule-table{min-width:1100px}
+.report-parameter-table td,.report-schedule-table td{white-space:normal!important}
+.report-parameter-table .live-row-actions{gap:6px;flex-wrap:wrap}
+
+.report-part-list{display:grid;gap:7px;list-style:none;padding:0;margin:0}.report-part-list li{line-height:1.5;overflow-wrap:anywhere}
+.report-cell-line{display:block;margin-top:4px;color:#64748b;font-size:12px;line-height:1.5}
+.production-report-surface .live-table th:first-child,.production-report-surface .live-table td:first-child{min-width:105px}
+.production-report-surface .live-table td:nth-child(2){min-width:110px}
+.production-report-surface .live-table td:nth-child(3){min-width:180px}
+@media(max-width:1150px){.report-filters,.report-filters-parameters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:750px){.report-filters,.report-filters-parameters{grid-template-columns:repeat(2,minmax(0,1fr))}.report-actions{gap:8px}.production-report-surface .live-page-header>div:first-child{flex-basis:100%}}
+@media(max-width:480px){.report-filters,.report-filters-parameters{grid-template-columns:minmax(0,1fr)}}
+
+.production-report-surface .live-page-header h2{font-size:25px;line-height:1.3;margin:0}
