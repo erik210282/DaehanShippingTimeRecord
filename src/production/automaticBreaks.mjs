@@ -1,4 +1,4 @@
-// Factory clock: early starts share the regular day shift breaks.
+// Factory clock: 05:00 starts share the 06:00 day schedule; night breaks follow the 17:00 schedule.
 export function fixedShiftEvents(startedAt,endedAt){
  const start=new Date(startedAt),end=new Date(endedAt);if(!Number.isFinite(+start)||!Number.isFinite(+end)||end<=start)return [];
  const hour=start.getHours(),night=hour>=15||hour<5,anchor=new Date(start);anchor.setHours(0,0,0,0);if(night&&hour<5)anchor.setDate(anchor.getDate()-1);
