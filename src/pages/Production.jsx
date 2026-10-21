@@ -324,7 +324,7 @@ export default function Production({access}) {
 
   <SectionPermission department="production" activity={tab}>{tab==='rework'?<ProductionRework reporterName={access.name} canReview={access.admin||access.memberships.some(m=>m.department==='quality'&&m.role==='supervisor')}/>:['parameters','parameter-settings'].includes(tab)?<ProductionParameters mode={tab} manage={manage} supervisor={supervisor} reporterName={reporterName(access.userId)} items={data.items} stations={data.stations}/>:['materials','shifts'].includes(tab)?<ProductionSupply onCloseShift={r=>{setFinishRun(r);setTab('partial');}} mode={tab} items={data.items} stations={data.stations} manage={manage}/>:['partial','dashboard','targets'].includes(tab)?<ProductionLive finishRun={finishRun} onFinishHandled={()=>setFinishRun(null)} key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
 
-   <div className="catalog-toolbar"><header className="live-page-header"><div><p className="live-eyebrow">{t('global_production')}</p><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2></div><BtnPrimary disabled={busy||loading} onClick={()=>{setError('');setEdit({...blank(),group_id:crypto.randomUUID()});}}>➕ {t('pr_new_report')}</BtnPrimary></header>
+   <div className="catalog-toolbar"><header className="live-page-header"><div><p className="live-eyebrow">{t('global_production')}</p><h2 className="module-title">{t(tab==='summary'?'pr_summary':'pr_records')}</h2></div></header>
 
    <div className="report-filters">
 
@@ -342,7 +342,7 @@ export default function Production({access}) {
 
     <BtnSecondary data-report-action="clear" onClick={()=>{setFilter('');setStationFilter('');setStatusFilter('');setFrom('');setTo('');}}>{t('clear_filters')}</BtnSecondary>
 
-    <BtnSecondary data-report-action="export" onClick={()=>exportCsv(true)}>{t('rt_excel')}</BtnSecondary>
+    <BtnSecondary data-report-action="export" onClick={()=>exportCsv(true)}>{t('rt_excel')}</BtnSecondary><BtnPrimary disabled={busy||loading} onClick={()=>{setError('');setEdit({...blank(),group_id:crypto.randomUUID()});}}>➕ {t('pr_new_report')}</BtnPrimary>
 
     
 
@@ -375,7 +375,7 @@ export default function Production({access}) {
 
   </section>}</SectionPermission></main>
 
- <Modal className="production-modal" isOpen={!!edit} contentLabel={t('pr_new_report')} onRequestClose={()=>!busy&&setEdit(null)} style={productionModalStyle}>
+ <Modal portalClassName="production-report-portal" className="production-modal" isOpen={!!edit} contentLabel={t('pr_new_report')} onRequestClose={()=>!busy&&setEdit(null)} style={productionModalStyle}>
 
  {edit&&<form ref={form} className="production-form production-dialog" onSubmit={ev=>{ev.preventDefault();action('save',edit);}}>
 
@@ -452,7 +452,7 @@ export default function Production({access}) {
 
    <BtnPrimary disabled={busy||!eBom} type="button" onClick={()=>{if(form.current.reportValidity())action('submit',edit);}}>{t('pr_submit')}</BtnPrimary>
 
-   <BtnDanger style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} type="button" onClick={()=>setEdit(null)}>{t('cancel')}</BtnDanger>
+   <BtnSecondary style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} type="button" onClick={()=>setEdit(null)}>{t('cancel')}</BtnSecondary>
 
   </footer>
 
@@ -460,7 +460,7 @@ export default function Production({access}) {
 
  </Modal>
 
- <Modal className="production-modal" isOpen={!!review} onRequestClose={()=>!busy&&setReview(null)} style={productionModalStyle}>
+ <Modal portalClassName="production-report-portal" className="production-modal" isOpen={!!review} onRequestClose={()=>!busy&&setReview(null)} style={productionModalStyle}>
 
  {review&&<div className="production-form"><h2>{t('pr_details')} · {review.production_date}</h2>
 
@@ -483,7 +483,7 @@ export default function Production({access}) {
    {review.status==='draft'&&<BtnPrimary disabled={busy} onClick={()=>completeReport(review)}>{t('ps_complete_daily')}</BtnPrimary>}
    {review.status==='submitted'&&supervisor&&<><BtnPrimary disabled={busy} onClick={()=>setConfirming(true)}>{t('pr_post_inventory')}</BtnPrimary><BtnSecondary disabled={busy} onClick={()=>action('return',review)}>{t('pr_return_draft')}</BtnSecondary></>}
 
-   <BtnDanger style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} onClick={()=>{setReview(null);setConfirming(false);}}>{t('cancel')}</BtnDanger>
+   <BtnSecondary style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} onClick={()=>{setReview(null);setConfirming(false);}}>{t('cancel')}</BtnSecondary>
 
   </div>
 
@@ -491,9 +491,9 @@ export default function Production({access}) {
 
  </Modal>
 
- <Modal className="production-modal production-confirmation" isOpen={!!review&&confirming} contentLabel={t('pr_confirm_title')} onRequestClose={()=>!busy&&setConfirming(false)} style={{...productionModalStyle,overlay:{...productionModalStyle.overlay,zIndex:12000},content:{...productionModalStyle.content,width:'min(560px,100%)'}}}>
+ <Modal portalClassName="production-report-portal" className="production-modal production-confirmation" isOpen={!!review&&confirming} contentLabel={t('pr_confirm_title')} onRequestClose={()=>!busy&&setConfirming(false)} style={{...productionModalStyle,overlay:{...productionModalStyle.overlay,zIndex:12000},content:{...productionModalStyle.content,width:'min(560px,100%)'}}}>
   <h2>{t('pr_confirm_title')}</h2><p>{t('pr_confirm_post')}</p><p className="inv-message">{t('pr_negative_stock')}</p>
-  <div className="catalog-actions"><BtnPrimary disabled={busy} onClick={()=>action('post',review)}>{t('pr_confirm_inventory')}</BtnPrimary><BtnDanger disabled={busy} onClick={()=>setConfirming(false)}>{t('cancel')}</BtnDanger></div>
+  <div className="catalog-actions"><BtnPrimary disabled={busy} onClick={()=>action('post',review)}>{t('pr_confirm_inventory')}</BtnPrimary><BtnSecondary disabled={busy} onClick={()=>setConfirming(false)}>{t('cancel')}</BtnSecondary></div>
  </Modal>
  <ErrorPopup message={error} onClose={()=>setError('')}/>
 
