@@ -1,3 +1,4 @@
+import {uiTitle} from '../components/actionTheme.mjs';
 import './Catalogos.css';
 import { catalogIdentifier, duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplication';
 import ProductionCatalog from '../components/ProductionCatalog';
@@ -547,22 +548,22 @@ async function save() {
   return (
     <div className="page-container page-container--fluid catalog-page">
       <div className="card">
-        <div className="catalog-toolbar"><h2 className="module-title catalog-current-title">{t("catalogs")} <span>· {sectionLabel}</span></h2>
+        <div className="catalog-toolbar"><h2 className="module-title catalog-current-title">{uiTitle(t("catalogs"))} <span>· {sectionLabel}</span></h2>
         <div className="catalog-actions">
           <DSInput placeholder={t("search")} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ marginTop: 12 }}/>
-          <BtnSecondary onClick={() => setTab("productos")}>{t("products")}</BtnSecondary>
-          {Object.entries(catalogKinds).map(([key,value])=><BtnSecondary key={key} onClick={()=>setTab(key)}>{t(value==='material'?'rc_material_types':value==='supplier'?'rc_suppliers':'rc_locations')}</BtnSecondary>)}
-          <BtnSecondary onClick={() => setTab("pos")}>{t("po")}</BtnSecondary>
-          <BtnSecondary onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
-          <BtnSecondary onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
-          <BtnSecondary onClick={()=>setTab("bom")}>{t("inv_bom")}</BtnSecondary>
-          <BtnSecondary onClick={()=>setTab("stations")}>{t("inv_workstations")}</BtnSecondary>
-          <BtnSecondary onClick={() => {setFilter('');setTypeFilter('');setHideInactive(true);setPage(1);productionRef.current?.clearFilters();}}>{t("clear_filters")}</BtnSecondary>
-          <BtnSecondary onClick={()=>production?productionRef.current?.exportCSV():exportCSV()}>{t("export_csv")}</BtnSecondary>
-          <BtnPrimary disabled={!canManage} onClick={()=>production?productionRef.current?.add():openNew()}>➕ {t("add")}</BtnPrimary>
+          <BtnSecondary intent="neutral" onClick={() => setTab("productos")}>{t("products")}</BtnSecondary>
+          {Object.entries(catalogKinds).map(([key,value])=><BtnSecondary intent="neutral" key={key} onClick={()=>setTab(key)}>{t(value==='material'?'rc_material_types':value==='supplier'?'rc_suppliers':'rc_locations')}</BtnSecondary>)}
+          <BtnSecondary intent="neutral" onClick={() => setTab("pos")}>{t("po")}</BtnSecondary>
+          <BtnSecondary intent="neutral" onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
+          <BtnSecondary intent="neutral" onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
+          <BtnSecondary intent="neutral" onClick={()=>setTab("bom")}>{t("inv_bom")}</BtnSecondary>
+          <BtnSecondary intent="neutral" onClick={()=>setTab("stations")}>{t("inv_workstations")}</BtnSecondary>
+          <BtnSecondary intent="neutral" onClick={() => {setFilter('');setTypeFilter('');setHideInactive(true);setPage(1);productionRef.current?.clearFilters();}}>{t("clear_filters")}</BtnSecondary>
+          <BtnSecondary intent="neutral" onClick={()=>production?productionRef.current?.exportCSV():exportCSV()}>{t("export_csv")}</BtnSecondary>
+          <BtnPrimary intent="create" disabled={!canManage} onClick={()=>production?productionRef.current?.add():openNew()}>➕ {t("add")}</BtnPrimary>
         </div>
         <div className="catalog-filters">
-         {tab==='productos'&&<CatalogSelect label={t('rc_type')} value={typeFilter} onChange={value=>{setTypeFilter(value);setPage(1);}} options={[{value:'',label:t('rc_all')},...['RAW','SEMI','FG','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))]}/>}
+         {tab==='productos'&&<CatalogSelect label={uiTitle(t('rc_type'))} value={typeFilter} onChange={value=>{setTypeFilter(value);setPage(1);}} options={[{value:'',label:t('rc_all')},...['RAW','SEMI','FG','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))]}/>}
          <label className="catalog-checkbox"><input type="checkbox" checked={hideInactive} onChange={e=>{setHideInactive(e.target.checked);setPage(1);}}/>{t('rc_hide_inactive')}</label>
         </div></div>
         {production ? <ProductionCatalog ref={productionRef} key={tab} mode={tab} access={access} filter={filter} hideInactive={hideInactive} externalControls/> : <><div className="table-wrap catalog-table-scroll">
@@ -571,46 +572,46 @@ async function save() {
               <tr>
                 {tab === "productos" && (
                   <>
-                    <th>{t("name")}</th>
-                    <th>{t("part_number")}</th>
-                    <th>{t("description")}</th>
-                    <th>{t('rc_type')}</th>{(!typeFilter||typeFilter==='PACKAGING')&&<><th>{t('rc_packing_weight')}</th><th>{t('rc_packing_measures')}</th></>}<th>{t('inv_min_stock')}</th><th>{t('rc_uom')}</th><th>{t(typeFilter==='PACKAGING'?'rc_preassigned_location':'rc_allowed')}</th>
-                    {typeFilter!=='FG'&&typeFilter!=='PACKAGING'&&<><th>{t('rc_supplier')}</th><th>{t('rc_supplier_location')}</th><th>{t('rc_lead_time')}</th></>}{(!typeFilter||typeFilter==='FG')&&<><th>{t("weight_piece")}</th>
-                    </>}<th>{t("status")}</th>
-                    <th>{t("actions")}</th>
+                    <th>{uiTitle(t("name"))}</th>
+                    <th>{uiTitle(t("part_number"))}</th>
+                    <th>{uiTitle(t("description"))}</th>
+                    <th>{uiTitle(t('rc_type'))}</th>{(!typeFilter||typeFilter==='PACKAGING')&&<><th>{uiTitle(t('rc_packing_weight'))}</th><th>{uiTitle(t('rc_packing_measures'))}</th></>}<th>{uiTitle(t('inv_min_stock'))}</th><th>{uiTitle(t('rc_uom'))}</th><th>{uiTitle(t(typeFilter==='PACKAGING'?'rc_preassigned_location':'rc_allowed'))}</th>
+                    {typeFilter!=='FG'&&typeFilter!=='PACKAGING'&&<><th>{uiTitle(t('rc_supplier'))}</th><th>{uiTitle(t('rc_supplier_location'))}</th><th>{uiTitle(t('rc_lead_time'))}</th></>}{(!typeFilter||typeFilter==='FG')&&<><th>{uiTitle(t("weight_piece"))}</th>
+                    </>}<th>{uiTitle(t("status"))}</th>
+                    <th>{uiTitle(t("actions"))}</th>
                   </>
                 )}
                 {tab === "pos" && (
                   <>
-                    <th>{t("po")}</th>
-                    <th>{t("consignee")}</th>
-                    <th>{t("address")}</th>
-                    <th>{t("city")}</th>
-                    <th>{t("state")}</th>
-                    <th>{t("zip")}</th>
-                    <th>{t("carrier")}</th>
-                    <th>{t("freight")}</th>
-                    <th>{t("status")}</th>
-                    <th>{t("actions")}</th>
+                    <th>{uiTitle(t("po"))}</th>
+                    <th>{uiTitle(t("consignee"))}</th>
+                    <th>{uiTitle(t("address"))}</th>
+                    <th>{uiTitle(t("city"))}</th>
+                    <th>{uiTitle(t("state"))}</th>
+                    <th>{uiTitle(t("zip"))}</th>
+                    <th>{uiTitle(t("carrier"))}</th>
+                    <th>{uiTitle(t("freight"))}</th>
+                    <th>{uiTitle(t("status"))}</th>
+                    <th>{uiTitle(t("actions"))}</th>
                   </>
                 )}
                 {tab === "shipper" && (
                   <>
-                    <th>{t("shipper")}</th>
-                    <th>{t("address")}</th>
-                    <th>{t("city")}</th>
-                    <th>{t("state")}</th>
-                    <th>{t("zip")}</th>
-                    <th>{t("status")}</th>
-                    <th>{t("actions")}</th>
+                    <th>{uiTitle(t("shipper"))}</th>
+                    <th>{uiTitle(t("address"))}</th>
+                    <th>{uiTitle(t("city"))}</th>
+                    <th>{uiTitle(t("state"))}</th>
+                    <th>{uiTitle(t("zip"))}</th>
+                    <th>{uiTitle(t("status"))}</th>
+                    <th>{uiTitle(t("actions"))}</th>
                   </>
                 )}
-                {kind && <><th>{t('rc_code')}</th><th>{t('rc_name')}</th>{kind==='supplier'?<><th>{t('rc_address')}</th><th>{t('rc_phone')}</th></>:<th>{t('rc_type')}</th>}<th>{t('rc_active')}</th><th>{t('actions')}</th></>}
+                {kind && <><th>{uiTitle(t('rc_code'))}</th><th>{uiTitle(t('rc_name'))}</th>{kind==='supplier'?<><th>{uiTitle(t('rc_address'))}</th><th>{uiTitle(t('rc_phone'))}</th></>:<th>{uiTitle(t('rc_type'))}</th>}<th>{uiTitle(t('rc_active'))}</th><th>{uiTitle(t('actions'))}</th></>}
                 {isSimple && (
                   <>
-                    <th>{t("name")}</th>
-                    <th>{t("status")}</th>
-                    <th>{t("actions")}</th>
+                    <th>{uiTitle(t("name"))}</th>
+                    <th>{uiTitle(t("status"))}</th>
+                    <th>{uiTitle(t("actions"))}</th>
                   </>
                 )}
               </tr>
@@ -632,11 +633,11 @@ async function save() {
                         {typeFilter!=='FG'&&typeFilter!=='PACKAGING'&&<><td>{suppliers.find(s=>s.id===r.supplier_id)?.name||'—'}</td><td>{supplierAddress(suppliers.find(s=>s.id===r.supplier_id))||'—'}</td><td>{r.lead_time_days??'—'}</td></>}{(!typeFilter||typeFilter==='FG')&&<><td>{r.peso_por_pieza}</td>
                         </>}<td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <BtnEditDark disabled={!canManage} onClick={() => { setEdit(r); setIsNew(false); }}>
+                          <BtnEditDark intent="neutral" disabled={!canManage} onClick={() => { setEdit(r); setIsNew(false); }}>
                             {t("edit")}
                           </BtnEditDark>
-                          <BtnSecondary disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
-                          <BtnDanger disabled={!canManage} onClick={() => remove(r)}>
+                          <BtnSecondary intent="create" disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
+                          <BtnDanger intent="danger" disabled={!canManage} onClick={() => remove(r)}>
                             {t("delete")}
                           </BtnDanger>
                         </td>
@@ -654,7 +655,7 @@ async function save() {
                         <td>{[r.freight_class, r.freight_charges].filter(Boolean).join(" / ")}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <BtnEditDark
+                          <BtnEditDark intent="neutral"
                             onClick={() => {
                               setEdit({
                                 ...r,
@@ -666,8 +667,8 @@ async function save() {
                           >
                             {t("edit")}
                           </BtnEditDark>
-                          <BtnSecondary disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
-                          <BtnDanger disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
+                          <BtnSecondary intent="create" disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
+                          <BtnDanger intent="danger" disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
                     )}
@@ -680,7 +681,7 @@ async function save() {
                         <td>{r.shipper_zip}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <BtnEditDark
+                          <BtnEditDark intent="neutral"
                             onClick={() => {
                               setEdit({
                                 ...r,
@@ -691,22 +692,22 @@ async function save() {
                           >
                             {t("edit")}
                           </BtnEditDark>
-                          <BtnSecondary disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
-                          <BtnDanger disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
+                          <BtnSecondary intent="create" disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
+                          <BtnDanger intent="danger" disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
                     )}
-                    {kind && <><td>{r.code}</td><td>{kind==='material'?materialLabel(r,t):r.name}</td>{kind==='supplier'?<><td>{addressFields.filter(k=>k!=='phone').map(k=>r[k]).filter(Boolean).join(', ')}</td><td>{r.phone}</td></>:<td>{kind==='material'?t(`rc_${r.category}`):materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>}<td>{t(r.active?'rc_active':'rc_inactive')}</td><td><BtnEditDark disabled={!canManage} onClick={()=>{setEdit({...r,id:kind==='material'?r.code:r.id});setIsNew(false);}}>{t('edit')}</BtnEditDark> <BtnSecondary disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary> <BtnDanger disabled={!canManage} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></td></>}
+                    {kind && <><td>{r.code}</td><td>{kind==='material'?materialLabel(r,t):r.name}</td>{kind==='supplier'?<><td>{addressFields.filter(k=>k!=='phone').map(k=>r[k]).filter(Boolean).join(', ')}</td><td>{r.phone}</td></>:<td>{kind==='material'?t(`rc_${r.category}`):materialLabel(materials.find(m=>m.code===r.material_type),t)}</td>}<td>{t(r.active?'rc_active':'rc_inactive')}</td><td><BtnEditDark intent="neutral" disabled={!canManage} onClick={()=>{setEdit({...r,id:kind==='material'?r.code:r.id});setIsNew(false);}}>{t('edit')}</BtnEditDark> <BtnSecondary intent="create" disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary> <BtnDanger intent="danger" disabled={!canManage} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></td></>}
                     {isSimple && (
                       <>
                         <td>{r.nombre}</td>
                         <td>{r.activo ? t("active") : t("inactive")}</td>
                         <td>
-                          <BtnEditDark disabled={!canManage} onClick={() => { setEdit(r); setIsNew(false); }}>
+                          <BtnEditDark intent="neutral" disabled={!canManage} onClick={() => { setEdit(r); setIsNew(false); }}>
                             {t("edit")}
                           </BtnEditDark>
-                          <BtnSecondary disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
-                          <BtnDanger disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
+                          <BtnSecondary intent="create" disabled={!canManage||saving||duplicating} onClick={()=>duplicate(r)}>{t("cat_duplicate")}</BtnSecondary>
+                          <BtnDanger intent="danger" disabled={!canManage} onClick={() => remove(r)}>{t("delete")}</BtnDanger>
                         </td>
                       </>
                     )}
@@ -742,7 +743,7 @@ async function save() {
             {edit?.duplicated&&tab==='productos'&&edit.category==='FG'&&(
               edit.sourceHasRecipe?<label className="catalog-checkbox"><input type="checkbox" disabled={saving} checked={!!edit.copyRecipe} onChange={e=>setEdit({...edit,copyRecipe:e.target.checked})}/>{t('cat_copy_recipe')}</label>:<p>{t('cat_source_no_recipe')}</p>
             )}
-            <h3>{isNew ? t('add') : t('edit')} · {t(kind?`rc_${kind==='material'?'material_types':kind}`:tab==='productos'?'products':tab==='pos'?'po':tab==='shipper'?'shipper':'activities')}</h3>
+            <h3>{isNew ? uiTitle(t('add')) : uiTitle(t('edit'))} · {uiTitle(t(kind?`rc_${kind==='material'?'material_types':kind}`:tab==='productos'?'products':tab==='pos'?'po':tab==='shipper'?'shipper':'activities'))}</h3>
             {kind && edit && <SharedCatalogFields kind={kind} edit={edit} setEdit={setEdit} materials={materials}/>}
 
             {tab === 'productos' && edit && <ProductCatalogFields edit={edit} setEdit={setEdit} materials={materials} locations={locations} suppliers={suppliers} packingItems={packingItems}/>}
@@ -987,8 +988,8 @@ async function save() {
 
             {isNew&&String(edit?.[catalogIdentifier(tab,kind)]??'').trim()&&hasDuplicateIdentifier(rows,catalogIdentifier(tab,kind),edit?.[catalogIdentifier(tab,kind)])&&<p role="alert" className="inv-message">{t('catalog_duplicate_identifier')}</p>}
             <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-              <BtnPrimary disabled={!canManage||saving||duplicating||!String(edit?.[catalogIdentifier(tab,kind)]??'').trim()||(isNew&&hasDuplicateIdentifier(rows,catalogIdentifier(tab,kind),edit?.[catalogIdentifier(tab,kind)]))} onClick={save}>{t("save")}</BtnPrimary>
-              <BtnSecondary disabled={saving} onClick={() => { setEdit(null); setIsNew(false); }}>
+              <BtnPrimary intent="confirm" disabled={!canManage||saving||duplicating||!String(edit?.[catalogIdentifier(tab,kind)]??'').trim()||(isNew&&hasDuplicateIdentifier(rows,catalogIdentifier(tab,kind),edit?.[catalogIdentifier(tab,kind)]))} onClick={save}>{t("save")}</BtnPrimary>
+              <BtnSecondary intent="danger" disabled={saving} onClick={() => { setEdit(null); setIsNew(false); }}>
                 {t("cancel")}
               </BtnSecondary>
             </div>

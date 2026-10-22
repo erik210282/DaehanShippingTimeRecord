@@ -1,3 +1,4 @@
+import {uiTitle} from './actionTheme.mjs';
 import ProductionRework from '../production/ProductionRework';
 import QuarantineCapture from './QuarantineCapture';
 import {registerRework} from '../production/reworkTranslations';
@@ -26,7 +27,7 @@ export default function QualityHolds({items,access}){
   setBusy(true);
   try{await unwrap(supabase.rpc('inventory_quality_resolve',{p_hold:hold.id,p_release:release,p_note:''}));await load();}catch(e){setError(t(e.message,{defaultValue:e.message}));}finally{setBusy(false);}
  }
- return <>{(access.admin||access.memberships.some(m=>m.department==='quality'))&&<><QuarantineCapture items={items} onChanged={load}/><ProductionRework reviewOnly canReview={manage}/></>}<p>{t('rc_quarantine_help')}</p>{error&&<p role="alert">{error}</p>}<div className="inv-table-wrap"><table><thead><tr>{['inv_part','rc_receipt','rc_quantity','rc_reason','rc_type','actions'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>
- {holds.map(h=><tr key={h.id} style={{background:h.status==='held'?'#fde7e7':undefined}}><td>{items.find(i=>i.id===h.item_id)?.part_number}<small>{items.find(i=>i.id===h.item_id)?.description}</small></td><td>{receipts.find(r=>r.id===lines.find(l=>l.hold_id===h.id)?.receipt_id)?.code||'—'}</td><td>{Number(h.quantity)-Number(h.released_quantity||0)-Number(h.rejected_quantity||0)} {items.find(i=>i.id===h.item_id)?.uom}</td><td>{h.reason}</td><td>{t(h.status==='resolved'?'rw_resolved':`rc_${h.status}`)}</td><td>{manage&&h.status==='held'&&<><BtnPrimary disabled={busy} onClick={()=>resolve(h,true)}>{t('rc_release')}</BtnPrimary><BtnDanger disabled={busy} onClick={()=>resolve(h,false)}>{t('inv_reject')}</BtnDanger></>}</td></tr>)}
+ return <>{(access.admin||access.memberships.some(m=>m.department==='quality'))&&<><QuarantineCapture items={items} onChanged={load}/><ProductionRework reviewOnly canReview={manage}/></>}<p>{t('rc_quarantine_help')}</p>{error&&<p role="alert">{error}</p>}<div className="inv-table-wrap"><table><thead><tr>{['inv_part','rc_receipt','rc_quantity','rc_reason','rc_type','actions'].map(k=><th key={k}>{uiTitle(t(k))}</th>)}</tr></thead><tbody>
+ {holds.map(h=><tr key={h.id} style={{background:h.status==='held'?'#fde7e7':undefined}}><td>{items.find(i=>i.id===h.item_id)?.part_number}<small>{items.find(i=>i.id===h.item_id)?.description}</small></td><td>{receipts.find(r=>r.id===lines.find(l=>l.hold_id===h.id)?.receipt_id)?.code||'—'}</td><td>{Number(h.quantity)-Number(h.released_quantity||0)-Number(h.rejected_quantity||0)} {items.find(i=>i.id===h.item_id)?.uom}</td><td>{h.reason}</td><td>{t(h.status==='resolved'?'rw_resolved':`rc_${h.status}`)}</td><td>{manage&&h.status==='held'&&<><BtnPrimary intent="confirm" disabled={busy} onClick={()=>resolve(h,true)}>{t('rc_release')}</BtnPrimary><BtnDanger intent="danger" disabled={busy} onClick={()=>resolve(h,false)}>{t('inv_reject')}</BtnDanger></>}</td></tr>)}
  </tbody></table></div>{!holds.length&&<p>{t('rc_no_data')}</p>}</>;
 }

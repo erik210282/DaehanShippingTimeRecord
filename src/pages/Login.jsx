@@ -1,3 +1,4 @@
+import {uiTitle} from '../components/actionTheme.mjs';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -91,7 +92,7 @@ export default function Login() {
       <img className="login-logo" src={logo} alt="DAEHAN" />
 
       <div className="login-card">
-        <h2 className="login-title">{t("title") || "Sign In"}</h2>
+        <h2 className="login-title">{uiTitle(t("title")) || "Sign In"}</h2>
         <form onSubmit={handleLogin} autoComplete="on">
           <label className="login-label">{t("email") || "Email"}</label>
           <DSInput
@@ -114,7 +115,7 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <BtnPrimary type="submit" disabled={busy} style={{ width: "100%", marginTop: 12 }}>
+          <BtnPrimary intent="confirm" type="submit" disabled={busy} style={{ width: "100%", marginTop: 12 }}>
             {busy ? (t("loading") || "Cargando...") : (t("signIn") || "Sign In")}
           </BtnPrimary>
         </form>

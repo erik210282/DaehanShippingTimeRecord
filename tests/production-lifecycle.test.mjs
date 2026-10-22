@@ -3,11 +3,11 @@ import {liveEditor,liveSubmission,activeFirst,changeProductDowntime} from '../sr
 import {plannedChange} from '../src/production/breaks.mjs';
 const start=new Date(2026,9,15,6),now=new Date(2026,9,15,14),id=(()=>{let n=0;return()=>String(++n);})();
 const a={id:'a',session_id:'session',item_id:'A',station_code:'M',started_at:start.toISOString(),shift_hours:8},b={...a,id:'b',item_id:'B'};
-let editor=liveEditor(a,'finish',[a,b],id,true);assert.deepEqual(editor.products.map(p=>p.selected),[true,false]);editor.finish_time='13:00';editor.products[0].quantity='100';
+let editor=liveEditor(a,'finish',[a,b],id,true);assert.deepEqual(editor.products.map(p=>p.selected),[true,true]);editor.products[1].selected=false;editor.finish_time='13:00';editor.products[0].quantity='100';
 const finish=liveSubmission(editor,now);assert.equal(finish.action,'finish_batch');assert.deepEqual(finish.payload.products.map(p=>p.run_id),['a']);assert.equal(finish.payload.products[0].finished_at,new Date(2026,9,15,13).toISOString());
 editor.products[0].selected=false;assert.equal(liveSubmission(editor,now).error,'pl_select_finish');
-editor=liveEditor(a,'checkpoint',[a,b],id);editor.products.forEach(p=>p.quantity='100');editor.downtime_item_ids=['A'];editor=changeProductDowntime(editor,[{type:'breakdown',start_time:'10:00',end_time:'10:15'}]);
-const report=liveSubmission(editor,now);assert.equal(report.payload.products[0].downtime_events.length,1);assert.equal(report.payload.products[1].downtime_events.length,0);assert.equal(report.payload.products[0].capture_group_id,report.payload.products[1].capture_group_id);
+editor=liveEditor(a,'checkpoint',[a,b],id);editor.products.forEach(p=>p.quantity='100');editor.downtime_item_ids=['A'];editor=changeProductDowntime(editor,[{type:'breakdown',start_time:'10:20',end_time:'10:35'}]);
+const report=liveSubmission(editor,now);assert.equal(report.payload.products[0].downtime_events.filter(e=>e.type==='breakdown').length,1);assert.equal(report.payload.products[1].downtime_events.filter(e=>e.type==='breakdown').length,0);assert.equal(report.payload.products[0].capture_group_id,report.payload.products[1].capture_group_id);
 assert.deepEqual(activeFirst([{...a,closed_at:now.toISOString()},b]).map(r=>r.id),['b','a']);
 const planned=plannedChange({type:'break',start_time:'23:50'},{start_time:'23:50'},{break_minutes:15,lunch_minutes:30});assert.equal(planned.end_time,'00:05');assert.equal(planned.minutes,15);
 assert.equal(plannedChange(planned,{note:'keep historical duration'},{break_minutes:30,lunch_minutes:60}).minutes,15);

@@ -1,4 +1,4 @@
-import {actionTone} from './actionTheme.mjs';
+import {uiTokens,uiTitle,resolveIntent,actionLabel} from './actionTheme.mjs';
 import './actionTheme.css';
 // src/components/controls.jsx
 import React from "react";
@@ -50,22 +50,6 @@ export const DSNativeSelect = ({ children, style, ...rest }) => (
   </select>
 );
 
-const DropdownArrow = (props) => (
-  <components.DropdownIndicator {...props}>
-    <span
-      style={{
-        fontSize: 15,
-        color: "#ffffff",
-        lineHeight: 1,
-        display: "inline-block",
-        transform: "translateY(-1px)", // pequeño ajuste vertical
-      }}
-    >
-      ▾
-    </span>
-  </components.DropdownIndicator>
-);
-
 export const DSSelect = ({
   styles,
   components: customComponents,
@@ -86,14 +70,15 @@ export const DSSelect = ({
   return (
     <Select
       {...rest}
+      classNamePrefix="ui-select"
       noOptionsMessage={noOptionsMessage||(()=>t('select_no_options'))}
       loadingMessage={loadingMessage||(()=>t('loading'))}
       isMulti={isMulti}  
       closeMenuOnSelect={effectiveClose} 
-      styles={{ ...RS_COMMON_STYLES, ...(styles || {}) }}
+      styles={Object.fromEntries([...new Set([...Object.keys(RS_COMMON_STYLES),...Object.keys(styles||{})])].map(key=>[key,(base,state)=>{const value=(styles?.[key]||RS_COMMON_STYLES[key]||((b)=>b))(base,state);const common=(RS_COMMON_STYLES[key]||((b)=>b))(base,state);return {...common,...value,...(['control','menu','menuList'].includes(key)?{backgroundColor:'#333333',color:'#fff'}:{}),...(['placeholder','singleValue','input','multiValueLabel','dropdownIndicator','clearIndicator'].includes(key)?{color:key==='placeholder'?'#c4c4c4':'#fff'}:{}),...(key==='control'?{minHeight:44,fontSize:16,borderRadius:10,borderColor:'#555'}:{})};}]))}
       components={{
         ...customComponents,
-        DropdownIndicator: DropdownArrow,
+        
         IndicatorSeparator: () => null,
       }}
       menuPortalTarget={menuPortalTarget ?? document.body}
@@ -104,10 +89,10 @@ export const DSSelect = ({
 
 // --------- Botones ----------
 function actionText(children){return React.Children.toArray(children).map(c=>typeof c==='string'||typeof c==='number'?String(c):React.isValidElement(c)?actionText(c.props.children):'').join(' ');}
-export function AppAction({children,style,tone='primary',...props}){
- const {t}=useTranslation(),resolved=actionTone(actionText(children),t,tone,props.className);
- const base=resolved==='danger'?dangerBtn:resolved==='primary'?primaryBtn:secondaryBtn;
- return <button {...props} data-button-tone={resolved} style={{...base,...style}}>{children}</button>;
+export function AppAction({children,style,intent,tone='primary',...props}){
+ const resolved=resolveIntent(intent,tone),background=uiTokens[resolved],base=resolved==='danger'?dangerBtn:resolved==='neutral'?secondaryBtn:primaryBtn;
+ const layout={...style};for(const key of ['background','backgroundColor','color','border','borderColor','borderRadius','padding','paddingTop','paddingBottom','fontSize','fontFamily','fontWeight','height','minHeight','lineHeight','textAlign','boxShadow'])delete layout[key];
+ return <button {...props} data-ui-intent={resolved} data-button-tone={resolved==='neutral'?'secondary':resolved==='danger'?'danger':'primary'} style={{...layout,...base,...layout,background,borderColor:background,color:'#fff'}}>{actionLabel(actionText(children),resolved)}</button>;
 }
 export const BtnPrimary=props=><AppAction {...props}/>;
 export const BtnSecondary=props=><AppAction {...props} tone="secondary"/>;
@@ -124,9 +109,9 @@ export const BtnToggleUrgent = ({ active, children, ...props }) => (
   <button
     {...props}
     style={{
-      height: 38,
+      minHeight: 44,
       width: 170,
-      lineHeight: "38px",
+      lineHeight: "22px",
       padding: "0 14px",
       backgroundColor: active ? "#dc2626" : "#111",
       border: active ? "2px solid #dc2626" : "2px solid #111",
@@ -155,7 +140,7 @@ export const TablePagination = ({
 
   const containerStyle = {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "center",
     marginTop: 10,
     gap: 10,
@@ -261,7 +246,7 @@ export const TablePagination = ({
         </DSNativeSelect>
 
         {/* primera página */}
-        <BtnSecondary
+        <BtnSecondary intent="neutral"
           style={smallBtnStyle}
           onClick={() => changePage(1)}
           disabled={currentPage === 1}
@@ -270,7 +255,7 @@ export const TablePagination = ({
         </BtnSecondary>
 
         {/* anterior */}
-        <BtnSecondary
+        <BtnSecondary intent="neutral"
           style={smallBtnStyle}
           onClick={() => changePage(currentPage - 1)}
           disabled={currentPage === 1}
@@ -288,7 +273,7 @@ export const TablePagination = ({
               …
             </span>
           ) : (
-            <BtnSecondary
+            <BtnSecondary intent="neutral"
               key={`page-${p}-${idx}`} // clave única
               style={{
                 ...smallBtnStyle,
@@ -303,7 +288,7 @@ export const TablePagination = ({
         )}
 
         {/* siguiente */}
-        <BtnSecondary
+        <BtnSecondary intent="neutral"
           style={smallBtnStyle}
           onClick={() => changePage(currentPage + 1)}
           disabled={currentPage === totalPages}
@@ -312,7 +297,7 @@ export const TablePagination = ({
         </BtnSecondary>
 
         {/* última */}
-        <BtnSecondary
+        <BtnSecondary intent="neutral"
           style={smallBtnStyle}
           onClick={() => changePage(totalPages)}
           disabled={currentPage === totalPages}

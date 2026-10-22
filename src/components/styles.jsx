@@ -1,22 +1,9 @@
 // src/components/styles.js
-export const FIELD_HEIGHT = 38;
+export const FIELD_HEIGHT = 44;
 export const FIELD_FONT =
   "'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
 
-export const inputStyle = {
-  width: "100%",
-  height: FIELD_HEIGHT,
-  minHeight: FIELD_HEIGHT,
-  lineHeight: `${FIELD_HEIGHT}px`,
-  padding: "8 14px",
-  backgroundColor: "#333",
-  color: "#fff",
-  border: "1px solid #333",
-  borderRadius: 10,
-  fontSize: 14,
-  fontFamily: FIELD_FONT,
-  boxSizing: "border-box",
-};
+export const inputStyle={width:'100%',minWidth:0,maxWidth:'100%',height:44,minHeight:44,lineHeight:'22px',padding:'10px 12px',backgroundColor:'#333333',color:'#ffffff',border:'1px solid #555555',borderRadius:10,fontSize:16,fontFamily:FIELD_FONT,boxSizing:'border-box'};
 
 export const nativeSelectStyle = {
   ...inputStyle,
@@ -98,34 +85,16 @@ export const RS_COMMON_STYLES = {
 };
 
 // === Botones ===
-export const pillInput = {
-  width: "100%",
-  padding: "8px 14px",
-  borderRadius: "10px",
-  border: "1px solid #cfd4dc",
-  outline: "none",
-  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
-};
-export const pillInputNumber = {
-  width: "55px",
-  height: "34px",
-  textAlign: "center",
-  fontSize: "15px",
-  borderRadius: "8px",
-  border: "1px solid #cfd4dc",
-  outline: "none",
-  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-  padding: "2px 6px",
-  margin: 0,
-};
-export const textAreaStyle = { ...pillInput, resize: "vertical" };
-
-const actionBase={padding:'9px 14px',minHeight:40,borderRadius:10,fontSize:14,fontWeight:600,lineHeight:'20px',fontFamily:FIELD_FONT,display:'inline-flex',alignItems:'center',justifyContent:'center',textAlign:'center',gap:6,cursor:'pointer',boxSizing:'border-box',boxShadow:'none'};
-export const primaryBtn={...actionBase,background:'#15803d',border:'1px solid #15803d',color:'#fff'};
+export const pillInput={...inputStyle};
+export const pillInputNumber={...inputStyle,width:60,minWidth:60,maxWidth:60,textAlign:'center',padding:'10px 4px',margin:0};
+export const textAreaStyle={...inputStyle,height:'auto',minHeight:88,resize:'vertical'};
+const actionBase={padding:'11px 14px',minHeight:44,borderRadius:10,fontSize:14,fontWeight:600,lineHeight:'20px',fontFamily:FIELD_FONT,display:'inline-flex',alignItems:'center',justifyContent:'center',textAlign:'center',gap:6,cursor:'pointer',boxSizing:'border-box',boxShadow:'none',maxWidth:'100%'};
+export const primaryBtn={...actionBase,background:'#2563eb',border:'1px solid #2563eb',color:'#fff'};
 export const secondaryBtn={...actionBase,background:'#111111',border:'1px solid #111111',color:'#fff'};
 export const editBtnDark={...secondaryBtn};
 export const dangerBtn={...actionBase,background:'#dc2626',border:'1px solid #dc2626',color:'#fff'};
 export const tinyRoundBtn = {
+  color: "#fff",
   width: 34,
   height: 34,
   borderRadius: "9999px",

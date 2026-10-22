@@ -1,3 +1,4 @@
+import {uiTitle} from '../components/actionTheme.mjs';
 import React, { useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -14,13 +15,13 @@ export default function ConfiguracionTareas() {
 
   return (
     <div className="card">
-      <h2>{t("configure_task_order")}</h2>
+      <h2>{uiTitle(t("configure_task_order"))}</h2>
       <ul>
         {ordenTareas.map((tarea, index) => (
           <li key={index}>{tarea}</li>
         ))}
       </ul>
-      <BtnPrimary onClick={() => cambiarOrden(["Label", "Stage", "Scan", "Load"])}>
+      <BtnPrimary intent="neutral" onClick={() => cambiarOrden(["Label", "Stage", "Scan", "Load"])}>
         {t("change_order", "Cambiar Orden")}
       </BtnPrimary>
       <ToastContainer position="top-center" autoClose={2000} />

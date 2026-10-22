@@ -1,3 +1,4 @@
+import {uiTitle} from '../components/actionTheme.mjs';
 import {saveShippingFile} from '../nativeShippingBridge';
 import ShippingPacking from '../components/ShippingPacking';
 import {useShippingPacking,packingError,allocationsFor,resolvePacking,packingWeight} from '../inventory/shippingPacking';
@@ -1296,7 +1297,7 @@ export default function GenerarBOL() {
   return (
     <div className="page-container page-container--fluid shipping-page shipping-bol">
       <div className="card">
-        <h2>{t("generate_bol_coversheet", "Generar BOL y Cover Sheet")}</h2>
+        <h2>{uiTitle(t("generate_bol_coversheet", "Generar BOL y Cover Sheet"))}</h2>
 
         <div className="shipping-bol-fields" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(200px, 1fr))", gap: 8, marginBottom: 10 }}>
           {/* IDX (searchable) */}
@@ -1398,7 +1399,7 @@ export default function GenerarBOL() {
           />
 
           {/* Botón GENERAR BOL */}
-          <BtnPrimary disabled={isGenerating||packing.loading||!packing.valid} onClick={generarPDF}>
+          <BtnPrimary intent="confirm" disabled={isGenerating||packing.loading||!packing.valid} onClick={generarPDF}>
             {isGenerating
               ? t("loading", "Generando...")
               : t("generate_bol", "Generar BOL y Cover Sheet")}

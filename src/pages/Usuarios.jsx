@@ -1,3 +1,4 @@
+import {uiTitle} from '../components/actionTheme.mjs';
 import {useLiveVersion} from '../useLiveVersion';
 import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -239,7 +240,7 @@ export default function Usuarios() {
   return (
     <div className="page-container page-container--fluid">
       <div className="card">
-        <h2>{t("user_management")}</h2>
+        <h2>{uiTitle(t("user_management"))}</h2>
 
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
           <DSInput
@@ -288,14 +289,14 @@ export default function Usuarios() {
           </label>
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <BtnPrimary
+            <BtnPrimary intent="confirm"
               onClick={crearUsuario}
               disabled={creando}
               style={creando ? { opacity: 0.7 } : undefined}
             >
               {creando ? `${t("create_user")}...` : t("create_user")}
             </BtnPrimary>
-            <BtnSecondary onClick={alternarMostrarUsuarios}>
+            <BtnSecondary intent="neutral" onClick={alternarMostrarUsuarios}>
               {mostrarUsuarios ? t("hide_users") : t("show_users")}
             </BtnSecondary>
           </div>
@@ -314,13 +315,13 @@ export default function Usuarios() {
             <table className="table">
                 <thead>
                   <tr>
-                    <th>{t("display_name")}</th>
-                    <th>{t("email")}</th>
-                    <th>{t("rol")}</th>                    
-                    <th>{t("new_password")}</th>
-                    <th>{t("actions")}</th>
-                    <th>{t("activo")}</th>
-                    <th>{t("user_id")}</th>
+                    <th>{uiTitle(t("display_name"))}</th>
+                    <th>{uiTitle(t("email"))}</th>
+                    <th>{uiTitle(t("rol"))}</th>                    
+                    <th>{uiTitle(t("new_password"))}</th>
+                    <th>{uiTitle(t("actions"))}</th>
+                    <th>{uiTitle(t("activo"))}</th>
+                    <th>{uiTitle(t("user_id"))}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -359,10 +360,10 @@ export default function Usuarios() {
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                          <BtnEditDark onClick={() => actualizarPassword(u.uid)}>
+                          <BtnEditDark intent="neutral" onClick={() => actualizarPassword(u.uid)}>
                             {t("update_password")}
                           </BtnEditDark>
-                          <BtnDanger onClick={() => eliminarUsuario(u.uid)}>
+                          <BtnDanger intent="danger" onClick={() => eliminarUsuario(u.uid)}>
                             {t("delete_user")}
                           </BtnDanger>
                         </div>

@@ -1,8 +1,4 @@
-/* Use the shared Shipping button palette, typography and action order. */
-.production-report-surface button[data-button-tone],.production-report-portal button[data-button-tone]{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px!important;min-height:40px!important;box-sizing:border-box;padding:8px 14px!important;border-radius:10px!important;font-family:inherit!important;font-size:1em!important;font-weight:500!important;line-height:20px!important;white-space:nowrap;margin:0!important}
-.production-report-surface button[data-button-tone="primary"],.production-report-portal button[data-button-tone="primary"]{background:#15803d!important;color:#fff!important;border:1px solid #15803d!important;box-shadow:none!important}
-.production-report-surface button[data-button-tone="secondary"],.production-report-surface button[data-button-tone="edit"],.production-report-portal button[data-button-tone="secondary"],.production-report-portal button[data-button-tone="edit"]{background:#fff!important;border:1px solid #15803d!important;color:#166534!important;box-shadow:none!important}
-.production-report-surface button[data-button-tone="danger"],.production-report-portal button[data-button-tone="danger"]{background:#dc2626!important;border:1px solid #dc2626!important;color:#fff!important;box-shadow:none!important}
+
 .production-report-surface button:disabled,.production-report-portal button:disabled{opacity:.55;cursor:not-allowed}
 .report-toolbar{margin:18px 0 22px}.report-filters{display:grid!important;grid-template-columns:150px 150px minmax(180px,1.1fr) minmax(138px,.85fr) minmax(190px,1.2fr);gap:14px;align-items:end;margin:14px 0}
 .report-filters>.catalog-field{width:auto!important;min-width:0;margin:0!important}
@@ -41,8 +37,8 @@
 .shift-hours-panel input{width:100%;max-width:none;box-sizing:border-box}
 @media(max-width:750px){.shift-plan-layout{flex-direction:column}.shift-plan-layout>div,.shift-hours-panel{width:100%;flex-basis:auto}.shift-hours-panel{position:static}}
 
-@media(max-width:600px){.production-report-surface button[data-button-tone],.production-report-portal button[data-button-tone]{height:44px!important;min-height:44px!important}}
+@media(max-width:600px){}
 
 .production-report-surface .report-parameter-table th,.production-report-surface .report-schedule-table th{white-space:normal!important;overflow-wrap:normal;vertical-align:middle}
 
-.production-report-surface button[data-button-tone="edit"],.production-report-portal button[data-button-tone="edit"]{background:#15803d!important;border-color:#15803d!important;color:#fff!important}
+.lifecycle-products{display:flex;flex-direction:column;align-items:flex-start;gap:14px;margin-top:20px}.lifecycle-products label{display:flex;align-items:center;gap:10px;white-space:normal;overflow-wrap:anywhere}.live-dialog-footer{justify-content:flex-start!important}

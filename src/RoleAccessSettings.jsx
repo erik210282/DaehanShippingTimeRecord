@@ -1,3 +1,4 @@
+import {uiTitle} from './components/actionTheme.mjs';
 import React,{useEffect,useRef,useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import {CatalogSelect} from './components/SharedCatalogFields';
@@ -14,7 +15,7 @@ export default function RoleAccessSettings({access,managed}){
  useEffect(()=>setSaved(false),[department,role]);
  const editable=access.admin||role!=='supervisor';
  async function save(){if(lock.current||!profile)return;lock.current=true;setBusy(true);setError('');setSaved(false);try{const r=await supabase.rpc('save_role_access',{p_department:department,p_role:role,p_activities:draft,p_version:profile.version});if(r.error)throw r.error;setRows(v=>v.map(p=>p===profile?{...p,activities:draft,version:p.version+1}:p));setSaved(true);window.dispatchEvent(new Event('global-access-updated'));}catch(e){setError(e.message);}finally{lock.current=false;setBusy(false);}}
- return <section className="global-panel"><h2>{t('ra_roles')}</h2><p>{t('ra_hint')}</p><div className="catalog-fields"><CatalogSelect label={t('ra_department')} value={department} onChange={setDepartment} options={managed.map(value=>({value,label:t('global_'+value)}))}/><CatalogSelect label={t('ra_role')} value={role} onChange={setRole} options={roleKeys.map(value=>({value,label:t('global_role_'+value)}))}/></div>
+ return <section className="global-panel"><h2>{uiTitle(t('ra_roles'))}</h2><p>{t('ra_hint')}</p><div className="catalog-fields"><CatalogSelect label={uiTitle(t('ra_department'))} value={department} onChange={setDepartment} options={managed.map(value=>({value,label:t('global_'+value)}))}/><CatalogSelect label={uiTitle(t('ra_role'))} value={role} onChange={setRole} options={roleKeys.map(value=>({value,label:t('global_role_'+value)}))}/></div>
  {!editable&&<p>{t('ra_limited')}</p>}<div className="global-department-choices">{activityCatalog.filter(c=>c.department===department).map(row=><label className="role-activity-choice" key={row.activity}><input type="checkbox" checked={draft.includes(row.activity)} disabled={busy||!profile||!editable||!row.allowed_roles.includes(role)} onChange={e=>{setSaved(false);setDraft(v=>e.target.checked?[...v,row.activity]:v.filter(k=>k!==row.activity));}}/><span>{activityLabel(row,i18n.language)}</span>{!row.allowed_roles.includes(role)&&<small>{t('ra_limited')}</small>}</label>)}</div>
- <BtnPrimary disabled={busy||!profile||!editable} onClick={save}>{t('save')}</BtnPrimary>{saved&&<p role="status">{t('ra_saved')}</p>}<ErrorPopup message={error?t(error,{defaultValue:t('global_retry')}):''} onClose={()=>setError('')}/></section>;
+ <BtnPrimary intent="confirm" disabled={busy||!profile||!editable} onClick={save}>{t('save')}</BtnPrimary>{saved&&<p role="status">{t('ra_saved')}</p>}<ErrorPopup message={error?t(error,{defaultValue:t('global_retry')}):''} onClose={()=>setError('')}/></section>;
 }

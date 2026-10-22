@@ -1,3 +1,4 @@
+import {uiTitle} from '../components/actionTheme.mjs';
 import {useShippingForceText} from "../shipping/forceFinish";
 import NativeShippingTableHint from "../components/NativeShippingTableHint";
 import {useLiveVersion} from '../useLiveVersion';
@@ -595,9 +596,9 @@ export default function TareasPendientes() {
       `}</style>
 
       <div className="card">
-        <h2>{t("pending_tasks")}</h2>
+        <h2>{uiTitle(t("pending_tasks"))}</h2>
 
-        <BtnPrimary onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
+        <BtnPrimary intent="create" onClick={() => abrirModal()} style={{ marginBottom: 10 }}>
           ➕ {t("add_task")}
         </BtnPrimary>
 
@@ -605,21 +606,21 @@ export default function TareasPendientes() {
         <div className="table-wrap shipping-table-scroll">
           <table className="table pending-table">
             <colgroup>
-              {[6, 2, 8, 7, 15, 6, 10, 13, 7, 26].map((width, i) =>
-                <col key={i} style={{ width: `${width}%` }} />)}
+              {[90, 32, 128, 100, 220, 90, 170, 200, 130, 500].map((width, i) =>
+                <col key={i} style={{ width: `${width}px` }} />)}
             </colgroup>
             <thead>
               <tr>
-                <th>{t("prioridad")}</th>
+                <th>{uiTitle(t("prioridad"))}</th>
                 <th></th>
-                <th>{t("idx")}</th>
-                <th>{t("activity")}</th>
-                <th>{t("product")}</th>
-                <th>{t("amount")}</th>
-                <th>{t("operator")}</th>
-                <th>{t("notes")}</th>
-                <th className="pending-status">{t("status")}</th>
-                <th className="pending-actions-heading">{t("actions")}</th>
+                <th>{uiTitle(t("idx"))}</th>
+                <th>{uiTitle(t("activity"))}</th>
+                <th>{uiTitle(t("product"))}</th>
+                <th>{uiTitle(t("amount"))}</th>
+                <th>{uiTitle(t("operator"))}</th>
+                <th>{uiTitle(t("notes"))}</th>
+                <th className="pending-status">{uiTitle(t("status"))}</th>
+                <th className="pending-actions-heading">{uiTitle(t("actions"))}</th>
               </tr>
             </thead>
             <tbody key={i18n.language}>
@@ -655,13 +656,13 @@ export default function TareasPendientes() {
                           if (error) toast.error(t("error_updating_priority"));
                           else toast.success(t("priority_updated"));
                         }}
-                        title={t("edit_priority")}
+                        title={uiTitle(t("edit_priority"))}
                         style={{ width: 46, height: 22, fontSize: 13, padding: "1px 3px" }}
                       />
                       <div className="pending-priority-arrows">
                       <BtnTinyRound
                         style={{ width: 21, height: 21 }}
-                        title={t("move_up")}
+                        title={uiTitle(t("move_up"))}
                         onClick={async () => {
                           const idx = tareas.findIndex((t) => t.id === tarea.id);
                           if (idx <= 0) return;
@@ -669,7 +670,7 @@ export default function TareasPendientes() {
                           await supabase.from("tareas_pendientes").update({ prioridad: arriba.prioridad }).eq("id", tarea.id);
                           await supabase.from("tareas_pendientes").update({ prioridad: tarea.prioridad }).eq("id", arriba.id);
                         }}
-                        aria-label={t("move_up")}
+                        aria-label={uiTitle(t("move_up"))}
                       >
                         {/* Ícono chevron up blanco */}
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -679,7 +680,7 @@ export default function TareasPendientes() {
 
                       <BtnTinyRound
                         style={{ width: 21, height: 21 }}
-                        title={t("move_down")}
+                        title={uiTitle(t("move_down"))}
                         onClick={async () => {
                           const idx = tareas.findIndex((t) => t.id === tarea.id);
                           if (idx < 0 || idx >= tareas.length - 1) return;
@@ -687,7 +688,7 @@ export default function TareasPendientes() {
                           await supabase.from("tareas_pendientes").update({ prioridad: abajo.prioridad }).eq("id", tarea.id);
                           await supabase.from("tareas_pendientes").update({ prioridad: tarea.prioridad }).eq("id", abajo.id);
                         }}
-                        aria-label={t("move_down")}
+                        aria-label={uiTitle(t("move_down"))}
                       >
                         {/* Ícono chevron down blanco */}
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -698,14 +699,14 @@ export default function TareasPendientes() {
                     </div>
                     {(tarea.es_urgente || tarea.mismo_dia) && (
                       <div className="pending-badges">
-                        {tarea.es_urgente && <span title={t("task_urgent")} style={{ background: "#991b1b" }}>{t("task_urgent")}</span>}
-                        {tarea.mismo_dia && <span title={t("task_same_day")} style={{ background: "#1d4ed8" }}>{t("task_same_day")}</span>}
+                        {tarea.es_urgente && <span title={uiTitle(t("task_urgent"))} style={{ background: "#991b1b" }}>{t("task_urgent")}</span>}
+                        {tarea.mismo_dia && <span title={uiTitle(t("task_same_day"))} style={{ background: "#1d4ed8" }}>{t("task_same_day")}</span>}
                       </div>
                     )}
                   </td>
 
                   {/* Handle visual para arrastrar */}
-                  <td style={{ textAlign: "center" }} title={t("edit_priority")}>
+                  <td style={{ textAlign: "center" }} title={uiTitle(t("edit_priority"))}>
                     <span className="drag-handle">☰</span>
                   </td>
 
@@ -747,22 +748,22 @@ export default function TareasPendientes() {
                   </td>
                   <td>
                     <div className="pending-actions">
-                      <BtnEditDark onClick={() => abrirModal(tarea)}>
+                      <BtnEditDark intent="neutral" onClick={() => abrirModal(tarea)}>
                         {t("edit")}
                       </BtnEditDark>
-                      <BtnDanger onClick={() => setTareaAEliminar(tarea)}>
+                      <BtnDanger intent="danger" onClick={() => setTareaAEliminar(tarea)}>
                         {t("delete")}
                       </BtnDanger>
                       {esSupervisor && (
-                        <BtnPrimary onClick={() => abrirControl(tarea)}>
+                        <BtnPrimary intent="confirm" onClick={() => abrirControl(tarea)}>
                           {t(tarea.estado === "pendiente" ? "start" : "finish")}
                         </BtnPrimary>
                       )}
                       {canForce && ["iniciada","pausada"].includes(tarea.estado) && (
-                        <BtnSecondary onClick={()=>{setForceTask(tarea);setForceReason("");}}>{f("force")}</BtnSecondary>
+                        <BtnSecondary intent="danger" onClick={()=>{setForceTask(tarea);setForceReason("");}}>{f("force")}</BtnSecondary>
                       )}
                       {esSupervisor && isLoad(tarea.actividad) && (
-                        <BtnSecondary onClick={() => abrirEtiquetas(tarea)}>
+                        <BtnSecondary intent="neutral" onClick={() => abrirEtiquetas(tarea)}>
                           {t("task_label_button")}
                         </BtnSecondary>
                       )}
@@ -797,7 +798,7 @@ export default function TareasPendientes() {
             }
           }}
         >
-          <h3>{tareaActual?.id ? t("edit_task") : t("new_task")}</h3>
+          <h3>{tareaActual?.id ? uiTitle(t("edit_task")) : uiTitle(t("new_task"))}</h3>
 
           {tareaActual && (
             <>
@@ -881,7 +882,7 @@ export default function TareasPendientes() {
                     </>
                   )}
                   {index > 0 && (
-                    <BtnDanger
+                    <BtnDanger intent="danger"
                       onClick={() => {
                         const nuevos = tareaActual.productos.filter((_, i) => i !== index);
                         setTareaActual({ ...tareaActual, productos: nuevos });
@@ -893,7 +894,7 @@ export default function TareasPendientes() {
                 </div>
               ))}
 
-              <BtnSecondary
+              <BtnSecondary intent="create"
                 onClick={() =>
                   setTareaActual({
                     ...tareaActual,
@@ -951,10 +952,10 @@ export default function TareasPendientes() {
               />
 
               <div style={{ display: "flex", gap: "10px", marginTop: "14px", marginBottom: "10px" }}>
-                <BtnPrimary onClick={guardarTarea}>
+                <BtnPrimary intent="confirm" onClick={guardarTarea}>
                   {t("save")}
                 </BtnPrimary>
-                <BtnSecondary onClick={() => setModalAbierto(false)}>
+                <BtnSecondary intent="danger" onClick={() => setModalAbierto(false)}>
                   {t("cancel")}
                 </BtnSecondary>
               </div>
@@ -970,7 +971,7 @@ export default function TareasPendientes() {
         >
           {controlTarea && (
             <>
-              <h3>{t(controlTarea.estado === "pendiente" ? "start_activity" : "finish_activity")}: {controlTarea.idx}</h3>
+              <h3>{uiTitle(t(controlTarea.estado === "pendiente" ? "start_activity" : "finish_activity"))}: {controlTarea.idx}</h3>
               <p>{mostrarNombre(controlTarea.actividad, actividades)}</p>
               {controlTarea.estado === "pendiente" && (
                 <label className="supervisor-field">
@@ -1008,8 +1009,8 @@ export default function TareasPendientes() {
                 </div>
               )}
               <div className="supervisor-modal-actions">
-                <BtnSecondary disabled={guardandoControl} onClick={() => setControlTarea(null)}>{t("cancel")}</BtnSecondary>
-                <BtnPrimary disabled={guardandoControl} onClick={guardarControl}>
+                <BtnSecondary intent="danger" disabled={guardandoControl} onClick={() => setControlTarea(null)}>{t("cancel")}</BtnSecondary>
+                <BtnPrimary intent="confirm" disabled={guardandoControl} onClick={guardarControl}>
                   {guardandoControl ? "…" : t(controlTarea.estado === "pendiente" ? "start" : "finish")}
                 </BtnPrimary>
               </div>
@@ -1025,7 +1026,7 @@ export default function TareasPendientes() {
         >
           {etiquetasTarea && (
             <>
-              <h3>{t("task_label_button")}: {etiquetasTarea.idx}</h3>
+              <h3>{uiTitle(t("task_label_button"))}: {etiquetasTarea.idx}</h3>
               {lineasEtiqueta.length === 0 && <p>{t("supervisor_no_label_plan")}</p>}
               {lineasEtiqueta.map((linea) => (
                 <div key={linea.id} className="supervisor-label-line">
@@ -1036,33 +1037,33 @@ export default function TareasPendientes() {
                       <PillInput value={nuevaEtiqueta}
                         onChange={(e) => setNuevaEtiqueta(e.target.value.toUpperCase().replace(/\s+/g, ""))}
                         style={{ width: "100%" }} />
-                      <BtnPrimary disabled={guardandoEtiqueta} onClick={() => guardarPrimeraEtiqueta(linea)}>
+                      <BtnPrimary intent="confirm" disabled={guardandoEtiqueta} onClick={() => guardarPrimeraEtiqueta(linea)}>
                         {t("save")}
                       </BtnPrimary>
-                      <BtnSecondary disabled={guardandoEtiqueta} onClick={() => setEditandoLinea(null)}>
+                      <BtnSecondary intent="danger" disabled={guardandoEtiqueta} onClick={() => setEditandoLinea(null)}>
                         {t("cancel")}
                       </BtnSecondary>
                     </div>
                   ) : (
-                    <BtnEditDark onClick={() => { setEditandoLinea(linea.id); setNuevaEtiqueta(linea.primera_etiqueta); }}>
+                    <BtnEditDark intent="neutral" onClick={() => { setEditandoLinea(linea.id); setNuevaEtiqueta(linea.primera_etiqueta); }}>
                       {t("edit")}
                     </BtnEditDark>
                   )}
                 </div>
               ))}
               <p>{t("supervisor_label_lock_notice")}</p>
-              <BtnSecondary onClick={() => setEtiquetasTarea(null)}>{t("close")}</BtnSecondary>
+              <BtnSecondary intent="neutral" onClick={() => setEtiquetasTarea(null)}>{t("close")}</BtnSecondary>
             </>
           )}
         </Modal>
 
         <Modal isOpen={Boolean(forceTask)} onRequestClose={()=>!forcing&&setForceTask(null)} className="modal" overlayClassName="modal-overlay">
-          <h3>{f("force")}: {forceTask?.idx}</h3>
+          <h3>{uiTitle(f("force"))}: {forceTask?.idx}</h3>
           <p>{f("notice")}</p>
           <label>{f("reason")}<TextAreaStyle value={forceReason} onChange={e=>setForceReason(e.target.value)} maxLength={2000} style={{width:"100%"}} /></label>
           <div className="supervisor-modal-actions">
-            <BtnSecondary disabled={forcing} onClick={()=>setForceTask(null)}>{t("cancel")}</BtnSecondary>
-            <BtnPrimary disabled={forcing} onClick={forceFinish}>{forcing?"…":f("force")}</BtnPrimary>
+            <BtnSecondary intent="danger" disabled={forcing} onClick={()=>setForceTask(null)}>{t("cancel")}</BtnSecondary>
+            <BtnPrimary intent="danger" disabled={forcing} onClick={forceFinish}>{forcing?"…":f("force")}</BtnPrimary>
           </div>
         </Modal>
         {tareaAEliminar && (
@@ -1072,13 +1073,13 @@ export default function TareasPendientes() {
             className="modal"
             overlayClassName="modal-overlay"
           >
-            <h2>{t("confirm_delete_title")}</h2>
+            <h2>{uiTitle(t("confirm_delete_title"))}</h2>
             <p>{t("confirm_delete_text")}</p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-              <BtnSecondary onClick={() => setTareaAEliminar(null)}>
+              <BtnSecondary intent="danger" onClick={() => setTareaAEliminar(null)}>
                 {t("cancel")}
               </BtnSecondary>
-              <BtnDanger
+              <BtnDanger intent="confirm"
                 onClick={async () => {
                   try {
                     if (!tareaAEliminar?.id) throw new Error("ID inválido");

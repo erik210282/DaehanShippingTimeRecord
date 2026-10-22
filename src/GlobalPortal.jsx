@@ -1,3 +1,4 @@
+import {uiTitle} from './components/actionTheme.mjs';
 import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -66,7 +67,7 @@ export function DepartmentLanding({ name, access }) {
   const navigate=useNavigate();
   if (!departmentKeys.includes(name) || (!access.admin && !access.memberships.some(m => m.department === name))) return <Navigate to="/inicio" replace />;
   return <main className="global-page">
-    <div className="global-heading"><span>DAEHAN APP · {t('global_department')}</span><h1>{t(`global_${name}`)}</h1></div>
+    <div className="global-heading"><span>DAEHAN APP · {t('global_department')}</span><h1>{uiTitle(t(`global_${name}`))}</h1></div>
     <section className="global-panel">{t('global_pending')}</section>
   </main>;
 }

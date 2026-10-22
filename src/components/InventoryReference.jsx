@@ -1,3 +1,4 @@
+import {uiTitle} from './actionTheme.mjs';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
@@ -27,16 +28,16 @@ export default function InventoryReference({ mode }) {
   const visible = relevant.filter(r => (!pending || isPending(r)) && JSON.stringify(r).toLowerCase().includes(search.trim().toLowerCase()));
   const fmt = v => v == null ? t('inv_ref_no_count') : Number(v).toLocaleString('en-US',{ maximumFractionDigits: 6 });
   return <section className="inv-card">
-    <h2>{t(mode === 'stations' ? 'inv_workstations' : 'inv_ref_title')}</h2>
+    <h2>{uiTitle(t(mode === 'stations' ? 'inv_workstations' : 'inv_ref_title'))}</h2>
     <p className="inv-muted">{t(mode === 'stations' ? 'inv_station_intro' : 'inv_ref_intro')}</p>
     {mode !== 'stations' && <p>{t('inv_ref_pending', { count: relevant.filter(isPending).length })}</p>}
     <div className="inv-form">
-      <input aria-label={t('inv_ref_search')} placeholder={t('inv_ref_search')} value={search} onChange={e => setSearch(e.target.value)} />
+      <input aria-label={uiTitle(t('inv_ref_search'))} placeholder={t('inv_ref_search')} value={search} onChange={e => setSearch(e.target.value)} />
       {mode !== 'stations' && <label><input type="checkbox" checked={pending} onChange={e => setPending(e.target.checked)} /> {t('inv_ref_only_pending')}</label>}
     </div>
     {error && <p role="alert" className="inv-message">{error}</p>}
     {loading ? <p role="status">{t('inv_ref_loading')}</p> : <div className="inv-table-wrap"><table>
-      <thead><tr>{(mode === 'stations' ? ['inv_station_code', 'inv_station_name', 'inv_station_type', 'inv_station_materials'] : ['inv_part', 'inv_ref_description', 'inv_ref_fg', 'inv_ref_quantity', 'inv_ref_uom', 'inv_ref_source', 'inv_status']).map(k => <th key={k}>{t(k)}</th>)}</tr></thead>
+      <thead><tr>{(mode === 'stations' ? ['inv_station_code', 'inv_station_name', 'inv_station_type', 'inv_station_materials'] : ['inv_part', 'inv_ref_description', 'inv_ref_fg', 'inv_ref_quantity', 'inv_ref_uom', 'inv_ref_source', 'inv_status']).map(k => <th key={k}>{uiTitle(t(k))}</th>)}</tr></thead>
       <tbody>{visible.map(r => mode === 'stations' ? <tr key={r.code}>
         <td>{r.code}</td><td>{r.name}</td><td>{t(`inv_machine_${r.code.split('-')[1]?.slice(0,3)}`, { defaultValue: r.machine_type })}</td>
         <td>{r.materials.map(m => `${m.erp_material} · ${m.product || m.operation}`).join(' / ')}</td>

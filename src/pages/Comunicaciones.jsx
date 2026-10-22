@@ -1,3 +1,4 @@
+import {uiTitle} from '../components/actionTheme.mjs';
 // src/pages/Comunicaciones.jsx
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -671,7 +672,7 @@ export default function Comunicaciones() {
   return (
     <div className="page-container page-container--fluid">
       <div className="card">
-        <h2>{t("communications")}</h2>
+        <h2>{uiTitle(t("communications"))}</h2>
 
                 {/* ================= NUEVO MENSAJE ================= */}
                 <div
@@ -686,7 +687,7 @@ export default function Comunicaciones() {
                   }}
                 >
                   <h3 style={{ marginTop: 0, marginBottom: 4 }}>
-                    {t("new_message")}
+                    {uiTitle(t("new_message"))}
                   </h3>
 
                   {/* Título */}
@@ -813,7 +814,7 @@ export default function Comunicaciones() {
                           {t("urgent")}
                         </BtnToggleUrgent>
 
-                        <BtnPrimary
+                        <BtnPrimary intent="confirm"
                           onClick={handleCreateThread}
                           style={{
                             width: 170,
@@ -847,7 +848,7 @@ export default function Comunicaciones() {
               maxHeight: "70vh",
             }}
           >
-            <h3 style={{ marginTop: 0 }}>{t("threads")}</h3>
+            <h3 style={{ marginTop: 0 }}>{uiTitle(t("threads"))}</h3>
             {loadingThreads && (
               <p style={{ fontSize: 13 }}>{t("loading")}...</p>
             )}
@@ -969,7 +970,7 @@ export default function Comunicaciones() {
             }}
           >
             <h3 style={{ marginTop: 0, marginBottom: 8 }}>
-              {t("messages")}{" "}
+              {uiTitle(t("messages"))}{" "}
               {selectedThread?.titulo
                 ? `- ${selectedThread.titulo}`
                 : ""}
@@ -1089,7 +1090,7 @@ export default function Comunicaciones() {
                   }}
                 >
                   {/* Botón eliminar conversación */}
-                  <BtnDanger
+                  <BtnDanger intent="danger"
                     type="button"
                     onClick={handleDeleteThread}
                      style={{
@@ -1101,7 +1102,7 @@ export default function Comunicaciones() {
                   </BtnDanger>
 
                   {/* Botón responder */}
-                  <BtnPrimary
+                  <BtnPrimary intent="confirm"
                     onClick={handleSendReply}
                     style={{
                       minWidth: 170,

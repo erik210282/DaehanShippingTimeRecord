@@ -1,3 +1,4 @@
+import {uiTitle} from './components/actionTheme.mjs';
 import {AppAction} from './components/controls';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -39,13 +40,13 @@ export default function SetPassword() {
     setBusy(false);
   }
   return <main className="global-page"><div style={{ display: 'flex', justifyContent: 'flex-end' }}><LanguageBar /></div>
-    <div className="global-heading"><span>DAEHAN APP</span><h1>{t('global_set_password')}</h1></div>
+    <div className="global-heading"><span>DAEHAN APP</span><h1>{uiTitle(t('global_set_password'))}</h1></div>
     <section className="global-panel" style={{ maxWidth: 500 }}>
       {error && <p role="alert">{error}</p>}
-      {done ? <><p>{t('global_password_ready')}</p><AppAction className="global-settings-action" onClick={() => navigate('/')}>{t('global_sign_in')}</AppAction></> : ready ? <form onSubmit={save}>
+      {done ? <><p>{t('global_password_ready')}</p><AppAction intent="neutral" className="global-settings-action" onClick={() => navigate('/')}>{t('global_sign_in')}</AppAction></> : ready ? <form onSubmit={save}>
         <label>{t('global_new_password')}<input type="password" required minLength={8} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} /></label>
         <label>{t('global_confirm_password')}<input type="password" required minLength={8} autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)} /></label>
-        <AppAction disabled={busy}>{t('global_set_password')}</AppAction>
+        <AppAction intent="confirm" disabled={busy}>{t('global_set_password')}</AppAction>
       </form> : !error && <p>{t('loading')}…</p>}
     </section>
   </main>;

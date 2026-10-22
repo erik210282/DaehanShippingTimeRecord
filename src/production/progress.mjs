@@ -17,7 +17,7 @@ export function progressCapture(edit,now=new Date()){
  const a=new Date(start),b=new Date(end),report={start_time:a.toTimeString().slice(0,5),end_time:b.toTimeString().slice(0,5),ends_next_day:localDate(a)!==localDate(b),production_date:localDate(a),downtime_events:edit.downtime_events||[]};
  const schedule=downtimeSchedule(report);
  if(report.downtime_events.length&&schedule.error)return {error:schedule.error};
- const events=schedule.events.map(d=>{
+ const events=schedule.events.map(({_downtime_key,...d})=>{
   const first=new Date(a);if(d.start_time<a.toTimeString().slice(0,5))first.setDate(first.getDate()+1);
   const last=new Date(a);if(d.end_time<a.toTimeString().slice(0,5))last.setDate(last.getDate()+1);
   return {...d,type:d.type,note:d.note||'',start_at:localStart(localDate(first),d.start_time),end_at:localStart(localDate(last),d.end_time)};

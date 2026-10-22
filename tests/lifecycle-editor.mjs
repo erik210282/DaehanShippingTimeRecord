@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {lifecycleEditor,lifecycleSubmission} from '../src/production/lifecycleEditor.mjs';
+import {liveEditor} from '../src/production/liveEditor.mjs';
+const run={id:'a',session_id:'s',station_code:'M',item_id:'P1',started_at:'2026-10-22T06:00:00Z',closed_at:'2026-10-22T08:00:00Z',can_reopen:true,latest_quantity:100};
+const other={...run,id:'b',item_id:'P2',latest_quantity:200};
+const all=[run,other,{...run,id:'unrelated',session_id:'else'}];let n=0;
+const editor=lifecycleEditor(run,all,()=>String(++n));assert.equal(editor.products.length,2);assert.ok(editor.products.every(p=>p.selected));assert.equal(editor.time,'');assert.equal(lifecycleSubmission(editor).error,'pl_reopen_time_invalid');
+const valid={...editor,date:'2026-10-22',time:'09:00'};assert.equal(lifecycleSubmission(valid).payload.products.length,2);
+assert.equal(lifecycleSubmission({...valid,products:valid.products.map(p=>({...p,selected:false}))}).error,'pl_select_finish');
+const subset={...valid,products:valid.products.map((p,i)=>({...p,selected:i===0}))};assert.equal(lifecycleSubmission(subset).payload.products.length,1);
+const active=all.map(r=>({...r,closed_at:null,can_force_finish:true}));const force=lifecycleEditor(active[0],active,()=>String(++n),'force_finish_batch');assert.equal(lifecycleSubmission(force).error,'pl_force_reason_invalid');const result=lifecycleSubmission({...force,reason:'Opened accidentally'});assert.equal(result.action,'force_finish_batch');assert.equal(result.payload.products.length,2);assert.equal(result.payload.products[0].quantity,undefined);
+const finish=liveEditor(active[0],'finish',active,()=>String(++n),true);assert.ok(finish.products.every(p=>p.selected));
+console.log('PASS required time, default all products, deselection, unchanged force totals and finish defaults');

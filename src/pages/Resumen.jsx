@@ -1,3 +1,4 @@
+import {uiTitle} from '../components/actionTheme.mjs';
 import {useShippingForceText} from "../shipping/forceFinish";
 import NativeShippingTableHint from "../components/NativeShippingTableHint";
 import {useLiveVersion} from '../useLiveVersion';
@@ -212,7 +213,7 @@ export default function Resumen() {
   return (
     <div className="page-container page-container--fluid shipping-page shipping-summary">
       <div className="card">
-        <h2>{t("summary")}</h2>
+        <h2>{uiTitle(t("summary"))}</h2>
         {(shippingError || catalogError) && <p role="alert" style={{ color: "#b91c1c" }}>{t("shipping_captures_error")}: {shippingError || catalogError}</p>}
         {(loading || catalogLoading) && <p role="status">{t("loading")}</p>}
         <div className="shipping-filters" style={{ marginBottom: 12 }}>
@@ -235,7 +236,7 @@ export default function Resumen() {
             onChange={(e) => { setFechaFin(e.target.value); setPage(1); }}
             style={{ padding: 4 }}
           />
-          <BtnSecondary type="button" style={{ marginLeft: 10 }} onClick={() => {
+          <BtnSecondary intent="neutral" type="button" style={{ marginLeft: 10 }} onClick={() => {
             setFiltroIdx("");
             setSearch("");
             setFechaInicio("");
@@ -253,16 +254,16 @@ export default function Resumen() {
             </colgroup>
             <thead>
               <tr>
-                <th>{t("idxcode")}</th>
-                <th>{t("product")}</th>
-                <th>{t("quantity")}</th>
-                <th>{t("stage")}</th>
-                <th>{t("label")}</th>
-                <th>{t("scan")}</th>
-                <th>{t("load")}</th>
-                <th>{t("shipping_door")}</th>
-                <th>{t("shipping_trailer")}</th>
-                <th>{t("notes")}</th>
+                <th>{uiTitle(t("idxcode"))}</th>
+                <th>{uiTitle(t("product"))}</th>
+                <th>{uiTitle(t("quantity"))}</th>
+                <th>{uiTitle(t("stage"))}</th>
+                <th>{uiTitle(t("label"))}</th>
+                <th>{uiTitle(t("scan"))}</th>
+                <th>{uiTitle(t("load"))}</th>
+                <th>{uiTitle(t("shipping_door"))}</th>
+                <th>{uiTitle(t("shipping_trailer"))}</th>
+                <th>{uiTitle(t("notes"))}</th>
               </tr>
             </thead>
             <tbody>

@@ -1,3 +1,4 @@
+import {uiTitle} from './actionTheme.mjs';
 import i18n from '../i18n/i18n';
 import {countGroups,countError,registerCountFlow} from '../inventory/countFlow';
 import React, { useState } from 'react';
@@ -34,43 +35,43 @@ export default function PhysicalCounts({items,balances,counts,access,fileRows,sa
   setPhysical(next);setOnlyEntered(true);setPage(1);setMessage(t('inv_count_rows_loaded',{count:Object.keys(next).length}));
  }
  return <section className="inv-card catalog-page">
-  <h2>{t('inv_counts_title')}</h2><p className="inv-muted">{t('inv_count_batch_hint')}</p>
+  <h2>{uiTitle(t('inv_counts_title'))}</h2><p className="inv-muted">{t('inv_count_batch_hint')}</p>
   <div className="catalog-fields">
-   <CatalogSelect disabled={busy} label={t('inv_area')} value={area} onChange={changeArea} options={['RAW','FG','PACKAGING','WIP','HOLD'].map(a=>({value:a,label:t('inv_area_'+a)}))}/>
-   <CatalogSelect disabled={busy} label={t('inv_department')} value={department} onChange={v=>{setDepartment(v);setPage(1);}} options={['inventory','receiving','shipping','production','quality'].filter(d=>can(d)).map(d=>({value:d,label:t('inv_dept_'+d)}))}/>
-   <CatalogInput label={t('search')} value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}/>
+   <CatalogSelect disabled={busy} label={uiTitle(t('inv_area'))} value={area} onChange={changeArea} options={['RAW','FG','PACKAGING','WIP','HOLD'].map(a=>({value:a,label:t('inv_area_'+a)}))}/>
+   <CatalogSelect disabled={busy} label={uiTitle(t('inv_department'))} value={department} onChange={v=>{setDepartment(v);setPage(1);}} options={['inventory','receiving','shipping','production','quality'].filter(d=>can(d)).map(d=>({value:d,label:t('inv_dept_'+d)}))}/>
+   <CatalogInput label={uiTitle(t('search'))} value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}/>
   </div>
   <div className="catalog-actions">
-   <BtnSecondary disabled={busy} onClick={()=>saveCsv('physical_count_template.csv',countable.map(i=>({'Part Number':i.part_number,Name:i.part_name||i.description,Unit:i.uom,'Physical Quantity':''})))}>{t('inv_download_template')}</BtnSecondary>
+   <BtnSecondary intent="neutral" disabled={busy} onClick={()=>saveCsv('physical_count_template.csv',countable.map(i=>({'Part Number':i.part_number,Name:i.part_name||i.description,Unit:i.uom,'Physical Quantity':''})))}>{t('inv_download_template')}</BtnSecondary>
    <label className="inv-file">{t('inv_upload_count')}<input type="file" accept=".csv,.xlsx" disabled={busy} onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)act(()=>upload(f),t('count_preview_ready'));}}/></label>
-   <BtnSecondary disabled={busy} onClick={()=>{if(entered.length&&!window.confirm(t('count_discard')))return;setPhysical({});setOnlyEntered(false);}}>{t('count_clear')}</BtnSecondary>
+   <BtnSecondary intent="neutral" disabled={busy} onClick={()=>{if(entered.length&&!window.confirm(t('count_discard')))return;setPhysical({});setOnlyEntered(false);}}>{t('count_clear')}</BtnSecondary>
    <label className="catalog-checkbox"><input type="checkbox" checked={onlyEntered} onChange={e=>{setOnlyEntered(e.target.checked);setPage(1);}}/>{t('count_only_entered')}</label>
   </div>
   <p>{t('count_progress',{count:entered.length,total:countable.length})}</p>
   {message&&<p role="status" className="inv-message">{message}</p>}{error&&<p role="alert" className="inv-message">{error}</p>}
-  <div className="table-wrap catalog-table-scroll"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('name')}</th><th>{t('inv_unit')}</th><th>{t('inv_expected')}</th><th>{t('inv_physical')}</th><th>{t('inv_difference')}</th></tr></thead><tbody>
+  <div className="table-wrap catalog-table-scroll"><table className="table"><thead><tr><th>{uiTitle(t('inv_part'))}</th><th>{uiTitle(t('name'))}</th><th>{uiTitle(t('inv_unit'))}</th><th>{uiTitle(t('inv_expected'))}</th><th>{uiTitle(t('inv_physical'))}</th><th>{uiTitle(t('inv_difference'))}</th></tr></thead><tbody>
    {filtered.slice((currentPage-1)*pageSize,currentPage*pageSize).map(i=><tr key={i.id}><td>{i.part_number}</td><td>{i.part_name||i.description}</td><td>{i.uom}</td><td>{fmt(qty(i.id))}</td>
-    <td><input aria-label={t('inv_physical')+' '+i.part_number} disabled={busy} className="count-quantity" type="number" min="0" step="any" placeholder="—" value={physical[i.id]??''} onChange={e=>setPhysical({...physical,[i.id]:e.target.value})}/></td>
+    <td><input aria-label={uiTitle(t('inv_physical'))+' '+i.part_number} disabled={busy} className="count-quantity" type="number" min="0" step="any" placeholder="—" value={physical[i.id]??''} onChange={e=>setPhysical({...physical,[i.id]:e.target.value})}/></td>
     <td className={physical[i.id]!==undefined&&physical[i.id]!==''&&Number(physical[i.id])-qty(i.id)<0?'inv-negative':''}>{physical[i.id]===undefined||physical[i.id]===''?'—':fmt(Number(physical[i.id])-qty(i.id))}</td></tr>)}
    {!filtered.length&&<tr><td colSpan="6">{t('no_results_found')}</td></tr>}
   </tbody></table><TablePagination totalRows={filtered.length} page={currentPage} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s=>{setPageSize(s);setPage(1);}}/></div>
-  <div className="catalog-actions"><BtnPrimary disabled={busy||!can(department)||!totalEntered} onClick={()=>act(async()=>{
+  <div className="catalog-actions"><BtnPrimary intent="confirm" disabled={busy||!can(department)||!totalEntered} onClick={()=>act(async()=>{
    const lines=groups.flatMap(g=>g.lines);
    if(lines.some(l=>!Number.isFinite(l.physical_quantity)||l.physical_quantity<0))throw Error(t('inv_review_quantities'));
    await unwrap(supabase.rpc('inventory_submit_counts',{p_groups:groups}));
    setCaptures({});setOnlyEntered(false);
   },t('inv_count_submitted'))}>{t('inv_submit_count')}</BtnPrimary></div>
   <p>{t('inv_count_ready',{count:totalEntered})}</p>
-  {pendingDepartments.map(dept=>{const batch=pending;return <section className="inv-card" key={dept}><h3>{t('inv_count_batch')}</h3><div className="table-wrap"><table className="table"><thead><tr>{['inv_department','inv_area','inv_part','inv_expected','inv_physical','inv_difference'].map(k=><th key={k}>{t(k)}</th>)}</tr></thead><tbody>{batch.flatMap(c=>c.inventory_count_lines.map(l=><tr key={c.id+l.item_id}><td>{t('inv_dept_'+c.department)}</td><td>{t('inv_area_'+c.area)}</td><td>{items.find(i=>i.id===l.item_id)?.part_number}</td><td>{fmt(l.expected_quantity)}</td><td>{fmt(l.physical_quantity)}</td><td>{fmt(Number(l.physical_quantity)-Number(l.expected_quantity))}</td></tr>))}</tbody></table></div>{batch.every(c=>can(c.department,true))&&<div className="catalog-actions"><BtnPrimary disabled={busy} onClick={()=>{if(window.confirm(t('count_confirm_apply')))act(()=>unwrap(supabase.rpc('inventory_review_counts',{p_counts:batch.map(c=>c.id),p_approve:true,p_note:t('inv_mobile_approved_note')})),t('inv_count_approved'));}}>{t('inv_approve_apply')}</BtnPrimary><BtnDanger disabled={busy} onClick={()=>act(()=>unwrap(supabase.rpc('inventory_review_counts',{p_counts:batch.map(c=>c.id),p_approve:false,p_note:t('inv_mobile_rejected_note')})),t('inv_count_rejected'))}>{t('inv_reject')}</BtnDanger></div>}</section>;})}
-  <h3>{t('inv_count_reports')}</h3>
-  <div className="table-wrap"><table className="table"><thead><tr><th>{t('inv_day')}</th><th>{t('inv_area')}</th><th>{t('inv_department')}</th><th>{t('status')}</th><th>{t('actions')}</th></tr></thead><tbody>
+  {pendingDepartments.map(dept=>{const batch=pending;return <section className="inv-card" key={dept}><h3>{uiTitle(t('inv_count_batch'))}</h3><div className="table-wrap"><table className="table"><thead><tr>{['inv_department','inv_area','inv_part','inv_expected','inv_physical','inv_difference'].map(k=><th key={k}>{uiTitle(t(k))}</th>)}</tr></thead><tbody>{batch.flatMap(c=>c.inventory_count_lines.map(l=><tr key={c.id+l.item_id}><td>{t('inv_dept_'+c.department)}</td><td>{t('inv_area_'+c.area)}</td><td>{items.find(i=>i.id===l.item_id)?.part_number}</td><td>{fmt(l.expected_quantity)}</td><td>{fmt(l.physical_quantity)}</td><td>{fmt(Number(l.physical_quantity)-Number(l.expected_quantity))}</td></tr>))}</tbody></table></div>{batch.every(c=>can(c.department,true))&&<div className="catalog-actions"><BtnPrimary intent="confirm" disabled={busy} onClick={()=>{if(window.confirm(t('count_confirm_apply')))act(()=>unwrap(supabase.rpc('inventory_review_counts',{p_counts:batch.map(c=>c.id),p_approve:true,p_note:t('inv_mobile_approved_note')})),t('inv_count_approved'));}}>{t('inv_approve_apply')}</BtnPrimary><BtnDanger intent="danger" disabled={busy} onClick={()=>act(()=>unwrap(supabase.rpc('inventory_review_counts',{p_counts:batch.map(c=>c.id),p_approve:false,p_note:t('inv_mobile_rejected_note')})),t('inv_count_rejected'))}>{t('inv_reject')}</BtnDanger></div>}</section>;})}
+  <h3>{uiTitle(t('inv_count_reports'))}</h3>
+  <div className="table-wrap"><table className="table"><thead><tr><th>{uiTitle(t('inv_day'))}</th><th>{uiTitle(t('inv_area'))}</th><th>{uiTitle(t('inv_department'))}</th><th>{uiTitle(t('status'))}</th><th>{uiTitle(t('actions'))}</th></tr></thead><tbody>
    {counts.filter(c=>c.status!=='submitted').map(c=><React.Fragment key={c.id}><tr><td>{new Date(c.counted_at||c.submitted_at).toLocaleString(i18n.language)}</td><td>{t('inv_area_'+c.area)}</td><td>{t('inv_dept_'+c.department)}</td><td>{t('inv_status_'+c.status)}</td><td>
-    <BtnSecondary onClick={()=>setReport(report===c.id?null:c.id)}>{t('count_view')}</BtnSecondary>
-    <BtnSecondary onClick={()=>saveCsv('physical_count_'+c.id+'.csv',c.inventory_count_lines.map(l=>({'Part Number':items.find(i=>i.id===l.item_id)?.part_number,'Expected Quantity':l.expected_quantity,'Physical Quantity':l.physical_quantity,Difference:Number(l.physical_quantity)-Number(l.expected_quantity)})))}>{t('inv_download_report')}</BtnSecondary>
-    {c.status==='submitted'&&can(c.department,true)&&<><BtnPrimary disabled={busy} onClick={()=>{if(window.confirm(t('count_confirm_apply')))act(()=>unwrap(supabase.rpc('inventory_review_count',{p_count:c.id,p_approve:true,p_note:t('inv_mobile_approved_note')})),t('inv_count_approved'));}}>{t('inv_approve_apply')}</BtnPrimary>
-     <BtnDanger disabled={busy} onClick={()=>act(()=>unwrap(supabase.rpc('inventory_review_count',{p_count:c.id,p_approve:false,p_note:t('inv_mobile_rejected_note')})),t('inv_count_rejected'))}>{t('inv_reject')}</BtnDanger></>}
+    <BtnSecondary intent="neutral" onClick={()=>setReport(report===c.id?null:c.id)}>{t('count_view')}</BtnSecondary>
+    <BtnSecondary intent="neutral" onClick={()=>saveCsv('physical_count_'+c.id+'.csv',c.inventory_count_lines.map(l=>({'Part Number':items.find(i=>i.id===l.item_id)?.part_number,'Expected Quantity':l.expected_quantity,'Physical Quantity':l.physical_quantity,Difference:Number(l.physical_quantity)-Number(l.expected_quantity)})))}>{t('inv_download_report')}</BtnSecondary>
+    {c.status==='submitted'&&can(c.department,true)&&<><BtnPrimary intent="confirm" disabled={busy} onClick={()=>{if(window.confirm(t('count_confirm_apply')))act(()=>unwrap(supabase.rpc('inventory_review_count',{p_count:c.id,p_approve:true,p_note:t('inv_mobile_approved_note')})),t('inv_count_approved'));}}>{t('inv_approve_apply')}</BtnPrimary>
+     <BtnDanger intent="danger" disabled={busy} onClick={()=>act(()=>unwrap(supabase.rpc('inventory_review_count',{p_count:c.id,p_approve:false,p_note:t('inv_mobile_rejected_note')})),t('inv_count_rejected'))}>{t('inv_reject')}</BtnDanger></>}
    </td></tr>
-   {report===c.id&&<tr><td colSpan="5"><table className="table"><thead><tr><th>{t('inv_part')}</th><th>{t('inv_expected')}</th><th>{t('inv_physical')}</th><th>{t('inv_difference')}</th></tr></thead><tbody>
+   {report===c.id&&<tr><td colSpan="5"><table className="table"><thead><tr><th>{uiTitle(t('inv_part'))}</th><th>{uiTitle(t('inv_expected'))}</th><th>{uiTitle(t('inv_physical'))}</th><th>{uiTitle(t('inv_difference'))}</th></tr></thead><tbody>
     {c.inventory_count_lines.map(l=><tr key={l.item_id}><td>{items.find(i=>i.id===l.item_id)?.part_number}</td><td>{fmt(l.expected_quantity)}</td><td>{fmt(l.physical_quantity)}</td><td>{fmt(Number(l.physical_quantity)-Number(l.expected_quantity))}</td></tr>)}
    </tbody></table></td></tr>}
    </React.Fragment>)}

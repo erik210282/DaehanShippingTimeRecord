@@ -1,3 +1,4 @@
+import {uiTitle} from './components/actionTheme.mjs';
 import NativeShippingGate from './NativeShippingGate';
 import {nativeShipping} from './nativeShippingBridge';
 import {RoleAccessProvider,SectionPermission} from './RoleAccess';
@@ -227,7 +228,7 @@ const Navbar = () => {
       </div>
       <div className="app-header-right"><button className="app-header-button" onClick={handleLogout}>{t('logout')}</button><LanguageBar /></div>
     </header>
-    {shipping && <div className="app-department-nav"><ModuleHeading title={t('global_shipping')}/><DepartmentNav department="shipping" items={shippingItems} value={location.pathname} onChange={navigate} label={t('global_shipping')}/></div>}
+    {shipping && <div className="app-department-nav"><ModuleHeading title={uiTitle(t('global_shipping'))}/><DepartmentNav department="shipping" items={shippingItems} value={location.pathname} onChange={navigate} label={uiTitle(t('global_shipping'))}/></div>}
   </>;
 };
 

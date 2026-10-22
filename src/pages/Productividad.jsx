@@ -1,3 +1,4 @@
+import {uiTitle} from '../components/actionTheme.mjs';
 import {saveShippingFile} from '../nativeShippingBridge';
 import {useLiveVersion} from '../useLiveVersion';
 // Productividad.jsx (reemplazo completo)
@@ -367,7 +368,7 @@ export default function Productividad() {
   return (
     <div className="page-container page-container--fluid">
       <div className="card">
-        <h2>{t("productivity")}</h2>
+        <h2>{uiTitle(t("productivity"))}</h2>
 
         {/* Filtros de fecha */}
         <div
@@ -416,7 +417,7 @@ export default function Productividad() {
         </div>
 
         {/* Botón limpiar */}
-        <BtnSecondary onClick={limpiarFiltros} style={{ marginBottom: "1rem" }}>
+        <BtnSecondary intent="neutral" onClick={limpiarFiltros} style={{ marginBottom: "1rem" }}>
           {t("clear_filters")}
         </BtnSecondary>
 
@@ -431,7 +432,7 @@ export default function Productividad() {
                         ? `${traducirAgrupacion(agrupadoPor)} - ${traducirAgrupacion(agrupadoPor2)}`
                         : traducirAgrupacion(agrupadoPor)}
                     </th>
-                    <th>{t("average_time_minutes")}</th>
+                    <th>{uiTitle(t("average_time_minutes"))}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -454,7 +455,7 @@ export default function Productividad() {
         </div>
 
         {/* Exportar */}
-        <BtnPrimary onClick={exportarCSV} style={{ marginTop: "1rem" }}>
+        <BtnPrimary intent="neutral" onClick={exportarCSV} style={{ marginTop: "1rem" }}>
           {t("export_csv")}
         </BtnPrimary>
 

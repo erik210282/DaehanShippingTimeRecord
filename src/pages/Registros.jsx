@@ -1,3 +1,4 @@
+import {uiTitle} from '../components/actionTheme.mjs';
 import {useShippingForceText} from "../shipping/forceFinish";
 import NativeShippingTableHint from "../components/NativeShippingTableHint";
 import {saveShippingFile} from '../nativeShippingBridge';
@@ -487,7 +488,7 @@ useEffect(() => {
   return (
     <div className="page-container page-container--fluid shipping-page shipping-records">
       <div className="card">
-      <h2>{t("records")}</h2>{loadingRecords&&<p role="status">{t("loading")}</p>}{recordsError&&<p role="alert">{recordsError}</p>}
+      <h2>{uiTitle(t("records"))}</h2>{loadingRecords&&<p role="status">{t("loading")}</p>}{recordsError&&<p role="alert">{recordsError}</p>}
 
       <div>
           <div className="shipping-filters" style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
@@ -505,12 +506,12 @@ useEffect(() => {
           </div>
 
           <div className="shipping-filter-actions" style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <BtnSecondary data-record-action="clear" onClick={() => {
+            <BtnSecondary intent="neutral" data-record-action="clear" onClick={() => {
               setActividadFiltro([]); setProductoFiltro([]); setOperadorFiltro([]);
               setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
             }}>{t("clear_filters")}</BtnSecondary>
-            <BtnSecondary data-record-action="export" disabled={exporting||loadingRecords} onClick={exportarCSV}>{t("export_csv")}</BtnSecondary>
-            <BtnPrimary data-record-action="new" onClick={() => abrirModal()}>
+            <BtnSecondary intent="neutral" data-record-action="export" disabled={exporting||loadingRecords} onClick={exportarCSV}>{t("export_csv")}</BtnSecondary>
+            <BtnPrimary intent="create" data-record-action="new" onClick={() => abrirModal()}>
               ➕ {t("add_record")}
             </BtnPrimary>        
           </div>  
@@ -524,20 +525,20 @@ useEffect(() => {
               </colgroup>
               <thead>
                 <tr>
-                  <th>{t("idx")}</th>
-                  <th>{t("activity")}</th>
-                  <th>{t("product")}</th>
-                  <th>{t("amount")}</th>
-                  <th>{t("operator")}</th>
-                  <th>{t("start_time")}</th>
-                  <th>{t("end_time")}</th>
-                   <th>{t("duration_pause_short")}</th>
-                   <th>{t("shipping_labels")}</th>
-                   <th>{t("shipping_door")}</th>
-                   <th>{t("shipping_trailer")}</th>
-                  <th>{t("shipping_validation")}</th>
-                  <th>{t("notes")}</th>
-                  <th>{t("actions")}</th>
+                  <th>{uiTitle(t("idx"))}</th>
+                  <th>{uiTitle(t("activity"))}</th>
+                  <th>{uiTitle(t("product"))}</th>
+                  <th>{uiTitle(t("amount"))}</th>
+                  <th>{uiTitle(t("operator"))}</th>
+                  <th>{uiTitle(t("start_time"))}</th>
+                  <th>{uiTitle(t("end_time"))}</th>
+                   <th>{uiTitle(t("duration_pause_short"))}</th>
+                   <th>{uiTitle(t("shipping_labels"))}</th>
+                   <th>{uiTitle(t("shipping_door"))}</th>
+                   <th>{uiTitle(t("shipping_trailer"))}</th>
+                  <th>{uiTitle(t("shipping_validation"))}</th>
+                  <th>{uiTitle(t("notes"))}</th>
+                  <th>{uiTitle(t("actions"))}</th>
                 </tr>
               </thead>
               <tbody>
@@ -607,8 +608,8 @@ useEffect(() => {
                        </td>
                        <td>
                          <div className="records-actions">
-                           <BtnEditDark style={{ width: "100%", padding: "4px 2px" }} onClick={() => abrirModal(r)}>{t("edit")}</BtnEditDark>
-                           <BtnDanger style={{ width: "100%", padding: "4px 2px" }}
+                           <BtnEditDark intent="neutral" style={{ width: "100%", padding: "4px 2px" }} onClick={() => abrirModal(r)}>{t("edit")}</BtnEditDark>
+                           <BtnDanger intent="danger" style={{ width: "100%", padding: "4px 2px" }}
                             onClick={() => setRegistroAEliminar(r)}
                           >
                             {t("delete")}
@@ -643,7 +644,7 @@ useEffect(() => {
             }
           }}
           >
-          <h3>{esNuevo ? t("add") : t("edit")}</h3>
+          <h3>{esNuevo ? uiTitle(t("add")) : uiTitle(t("edit"))}</h3>
 
           <DSInput
             type="text"
@@ -685,11 +686,11 @@ useEffect(() => {
               )) && (
                 <>
                   <DSInput type="text" readOnly
-                    aria-label={t("task_idx_suffix_placeholder")}
+                    aria-label={uiTitle(t("task_idx_suffix_placeholder"))}
                     value={lineasRegistro.find((linea) => String(linea.producto) === String(p.producto))?.idx_line || p.idx_line || ""}
                     style={{ width: 125 }} />
                   <DSInput type="text" readOnly
-                    aria-label={t("task_first_label_placeholder")}
+                    aria-label={uiTitle(t("task_first_label_placeholder"))}
                     value={lineasRegistro.find((linea) => String(linea.producto) === String(p.producto))?.primera_etiqueta || p.primera_etiqueta || ""}
                     style={{ width: 210 }} />
                 </>
@@ -703,7 +704,7 @@ useEffect(() => {
               )}
             </div>
           ))}
-          <BtnSecondary type="button"
+          <BtnSecondary intent="create" type="button"
             onClick={() => setRegistroActual({
               ...registroActual,
               productos: [...registroActual.productos, { producto: "", cantidad: "" }],
@@ -714,7 +715,7 @@ useEffect(() => {
           </BtnSecondary>
            {!esNuevo && (
              <div className="records-shipping-editor">
-               <h4>{t("shipping_capture_details")}</h4><p>{f("review")}</p>
+               <h4>{uiTitle(t("shipping_capture_details"))}</h4><p>{f("review")}</p>
                <div className="records-edit-grid">
                  {[
                    ["etiqueta_inicio", "shipping_start_label"],
@@ -756,8 +757,8 @@ useEffect(() => {
              </label>
            </div>
           <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-             <BtnPrimary type="button" onClick={guardarRegistro} disabled={saving}>{t("save")}</BtnPrimary>
-            <BtnSecondary type="button" onClick={() => setModalAbierto(false)}>{t("cancel")}</BtnSecondary>
+             <BtnPrimary intent="confirm" type="button" onClick={guardarRegistro} disabled={saving}>{t("save")}</BtnPrimary>
+            <BtnSecondary intent="danger" type="button" onClick={() => setModalAbierto(false)}>{t("cancel")}</BtnSecondary>
           </div>
         </Modal>  
 
@@ -768,17 +769,17 @@ useEffect(() => {
             className="modal"
             overlayClassName="modal-overlay"
           >
-            <h2>{t("confirm_delete_title")}</h2>
+            <h2>{uiTitle(t("confirm_delete_title"))}</h2>
             <p>{t("confirm_delete_text")}</p>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-              <BtnSecondary
+              <BtnSecondary intent="danger"
                 onClick={() => setRegistroAEliminar(null)}
               >
                 {t("cancel")}
               </BtnSecondary>
 
-              <BtnDanger
+              <BtnDanger intent="confirm"
                 onClick={async () => {
                   try {
                     const { error } = await supabase

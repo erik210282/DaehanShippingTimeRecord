@@ -1,3 +1,4 @@
+import {uiTitle} from './actionTheme.mjs';
 import {AppAction} from './controls';
 import React, { useEffect, useState } from 'react';
 import { supabase } from "../supabase/client";
@@ -76,7 +77,7 @@ export default function ExportCSV() {
 
   return (
     <div style={{ marginBottom: '20px' }}>
-      <h3>Filtros</h3>
+      <h3>{uiTitle("Filtros")}</h3>
       <div style={{ maxWidth: 300, marginBottom: 10 }}>
         <Select
           options={actividades}
@@ -107,7 +108,7 @@ export default function ExportCSV() {
         />
       </div>
 
-      <AppAction tone="secondary" onClick={exportarDatos}>Exportar a CSV</AppAction>
+      <AppAction intent="neutral" tone="secondary" onClick={exportarDatos}>Exportar a CSV</AppAction>
     </div>
   );
 }
