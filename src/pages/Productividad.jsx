@@ -366,60 +366,33 @@ export default function Productividad() {
   };
 
   return (
-    <div className="page-container page-container--fluid">
+    <div className="page-container page-container--fluid shipping-page shipping-productivity">
       <div className="card">
         <h2>{uiTitle(t("productivity"))}</h2>
 
-        {/* Filtros de fecha */}
-        <div
-          style={{
-            display: "flex",
-            gap: "1rem",
-            flexWrap: "wrap",
-            marginBottom: "1rem",
-            justifyContent: "flex-start",
-          }}
-        >
-          <DSDate value={desde} onChange={(e) => setDesde(e.target.value)} />
-          <DSDate value={hasta} onChange={(e) => setHasta(e.target.value)} />
-        </div>
-
-        {errorFecha && <p style={{ color: "red" }}>{errorFecha}</p>}
-
-        {/* Agrupaciones */}
-        <div
-          style={{
-            display: "flex",
-            gap: "1rem",
-            flexWrap: "wrap",
-            marginBottom: "1rem",
-            justifyContent: "flex-start",
-          }}
-        >
-          <DSNativeSelect value={agrupadoPor} onChange={(e) => setAgrupadoPor(e.target.value)}>
+        <div className="shipping-filters productivity-toolbar" role="group" aria-label={uiTitle(t('productivity'))}>
+          <DSDate aria-label={uiTitle(t('from_date'))} value={desde} onChange={(e)=>setDesde(e.target.value)}/>
+          <DSDate aria-label={uiTitle(t('to_date'))} value={hasta} onChange={(e)=>setHasta(e.target.value)}/>
+          <DSNativeSelect aria-label={uiTitle(t('select_first_group',{defaultValue:'Chart Type'}))} value={agrupadoPor} onChange={(e) => setAgrupadoPor(e.target.value)}>
             <option value="">{t("select_first_group")}</option>
             <option value="actividad">{t("activity")}</option>
             <option value="operador">{t("operator")}</option>
             <option value="producto">{t("product")}</option>
           </DSNativeSelect>
-
-          <DSNativeSelect value={agrupadoPor2} onChange={(e) => setAgrupadoPor2(e.target.value)}>
+          <DSNativeSelect aria-label={uiTitle(t('select_second_group',{defaultValue:'Chart Type'}))} value={agrupadoPor2} onChange={(e) => setAgrupadoPor2(e.target.value)}>
             <option value="">{t("select_second_group")}</option>
             <option value="actividad">{t("activity")}</option>
             <option value="operador">{t("operator")}</option>
             <option value="producto">{t("product")}</option>
           </DSNativeSelect>
-
-          <DSNativeSelect value={tipoGrafica} onChange={(e) => setTipoGrafica(e.target.value)}>
+          <DSNativeSelect aria-label={uiTitle(t('shipping_chart_type'))} value={tipoGrafica} onChange={(e) => setTipoGrafica(e.target.value)}>
             <option value="bar">{t("bar_chart")}</option>
             <option value="pie">{t("pie_chart")}</option>
           </DSNativeSelect>
+          <BtnSecondary intent="neutral" onClick={limpiarFiltros}>{t('clear_filters')}</BtnSecondary>
+          <BtnPrimary intent="neutral" onClick={exportarCSV}>{t('export_csv')}</BtnPrimary>
         </div>
-
-        {/* Botón limpiar */}
-        <BtnSecondary intent="neutral" onClick={limpiarFiltros} style={{ marginBottom: "1rem" }}>
-          {t("clear_filters")}
-        </BtnSecondary>
+        {errorFecha&&<p role="alert" style={{color:'red'}}>{errorFecha}</p>}
 
         {/* Tabla */}
         <div style={{ marginTop: "2rem", overflowX: "visible" }}>
@@ -454,12 +427,7 @@ export default function Productividad() {
           </div>
         </div>
 
-        {/* Exportar */}
-        <BtnPrimary intent="neutral" onClick={exportarCSV} style={{ marginTop: "1rem" }}>
-          {t("export_csv")}
-        </BtnPrimary>
-
-        {/* Gráfico */}
+{/* Gráfico */}
         {etiquetas.length > 0 ? (
           <div style={{ maxWidth: "100%", height: "400px", marginTop: "2rem" }}>
             {tipoGrafica === "bar" ? <Bar data={datosGrafica} options={{ responsive: true }} /> : <Pie data={datosGrafica} options={{ responsive: true }} />}

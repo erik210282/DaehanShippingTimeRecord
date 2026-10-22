@@ -1,3 +1,4 @@
+import {departmentOperators} from './departmentOperators.mjs';
 export const phases=['stage','label','scan','load'];
 export const activeStates=['iniciada','pausada'];
 export const activityName=(row,catalog)=>String(catalog.find(a=>a.id===row.actividad)?.nombre||row.actividad||'').trim().toLowerCase();
@@ -20,10 +21,12 @@ export function operatorApi(db){
   value(db.from('actividades_realizadas').select('*').in('estado',activeStates).order('hora_inicio')),
   value(db.from('productos').select('id,nombre,part_number')),
   value(db.from('actividades').select('id,nombre,activo')),
-  value(db.from('operadores').select('id,nombre,activo').eq('activo',true).order('nombre')),identity()]);
+  value(departmentOperators(db,'shipping')),identity()]);
  const idxs=[...new Set(tasks.map(t=>t.idx).filter(Boolean))],ids=active.map(a=>a.id);
+ const historicalIds=[...new Set(active.flatMap(a=>a.operadores||[]))];
+ const historical=historicalIds.length?await value(db.from('operadores').select('id,nombre').in('id',historicalIds)):[];
  const [lines,captures]=await Promise.all([idxs.length?value(db.from('shipping_lines').select('id,idx').in('idx',idxs)):[],ids.length?value(db.from('shipping_activity_labels').select('actividad_id,trailer,puerta,etiqueta_inicio').in('actividad_id',ids)):[]]);
- return {tasks,active,products,catalog,operators,person,lines,captures};}
+ return {tasks,active,products,catalog,operators,person,lines,captures,historical};}
  async function begin(task,draft,data){const person=await identity();validateLoad(task,draft,data.products,data.catalog,null,data.lines.some(l=>l.idx===task.idx));
  if(!task.productos?.length||task.productos.some(p=>!p.producto||!(Number(p.cantidad)>0)))throw Error('so_products_required');
  const operators=[...new Set([person.id,...(draft.operators||[]).filter(id=>data.operators.some(o=>o.id===id))])];

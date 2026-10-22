@@ -633,5 +633,6 @@
   "dt_raw_none": "Sin materiales RAW asignados",
   "dt_raw_invalid": "Selecciona materiales RAW válidos sin repetir.",
   "rc_SEMI": "Semiproducto (SEMI)",
-  "inv_semi_hint": "Los semiproductos (SEMI) generados en procesos intermedios se registran en WIP y pueden utilizarse en la siguiente etapa."
+  "inv_semi_hint": "Los semiproductos (SEMI) generados en procesos intermedios se registran en WIP y pueden utilizarse en la siguiente etapa.",
+  "shipping_chart_type": "Tipo De Gráfica"
 }

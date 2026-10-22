@@ -1,3 +1,4 @@
+import {departmentOperators} from '../shipping/departmentOperators.mjs';
 import CaptureDateTime from '../components/CaptureDateTime';
 import {uiTitle} from '../components/actionTheme.mjs';
 import {useShippingForceText} from "../shipping/forceFinish";
@@ -110,15 +111,17 @@ export default function Registros() {
 
 const cargarCatalogos = async () => {
   try {
-    const [{ data: actData, error: actErr }, { data: prodData, error: prodErr }, { data: opData, error: opErr }] =
+    const [{ data: actData, error: actErr }, { data: prodData, error: prodErr }, { data: opData, error: opErr }, {data: assignedOps, error: assignedErr}] =
       await Promise.all([
         supabase.from("actividades").select("id, nombre"),
         supabase.from("productos").select("id, nombre"),
         supabase.from("operadores").select("id, nombre, activo, inactive_since"),
+        departmentOperators(supabase,'shipping'),
       ]);
 
     if (actErr) console.error("[Registros] Error Actividades", actErr);
     if (prodErr) console.error("[Registros] Error Productos", prodErr);
+    if (assignedErr) {setSelectOperadores([]);throw assignedErr;}
     if (opErr) console.error("[Registros] Error Operadores", opErr);
 
     const actividades = {};
@@ -149,7 +152,7 @@ const cargarCatalogos = async () => {
     );
 
     setSelectOperadores(
-      opData
+      assignedOps
         ?.filter((doc) => doc.activo === true)
         .map((doc) => ({ value: doc.id, label: doc.nombre }))
         .sort((a, b) => a.label.localeCompare(b.label)) || []
@@ -277,13 +280,10 @@ useEffect(() => {
 
  const operadoresEditables = [...selectOperadores];
  if (!esNuevo && registroActual?.estado === "finalizada") {
-   const fin = new Date(registroActual.horaFin);
    operadoresCatalogo.forEach((op) => {
-     if (op.activo === true || operadoresEditables.some((option) => option.value === op.id)) return;
+     if (operadoresEditables.some((option) => option.value === op.id)) return;
      const yaRegistrado = registroActual.operadores?.includes(op.id);
-     const activoEntonces = op.inactive_since && !Number.isNaN(fin.getTime()) &&
-       fin < new Date(op.inactive_since);
-     if (yaRegistrado || activoEntonces) {
+     if (yaRegistrado) {
        operadoresEditables.push({ value: op.id, label: op.nombre });
      }
    });

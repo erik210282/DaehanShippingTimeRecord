@@ -633,5 +633,6 @@
   "dt_raw_none": "No RAW materials assigned",
   "dt_raw_invalid": "Select valid RAW materials without duplicates.",
   "rc_SEMI": "Semi-finished product (SEMI)",
-  "inv_semi_hint": "Semi-finished products (SEMI) made in intermediate processes are recorded in WIP and can be used in the next stage."
+  "inv_semi_hint": "Semi-finished products (SEMI) made in intermediate processes are recorded in WIP and can be used in the next stage.",
+  "shipping_chart_type": "Chart Type"
 }

@@ -1,9 +1,10 @@
+import {departmentOperators} from '../shipping/departmentOperators.mjs';
 import {uiTitle} from './actionTheme.mjs';
 import {AppAction} from './controls';
 import React, { useEffect, useState } from 'react';
 import { supabase } from "../supabase/client";
 import Papa from 'papaparse';
-import Select from 'react-select';
+import {DSSelect as Select} from './controls';
 
 export default function ExportCSV() {
   const [actividad, setActividad] = useState(null);
@@ -19,7 +20,7 @@ export default function ExportCSV() {
       const [actRes, prodRes, opRes] = await Promise.all([
         supabase.from('actividades').select('id, nombre'),
         supabase.from('productos').select('id, nombre'),
-        supabase.from('operadores').select('id, nombre'),
+        departmentOperators(supabase,'shipping'),
       ]);
 
       if (!actRes.error) {
@@ -78,7 +79,7 @@ export default function ExportCSV() {
   return (
     <div style={{ marginBottom: '20px' }}>
       <h3>{uiTitle("Filtros")}</h3>
-      <div style={{ maxWidth: 300, marginBottom: 10 }}>
+      <div className="shipping-filters">
         <Select
           options={actividades}
           value={actividad}
@@ -86,9 +87,7 @@ export default function ExportCSV() {
           placeholder="Filtrar por actividad"
           isClearable
         />
-      </div>
 
-      <div style={{ maxWidth: 300, marginBottom: 10 }}>
         <Select
           options={productos}
           value={producto}
@@ -96,9 +95,7 @@ export default function ExportCSV() {
           placeholder="Filtrar por producto"
           isClearable
         />
-      </div>
 
-      <div style={{ maxWidth: 300, marginBottom: 10 }}>
         <Select
           options={operadores}
           value={operador}
@@ -106,9 +103,8 @@ export default function ExportCSV() {
           placeholder="Filtrar por operador"
           isClearable
         />
-      </div>
-
       <AppAction intent="neutral" tone="secondary" onClick={exportarDatos}>Exportar a CSV</AppAction>
+      </div>
     </div>
   );
 }

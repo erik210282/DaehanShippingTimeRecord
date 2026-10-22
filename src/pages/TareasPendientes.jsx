@@ -1,3 +1,4 @@
+import {departmentOperators} from '../shipping/departmentOperators.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import {useShippingForceText} from "../shipping/forceFinish";
 import NativeShippingTableHint from "../components/NativeShippingTableHint";
@@ -160,9 +161,8 @@ export default function TareasPendientes() {
   };
 
   const fetchOperadores = async () => {
-    const { data, error } = await supabase
-      .from("operadores")
-      .select("id, nombre, activo");
+    const { data, error } = await departmentOperators(supabase,'shipping');
+    if(error){setOperadores({});return;}
 
     if (!error && data) {
       const ops = {};
@@ -237,6 +237,7 @@ export default function TareasPendientes() {
         { event: "*", schema: "public", table: "operadores" },
         fetchOperadores
       )
+      .on('postgres_changes',{event:'*',schema:'public',table:'global_department_memberships'},fetchOperadores)
       .subscribe();
 
     return () => {

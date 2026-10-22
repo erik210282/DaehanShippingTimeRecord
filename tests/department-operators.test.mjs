@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {operatorApi} from '../src/shipping/operatorApi.mjs';
+import {departmentOperators} from '../src/shipping/departmentOperators.mjs';
+const mine={id:'mine',uid:'user',nombre:'Shipping User',activo:true},colleague={id:'ship',uid:'other',nombre:'Shipping Colleague',activo:true};
+const outside={id:'production',uid:'prod',nombre:'Production Only',activo:true};
+const calls=[];
+const db={auth:{getUser:async()=>({data:{user:{id:'user'}}})},rpc:async(name,args)=>{calls.push({name,args});return{data:[mine,colleague],error:null};},from(table){let single=false,ids=null,uid=null;const b=new Proxy({},{get(_,key){if(key==='then')return resolve=>{let data=table==='operadores'?(single?mine:ids?[outside]:[mine,colleague,outside]):table==='actividades_realizadas'?[{id:'activity',operadores:['production']}]:[];resolve({data,error:null});};return(...args)=>{if(key==='maybeSingle')single=true;if(key==='in'&&args[0]==='id')ids=args[1];if(key==='eq'&&args[0]==='uid')uid=args[1];return b;};}});return b;}};
+const data=await operatorApi(db).load();
+assert.deepEqual(data.operators.map(o=>o.id),['mine','ship'],'Only assigned colleagues are selectable');
+assert.equal(data.historical[0].nombre,'Production Only','Existing participant names survive reassignment');
+assert.deepEqual(calls[0],{name:'department_operators',args:{p_department:'shipping',p_include_inactive:false}});
+await departmentOperators(db,'production');assert.equal(calls.at(-1).args.p_department,'production');
+const failed={...db,rpc:async()=>({data:null,error:{message:'Department access required'}})};
+await assert.rejects(()=>operatorApi(failed).load(),e=>e.message==='Department access required','Never fall back to the global catalog on denied access');
+console.log('PASS scoped operator choices, historical names, department parameter and denied-access handling');

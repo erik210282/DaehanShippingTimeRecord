@@ -633,5 +633,6 @@
   "dt_raw_none": "배정된 원자재 없음",
   "dt_raw_invalid": "중복 없이 유효한 원자재를 선택하세요.",
   "rc_SEMI": "반제품 (SEMI)",
-  "inv_semi_hint": "중간 공정에서 생산된 반제품(SEMI)은 재공품(WIP)으로 기록되며 다음 공정에 사용할 수 있습니다."
+  "inv_semi_hint": "중간 공정에서 생산된 반제품(SEMI)은 재공품(WIP)으로 기록되며 다음 공정에 사용할 수 있습니다.",
+  "shipping_chart_type": "차트 유형"
 }

@@ -1,3 +1,4 @@
+import {departmentOperators} from '../shipping/departmentOperators.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 // src/pages/Comunicaciones.jsx
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -106,13 +107,9 @@ export default function Comunicaciones() {
     const cargarOperadores = useCallback(async () => {
       try {
         // Cargar directamente desde la tabla operadores
-        const { data: ops, error } = await supabase
-          .from("operadores")
-          .select("uid, nombre, email, role, activo")
-          .eq("activo", true)
-          .order("nombre", { ascending: true });
+        const { data: ops, error } = await departmentOperators(supabase,'shipping');
 
-        if (error) throw error;
+        if (error) {setOperadoresOptions([]);setOperadores([]);throw error;}
 
         const lista = (ops || []).map((op) => ({
           uid: op.uid,

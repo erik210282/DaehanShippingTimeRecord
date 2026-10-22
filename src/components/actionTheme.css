@@ -52,3 +52,8 @@ html body.native-shipping.compact-leader #root .records-filter-toolbar>.shipping
 html body #root .global-settings-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:12px}html body #root .global-settings-toolbar>input{width:220px!important;max-width:100%;flex:0 1 220px;margin:0}
 
 .production-daily-table{min-width:2600px;table-layout:auto}.production-daily-table .production-row-actions{min-width:480px;justify-content:flex-start;flex-wrap:wrap;gap:8px}.production-daily-table .production-row-actions button[data-ui-intent]{white-space:nowrap!important}
+
+/* Native selects use the same bounded, wrapping toolbar as every report. */
+html body #root .shipping-filters>select{flex:0 1 220px;width:220px!important;min-width:180px;margin:0!important}
+html body #root .productivity-toolbar>select:last-of-type{flex-basis:170px;width:170px!important;min-width:150px}
+@media(max-width:480px){html body #root .shipping-filters>select{flex:1 1 220px;width:auto!important;min-width:min(220px,100%)}}

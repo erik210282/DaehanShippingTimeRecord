@@ -1,3 +1,4 @@
+import {departmentOperators} from '../shipping/departmentOperators.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import {useLiveVersion} from '../useLiveVersion';
 import React, { useState, useMemo, useEffect } from "react";
@@ -129,13 +130,9 @@ export default function Usuarios() {
       const cargarUsuarios = async (silent=false) => {
         if(!silent)setCargando(true);
         try {
-          const { data: ops, error } = await supabase
-            .from("operadores")
-            .select("uid, nombre, email, role, activo")
-            .order("activo", { ascending: false })
-            .order("nombre", { ascending: true });
+          const { data: ops, error } = await departmentOperators(supabase,'shipping',true);
 
-          if (error) throw error;
+          if (error) {setUsuarios([]);throw error;}
 
           const lista = (ops || []).map((op) => ({
             uid: op.uid,
