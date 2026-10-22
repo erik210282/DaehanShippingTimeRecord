@@ -32,8 +32,8 @@ export function reportWithAutomaticBreaks(report,now=new Date()){
  else end=report.started_at||report.time?now:null;
  if(!Number.isFinite(+start)||!end||!Number.isFinite(+end)||end<=start)return report;
  const input=(report.downtime_events||[]).map(e=>{
-  if(e.start_at&&e.end_at)return e;
-  if(!e.start_time||!e.end_time)return e;
+  if(e.automatic||e.type==='inactive')return e;
+  if(Object.hasOwn(e,'start_time')||Object.hasOwn(e,'end_time')){if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(e.start_time||'')||!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(e.end_time||'')){const {start_at,end_at,...draft}=e;return draft;}}else return e;
   const a=new Date(start),b=new Date(start);a.setHours(...e.start_time.split(':').map(Number),0,0);b.setHours(...e.end_time.split(':').map(Number),0,0);
   if(a<start)a.setDate(a.getDate()+1);if(b<=a)b.setDate(b.getDate()+1);
   return {...e,start_at:a.toISOString(),end_at:b.toISOString()};

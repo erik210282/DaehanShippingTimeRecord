@@ -1,3 +1,5 @@
+import {ProductionPackingDetails,ProductionExtraWork} from '../components/ProductionDailyDetails';
+import {stationLabel,packingRows} from '../production/dailyDetails.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import '../production/reportLayout.css';
 import {exportWorkbook,registerReportTools} from '../production/reportTools.mjs';
@@ -9,7 +11,7 @@ import {partLabel} from '../production/supply.mjs';
 import ProductionRework from '../production/ProductionRework';
 import {SectionPermission,useRoleAccess} from '../RoleAccess';
 import ProductionParameters from '../production/ProductionParameters';
-import {dailyProducts,selectProducts,switchProduct,openCapture,sharedTimeRows,registerMulti} from '../production/multi.mjs';
+import {dailyProducts,selectProducts,switchProduct,openCapture,sharedTimeRows,registerMulti,changeDailyShared,dailyMissing,addDailyMissing,dailyMachineKey} from '../production/multi.mjs';
 
 import ProductionSupply,{ProductionSupplyAlerts} from '../production/ProductionSupply';
 import {useSupply} from '../production/useSupply';
@@ -102,7 +104,7 @@ export default function Production({access}) {
 
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25),[edit,setEdit]=useState(null),[review,setReview]=useState(null);
 
- const [confirming,setConfirming]=useState(false),[printReport,setPrintReport]=useState(null);
+ const [dailyChoice,setDailyChoice]=useState(null),[confirming,setConfirming]=useState(false),[printReport,setPrintReport]=useState(null);
 
  const lock=useRef(false),live=useRef(true),request=useRef(0),form=useRef(null);
 
@@ -146,10 +148,10 @@ export default function Production({access}) {
 
  const profileFor=(r,bom=bomFor(r))=>profilesFor(r,bom).find(p=>p.packaging_type===r.packaging_type);
 
- const packingName=r=>r.packing_box_name||packingLabel(profileFor(r))||(['returnable','expendable'].includes(r.packaging_type)?t('pr_'+r.packaging_type):'');
+ const packingName=r=>r.packing_breakdown?.length?r.packing_breakdown.map(p=>(p.box_name||packingLabel(profilesFor(r).find(x=>x.packaging_type===p.packaging_type)))+' × '+p.full_boxes).join(' / '):r.packing_box_name||packingLabel(profileFor(r))||(['returnable','expendable'].includes(r.packaging_type)?t('pr_'+r.packaging_type):'');
 
  const editable=r=>r.status==='draft';
- const completeReport=r=>{setReview(null);setError('');setEdit({...openCapture(r,data.reports),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})});};
+ const completeReport=r=>{setReview(null);setError('');const capture={...openCapture(r,data.reports,supply.data.runs),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})};const missing=dailyMissing(capture,data.reports,supply.data.runs,workstationProductIds(stationFor(r),data.items,['FG','SEMI'],[]));if(missing.length)setDailyChoice({capture,missing});else setEdit(capture);};
 
  const filtered=useMemo(()=>data.reports.filter(r=>{
 
@@ -235,7 +237,7 @@ export default function Production({access}) {
 
    lock.current=true;setBusy(true);
 
-   await unwrap(supabase.rpc('production_station_action',{p_action:type,p_data:{capture_group_id:edit.capture_group_id||edit.group_id,products}}));
+   await unwrap(supabase.rpc('production_station_action',{p_action:type,p_data:{capture_group_id:edit.capture_group_id||edit.group_id,machine_session_id:edit.machine_session_id,products}}));
 
    await refresh();setEdit(null);setMessage('');
 
@@ -308,7 +310,7 @@ export default function Production({access}) {
 
  const stock=(id,area)=>Number(data.balances.find(b=>b.item_id===id&&b.area===area)?.quantity||0);
 
- const numeric=(key,label,{min=0,step='1',required=true}={})=><CatalogInput key={key} label={uiTitle(t(label))} placeholder={t(key==='people'?'pr_enter_people':'pr_enter_value',{field:t(label)})} required={required} inputMode={step==='1'?'numeric':'decimal'} type="number" min={min} step={step} value={edit[key]??''} onChange={ev=>setEdit({...edit,[key]:ev.target.value})}/>;
+ const numeric=(key,label,{min=0,step='1',required=true}={})=><CatalogInput key={key} label={uiTitle(t(label))} placeholder={t(key==='people'?'pr_enter_people':'pr_enter_value',{field:t(label)})} required={required} inputMode={step==='1'?'numeric':'decimal'} type="number" min={min} step={step} value={edit[key]??''} onChange={ev=>setEdit(changeDailyShared(edit,{[key]:ev.target.value}))}/>;
 
  const consumptionTable=r=><div className="table-wrap"><table className="table"><thead><tr><th>{uiTitle(t('inv_part'))}</th><th>{uiTitle(t('name'))}</th><th>{uiTitle(t('inv_area'))}</th><th>{uiTitle(t('pr_consume'))}</th><th>{uiTitle(t('inv_unit'))}</th>{r.status!=='posted'&&<th>{uiTitle(t('inv_balance'))}</th>}</tr></thead><tbody>
 
@@ -353,7 +355,7 @@ export default function Production({access}) {
 
    <p className="inv-muted">{t('pr_workflow_hint')}</p>
 
-   {tab==='records'&&!loading&&filtered.some(r=>r.progress_draft&&r.status==='draft')&&<div className="production-pending-reports"><h3>{uiTitle(t('ps_pending_daily'))}</h3>{filtered.filter((r,index,rows)=>r.progress_draft&&r.status==='draft'&&rows.findIndex(other=>(other.capture_group_id||other.id)===(r.capture_group_id||r.id))===index).map(r=><div className="production-pending-report" key={r.id}><span>{r.production_date} · {r.station_code}</span><BtnPrimary intent="confirm" onClick={()=>completeReport(r)}>{t('ps_complete_daily')}</BtnPrimary></div>)}</div>}
+   {tab==='records'&&!loading&&filtered.some(r=>r.progress_draft&&r.status==='draft')&&<div className="production-pending-reports"><h3>{uiTitle(t('ps_pending_daily'))}</h3>{filtered.filter((r,index,rows)=>r.progress_draft&&r.status==='draft'&&rows.findIndex(other=>dailyMachineKey(other,supply.data.runs)===dailyMachineKey(r,supply.data.runs))===index).map(r=><div className="production-pending-report" key={r.id}><span>{r.production_date} · {stationLabel(r,data.stations)}</span><BtnPrimary intent="confirm" onClick={()=>completeReport(r)}>{t('ps_complete_daily')}</BtnPrimary></div>)}</div>}
    {loading?<p>{t('loading')}</p>:tab==='summary'?<>
 
     <p className="inv-muted">{t('pr_summary_hint')}</p><div className="production-metrics">{[['pr_machine_quantity',totals.machine_quantity],['pr_good',totals.good_quantity],['pr_scrap',totals.scrap_quantity],['pr_rework',totals.rework_quantity],['pr_boxes',totals.full_boxes],['pr_labor_hours',totals.labor]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
@@ -362,11 +364,11 @@ export default function Production({access}) {
 
    </>:<div className="table-wrap catalog-table-scroll"><table className="table production-daily-table"><thead><tr>{['pr_date','inv_station_code','inv_part','name','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_packing_type','pr_machine_minutes','pr_downtime','pr_people','pr_total_hours','pr_labor_hours','pr_turns','status','actions'].map(k=><th key={k}>{uiTitle(t(k))}</th>)}</tr></thead><tbody>
 
-    {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))-1)*pageSize,Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))*pageSize).map(r=><tr key={r.id}><td>{r.production_date}</td><td title={stationFor(r)?.name}>{r.station_code}</td><td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{packingName(r)||'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td><td><div className="production-row-actions">
+    {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))-1)*pageSize,Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))*pageSize).map(r=><tr key={r.id}><td>{r.production_date}</td><td>{stationLabel(r,data.stations)}</td><td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{packingName(r)||'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td><td><div className="production-row-actions">
 
      <BtnSecondary intent="neutral" disabled={busy} onClick={()=>{setError('');setConfirming(false);setReview(r);}}>{t('pr_details')}</BtnSecondary>
 
-     {manage&&<BtnEditDark intent="neutral" disabled={busy} onClick={()=>setPrintReport(r)}>{t('dt_print')}</BtnEditDark>}{editable(r)&&<><BtnEditDark intent="neutral" disabled={busy} onClick={()=>{setError('');setEdit({...openCapture(r,data.reports),start_time:String(r.start_time||'').slice(0,5),end_time:String(r.end_time||'').slice(0,5),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})});}}>{t(r.progress_draft?'ps_complete_daily':'edit')}</BtnEditDark>{(manage||r.created_by===access.userId)&&<BtnDanger intent="danger" disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',r)}>{t('delete')}</BtnDanger>}</>}
+     {manage&&<BtnEditDark intent="neutral" disabled={busy} onClick={()=>setPrintReport(r)}>{t('dt_print')}</BtnEditDark>}{editable(r)&&<><BtnEditDark intent="neutral" disabled={busy} onClick={()=>completeReport(r)}>{t(r.progress_draft?'ps_complete_daily':'edit')}</BtnEditDark>{(manage||r.created_by===access.userId)&&<BtnDanger intent="danger" disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',r)}>{t('delete')}</BtnDanger>}</>}
 
     </div></td></tr>)}
 
@@ -376,6 +378,7 @@ export default function Production({access}) {
 
   </section>}</SectionPermission></main>
 
+<Modal portalClassName="production-report-portal" isOpen={!!dailyChoice} onRequestClose={()=>setDailyChoice(null)} style={productionModalStyle} contentLabel={uiTitle(t('dx_missing_title'))}>{dailyChoice&&<><h2>{uiTitle(t('dx_missing_title'))}</h2><p>{t('dx_missing_hint')}</p>{dailyChoice.missing.map((part,index)=><label className="catalog-checkbox" key={part.item_id}><input type="checkbox" checked={part.selected} onChange={e=>setDailyChoice({...dailyChoice,missing:dailyChoice.missing.map((p,i)=>i===index?{...p,selected:e.target.checked}:p)})}/>{partLabel(data.items.find(i=>i.id===part.item_id))}</label>)}<div className="live-row-actions" style={{marginTop:20}}><BtnPrimary intent="confirm" onClick={()=>{setEdit(addDailyMissing(dailyChoice.capture,dailyChoice.missing,data.reports,()=>crypto.randomUUID()));setDailyChoice(null);}}>{t('dx_add_parts')}</BtnPrimary><BtnSecondary intent="neutral" onClick={()=>{setEdit(dailyChoice.capture);setDailyChoice(null);}}>{t('dx_only_ready')}</BtnSecondary><BtnSecondary intent="danger" onClick={()=>setDailyChoice(null)}>{t('cancel')}</BtnSecondary></div></>}</Modal>
  <Modal portalClassName="production-report-portal" className="production-modal" isOpen={!!edit} contentLabel={uiTitle(t('pr_new_report'))} onRequestClose={()=>!busy&&setEdit(null)} style={productionModalStyle}>
 
  {edit&&<form ref={form} className="production-form production-dialog" onSubmit={ev=>{ev.preventDefault();action('save',edit);}}>
@@ -391,25 +394,25 @@ export default function Production({access}) {
 
  <CatalogSelect label={uiTitle(t('ps_session'))} disabled={!!edit.created_at} value={edit.shift_session_id||supply.data.runs.find(r=>r.id===edit.live_run_id)?.session_id||''} onChange={session=>setEdit(v=>shiftCapture(v,session,supply.data.runs,()=>crypto.randomUUID(),data.reports))} options={[{value:'',label:t('ps_manual')},...shiftOptions(supply.data.runs,data.items)]}/>
 
-   <CatalogSelect label={uiTitle(t('pr_report_mode'))} value={edit.report_mode} onChange={report_mode=>setEdit({...edit,report_mode})} options={['production','packing'].map(value=>({value,label:t('pr_mode_'+value)}))}/>
+   <CatalogSelect label={uiTitle(t('pr_report_mode'))} value={edit.report_mode} onChange={report_mode=>setEdit(changeDailyShared(edit,{report_mode}))} options={['production','packing'].map(value=>({value,label:t('pr_mode_'+value)}))}/>
 
   </div></section>
 
   <section className="production-section"><h3>{uiTitle(t('pr_shift_section'))}</h3><div className="production-form-grid production-form-grid-four">
 
-   <CatalogInput readOnly={!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('pr_date'))} required type="date" value={edit.production_date} onChange={ev=>setEdit({...edit,production_date:ev.target.value})}/>
+   <CatalogInput readOnly={!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('pr_date'))} required type="date" value={edit.production_date} onChange={ev=>setEdit(changeDailyShared(edit,{production_date:ev.target.value}))}/>
 
-   <ProductionClockInput disabled={!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('pr_start'))} value={edit.start_time} onChange={start_time=>setEdit({...edit,start_time})}/>
+   <ProductionClockInput disabled={!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('pr_start'))} value={edit.start_time} onChange={start_time=>setEdit(changeDailyShared(edit,{start_time}))}/>
 
-   <ProductionClockInput label={uiTitle(t('pr_end'))} value={edit.end_time} onChange={end_time=>setEdit({...edit,end_time})}/>
+   <ProductionClockInput label={uiTitle(t('pr_end'))} value={edit.end_time} onChange={end_time=>setEdit(changeDailyShared(edit,{end_time}))}/>
 
    {numeric('people','pr_people',{min:1})}
 
    {isTurntable(stationFor(edit))&&numeric('turns','pr_turns')}
 
-  </div><label className="catalog-checkbox"><input type="checkbox" checked={edit.ends_next_day} onChange={ev=>setEdit({...edit,ends_next_day:ev.target.checked})}/>{t('pr_next_day')}</label><ProductionStaffNames report={edit} onChange={setEdit}/><p className="inv-muted">{t('pr_time_format')}</p></section>
+  </div><label className="catalog-checkbox"><input type="checkbox" checked={edit.ends_next_day} onChange={ev=>setEdit(changeDailyShared(edit,{ends_next_day:ev.target.checked}))}/>{t('pr_next_day')}</label><ProductionStaffNames report={edit} onChange={report=>setEdit(changeDailyShared(edit,{staff_names:report.staff_names}))}/><p className="inv-muted">{t('pr_time_format')}</p></section>
 
-  {dailyProducts(edit).length>1&&<CatalogSelect multi label={uiTitle(t('pl_downtime_product'))} value={affectedIds(edit,dailyProducts(edit))} onChange={downtime_item_ids=>setEdit({...edit,downtime_item_ids})} options={dailyProducts(edit).map(r=>({value:r.item_id,label:partLabel(itemFor(r))}))}/>}<ProductionDowntimes disabled={dailyProducts(edit).length>1&&!affectedIds(edit,dailyProducts(edit)).length} report={{...edit,downtime_events:selectedDowntime(edit,dailyProducts(edit))}} captured={captured} onChange={report=>setEdit(applySelectedDowntime(edit,report.downtime_events,dailyProducts(edit)))}/>
+  {dailyProducts(edit).length>1&&<CatalogSelect multi label={uiTitle(t('pl_downtime_product'))} value={affectedIds(edit,dailyProducts(edit))} onChange={downtime_item_ids=>setEdit({...edit,downtime_item_ids})} options={dailyProducts(edit).map(r=>({value:r.item_id,label:partLabel(itemFor(r))}))}/>}<ProductionDowntimes disabled={dailyProducts(edit).length>1&&!affectedIds(edit,dailyProducts(edit)).length} report={{...edit,downtime_events:selectedDowntime(edit,dailyProducts(edit))}} captured={captured} onChange={report=>setEdit(applySelectedDowntime(edit,report.downtime_events,dailyProducts(edit)))}/><ProductionExtraWork report={edit} onChange={report=>setEdit(changeDailyShared(edit,{break_work:report.break_work}))}/>
 
   {scheduleError&&edit.start_time&&edit.end_time&&<p role="alert" className="inv-message">{t(scheduleError)}</p>}
 
@@ -421,10 +424,7 @@ export default function Production({access}) {
 
   <section className="production-section"><h3>{uiTitle(t('pr_packing'))}</h3><p className="inv-muted">{t('pr_packing_capture_hint')}</p><div className="production-form-grid production-form-grid-four">
 
-   <CatalogSelect label={uiTitle(t('pr_packing_type'))} value={edit.packaging_type} onChange={packaging_type=>setEdit({...edit,packaging_type})} options={profilesFor(edit,eBom).map(p=>({value:p.packaging_type,label:packingLabel(p)+' · '+p.pieces_per_box+' '+t('pr_pieces_per_box')}))}/>
-
-   <ProductionCompleteBoxes report={edit} profile={eProfile} good={metrics.good} onChange={setEdit}/><CatalogInput label={uiTitle(t('pr_pieces_per_box'))} readOnly value={eProfile?.pieces_per_box||'—'}/><CatalogInput label={uiTitle(t('pr_packed'))} readOnly value={fmt(metrics.packed)}/>
-
+   <ProductionPackingDetails report={edit} profiles={profilesFor(edit,eBom)} onChange={setEdit}/>
   </div>{metrics.packed>metrics.good&&<p role="alert" className="inv-message">{t('pr_quantity_invalid')}</p>}<p className="inv-muted">{t('pr_pallet_auto_hint')}</p>
 
    {!eBom&&edit.item_id&&<p className="inv-message">{t('pr_recipe_missing')}</p>}

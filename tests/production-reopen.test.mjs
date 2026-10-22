@@ -19,5 +19,5 @@ assert.equal(metrics.elapsed,390);assert.equal(metrics.machine,345);assert.equal
 const daily={production_date:'2026-10-21',start_time:'06:00',end_time:'14:30',people:2,downtime_events:events.map(e=>({...e,start_time:new Date(e.start_at).toTimeString().slice(0,5),end_time:new Date(e.end_at).toTimeString().slice(0,5),minutes:(new Date(e.end_at)-new Date(e.start_at))/60000}))};
 const print=dailyPrintModel({reports:[daily]});assert.equal(print.elapsed,390);assert.equal(print.effective,345);assert.equal(print.grossLabor,13);assert.equal(print.events.find(d=>d.type==='inactive').code,'CLOSED');
 const shared=dailyPrintModel({reports:[daily,{...daily,downtime_events:mergeShiftEvents(run.started_at,run.closed_at,[]).map(e=>({...e,start_time:new Date(e.start_at).toTimeString().slice(0,5),end_time:new Date(e.end_at).toTimeString().slice(0,5),minutes:(new Date(e.end_at)-new Date(e.start_at))/60000}))}]});
-assert.equal(shared.elapsed,510);assert.equal(shared.effective,450);
+assert.equal(shared.elapsed,390);assert.equal(shared.effective,345);assert.equal(shared.additionalModels.length,1);assert.equal(shared.additionalModels[0].elapsed,510);assert.equal(shared.additionalModels[0].effective,450);
 console.log('PASS reopened product active time, fixed breaks, targets, historical cutoffs, daily labor and idempotent merge');

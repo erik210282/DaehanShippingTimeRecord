@@ -25,3 +25,28 @@ html body .ui-select__multi-value__label{color:#fff}
 .table-pagination{justify-content:flex-start!important;align-items:center;flex-wrap:wrap;gap:12px!important}
 .table-pagination select{width:84px!important;min-width:84px;max-width:84px;line-height:22px!important;padding:10px 8px!important}
 .table-pagination input{width:72px!important;min-width:72px;max-width:72px;color:#fff!important}
+
+html body #root .shipping-filters{display:flex!important;flex-wrap:wrap;align-items:flex-end;justify-content:flex-start;gap:12px!important;margin:12px 0!important}
+html body #root .shipping-filters>input{flex:0 1 200px;width:200px!important;margin:0!important}
+html body #root .shipping-filters>input[type=date]{flex-basis:154px;width:154px!important}
+html body #root .shipping-filters>.ui-select__container,html body #root .shipping-filters>div:has(>.ui-select__control){flex:0 1 220px;width:220px!important;min-width:180px}
+html body #root .shipping-filters>button{margin:0!important;flex:0 0 auto}
+html body.native-shipping.compact-leader #root .shipping-filters{display:none!important}
+@media(max-width:480px){html body #root .shipping-filters>input{flex:1 1 145px;width:auto!important;min-width:0}}
+
+html body #root .records-filter-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin:12px 0 18px}
+html body #root .records-filter-toolbar>.shipping-filters{display:contents!important}
+html body #root :is(.catalog-filters,.rc-filters,.inventory-filter-bar){display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:flex-start;gap:12px}
+html body #root :is(.catalog-filters,.rc-filters,.inventory-filter-bar)>.catalog-field{flex:0 1 180px;width:180px;min-width:140px;margin:0}
+html body #root :is(.catalog-filters,.rc-filters,.inventory-filter-bar)>input{flex:0 1 200px;width:200px!important;margin:0}
+html body #root :is(.catalog-filters,.rc-filters,.inventory-filter-bar)>input[type=date]{flex-basis:154px;width:154px!important}
+html body.native-shipping.compact-leader #root .records-filter-toolbar .shipping-filters{display:none!important}
+.production-daily-table th:nth-child(2),.production-daily-table td:nth-child(2){min-width:180px;word-break:normal;white-space:normal}
+
+html body #root .rc-filters>.rc-field{flex:0 1 180px;width:180px;min-width:140px;margin:0}
+
+.capture-datetime{display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:8px;min-width:0}.capture-datetime>span,.capture-datetime>small{grid-column:1/-1}.capture-datetime input{width:100%;min-width:0}
+
+html body.native-shipping.compact-leader #root .records-filter-toolbar>.shipping-filter-actions{display:flex!important}
+
+html body #root .global-settings-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:12px}html body #root .global-settings-toolbar>input{width:220px!important;max-width:100%;flex:0 1 220px;margin:0}

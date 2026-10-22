@@ -1,3 +1,4 @@
+import {packingRows,packingTotals,extraWork,validateExtra} from './dailyDetails.mjs';
 
 export const blankIngredient=()=>({ingredient_id:'',quantity_per_unit:'',waste:'0'});
 export const blankPackingLine=()=>({ingredient_id:'',quantity:'',basis:'box',waste:'0'});
@@ -18,6 +19,7 @@ export function reportDowntimes(r,{forEdit=false}={}) {
  return rows;
 }
 export function automaticPallets(r,bom,profile) {
+ if(r.packing_breakdown?.length)return r.packing_breakdown.reduce((sum,row)=>{const p=bom?.inventory_bom_packaging?.find(p=>p.packaging_type===row.packaging_type);if(!bom?.inventory_bom_packaging_lines?.some(l=>l.packaging_type===row.packaging_type&&l.basis==='pallet'))return sum;return p?.boxes_per_pallet>0?sum+Math.ceil(Number(row.full_boxes||0)/p.boxes_per_pallet):NaN;},0);
  if(!Number(r.full_boxes)||!bom?.inventory_bom_packaging_lines?.some(l=>l.packaging_type===r.packaging_type&&l.basis==='pallet'))return 0;
  const capacity=Number(profile?.boxes_per_pallet);
  return Number.isInteger(capacity)&&capacity>0?Math.ceil(Number(r.full_boxes)/capacity):null;
@@ -32,13 +34,13 @@ export function reportMetrics(r,profile) {
  const clock=s=>{const [h,m]=String(s||'').split(':').map(Number);return h*60+m;};
  const elapsed=clock(r.end_time)-clock(r.start_time)+(r.ends_next_day?1440:0);
  const good=Number(r.machine_quantity||0)-Number(r.scrap_quantity||0)+(r.rework_completed===true?1:-1)*Number(r.rework_quantity||0);
- const packed=Number(r.full_boxes||0)*Number(profile?.pieces_per_box??r.pieces_per_box??0);
+ const packed=r.packing_breakdown?.length?packingTotals(r).pieces:Number(r.full_boxes||0)*Number(profile?.pieces_per_box??r.pieces_per_box??0);
  const automatic=Array.isArray(r.downtime_events);
  const totalDowntime=automatic?r.downtime_events.reduce((sum,d)=>sum+Number(d.minutes),0):Number(r.downtime_minutes||0)+Number(r.break_minutes||0);
  const breaks=automatic?r.downtime_events.filter(d=>['break','lunch'].includes(d.type)).reduce((sum,d)=>sum+Number(d.minutes),0):Number(r.break_minutes||0);
  const inactive=automatic?r.downtime_events.filter(d=>d.type==='inactive').reduce((sum,d)=>sum+Number(d.minutes),0):0;
- const worked=elapsed-breaks-inactive,machine=automatic?elapsed-totalDowntime:Number(r.machine_minutes||0);
- return {elapsed:elapsed-inactive,wallElapsed:elapsed,inactive,good,packed,wip:Math.max(0,good-packed),worked,machine,totalDowntime:totalDowntime-inactive,breaks,laborHours:worked*Number(r.people||0)/60,idle:automatic?0:worked-(totalDowntime-breaks)-machine};
+ const extra=extraWork(r),worked=elapsed-breaks-inactive+extra.minutes,machine=automatic?elapsed-totalDowntime+extra.minutes:Number(r.machine_minutes||0);
+ return {elapsed:elapsed-inactive,wallElapsed:elapsed,inactive,good,packed,wip:Math.max(0,good-packed),worked,machine,totalDowntime:totalDowntime-inactive-extra.minutes,breaks:breaks-extra.minutes,extraMinutes:extra.minutes,laborHours:(worked-extra.minutes)*Number(r.people||0)/60+extra.labor,idle:automatic?0:worked-(totalDowntime-breaks)-machine};
 }
 export function validateReport(r,{station,bom,profile,forSubmit=true}={}) {
  if(Array.isArray(r.downtime_events)){
@@ -47,6 +49,8 @@ export function validateReport(r,{station,bom,profile,forSubmit=true}={}) {
   if(r.pallets===null)return 'pr_pallet_capacity';
  }
  const m=reportMetrics(r,profile);
+ const extraError=validateExtra(r);if(extraError)return extraError;
+ if(r.packing_breakdown?.length){const rows=r.packing_breakdown,available=bom?.inventory_bom_packaging||[];if(rows.length>10||new Set(rows.map(p=>p.packaging_type)).size!==rows.length||rows.some(p=>Number(p.full_boxes)>0&&!available.some(x=>x.packaging_type===p.packaging_type)||p.full_boxes===''||!Number.isInteger(Number(p.full_boxes))||Number(p.full_boxes)<0))return 'dx_packing_invalid';}
  if(!station?.active)return 'pr_station_required';
  if(!r.item_id)return 'pr_item_required';
  const numbers=['machine_minutes','downtime_minutes','break_minutes','break_count','people','machine_quantity','scrap_quantity','rework_quantity','full_boxes','pallets'];
@@ -56,7 +60,7 @@ export function validateReport(r,{station,bom,profile,forSubmit=true}={}) {
    (Number(r.downtime_minutes)>0&&!r.downtime_reason?.trim()))return 'pr_time_invalid';
  if(['break_count','people','machine_quantity','scrap_quantity','rework_quantity','full_boxes','pallets'].some(key=>!Number.isInteger(Number(r[key])))||Number(r.scrap_quantity)>Number(r.machine_quantity)||m.good<0||m.packed>m.good)return 'pr_quantity_invalid';
  if(isTurntable(station)&&(r.turns===''||r.turns==null||!Number.isInteger(Number(r.turns))||Number(r.turns)<0))return 'pr_turns_required';
- if(Number(r.full_boxes)>0&&!profile)return 'pr_pack_missing';
+ if(Number(r.full_boxes)>0&&!profile&&!r.packing_breakdown?.length)return 'pr_pack_missing';
  if(Number(r.full_boxes)===0&&Number(r.pallets)!==0)return 'pr_quantity_invalid';
  if(Number(r.full_boxes)>0&&bom?.inventory_bom_packaging_lines?.some(l=>l.packaging_type===r.packaging_type&&l.basis==='pallet')&&Number(r.pallets)<=0)return 'pr_pallets_required';
  if(forSubmit&&r.report_mode==='packing'&&(isRepack(bom,r.item_id)||Number(r.scrap_quantity)!==0||Number(r.rework_quantity)!==0||m.good!==m.packed||m.packed<=0))return 'pr_packing_only_invalid';
@@ -75,9 +79,9 @@ export function consumptionPreview(r,bom,items,profile) {
  else for(const l of bom?.inventory_bom_lines||[]){
   const item=items.find(i=>i.id===l.ingredient_id);add(l.ingredient_id,item?.category==='SEMI'?'WIP':item?.category,'manufacturing',total*Number(l.quantity_per_unit)*(1+Number(l.waste_rate)));
  }
- if(metrics.packed>0)for(const l of bom?.inventory_bom_packaging_lines||[]){
-  if(l.packaging_type!==r.packaging_type)continue;
-  const base=l.basis==='piece'?metrics.packed:l.basis==='box'?Number(r.full_boxes):Number(r.pallets);
+ if(metrics.packed>0)for(const pack of packingRows(r,bom?.inventory_bom_packaging||[]))for(const l of bom?.inventory_bom_packaging_lines||[]){
+  if(l.packaging_type!==pack.packaging_type)continue;
+  const base=l.basis==='piece'?Number(pack.full_boxes)*Number(pack.pieces_per_box):l.basis==='box'?Number(pack.full_boxes):Number(pack.pallets);
   add(l.ingredient_id,'PACKAGING','packing',base*Number(l.quantity)*(1+Number(l.waste_rate)));
  }
  if(metrics.packed>0&&profile?.packing_item_id&&![...map.values()].some(x=>x.ingredient_id===profile.packing_item_id))add(profile.packing_item_id,'PACKAGING','packing',Number(r.full_boxes));

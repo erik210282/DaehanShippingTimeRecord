@@ -1,5 +1,6 @@
+import {dailySignature} from './dailyDetails.mjs';
 
-const productFields=['id','live_run_id','item_id','machine_quantity','scrap_quantity','rework_quantity','packaging_type','full_boxes','pallets','pieces_per_box','note','rework_completed','catalog_packing','downtime_events'];
+const productFields=['id','live_run_id','item_id','machine_quantity','scrap_quantity','rework_quantity','packaging_type','full_boxes','pallets','pieces_per_box','note','rework_completed','catalog_packing','downtime_events','packing_breakdown','break_work','production_date','start_time','end_time','ends_next_day','people','staff_names','turns','report_mode'];
 const pick=r=>Object.fromEntries(productFields.map(k=>[k,r[k]]));
 export function dailyProducts(edit){
  const rows=Array.isArray(edit.products)?edit.products:edit.item_id?[pick(edit)]:[];
@@ -15,13 +16,14 @@ export function switchProduct(edit,itemId){
  const products=dailyProducts(edit).map(pick);
  return {...edit,...products.find(r=>r.item_id===itemId),products};
 }
-export function openCapture(row,reports){
- const siblings=row.capture_group_id?reports.filter(r=>r.capture_group_id===row.capture_group_id&&r.status==='draft'):[row];
- return {...row,start_time:String(row.start_time||'').slice(0,5),end_time:String(row.end_time||'').slice(0,5),products:siblings.map(pick)};
-}
+export function dailyMachineKey(row,runs=[]){const run=runs.find(r=>r.id===row.live_run_id);return row.machine_session_id||run?.session_id||row.shift_session_id||row.capture_group_id||row.id;}
+export function openCapture(row,reports,runs=[]){const key=dailyMachineKey(row,runs);const siblings=reports.filter(r=>r.status==='draft'&&(r.id===row.id||!r.live_run_id||runs.find(run=>run.id===r.live_run_id)?.closed_at||!runs.length)&&r.station_code===row.station_code&&r.production_date===row.production_date&&dailyMachineKey(r,runs)===key);return {...row,group_id:row.capture_group_id||key,machine_session_id:key,start_time:String(row.start_time||'').slice(0,5),end_time:String(row.end_time||'').slice(0,5),products:(siblings.length?siblings:[row]).map(r=>pick({...r,start_time:String(r.start_time||'').slice(0,5),end_time:String(r.end_time||'').slice(0,5)}))};}
+export function changeDailyShared(edit,patch){const common=['production_date','start_time','end_time','ends_next_day','people','staff_names','turns','report_mode','break_work'];const shared=Object.fromEntries(Object.entries(patch).filter(([key])=>common.includes(key)));return {...edit,...patch,products:edit.products?.map(row=>({...row,...shared}))};}
+export function dailyMissing(edit,reports,runs,configured=[]){const selected=new Set(dailyProducts(edit).map(r=>r.item_id)),key=edit.machine_session_id||dailyMachineKey(edit,runs);const siblings=runs.filter(r=>r.station_code===edit.station_code&&(r.session_id||r.id)===key);const ids=[...new Set([...configured,...siblings.map(r=>r.item_id)])];return ids.filter(id=>!selected.has(id)&&!reports.some(r=>r.station_code===edit.station_code&&r.production_date===edit.production_date&&r.item_id===id&&r.status!=='draft'&&dailyMachineKey(r,runs)===key)).map(item_id=>({item_id,run:siblings.find(r=>r.item_id===item_id),selected:true}));}
+export function addDailyMissing(edit,choices,reports,newId){let next=edit;for(const choice of choices.filter(p=>p.selected)){const run=choice.run,saved=reports.find(r=>r.live_run_id===run?.id&&run?.id&&r.status==='draft');const row=saved?pick(saved):pick({...edit,id:newId(),live_run_id:run?.id||null,item_id:choice.item_id,machine_quantity:run?.latest_at?String(run.latest_quantity):'',scrap_quantity:'',rework_quantity:'',full_boxes:'',packaging_type:'',packing_breakdown:[],pallets:'0',downtime_events:run?.downtime_events?.map(e=>({...e,start_time:new Date(e.start_at).toTimeString().slice(0,5),end_time:new Date(e.end_at).toTimeString().slice(0,5),minutes:(new Date(e.end_at)-new Date(e.start_at))/60000}))||[]});next={...next,products:[...dailyProducts(next).map(pick),row]};}return next;}
 export function sharedTimeRows(rows){
  const seen=new Set();
- return rows.filter(r=>{const key=r.capture_group_id||r.id;if(seen.has(key))return false;seen.add(key);return true;});
+ return rows.filter(r=>{const key=(r.machine_session_id||r.capture_group_id||r.id)+'|'+dailySignature(r);if(seen.has(key))return false;seen.add(key);return true;});
 }
 const savedSingle=edit=>!edit.products||edit.products.length<=1;
 export function selectLiveProducts(edit,ids,newId){

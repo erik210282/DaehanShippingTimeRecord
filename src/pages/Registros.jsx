@@ -1,3 +1,4 @@
+import CaptureDateTime from '../components/CaptureDateTime';
 import {uiTitle} from '../components/actionTheme.mjs';
 import {useShippingForceText} from "../shipping/forceFinish";
 import NativeShippingTableHint from "../components/NativeShippingTableHint";
@@ -491,7 +492,7 @@ useEffect(() => {
       <h2>{uiTitle(t("records"))}</h2>{loadingRecords&&<p role="status">{t("loading")}</p>}{recordsError&&<p role="alert">{recordsError}</p>}
 
       <div>
-          <div className="shipping-filters" style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <div className="records-filter-toolbar"><div className="shipping-filters" style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
             <DSInput placeholder={t("search")} value={busquedaTexto} onChange={(e) => setBusquedaTexto(e.target.value)} />
             {errorBusqueda && <p style={{ color: "red" }}>{errorBusqueda}</p>}
             <DSDate value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
@@ -505,7 +506,7 @@ useEffect(() => {
             <DSSelect classNamePrefix="shipping-select" isMulti options={selectOperadores} value={operadorFiltro} onChange={setOperadorFiltro} placeholder={t("select_operators")} />
           </div>
 
-          <div className="shipping-filter-actions" style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <div className="shipping-filter-actions shipping-filters" style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
             <BtnSecondary intent="neutral" data-record-action="clear" onClick={() => {
               setActividadFiltro([]); setProductoFiltro([]); setOperadorFiltro([]);
               setBusquedaTexto(""); setFechaDesde(""); setFechaHasta("");
@@ -516,7 +517,7 @@ useEffect(() => {
             </BtnPrimary>        
           </div>  
 
-          <NativeShippingTableHint/>
+          </div><NativeShippingTableHint/>
         <div className="table-wrap shipping-table-scroll">
             <table className="table records-table">
               <colgroup>
@@ -737,14 +738,8 @@ useEffect(() => {
           <DSSelect classNamePrefix="shipping-select" isMulti options={operadoresEditables} value={operadoresEditables.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
           <TextAreaStyle value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={3} style={{ marginTop: 10, minHeight: 90, width: "85%", }} />
            <div className="records-edit-grid">
-             <label>{t("start_time")}
-               <DSDate type="datetime-local" step="1" value={registroActual?.horaInicio || ""}
-                 onChange={(e) => cambiarFechaRegistro("horaInicio", e.target.value)} />
-             </label>
-             <label>{t("end_time")}
-               <DSDate type="datetime-local" step="1" value={registroActual?.horaFin || ""}
-                 onChange={(e) => cambiarFechaRegistro("horaFin", e.target.value)} />
-             </label>
+             <CaptureDateTime label={t('start_time')} value={registroActual?.horaInicio||''} onChange={e=>cambiarFechaRegistro('horaInicio',e.target.value)}/>
+             <CaptureDateTime label={t('end_time')} value={registroActual?.horaFin||''} onChange={e=>cambiarFechaRegistro('horaFin',e.target.value)}/>
              <label>{t("duration_min")}
                <DSInput type="number" min="0" step="0.01"
                  value={registroActual?.duracion ?? ""}

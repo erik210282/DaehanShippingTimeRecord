@@ -1,7 +1,8 @@
+import {registerDailyDetails} from '../production/dailyWords';
 import {uiTitle} from './actionTheme.mjs';
 import {reportWithAutomaticBreaks,registerAutomaticBreaks} from '../production/automaticBreaks.mjs';
 import i18n from '../i18n/i18n';
-registerAutomaticBreaks(i18n);
+registerAutomaticBreaks(i18n);registerDailyDetails(i18n);
 import {plannedType,plannedChange,downtimeTypeLabel} from '../production/breaks.mjs';
 import {useBreakSettings} from '../production/useBreakSettings';
 import React from 'react';
@@ -15,7 +16,7 @@ import {codeKey,codeOptions,selectCode} from '../production/downtimeCodes.mjs';
 
 export function ProductionClockInput({label,value,onChange,required=true,disabled=false,readOnly=false}) {
  const {t}=useTranslation();
- return <CatalogInput disabled={disabled} readOnly={readOnly} label={uiTitle(label)} required={required} inputMode="numeric" maxLength={5} pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" placeholder={t('pr_enter_time')} value={String(value||'').slice(0,5)} onChange={event=>onChange(formatTimeInput(event.target.value))}/>;
+ return <CatalogInput hint={t('dx_time_hint')} disabled={disabled} readOnly={readOnly} label={uiTitle(label)} required={required} inputMode="numeric" maxLength={5} pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" placeholder={t('pr_enter_time')} value={String(value||'').slice(0,5)} onChange={event=>onChange(formatTimeInput(event.target.value))}/>;
 }
 export function ProductionStaffNames({report,onChange}) {
  const {t}=useTranslation();

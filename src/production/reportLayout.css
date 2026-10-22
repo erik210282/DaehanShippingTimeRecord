@@ -42,3 +42,32 @@
 .production-report-surface .report-parameter-table th,.production-report-surface .report-schedule-table th{white-space:normal!important;overflow-wrap:normal;vertical-align:middle}
 
 .lifecycle-products{display:flex;flex-direction:column;align-items:flex-start;gap:14px;margin-top:20px}.lifecycle-products label{display:flex;align-items:center;gap:10px;white-space:normal;overflow-wrap:anywhere}.live-dialog-footer{justify-content:flex-start!important}
+
+/* Compact filter rows: controls wrap only when their contents need the space. */
+.report-toolbar,.catalog-toolbar:has(>.report-filters){display:flex!important;flex-wrap:wrap;align-items:flex-end;justify-content:flex-start!important;gap:12px;margin:14px 0 18px}
+.catalog-toolbar:has(>.report-filters)>.live-page-header{flex-basis:100%;margin-bottom:0}
+.report-toolbar>.report-filters,.catalog-toolbar>.report-filters{display:contents!important}
+.report-toolbar>.report-actions,.catalog-toolbar:has(>.report-filters)>.report-actions{display:contents!important}
+.report-filters{display:flex!important;flex-wrap:wrap;align-items:flex-end;gap:12px;grid-template-columns:none!important}
+:is(.report-toolbar,.catalog-toolbar:has(>.report-filters),.report-filters)>.catalog-field{flex:0 1 180px!important;width:180px!important;min-width:140px;margin:0!important}
+:is(.report-toolbar,.catalog-toolbar:has(>.report-filters),.report-filters)>.catalog-field:has(input[type=date]){flex-basis:154px!important;width:154px!important;min-width:154px}
+.production-form-grid,.live-form-grid,.production-downtime-timed,.daily-packing-row,.daily-extra-row{align-items:start}
+:is(.production-form-grid,.live-form-grid,.production-downtime-timed,.daily-packing-row,.daily-extra-row)>.catalog-field{display:flex;flex-direction:column;margin:0!important;min-width:0;gap:6px}
+:is(.production-form-grid,.production-downtime-timed,.daily-packing-row)>.catalog-field>span{display:block;min-height:40px;line-height:20px}
+.production-downtime-timed>button,.daily-packing-row>button,.daily-extra-row>button{align-self:start;margin-top:46px}
+.production-packing-details{grid-column:1/-1;display:grid;gap:14px}.daily-packing-row{display:grid;grid-template-columns:minmax(220px,1.5fr) repeat(3,minmax(100px,1fr)) auto;gap:14px}.daily-extra-row{display:grid;grid-template-columns:160px 160px auto;gap:14px;margin-top:14px}.capture-time-hint{font-size:12px;line-height:18px;color:#64748b;white-space:normal}
+@media(max-width:780px){.daily-packing-row{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-extra-row{grid-template-columns:repeat(2,minmax(0,1fr))}.production-downtime-timed>button,.daily-packing-row>button,.daily-extra-row>button{margin-top:0}.daily-packing-row>button{grid-column:1/-1}}
+@media(max-width:480px){:is(.report-toolbar,.catalog-toolbar:has(>.report-filters),.report-filters)>.catalog-field{flex:1 1 150px!important;width:auto!important;min-width:0}.daily-packing-row{grid-template-columns:1fr}}
+
+.daily-extra-row>.catalog-field>span{min-height:40px;line-height:20px}
+
+/* Form rows include clock help; align actual controls, not the help text below. */
+.production-report-portal :is(.production-downtime-timed,.daily-packing-row,.daily-extra-row){align-items:start!important;justify-content:start}
+.production-report-portal :is(.production-downtime-timed,.daily-packing-row,.daily-extra-row)>.catalog-field{margin:0!important;display:flex!important;flex-direction:column;gap:6px!important;align-self:start}
+.production-report-portal :is(.production-downtime-timed,.daily-packing-row,.daily-extra-row)>.catalog-field>span{min-height:40px!important;line-height:20px!important;margin:0!important;display:block}
+.production-report-portal :is(.production-downtime-timed,.daily-packing-row,.daily-extra-row)>button{margin:46px 0 0!important;align-self:start;justify-self:start;width:auto}
+.daily-extra-row{grid-template-columns:160px 160px max-content}
+.daily-packing-row{grid-template-columns:minmax(220px,1.5fr) repeat(3,minmax(100px,1fr)) max-content}
+@media(max-width:1000px){.production-report-portal .production-downtime-timed{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:780px){.daily-packing-row,.daily-extra-row{grid-template-columns:repeat(2,minmax(0,1fr))}.production-report-portal :is(.production-downtime-timed,.daily-packing-row,.daily-extra-row)>button{margin:0!important}}
+@media(max-width:600px){.production-report-portal .production-downtime-timed,.daily-packing-row{grid-template-columns:minmax(0,1fr)}}

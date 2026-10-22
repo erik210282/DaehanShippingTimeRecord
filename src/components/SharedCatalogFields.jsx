@@ -24,9 +24,9 @@ export function SharedCatalogFields({kind,edit,setEdit,materials}){
  </div>;
 }
 
-export function CatalogInput({label, ...props}) {
+export function CatalogInput({label,hint, ...props}) {
  const text=label || props['aria-label'] || props.placeholder;
- return <label className="catalog-field"><span>{text}</span><DSInput {...props} aria-label={uiTitle(text)} placeholder={props.placeholder || text}/></label>;
+ return <label className="catalog-field"><span>{text}</span><DSInput {...props} aria-label={uiTitle(text)} placeholder={props.placeholder || text}/>{hint&&<small className="capture-time-hint">{hint}</small>}</label>;
 }
 export function supplierAddress(supplier) {
  return ['street','exterior_number','interior_number','neighborhood','city','state','postal_code','country'].map(key=>supplier?.[key]).filter(Boolean).join(', ');
