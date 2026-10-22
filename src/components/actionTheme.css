@@ -50,3 +50,5 @@ html body #root .rc-filters>.rc-field{flex:0 1 180px;width:180px;min-width:140px
 html body.native-shipping.compact-leader #root .records-filter-toolbar>.shipping-filter-actions{display:flex!important}
 
 html body #root .global-settings-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:12px}html body #root .global-settings-toolbar>input{width:220px!important;max-width:100%;flex:0 1 220px;margin:0}
+
+.production-daily-table{min-width:2600px;table-layout:auto}.production-daily-table .production-row-actions{min-width:480px;justify-content:flex-start;flex-wrap:wrap;gap:8px}.production-daily-table .production-row-actions button[data-ui-intent]{white-space:nowrap!important}
