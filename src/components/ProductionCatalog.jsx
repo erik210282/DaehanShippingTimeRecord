@@ -1,3 +1,4 @@
+import {useMachineTypes,machineTypeOptions} from '../catalog/useMachineTypes';
 import {uiTitle} from './actionTheme.mjs';
 import {registerShippingPacking} from '../inventory/shippingPackingTranslations';
 import {registerDowntime} from '../production/downtimeCodes.mjs';
@@ -22,6 +23,7 @@ import { BtnPrimary, BtnSecondary, BtnEditDark, BtnDanger, TablePagination } fro
 
 const unwrap = async query => { const { data, error } = await query; if(error) throw error; return data; };
 const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, filter='', hideInactive=false, externalControls=false }, ref) {
+ const {types:machineTypes,error:typeError}=useMachineTypes();
  const {t,i18n}=useTranslation();registerShippingPacking(i18n);
  const [rows,setRows]=useState([]),[items,setItems]=useState([]),[products,setProducts]=useState([]);
  const [search,setSearch]=useState(''),[edit,setEdit]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -73,7 +75,9 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    if(!validWorkstationMaterials(materials,items))throw Error('dt_link_required');
    if(materials.some((m,k)=>!m.item_id&&(edit.isNew||!rows.find(r=>r.code===edit.code)?.materials?.some(old=>old.erp_material===m.erp_material))))throw Error('dt_link_required');
    const raw_material_ids=[...new Set(edit.raw_material_ids||[])];
-   if(raw_material_ids.some(id=>!items.some(i=>i.id===id&&i.category==='RAW')))throw Error('dt_raw_invalid');
+   if(raw_material_ids.some(id=>!items.some(i=>i.id===id&&['RAW','SEMI'].includes(i.category))))throw Error('dt_raw_invalid');
+   if(typeError)throw Error(typeError);
+   if(!machineTypes.some(row=>row.name===edit.machine_type&&(row.active||!edit.isNew&&rows.some(r=>r.code===edit.code&&r.machine_type===row.name))))throw Error('mt_invalid');
    const payload={raw_material_ids,code:edit.code.trim().toUpperCase(),name:edit.name.trim(),machine_type:edit.machine_type.trim(),materials,active:!!edit.active};
    if(edit.isNew)await unwrap(supabase.from('inventory_workstations').insert(payload));
    else {const updated=await unwrap(supabase.from('inventory_workstations').update(payload).eq('code',edit.code).select('code'));if(!updated.length)throw Error('receiving_forbidden');}
@@ -142,7 +146,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    <th scope="col">{uiTitle(t('status'))}</th><th scope="col">{uiTitle(t('actions'))}</th>
   </tr></thead><tbody>
    {visible.slice((currentPage-1)*pageSize,currentPage*pageSize).map(r=><React.Fragment key={r.id||r.code}><tr>
-    {stations?<><td>{r.code}</td><td>{r.name}</td><td>{t(({Assembly:'inv_machine_ASY',Foaming:'inv_machine_FOA','WaterJet / Forming':'inv_machine_WAT','Press / Trim':'inv_machine_PRE',Forming:'inv_machine_PET'})[r.machine_type]||r.machine_type)}</td><td><ul className="station-material-list">{groupWorkstationMaterials(r.materials).map((m,k)=><li key={k}><strong>{m.erp_material}</strong>{(m.product||m.operation)&&<> · {m.product||m.operation}</>}{materialClientLabel(m,items)&&<div>{materialClientLabel(m,items)}</div>}</li>)}</ul></td><td><ul className="station-material-list">{(r.raw_material_ids||[]).map(id=>{const i=items.find(x=>x.id===id);return <li key={id}><strong>{i?.part_number||id}</strong><div>{i?.part_name||i?.description||'—'}</div></li>;})}</ul>{!r.raw_material_ids?.length&&<span className="inv-muted">{t('dt_raw_none')}</span>}</td></>:<><td>{r.product_part_number}</td><td>{nameFor(r)}</td><td>{r.version}</td><td><BtnSecondary intent="neutral" onClick={()=>setExpanded(expanded===r.id?null:r.id)}>{t('cat_ingredients',{count:r.inventory_bom_lines.length})}</BtnSecondary></td></>}
+    {stations?<><td>{r.code}</td><td>{r.name}</td><td>{r.machine_type}</td><td><ul className="station-material-list">{groupWorkstationMaterials(r.materials).map((m,k)=><li key={k}><strong>{m.erp_material}</strong>{(m.product||m.operation)&&<> · {m.product||m.operation}</>}{materialClientLabel(m,items)&&<div>{materialClientLabel(m,items)}</div>}</li>)}</ul></td><td><ul className="station-material-list">{(r.raw_material_ids||[]).map(id=>{const i=items.find(x=>x.id===id);return <li key={id}><strong>{i?.part_number||id}</strong><div>{i?.part_name||i?.description||'—'}</div></li>;})}</ul>{!r.raw_material_ids?.length&&<span className="inv-muted">{t('dt_raw_none')}</span>}</td></>:<><td>{r.product_part_number}</td><td>{nameFor(r)}</td><td>{r.version}</td><td><BtnSecondary intent="neutral" onClick={()=>setExpanded(expanded===r.id?null:r.id)}>{t('cat_ingredients',{count:r.inventory_bom_lines.length})}</BtnSecondary></td></>}
     <td>{t(stations?(r.active?'active':'inactive'):status(r))}</td>
     <td><div className="catalog-row-actions"><BtnEditDark intent="neutral" disabled={!manage||busy} onClick={()=>editRow(r)}>{t('edit')}</BtnEditDark> <BtnSecondary intent="create" disabled={!manage||busy} onClick={()=>duplicate(r)}>{t('cat_duplicate')}</BtnSecondary> <BtnDanger intent="danger" disabled={!manage||busy} onClick={()=>remove(r)}>{t('delete')}</BtnDanger></div></td>
    </tr>
@@ -162,7 +166,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
     <fieldset disabled={busy}><div className="catalog-fields">
     {stations?<><CatalogInput required label={uiTitle(t('inv_station_code'))} disabled={!edit.isNew} value={edit.code} onChange={e=>setEdit({...edit,code:e.target.value})}/>
      <CatalogInput required label={uiTitle(t('name'))} value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})}/>
-     <CatalogInput required label={uiTitle(t('inv_station_type'))} value={edit.machine_type} onChange={e=>setEdit({...edit,machine_type:e.target.value})}/></>:<>
+     <CatalogSelect disabled={!!typeError} label={uiTitle(t('inv_station_type'))} value={edit.machine_type} onChange={machine_type=>setEdit({...edit,machine_type})} options={machineTypeOptions(machineTypes,[edit.machine_type])}/></>:<>
      <CatalogInput required label={uiTitle(t('inv_ref_fg'))} list="recipe-products" value={edit.product_part_number} onChange={e=>changeOutput(e.target.value.toUpperCase())}/>
      <datalist id="recipe-products">{items.filter(i=>['FG','SEMI'].includes(i.category)).map(i=><option key={i.id} value={i.part_number}>{products.find(p=>p.id===i.producto_id)?.nombre}</option>)}</datalist>
      <CatalogInput label={uiTitle(t('name'))} readOnly value={editProduct?.nombre||t('cat_pending_product')}/>
@@ -170,10 +174,10 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
      <CatalogInput label={uiTitle(t('inv_notes'))} value={edit.notes||''} onChange={e=>setEdit({...edit,notes:e.target.value})}/></>}
      <label className="catalog-checkbox"><input type="checkbox" checked={edit.active} onChange={e=>setEdit({...edit,active:e.target.checked})}/>{t('active')}</label>
     </div>
-    {stations?<><h3>{uiTitle(t('dt_raw_materials'))}</h3><p className="inv-muted">{t('dt_raw_hint')}</p><CatalogSelect multi label={uiTitle(t('dt_raw_materials'))} value={edit.raw_material_ids||[]} onChange={raw_material_ids=>setEdit(current=>({...current,raw_material_ids}))} options={items.filter(i=>i.category==='RAW'&&(i.active||(edit.raw_material_ids||[]).includes(i.id))).map(i=>({value:i.id,label:i.part_number+' - '+(i.part_name||i.description||'')+' · '+(i.uom||'')}))}/><h3>{uiTitle(t('inv_station_materials'))}</h3><p className="inv-muted">{t('dt_product_multi_hint')}</p>{edit.materials.map((m,k)=><div className="catalog-fields" key={k}>
+    {stations?<><h3>{uiTitle(t('dt_raw_materials'))}</h3><p className="inv-muted">{t('dt_raw_hint')}</p><CatalogSelect multi label={uiTitle(t('dt_raw_materials'))} value={edit.raw_material_ids||[]} onChange={raw_material_ids=>setEdit(current=>({...current,raw_material_ids}))} options={items.filter(i=>['RAW','SEMI'].includes(i.category)&&(i.active||(edit.raw_material_ids||[]).includes(i.id))).map(i=>({value:i.id,label:i.part_number+' - '+(i.part_name||i.description||'')+' ('+i.category+') · '+(i.uom||'')}))}/><h3>{uiTitle(t('inv_station_materials'))}</h3><p className="inv-muted">{t('dt_product_multi_hint')}</p>{edit.materials.map((m,k)=><div className="catalog-fields" key={k}>
      <CatalogInput label={uiTitle(t('dt_erp'))} value={m.erp_material||''} onChange={e=>setEdit({...edit,materials:edit.materials.map((x,j)=>j===k?{...x,erp_material:e.target.value}:x)})}/>
      <CatalogInput label={uiTitle(t('dt_erp_name'))} value={m.product||m.operation||''} onChange={e=>setEdit({...edit,materials:edit.materials.map((x,j)=>j===k?{...x,product:e.target.value}:x)})}/>
-     <CatalogSelect multi label={uiTitle(t('dt_product'))} value={materialItemIds(m)} onChange={item_ids=>setEdit(current=>({...current,materials:current.materials.map((x,j)=>j===k?{...x,item_ids}:x)}))} options={items.filter(i=>['RAW','FG','SEMI'].includes(i.category)&&(i.active||materialItemIds(m).includes(i.id))).map(i=>({value:i.id,label:i.part_number+' - '+(i.part_name||i.description)+' ('+i.category+')'}))}/>
+     <CatalogSelect multi label={uiTitle(t('dt_product'))} value={materialItemIds(m)} onChange={item_ids=>setEdit(current=>({...current,materials:current.materials.map((x,j)=>j===k?{...x,item_ids}:x)}))} options={items.filter(i=>['SEMI','FG'].includes(i.category)&&(i.active||materialItemIds(m).includes(i.id))).map(i=>({value:i.id,label:i.part_number+' - '+(i.part_name||i.description)+' ('+i.category+')'}))}/>
      <BtnDanger intent="danger" type="button" onClick={()=>setEdit({...edit,materials:edit.materials.filter((_,j)=>j!==k)})}>{t('delete')}</BtnDanger>
     </div>)}<BtnSecondary intent="create" type="button" onClick={()=>setEdit({...edit,materials:[...edit.materials,{erp_material:'',product:''}]})}>{t('add')}</BtnSecondary></>:<>
      <h3>{uiTitle(t('inv_recipe'))}</h3><p className="inv-muted">{t('pr_repack_hint')}</p>{repackEdit&&<p className="inv-message">{t('pr_repack_exclusive')}</p>}<div className="table-wrap"><table className="table"><thead><tr><th>{uiTitle(t('inv_part'))}</th><th>{uiTitle(t('inv_qty_per_fg'))}</th><th>{uiTitle(t('cat_waste'))}</th><th>{uiTitle(t('actions'))}</th></tr></thead><tbody>

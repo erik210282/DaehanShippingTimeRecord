@@ -1,5 +1,5 @@
 {
-  "dt_product_multi_hint": "Puedes seleccionar varios productos de salida para la misma máquina, incluidos los semiproductos (SEMI).",
+  "dt_product_multi_hint": "Selecciona los códigos de salida SEMI o FG. La máquina puede transformar RAW en SEMI / FG y SEMI en SEMI / FG.",
   "shipping_swipe_table": "Desliza la tabla hacia los lados para ver todas las columnas.",
   "actions": "Acciones",
   "activo": "Activo",
@@ -628,11 +628,19 @@
   "rc_title": "Recepción",
   "rc_po_number": "Número de PO",
   "select_no_options": "Sin Resultados",
-  "dt_raw_materials": "Materiales RAW",
-  "dt_raw_hint": "Selecciona las materias primas que utiliza esta máquina por número de parte y nombre. Esta lista controla los materiales disponibles en Cargar / recargar material. Puedes agregar o quitar varios materiales.",
-  "dt_raw_none": "Sin materiales RAW asignados",
-  "dt_raw_invalid": "Selecciona materiales RAW válidos sin repetir.",
+  "dt_raw_materials": "Materiales de entrada (RAW / SEMI)",
+  "dt_raw_hint": "Selecciona los códigos RAW o SEMI que entran a la máquina. Esta lista controla Cargar / recargar material.",
+  "dt_raw_none": "Sin materiales de entrada asignados",
+  "dt_raw_invalid": "Selecciona materiales RAW o SEMI válidos sin repetir.",
   "rc_SEMI": "Semiproducto (SEMI)",
   "inv_semi_hint": "Los semiproductos (SEMI) generados en procesos intermedios se registran en WIP y pueden utilizarse en la siguiente etapa.",
-  "shipping_chart_type": "Tipo De Gráfica"
+  "shipping_chart_type": "Tipo De Gráfica",
+  "mt_title": "Tipos de máquina",
+  "mt_name": "Nombre",
+  "mt_delete": "¿Eliminar este tipo? Si está en uso, desactívalo.",
+  "mt_in_use": "Este tipo está en uso. Puedes desactivarlo.",
+  "mt_invalid": "Selecciona un tipo de máquina activo del catálogo.",
+  "mt_duplicate": "Ya existe un tipo con ese nombre.",
+  "mt_hint": "Los cambios de nombre actualizan máquinas y configuraciones. Los reportes históricos conservan su información.",
+  "dt_output_invalid": "El producto de salida debe ser SEMI o FG."
 }

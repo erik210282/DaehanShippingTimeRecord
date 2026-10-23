@@ -1,5 +1,5 @@
 {
-  "dt_product_multi_hint": "You can select multiple output products for the same machine, including semi-finished products (SEMI).",
+  "dt_product_multi_hint": "Select the SEMI or FG output codes. The workstation can transform RAW into SEMI / FG and SEMI into SEMI / FG.",
   "shipping_swipe_table": "Swipe the table sideways to see all columns.",
   "actions": "Actions",
   "activity": "Activity",
@@ -628,11 +628,19 @@
   "rc_title": "Receiving",
   "rc_po_number": "PO Number",
   "select_no_options": "No Results",
-  "dt_raw_materials": "RAW Materials",
-  "dt_raw_hint": "Select the raw materials this machine uses by part number and name. This list controls the options in Load / replenish material. You can add or remove multiple materials.",
-  "dt_raw_none": "No RAW materials assigned",
-  "dt_raw_invalid": "Select valid RAW materials without duplicates.",
+  "dt_raw_materials": "Input Materials (RAW / SEMI)",
+  "dt_raw_hint": "Select the RAW or SEMI codes entering the workstation. This list controls Load / replenish material.",
+  "dt_raw_none": "No input materials assigned",
+  "dt_raw_invalid": "Select valid RAW or SEMI input materials without duplicates.",
   "rc_SEMI": "Semi-finished product (SEMI)",
   "inv_semi_hint": "Semi-finished products (SEMI) made in intermediate processes are recorded in WIP and can be used in the next stage.",
-  "shipping_chart_type": "Chart Type"
+  "shipping_chart_type": "Chart Type",
+  "mt_title": "Machine Types",
+  "mt_name": "Name",
+  "mt_delete": "Delete this type? Deactivate it if it is in use.",
+  "mt_in_use": "This type is in use. You can deactivate it.",
+  "mt_invalid": "Select an active machine type from the catalog.",
+  "mt_duplicate": "A type with that name already exists.",
+  "mt_hint": "Renaming updates workstations and settings. Historical reports keep their information.",
+  "dt_output_invalid": "The output product must be SEMI or FG."
 }

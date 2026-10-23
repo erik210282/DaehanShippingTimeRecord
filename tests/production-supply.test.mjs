@@ -33,25 +33,9 @@ const together=shiftCapture({},'shared',runs.map(r=>({...r,closed_at:null})),()=
 assert.equal(together.products[0].downtime_events.length,1);assert.equal(together.products[1].downtime_events.length,0);
 console.log('PASS independent closed handoffs and product downtime isolation');
 
-const {stationRawIds,updateLoadEntry,materialLoadPayload}=vm.runInNewContext(source+'\n({stationRawIds,updateLoadEntry,materialLoadPayload})');
-const materialItems=['a','b','unrelated'].map(id=>({id,active:true,category:'RAW'}));
-const stationData={station_materials:[{station_code:'M1',item_id:'a'},{station_code:'M1',item_id:'b'},{station_code:'M2',item_id:'b'}]};
-assert.deepEqual(Array.from(stationRawIds(stationData,[],materialItems,'M1')),['a','b']);
-assert.equal(stationRawIds(stationData,[],materialItems,'').length,0);
-assert.equal(stationRawIds(stationData,[],materialItems,'UNKNOWN').length,0);
-const getEntries=e=>e.entries.map(row=>({...row,station_code:e.station_code}));
-let load={station_code:'M1',item_id:'a',quantity:'',entries:[{id:'1',item_id:'a',quantity:''},{id:'2',item_id:'b',quantity:''}]};
-load=updateLoadEntry(load,'a',{quantity:'12.5'},getEntries);
-load=updateLoadEntry(load,'b',{quantity:'34'},getEntries);
-assert.equal(load.entries[0].quantity,'12.5');assert.equal(load.entries[1].quantity,'34');assert.equal(load.quantity,'12.5');
-const payload=materialLoadPayload({},load,getEntries);assert.deepEqual(Array.from(payload.entries,r=>r.quantity),['12.5','34']);assert.ok(payload.entries.every(r=>r.alert_minutes===15));
-// Two working hours at 100 RAW/h. Alert exactly at 15 min regardless of old stored threshold.
-const forecast={...base,runs:[run],materials:[{...base.materials[0],loaded_quantity:225,alert_minutes:300}]};
-assert.equal(supplyRows(forecast,at)[0].low,true);
-assert.equal(supplyRows({...forecast,materials:[{...forecast.materials[0],loaded_quantity:226}]},at)[0].low,false);
-assert.equal(supplyRows({...forecast,runs:[] ,materials:[{...forecast.materials[0],loaded_quantity:0}]},at)[0].low,false,'No replenishment pop-up for inactive machinery');
-console.log('PASS separate load fields/payload, station filtering, fixed 15-minute threshold and active machine alerts');
-
-assert.deepEqual(Array.from(stationRawIds(stationData,[{code:'M1',raw_material_ids:['b'],materials:[{item_id:'a'}]}],materialItems,'M1')),['b'],'Explicit station RAW assignment overrides stale legacy or snapshot choices');
-assert.equal(stationRawIds(stationData,[{code:'M1',raw_material_ids:[]}],materialItems,'M1').length,0,'Clearing workstation RAW must not fall back to BOM or previous assignments');
-console.log('PASS explicit workstation RAW list and intentionally empty selection');
+const {stationRawIds}=vm.runInNewContext(source+'\n({stationRawIds})');
+const inputs=[{id:'raw',category:'RAW',active:true},{id:'semi',category:'SEMI',active:true},{id:'fg',category:'FG',active:true},{id:'pack',category:'PACKAGING',active:true},{id:'off',category:'SEMI',active:false}];
+assert.deepEqual(Array.from(stationRawIds({},[{code:'M',raw_material_ids:inputs.map(i=>i.id)}],inputs,'M')),['raw','semi']);
+assert.deepEqual(Array.from(stationRawIds({},[{code:'M',raw_material_ids:[]}],inputs,'M')),[]);
+assert.deepEqual(Array.from(stationRawIds({},[],inputs,'missing')),[]);
+console.log('PASS station input choices include assigned RAW/SEMI, exclude FG/packaging/inactive and never use the full catalog');

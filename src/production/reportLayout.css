@@ -71,3 +71,5 @@
 @media(max-width:1000px){.production-report-portal .production-downtime-timed{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:780px){.daily-packing-row,.daily-extra-row{grid-template-columns:repeat(2,minmax(0,1fr))}.production-report-portal :is(.production-downtime-timed,.daily-packing-row,.daily-extra-row)>button{margin:0!important}}
 @media(max-width:600px){.production-report-portal .production-downtime-timed,.daily-packing-row{grid-template-columns:minmax(0,1fr)}}
+
+.downtime-duration-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}.downtime-duration-toolbar>.catalog-field{display:flex;flex-direction:column;gap:6px;flex:0 1 150px;width:150px;min-width:120px;margin:0}.downtime-duration-toolbar>.catalog-field>span{min-height:40px;line-height:20px}.downtime-duration-toolbar>.catalog-field input{width:100%;margin:0!important}.downtime-duration-toolbar>.live-row-actions{display:flex;margin:0;align-items:center}

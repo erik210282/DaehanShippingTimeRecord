@@ -1,5 +1,6 @@
 
 begin;
+insert into public.machine_types(name) values('test') on conflict do nothing;
 select set_config('request.jwt.claim.sub','270a4a29-8fe0-4eee-8267-9e797be33216',true);
 do $test$
 declare item uuid:=gen_random_uuid();station text:='DELETE-TEST-'||gen_random_uuid();request uuid:=gen_random_uuid();r uuid;session uuid;cp uuid:=gen_random_uuid();

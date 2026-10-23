@@ -1,5 +1,6 @@
 
 begin;
+insert into public.machine_types(name) values('test') on conflict do nothing;
 select set_config('request.jwt.claim.sub','270a4a29-8fe0-4eee-8267-9e797be33216',true);
 do $test$
 declare a uuid:=gen_random_uuid();b uuid:=gen_random_uuid();raw uuid:=gen_random_uuid();bom_a uuid:=gen_random_uuid();bom_b uuid:=gen_random_uuid();grp uuid:=gen_random_uuid();session uuid:=gen_random_uuid();r1 uuid:=gen_random_uuid();r2 uuid:=gen_random_uuid();c1 uuid:=gen_random_uuid();c2 uuid:=gen_random_uuid();station text:='MULTI-TEST-'||substr(gen_random_uuid()::text,1,8);base jsonb;rows jsonb;result jsonb;n integer;start_at timestamptz:=clock_timestamp()-interval '2 hours';live_rows jsonb;

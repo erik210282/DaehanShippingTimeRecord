@@ -17,7 +17,7 @@ const emptyAssignments = () => ({});
 export default function GlobalSettings({ access }) {
   const { t } = useTranslation();
   const [section,setSection]=usePageSection('global-settings','users',['users','access','create','roles']);
-  const managed = access.admin ? departmentKeys : departmentKeys.filter(d => access.memberships.some(m => m.department === d && m.role === 'supervisor'));
+  const managed = access.admin ? departmentKeys : departmentKeys.filter(d => access.memberships.some(m => m.department === d && m.role === 'supervisor' && m.active !== false));
   const [hideInactive,setHideInactive]=useState(true);
   const [people, setPeople] = useState([]);
   const [memberships, setMemberships] = useState([]);
@@ -96,9 +96,9 @@ export default function GlobalSettings({ access }) {
     window.dispatchEvent(new Event('global-access-updated'));
   }
 
-  const visiblePeople=people.filter(u=>!hideInactive||u.activo);
+  const visiblePeople=people.filter(u=>(!hideInactive||u.activo)&&(access.admin||memberships.some(m=>m.user_id===u.uid&&m.active&&managed.includes(m.department))));
   useEffect(()=>{if(hideInactive&&people.some(u=>u.uid===selected&&!u.activo)){setSelected('');setDraft({});setLink('');}},[hideInactive,people,selected]);
-  const person = people.find(u => u.uid === selected);
+  const person = visiblePeople.find(u => u.uid === selected);
   return <main className="global-page">
     <div className="global-heading"><span>DAEHAN APP</span><h1>{uiTitle(t('global_settings'))}</h1></div>
     {status && <p role="status">{status}</p>}

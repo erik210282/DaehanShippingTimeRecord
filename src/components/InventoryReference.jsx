@@ -39,7 +39,7 @@ export default function InventoryReference({ mode }) {
     {loading ? <p role="status">{t('inv_ref_loading')}</p> : <div className="inv-table-wrap"><table>
       <thead><tr>{(mode === 'stations' ? ['inv_station_code', 'inv_station_name', 'inv_station_type', 'inv_station_materials'] : ['inv_part', 'inv_ref_description', 'inv_ref_fg', 'inv_ref_quantity', 'inv_ref_uom', 'inv_ref_source', 'inv_status']).map(k => <th key={k}>{uiTitle(t(k))}</th>)}</tr></thead>
       <tbody>{visible.map(r => mode === 'stations' ? <tr key={r.code}>
-        <td>{r.code}</td><td>{r.name}</td><td>{t(`inv_machine_${r.code.split('-')[1]?.slice(0,3)}`, { defaultValue: r.machine_type })}</td>
+        <td>{r.code}</td><td>{r.name}</td><td>{r.machine_type}</td>
         <td>{r.materials.map(m => `${m.erp_material} · ${m.product || m.operation}`).join(' / ')}</td>
       </tr> : <tr key={r.id}>
         <td>{r.part_number}</td><td>{r.details.description}</td><td>{r.fg_part_number || r.details.customer || '—'}</td>

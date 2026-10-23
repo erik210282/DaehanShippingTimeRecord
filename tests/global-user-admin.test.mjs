@@ -5,7 +5,7 @@ import { test } from 'node:test';
 
 const callerId = '11111111-1111-4111-8111-111111111111';
 const targetId = '22222222-2222-4222-8222-222222222222';
-const source = stripTypeScriptTypes(readFileSync(new URL('../supabase/functions/global-user-admin/index.ts', import.meta.url), 'utf8').replace(/^import.*\n/, ''));
+const source = stripTypeScriptTypes(readFileSync(new URL('../supabase/functions/global-user-admin/index.ts', import.meta.url), 'utf8').replace(/^import[^\n]*\n/gm, ''));
 
 function harness({ active = true, authenticated = true, admin = true, allowed = true, unbanFails = false } = {}) {
   const calls = [];
@@ -18,6 +18,11 @@ function harness({ active = true, authenticated = true, admin = true, allowed = 
           calls.push(['unban', id, attributes]);
           return { error: unbanFails ? new Error('Auth unavailable') : null };
         },
+        createUser: async () => {
+          calls.push(['create']);
+          return { data: { user: { id: targetId } }, error: null };
+        },
+        deleteUser: async () => ({error:null}),
         generateLink: async () => {
           calls.push(['link']);
           return { data: { properties: { hashed_token: 'test-only-token' } }, error: null };
@@ -31,6 +36,7 @@ function harness({ active = true, authenticated = true, admin = true, allowed = 
         select() { return this; },
         eq(key, value) { filters[key] = value; return this; },
         update(value) { update = value; return this; },
+        insert(value) { calls.push(['insert',table,value]); return Promise.resolve({error:null}); },
         maybeSingle() { return Promise.resolve(result()); },
         then(resolve, reject) { return Promise.resolve(result()).then(resolve, reject); },
       };
@@ -47,8 +53,8 @@ function harness({ active = true, authenticated = true, admin = true, allowed = 
   new Function('createClient', 'Deno', source)(() => db, { env: { get: () => 'test-only' }, serve: value => { handler = value; } });
   return {
     calls,
-    async request(action = 'link') {
-      const res = await handler(new Request('https://example.test', { method: 'POST', headers: { authorization: 'Bearer test', 'content-type': 'application/json' }, body: JSON.stringify({ action, user_id: targetId }) }));
+    async request(action = 'link', body = {}) {
+      const res = await handler(new Request('https://example.test', { method: 'POST', headers: { authorization: 'Bearer test', 'content-type': 'application/json' }, body: JSON.stringify({ action, user_id: targetId,...body }) }));
       return { status: res.status, body: await res.json() };
     },
   };
@@ -97,4 +103,21 @@ test('department supervisors cannot reactivate global accounts', async () => {
   const app = harness({ active: false, admin: false });
   assert.equal((await app.request('reactivate')).status, 403);
   assert.deepEqual(app.calls, []);
+});
+
+test('supervisor creates only within supervised departments; admin creates in any department', async () => {
+  for(const admin of [false,true]) for(const department of ['shipping','production','quality','receiving','inventory']) {
+    const app=harness({admin});
+    const result=await app.request('create',{name:'QA Person',email:'qa@example.test',assignments:[{department,role:'operador'}]});
+    assert.equal(result.status,admin||department==='shipping'?200:403);
+    assert.equal(app.calls.some(c=>c[0]==='create'),admin||department==='shipping');
+  }
+});
+
+test('forged role and mixed cross-department assignments fail before account creation',async()=>{
+  for(const assignments of [[{department:'shipping',role:'supervisor'}],[{department:'shipping',role:'admin'}],[{department:'shipping',role:'lider'},{department:'production',role:'operador'}]]){
+    const app=harness({admin:false});
+    assert.equal((await app.request('create',{name:'QA Person',email:'qa@example.test',assignments})).status,403);
+    assert.equal(app.calls.some(c=>c[0]==='create'),false);
+  }
 });
