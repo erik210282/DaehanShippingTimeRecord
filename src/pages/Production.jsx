@@ -1,3 +1,4 @@
+import KpiTracker from '../production/KpiTracker';
 import {ProductionPackingDetails,ProductionExtraWork} from '../components/ProductionDailyDetails';
 import {stationLabel,packingRows} from '../production/dailyDetails.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
@@ -92,7 +93,7 @@ export default function Production({access}) {
 
  const manage=supervisor||access.memberships.some(m=>m.department==='production'&&m.role==='lider');
 
- const [tab,setTab]=usePageSection('production',manage?'dashboard':'partial',['records','summary','partial','dashboard','targets','materials','shifts','parameters','parameter-settings','rework']);
+ const [tab,setTab]=usePageSection('production',manage?'dashboard':'partial',['records','summary','partial','dashboard','targets','materials','shifts','parameters','parameter-settings','rework','kpi']);
 
  const supply=useSupply();
  const [finishRun,setFinishRun]=useState(null);
@@ -320,12 +321,12 @@ export default function Production({access}) {
 
  if(!allowed)return <Navigate to="/inicio" replace/>;
 
- return <>{printReport&&<DailyPrintDialog report={printReport} onClose={()=>setPrintReport(null)}/>}<div className="module-department-nav"><ModuleHeading title={uiTitle(t('global_production'))}/><DepartmentNav department="production" value={tab} onChange={setTab} label={uiTitle(t('global_production'))} items={[...(manage||roleAccess?.can('production','dashboard')?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'summary',label:t('pr_summary')},{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},{key:'materials',label:t('ps_materials')},...(manage?[{key:'parameters',label:t('pp_capture')}]:[]),{key:'rework',label:t('rw_title')},...(manage?[{key:'shifts',label:t('ps_shifts')}]:[]),...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),...(supervisor?[{key:'parameter-settings',label:t('pp_settings')}]:[])]} /></div>
+ return <>{printReport&&<DailyPrintDialog report={printReport} onClose={()=>setPrintReport(null)}/>}<div className="module-department-nav"><ModuleHeading title={uiTitle(t('global_production'))}/><DepartmentNav department="production" value={tab} onChange={setTab} label={uiTitle(t('global_production'))} items={[...(manage||roleAccess?.can('production','dashboard')?[{key:'dashboard',label:t('pl_dashboard')}]:[]),{key:'summary',label:t('pr_summary')},...(manage?[{key:'kpi',label:'Daehan KPI Tracker'}]:[]),{key:'partial',label:t('pl_partial')},{key:'records',label:t('pr_records')},{key:'materials',label:t('ps_materials')},...(manage?[{key:'parameters',label:t('pp_capture')}]:[]),{key:'rework',label:t('rw_title')},...(manage?[{key:'shifts',label:t('ps_shifts')}]:[]),...(supervisor?[{key:'targets',label:t('pl_targets')}]:[]),...(supervisor?[{key:'parameter-settings',label:t('pp_settings')}]:[])]} /></div>
 
  <ProductionSupplyAlerts enabled={manage&&!edit&&!review} items={data.items} rows={supply.rows}/>
  <main className="page-container page-container--fluid production-page production-report-surface">
 
-  <SectionPermission department="production" activity={tab}>{tab==='rework'?<ProductionRework reporterName={access.name} canReview={access.admin||access.memberships.some(m=>m.department==='quality'&&m.role==='supervisor')}/>:['parameters','parameter-settings'].includes(tab)?<ProductionParameters mode={tab} manage={manage} supervisor={supervisor} reporterName={reporterName(access.userId)} items={data.items} stations={data.stations}/>:['materials','shifts'].includes(tab)?<ProductionSupply onCloseShift={r=>{setFinishRun(r);setTab('partial');}} mode={tab} items={data.items} stations={data.stations} manage={manage}/>:['partial','dashboard','targets'].includes(tab)?<ProductionLive finishRun={finishRun} onFinishHandled={()=>setFinishRun(null)} key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
+  <SectionPermission department="production" activity={tab}>{tab==='kpi'?<KpiTracker/>:tab==='rework'?<ProductionRework reporterName={access.name} canReview={access.admin||access.memberships.some(m=>m.department==='quality'&&m.role==='supervisor')}/>:['parameters','parameter-settings'].includes(tab)?<ProductionParameters mode={tab} manage={manage} supervisor={supervisor} reporterName={reporterName(access.userId)} items={data.items} stations={data.stations}/>:['materials','shifts'].includes(tab)?<ProductionSupply onCloseShift={r=>{setFinishRun(r);setTab('partial');}} mode={tab} items={data.items} stations={data.stations} manage={manage}/>:['partial','dashboard','targets'].includes(tab)?<ProductionLive finishRun={finishRun} onFinishHandled={()=>setFinishRun(null)} key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
 
    <div className="catalog-toolbar"><header className="live-page-header"><div><p className="live-eyebrow">{t('global_production')}</p><h2 className="module-title">{uiTitle(t(tab==='summary'?'pr_summary':'pr_records'))}</h2></div></header>
 

@@ -1,3 +1,6 @@
+import {registerTracker} from '../production/trackerWords';
+import {ReceiptContentsEditor,PutawayDestinations} from '../receiving/ReceiptContentsEditor';
+import {taskGroups,receiptContents,putawayAllocations} from '../receiving/receiptContents.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import {selectReceiptParts} from '../production/partEntries.mjs';
 import {SectionPermission,useRoleAccess} from '../RoleAccess';
@@ -15,7 +18,7 @@ import { registerReceiving, receivingError } from '../receiving/translations';
 import DepartmentNav from '../components/DepartmentNav';
 import './Receiving.css';
 import { subscribeUpdates, receivingTables } from '../realtime';
-registerReceiving(i18n);
+registerReceiving(i18n);registerTracker(i18n);
 const service = api(supabase);
 const blankLine = () => ({ item_id: '', expected: '', category: 'RAW' });
 const blankReceipt = () => ({ supplier_id: '', manifest: '', po_number: '', dock: '', trailer: '', lines: [blankLine()] });
@@ -35,8 +38,9 @@ export default function Receiving({ access }) {
   const permissions=useRoleAccess();
   const [data, setData] = useState(emptyData), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
   const [ready,setReady]=useState(false);
-  const [tab, setTab] = usePageSection('receiving', 'pending', ['pending','summary','productivity']), [from, setFrom] = useState(''), [to, setTo] = useState(''), [filter, setFilter] = useState(''), [search, setSearch] = useState('');
+  const [tab, setTab] = usePageSection('receiving', 'summary', ['summary','unload','putaway','pending','productivity']), [from, setFrom] = useState(''), [to, setTo] = useState(''), [filter, setFilter] = useState(''), [search, setSearch] = useState('');
   const [newReceipt, setNewReceipt] = useState(false), [receiptDraft, setReceiptDraft] = useState(blankReceipt), [selected, setSelected] = useState('');
+  const [contentsReceipt,setContentsReceipt]=useState(null);
   const [finishTask, setFinishTask] = useState(null), [actual, setActual] = useState({});
   const [putLine, setPutLine] = useState(null), [putLocation, setPutLocation] = useState(''), [putQuantity, setPutQuantity] = useState('');
   const [holdLine, setHoldLine] = useState(null), [reason, setReason] = useState('');
@@ -83,8 +87,9 @@ export default function Receiving({ access }) {
     setFinishTask(task); setActual(Object.fromEntries(ownLines(task.receipt_id).map(l=>[l.id,{received:String(l.expected),damaged:'0',note:''}])));
   }
   function openPut(line) { setPutAdditional([]);setPutLine(line); setPutLocation(''); setPutQuantity(String(line.available_to_store)); putId.current=newId(); }
+  function renderControls(id){return <div className="rc-toolbar">{taskGroups(data.tasks.filter(task=>task.receipt_id===id&&activeTask(task))).map(task=><React.Fragment key={task.id}>{canTask(task)&&<><BtnSecondary disabled={busy} onClick={()=>run(()=>service.task(task.id,task.status==='paused'?'resume':'pause'))}>{t(task.status==='paused'?'rc_resume':'rc_pause')}</BtnSecondary><BtnPrimary intent="confirm" disabled={busy} onClick={()=>task.kind==='unload'?openFinish(task):run(()=>service.task(task.id,'finish'))}>{t('rc_finish')}</BtnPrimary></>}</React.Fragment>)}</div>;}
   const currentTab=receiver?tab:'summary';
-  const tabs = receiver ? ['pending','summary','productivity'] : ['summary'];
+  const tabs = receiver ? ['summary','unload','putaway','pending','productivity'] : ['summary'];
   return <><div className="module-department-nav">
     <ModuleHeading title={uiTitle(t('rc_title'))}/>
     <DepartmentNav department="receiving" items={tabs.map(key=>({key,label:t(`rc_${key}`)}))} value={currentTab} onChange={key=>{setTab(key);}} label={uiTitle(t('rc_title'))}/></div><SectionPermission department="receiving" activity={currentTab}><main className="rc-page module-surface">
@@ -97,21 +102,22 @@ export default function Receiving({ access }) {
       </div>
       <div className="rc-metrics">{['pending','process','paused','completed'].map(key=><div key={key} style={{borderTopColor:statusColors[key]}}><strong>{receipts.filter(r=>receiptState(r,data.lines,data.tasks)===key).length}</strong><span>{t(`rc_status_${key}`)}</span></div>)}</div>
     </>}
-    {currentTab==='pending' && <>
+    {['pending','unload'].includes(currentTab) && <>
       <div className="rc-toolbar"><BtnPrimary intent="create" disabled={!!permissions&&!permissions.can('receiving','unload') || busy || data.tasks.some(task=>task.status==='running' && (task.operator_id===access.userId || task.additional_operator_ids?.includes(access.userId)))} onClick={()=>{setAdditional([]);setNewReceipt(true);receiptId.current=newId();setReceiptDraft(blankReceipt());}}>{t('rc_new')}</BtnPrimary></div>
-      <div className="rc-cards">{receipts.filter(row=>(!['completed','cancelled'].includes(receiptState(row,data.lines,data.tasks)) || ownLines(row.id).some(l=>l.quality_status==='held'))).map(row=>{
+      <div className="rc-cards">{receipts.filter(row=>currentTab!=='unload'||row.status==='unloading').filter(row=>(!['completed','cancelled'].includes(receiptState(row,data.lines,data.tasks)) || ownLines(row.id).some(l=>l.quality_status==='held'))).map(row=>{
         const state=receiptState(row,data.lines,data.tasks);
         return <article className="rc-card" key={row.id} style={{borderLeftColor:statusColors[state]}}>
           <div className="rc-card-top"><strong>{t('rc_receipt')} #{row.code}</strong><span className="rc-badge" style={{background:statusColors[state]}}>{t(`rc_status_${state}`)}</span></div>
           <p>{data.suppliers.find(s=>s.id===row.supplier_id)?.name} · {row.manifest}</p><p>{t('rc_trailer')}: {row.trailer} · DOCK {row.dock}</p>
           {data.tasks.filter(task=>task.receipt_id===row.id&&activeTask(task)).map(task=><div key={task.id}><p>{t('rc_operator')}: {data.users.find(u=>u.uid===task.operator_id)?.nombre||task.operator_id}</p>{!!task.additional_operator_ids?.length&&<p>{t('rc_additional_operators')}: {task.additional_operator_ids.map(uid=>data.users.find(u=>u.uid===uid)?.nombre||uid).join(', ')}</p>}</div>)}
           {ownLines(row.id).map(line=><p key={line.id}><strong>{line.part_number}</strong> · {fmt(line.received)} / {fmt(line.expected)} {line.uom}{line.quality_status==='held' && <span className="rc-held">{t('rc_held')}</span>}</p>)}
-          <BtnPrimary intent="neutral" onClick={()=>setSelected(row.id)}>{t('rc_details')}</BtnPrimary>
+          {renderControls(row.id)}<BtnPrimary intent="neutral" onClick={()=>setSelected(row.id)}>{t('rc_details')}</BtnPrimary>
         </article>;
       })}</div>{!receipts.some(r=>(!['completed','cancelled'].includes(receiptState(r,data.lines,data.tasks)) || ownLines(r.id).some(l=>l.quality_status==='held'))) && <p>{t('rc_no_data')}</p>}
     </>}
     {currentTab==='summary' && <div className="rc-table-wrap"><table><thead><tr>{['receipt','supplier','manifest','trailer','staging','type','received','stored','actions'].map(key=><th key={key}>{uiTitle(t(`rc_${key}`))}</th>)}</tr></thead>
-      <tbody>{receipts.map(row=><tr key={row.id} style={{background:statusColors[receiptState(row,data.lines,data.tasks)]+'66'}}><td>#{row.code}</td><td>{data.suppliers.find(s=>s.id===row.supplier_id)?.name}</td><td>{row.manifest}</td><td>{row.trailer}<small>DOCK {row.dock}</small></td><td>{data.locations.find(l=>l.id===row.staging_id)?.code}</td><td>{t(`rc_status_${receiptState(row,data.lines,data.tasks)}`)}</td><td>{ownLines(row.id).map(l=><div key={l.id}>{l.part_number}: {fmt(l.received)} {l.uom}<small>{t('rc_shortage')}: {fmt(Math.max(0,l.expected-l.received))} · {t('rc_surplus')}: {fmt(Math.max(0,l.received-l.expected))} · {t('rc_damaged')}: {fmt(l.damaged)}</small></div>)}</td><td>{ownLines(row.id).map(l=><div key={l.id}>{l.part_number}: {fmt(l.stored)} {l.uom}</div>)}</td><td><BtnSecondary intent="neutral" onClick={()=>setSelected(row.id)}>{t('rc_details')}</BtnSecondary></td></tr>)}</tbody></table></div>}
+      <tbody>{receipts.map(row=><tr key={row.id} style={{background:statusColors[receiptState(row,data.lines,data.tasks)]+'66'}}><td>#{row.code}</td><td>{data.suppliers.find(s=>s.id===row.supplier_id)?.name}</td><td>{row.manifest}</td><td>{row.trailer}<small>DOCK {row.dock}</small></td><td>{data.locations.find(l=>l.id===row.staging_id)?.code}</td><td>{t(`rc_status_${receiptState(row,data.lines,data.tasks)}`)}</td><td>{ownLines(row.id).map(l=><div key={l.id}>{l.part_number}: {fmt(l.received)} {l.uom}<small>{t('rc_shortage')}: {fmt(Math.max(0,l.expected-l.received))} · {t('rc_surplus')}: {fmt(Math.max(0,l.received-l.expected))} · {t('rc_damaged')}: {fmt(l.damaged)}</small></div>)}</td><td>{ownLines(row.id).map(l=><div key={l.id}>{l.part_number}: {fmt(l.stored)} {l.uom}</div>)}</td><td>{renderControls(row.id)}<BtnSecondary intent="neutral" onClick={()=>setSelected(row.id)}>{t('rc_details')}</BtnSecondary></td></tr>)}</tbody></table></div>}
+    {currentTab==='putaway'&&<div className="rc-cards">{receipts.filter(r=>r.status==='received').map(r=><article className="rc-card" key={r.id}><h3>{t('rc_receipt')} #{r.code} · {r.trailer}</h3><BtnSecondary disabled={busy} onClick={()=>setContentsReceipt(r)}>{t('rx_parts')}</BtnSecondary>{ownLines(r.id).map(l=><div key={l.id}><p>{itemLabel(l)} · {t('rc_remaining')}: {fmt(l.available_to_store)}</p><BtnPrimary intent="confirm" disabled={busy||number(l.available_to_store)<=0} onClick={()=>openPut(l)}>{t('rc_putaway')}</BtnPrimary></div>)}{renderControls(r.id)}</article>)}</div>}
     {tab==='productivity' && <>
       <div className="rc-table-wrap"><table><thead><tr>{['operator','activity','uom','activities','total','minutes','uph'].map(key=><th key={key}>{uiTitle(t(`rc_${key}`))}</th>)}</tr></thead><tbody>
       {productivity(tasks,data.lines).map(row=><tr key={`${row.operator_id}:${row.kind}:${row.uom}`}><td>{data.users.find(u=>u.uid===row.operator_id)?.nombre || row.operator_id}</td><td>{t(`rc_${row.kind}`)}</td><td>{row.uom==='mixed'?t('rc_mixed'):row.uom}</td><td>{row.activities}</td><td>{row.uom==='mixed'?'—':fmt(row.quantity)}</td><td>{fmt(row.seconds/60)}</td><td>{row.uph===null?'—':fmt(row.uph)}</td></tr>)}</tbody></table></div>
@@ -120,17 +126,12 @@ export default function Receiving({ access }) {
     </>}
     {newReceipt && <div className="rc-modal" role="dialog" aria-modal="true" aria-label={uiTitle(t('rc_new'))}><section className="rc-dialog"><h2>{uiTitle(t('rc_new'))}</h2><p>{t('rc_start_before')}</p><form onSubmit={e=>{e.preventDefault();run(async()=>{
       if(!receiptDraft.supplier_id)throw Error('receiving_invalid');
-      await service.start(receiptId.current,{...receiptDraft,additional_operator_ids:additional,lines:receiptDraft.lines.map(l=>({...l,expected:quantity(l.expected)}))});setNewReceipt(false);
+      await service.start(receiptId.current,{...receiptDraft,additional_operator_ids:additional,lines:[]});setNewReceipt(false);
     });}}><p>{t('rc_operator')}: {data.users.find(u=>u.uid===access.userId)?.nombre || access.name}</p><SelectField multi label={uiTitle(t('rc_additional_operators'))} value={additional} onChange={setAdditional} options={data.users.filter(u=>u.activo&&u.assigned&&u.uid!==access.userId).map(u=>({value:u.uid,label:u.nombre}))}/><div className="rc-grid">
       <SelectField label={uiTitle(t('rc_supplier'))} value={receiptDraft.supplier_id} options={options(data.suppliers.filter(s=>s.active),s=>`${s.code} · ${s.name}`)} onChange={supplier_id=>setReceiptDraft({...receiptDraft,supplier_id})}/>
       <Field required label={uiTitle(t('rc_manifest'))} value={receiptDraft.manifest} onChange={manifest=>setReceiptDraft({...receiptDraft,manifest})}/><Field label={uiTitle(t('rc_po_number'))} value={receiptDraft.po_number} onChange={po_number=>setReceiptDraft({...receiptDraft,po_number})}/><Field required label={uiTitle(t('rc_dock'))} inputMode="numeric" value={receiptDraft.dock} onChange={dock=>setReceiptDraft({...receiptDraft,dock:dock.replace(/\D/g,'')})}/>
       <Field required label={uiTitle(t('rc_trailer'))} value={receiptDraft.trailer} onChange={trailer=>setReceiptDraft({...receiptDraft,trailer:trailer.toUpperCase()})}/>
-    </div>{receiptDraft.lines.map((line,index)=><div className="rc-product-row" key={index}>
-      <SelectField label={uiTitle(t('rc_type'))} value={line.category} options={['RAW','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))} onChange={category=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.map((l,i)=>i===index?{...l,category,item_id:''}:l)})}/>
-      <SelectField multi label={uiTitle(t('rc_item'))} value={line.item_id?[line.item_id]:[]} options={options(data.items.filter(i=>i.active && i.category===line.category && ['RAW','PACKAGING'].includes(i.category)),itemLabel)} onChange={ids=>setReceiptDraft(v=>({...v,lines:selectReceiptParts(v.lines,index,ids)}))}/>
-      {line.category==='RAW' && line.item_id && <div className="rc-product-info">{(()=>{const item=data.items.find(i=>i.id===line.item_id),supplier=data.suppliers.find(i=>i.id===item?.supplier_id);return <><small>{t('rc_supplier')}: {supplier?.name||'—'}</small><small>{t('rc_supplier_location')}: {['street','exterior_number','interior_number','neighborhood','city','state','postal_code','country'].map(k=>supplier?.[k]).filter(Boolean).join(', ')||'—'}</small><small>{t('rc_lead_time')}: {item?.lead_time_days??'—'}</small></>;})()}</div>}{['expected'].map(key=><Field key={key} required={key==='expected'} label={uiTitle(t(`rc_${key}`))} type={key==='expected'?'number':'text'} min={key==='expected'?0:undefined} step="any" value={line[key]} onChange={value=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.map((l,i)=>i===index?{...l,[key]:value}:l)})}/>)}
-      <BtnDanger intent="danger" type="button" disabled={receiptDraft.lines.length===1} onClick={()=>setReceiptDraft({...receiptDraft,lines:receiptDraft.lines.filter((_,i)=>i!==index)})}>{t('rc_remove')}</BtnDanger>
-    </div>)}<div className="rc-toolbar"><BtnSecondary intent="create" type="button" onClick={()=>setReceiptDraft({...receiptDraft,lines:[...receiptDraft.lines,blankLine()]})}>{t('rc_add')}</BtnSecondary><BtnPrimary intent="confirm" disabled={busy}>{t('rc_start')}</BtnPrimary><BtnSecondary intent="neutral" type="button" disabled={busy} onClick={()=>setNewReceipt(false)}>{t('rc_close')}</BtnSecondary></div></form></section></div>}
+    </div><div className="rc-toolbar"><BtnPrimary intent="confirm" disabled={busy}>{t('rc_start')}</BtnPrimary><BtnSecondary intent="neutral" type="button" disabled={busy} onClick={()=>setNewReceipt(false)}>{t('rc_close')}</BtnSecondary></div></form></section></div>}
     {receipt && <div className="rc-modal" role="dialog" aria-modal="true" aria-label={uiTitle(t('rc_details'))}><section className="rc-dialog"><div className="rc-heading"><h2>{uiTitle(t('rc_receipt'))} #{receipt.code}</h2><BtnSecondary intent="neutral" onClick={()=>setSelected('')}>{t('rc_close')}</BtnSecondary></div>
       {receipt.po_number && <p>{t('rc_po_number')}: {receipt.po_number}</p>}<p>{receipt.manifest} · {receipt.trailer} · DOCK {receipt.dock}</p><p>{t('rc_quarantine_help')}</p>
       {selectedLines.map(line=><article className="rc-card" key={line.id}><strong>{itemLabel(line)}</strong><p>{t('rc_received')}: {fmt(line.received)} · {t('rc_stored')}: {fmt(line.stored)} · {t('rc_remaining')}: {fmt(line.received-line.stored)} {line.uom}</p>
@@ -146,11 +147,8 @@ export default function Receiving({ access }) {
       </article>)}
     </section></div>}
     {finishTask && <div className="rc-modal" role="dialog" aria-modal="true" aria-label={uiTitle(t('rc_review'))}><section className="rc-dialog"><h2>{uiTitle(t('rc_review'))}</h2><p>{t('rc_stock_help')}</p>{ownLines(finishTask.receipt_id).map(line=><article className="rc-card" key={line.id}><strong>{itemLabel(line)}</strong><p>{t('rc_expected')}: {fmt(line.expected)} {line.uom}</p><div className="rc-grid">{['received','damaged','note'].map(key=><Field key={key} label={uiTitle(t(`rc_${key}`))} value={actual[line.id]?.[key] || ''} type={key==='note'?'text':'number'} min="0" step="any" onChange={value=>setActual({...actual,[line.id]:{...actual[line.id],[key]:value}})}/>)}</div><p>{t('rc_shortage')}: {fmt(Math.max(0,line.expected-number(actual[line.id]?.received)))} · {t('rc_surplus')}: {fmt(Math.max(0,number(actual[line.id]?.received)-line.expected))}</p></article>)}<div className="rc-toolbar"><BtnPrimary intent="confirm" disabled={busy} onClick={()=>run(async()=>{await service.task(finishTask.id,'finish',finishLines(ownLines(finishTask.receipt_id),actual));setFinishTask(null);})}>{t('rc_finish')}</BtnPrimary><BtnSecondary intent="neutral" disabled={busy} onClick={()=>setFinishTask(null)}>{t('rc_close')}</BtnSecondary></div></section></div>}
-    {putLine && <div className="rc-modal" role="dialog" aria-modal="true" aria-label={uiTitle(t('rc_putaway'))}><section className="rc-dialog"><h2>{uiTitle(t('rc_putaway'))}</h2><p>{itemLabel(putLine)}</p><p>{t(`rc_${putLine.quality_status}`)}</p>
-      <p>{t('rc_operator')}: {data.users.find(u=>u.uid===access.userId)?.nombre || access.name}</p><SelectField multi label={uiTitle(t('rc_additional_operators'))} value={putAdditional} onChange={setPutAdditional} options={data.users.filter(u=>u.activo&&u.assigned&&u.uid!==access.userId).map(u=>({value:u.uid,label:u.nombre}))}/><SelectField label={uiTitle(t('rc_location'))} value={putLocation} onChange={setPutLocation} options={options(allowedLocations(putLine.item_id,data.locations,data.assignments),locationLabel)}/>
-      {!allowedLocations(putLine.item_id,data.locations,data.assignments).length && <p role="alert">{t('rc_no_locations')}</p>}
-      <Field label={uiTitle(t('rc_quantity'))} type="number" min="0" step="any" value={putQuantity} onChange={setPutQuantity}/><div className="rc-toolbar"><BtnPrimary intent="confirm" disabled={busy || !putLocation} onClick={()=>run(async()=>{await service.putaway(putId.current,putLine.id,putLocation,putQuantity,putAdditional);setPutLine(null);})}>{t('rc_start')}</BtnPrimary><BtnSecondary intent="neutral" disabled={busy} onClick={()=>setPutLine(null)}>{t('rc_close')}</BtnSecondary></div>
-    </section></div>}
+    {putLine&&<PutawayDestinations key={putLine.id} line={putLine} data={data} busy={busy} onClose={()=>setPutLine(null)} onSave={(id,allocations,operators)=>run(async()=>{await service.putawayBatch(id,putLine.id,putawayAllocations(allocations,putLine.available_to_store),operators);setPutLine(null);})}/>}
+    {contentsReceipt&&<ReceiptContentsEditor key={contentsReceipt.id} receipt={contentsReceipt} data={data} busy={busy} onClose={()=>setContentsReceipt(null)} onSave={(id,lines)=>run(async()=>{await service.identify(id,contentsReceipt.id,contentsReceipt.contents_version,receiptContents(lines));setContentsReceipt(null);})}/>}
     {holdLine && <div className="rc-modal" role="dialog" aria-modal="true" aria-label={uiTitle(t('rc_quarantine'))}><section className="rc-dialog"><h2>{uiTitle(t('rc_quarantine'))}</h2><p>{itemLabel(holdLine)} · {fmt(holdLine.received)} {holdLine.uom}</p><Field label={uiTitle(t('rc_reason'))} value={reason} onChange={setReason}/><div className="rc-toolbar"><BtnDanger intent="danger" disabled={busy || !reason.trim()} onClick={()=>run(async()=>{await service.hold(holdLine.id,reason.trim());setHoldLine(null);})}>{t('rc_quarantine')}</BtnDanger><BtnSecondary intent="neutral" disabled={busy} onClick={()=>setHoldLine(null)}>{t('rc_close')}</BtnSecondary></div></section></div>}
 
   </main></SectionPermission></>;

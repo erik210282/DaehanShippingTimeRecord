@@ -43,3 +43,5 @@
 .rc-product-info {order:5;}
 .rc-product-row {grid-template-columns:minmax(160px,1fr) minmax(250px,2fr) minmax(120px,1fr) auto;}
 @media(max-width:720px){.rc-product-row{grid-template-columns:1fr}.rc-product-info{order:5;display:grid}}
+
+.rc-content-row{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end;gap:12px}.rc-content-row>.rc-field{margin:0}.rc-content-row>button{margin:0;align-self:end}@media(max-width:600px){.rc-content-row{grid-template-columns:1fr}}

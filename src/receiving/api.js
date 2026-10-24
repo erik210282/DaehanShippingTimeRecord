@@ -16,7 +16,7 @@ export function quantity(value, allowZero = false) {
   if (!Number.isFinite(result) || (allowZero ? result < 0 : result <= 0)) throw Error('receiving_quantity');
   return result;
 }
-export const itemLabel = item => `${item.part_number} · ${item.part_name || item.description} (${item.uom})`;
+export const itemLabel = item => [item.part_number,item.part_name||item.description].filter(Boolean).join(' · ')+(item.uom?' ('+item.uom+')':'');
 export const locationLabel = item => `${item.code} · ${item.name}`;
 export const activeTask = task => ['running', 'paused'].includes(task.status);
 export const statusColors = { pending: '#FFF44F', process: '#AEC6CF', completed: '#B2FBA5', paused: '#F1BA8B', cancelled: '#eeeeee' };
@@ -25,7 +25,7 @@ export function receiptState(receipt, lines, tasks) {
   const ownTasks = tasks.filter(task => task.receipt_id === receipt.id && activeTask(task));
   if (ownTasks.length) return ownTasks.every(task => task.status === 'paused') ? 'paused' : 'process';
   const ownLines = lines.filter(line => line.receipt_id === receipt.id);
-  if (receipt.status === 'received' && ownLines.every(line => number(line.stored) >= number(line.received))) return 'completed';
+  if (receipt.status === 'received' && ownLines.length>0 && ownLines.every(line => number(line.stored) >= number(line.received))) return 'completed';
   if (ownLines.some(line => number(line.stored)>0)) return 'process';
   return 'pending';
 }
@@ -38,6 +38,8 @@ export function effectiveSeconds(task) {
   return Math.max(0, (new Date(task.finished_at) - new Date(task.started_at)) / 1000 - number(task.pause_seconds));
 }
 export function productivity(tasks, lines) {
+  const batches=new Map();for(const task of tasks.filter(t=>t.status==='finished')){const key=task.putaway_group_id||task.id,prior=batches.get(key);if(prior){prior.quantity=number(prior.quantity)+number(task.quantity);prior.group_seconds=Math.max(prior.group_seconds,effectiveSeconds(task));}else batches.set(key,{...task,group_seconds:effectiveSeconds(task)});}
+  tasks=[...batches.values()];
   const groups = new Map();
   for (const task of tasks.filter(row => row.status === 'finished').flatMap(task=>[task.operator_id,...(task.additional_operator_ids||[])].map(operator_id=>({...task,operator_id})))) {
     const taskLines = task.kind === 'unload' ? lines.filter(line => line.receipt_id === task.receipt_id) : lines.filter(line => line.id === task.line_id);
@@ -46,7 +48,7 @@ export function productivity(tasks, lines) {
     const uom = units.size === 1 ? [...units][0] : 'mixed';
     const key = `${task.operator_id}:${task.kind}:${uom}`;
     const group = groups.get(key) || { operator_id: task.operator_id, kind: task.kind, uom, activities: 0, seconds: 0, quantity: 0 };
-    group.activities++; group.seconds += effectiveSeconds(task);
+    group.activities++; group.seconds += task.group_seconds;
     if (uom !== 'mixed') group.quantity += task.kind === 'putaway' ? number(task.quantity) : taskLines.reduce((sum, line) => sum + number(line.received), 0);
     groups.set(key, group);
   }
@@ -76,11 +78,13 @@ export function api(db) {
         pageAll('inventory_items', 'part_number', query=>query.in('category',['RAW','FG','PACKAGING']), 'id,part_number,description,category,uom,active,minimum_quantity,responsible_department,default_location,part_name,supplier_id,lead_time_days'),
         pageAll('receiving_receipts', 'code'), pageAll('receiving_line_status'), pageAll('receiving_tasks'), rpc('receiving_users', {}), pageAll('receiving_material_types','code'), pageAll('receiving_item_types','item_id'),
       ]);
-      return { suppliers, locations, assignments, items:items.map(i=>({...i,material_type:itemTypes.find(m=>m.item_id===i.id)?.material_type || i.category})), receipts, lines, tasks, users, materialTypes };
+      return { suppliers, locations, assignments, items:items.map(i=>({...i,material_type:itemTypes.find(m=>m.item_id===i.id)?.material_type || i.category})), receipts, lines:lines.map(l=>({...l,part_name:items.find(i=>i.id===l.item_id)?.part_name||l.description||''})), tasks, users, materialTypes };
     },
     start: (id, data) => rpc('receiving_start', { p_id: id, p_data: data }),
     putaway: (id, line, location, amount, operators=[]) => rpc('receiving_putaway_group', { p_id: id, p_line: line, p_location: location, p_quantity: quantity(amount),p_operators:operators }),
-    task: (id, action, lines = []) => rpc('receiving_task', { p_id: id, p_action: action, p_lines: lines }),
+    task: (id, action, lines = []) => rpc('receiving_task_group', { p_id: id, p_action: action, p_lines: lines }),
+    identify: (id,receipt,version,lines)=>rpc('receiving_identify',{p_id:id,p_receipt:receipt,p_version:version,p_lines:lines}),
+    putawayBatch: (id,line,allocations,operators)=>rpc('receiving_putaway_batch',{p_id:id,p_line:line,p_allocations:allocations,p_operators:operators}),
     catalog: (kind, data) => rpc('receiving_catalog', { p_kind: kind, p_data: data }),
     hold: (line, reason) => rpc('receiving_hold', { p_line: line, p_reason: reason }),
   };
