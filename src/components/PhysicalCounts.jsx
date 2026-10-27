@@ -1,3 +1,4 @@
+import {completeRecord} from '../dataExport.mjs';
 import {uiTitle} from './actionTheme.mjs';
 import i18n from '../i18n/i18n';
 import {countGroups,countError,registerCountFlow} from '../inventory/countFlow';
@@ -67,7 +68,7 @@ export default function PhysicalCounts({items,balances,counts,access,fileRows,sa
   <div className="table-wrap"><table className="table"><thead><tr><th>{uiTitle(t('inv_day'))}</th><th>{uiTitle(t('inv_area'))}</th><th>{uiTitle(t('inv_department'))}</th><th>{uiTitle(t('status'))}</th><th>{uiTitle(t('actions'))}</th></tr></thead><tbody>
    {counts.filter(c=>c.status!=='submitted').map(c=><React.Fragment key={c.id}><tr><td>{new Date(c.counted_at||c.submitted_at).toLocaleString(i18n.language)}</td><td>{t('inv_area_'+c.area)}</td><td>{t('inv_dept_'+c.department)}</td><td>{t('inv_status_'+c.status)}</td><td>
     <BtnSecondary intent="neutral" onClick={()=>setReport(report===c.id?null:c.id)}>{t('count_view')}</BtnSecondary>
-    <BtnSecondary intent="neutral" onClick={()=>saveCsv('physical_count_'+c.id+'.csv',c.inventory_count_lines.map(l=>({'Part Number':items.find(i=>i.id===l.item_id)?.part_number,'Expected Quantity':l.expected_quantity,'Physical Quantity':l.physical_quantity,Difference:Number(l.physical_quantity)-Number(l.expected_quantity)})))}>{t('inv_download_report')}</BtnSecondary>
+    <BtnSecondary intent="neutral" onClick={()=>saveCsv('physical_count_'+c.id+'.csv',c.inventory_count_lines.map(l=>completeRecord({'Part Number':items.find(i=>i.id===l.item_id)?.part_number,Name:items.find(i=>i.id===l.item_id)?.part_name,Unit:items.find(i=>i.id===l.item_id)?.uom,'Expected Quantity':l.expected_quantity,'Physical Quantity':l.physical_quantity,Difference:Number(l.physical_quantity)-Number(l.expected_quantity)},{...c,inventory_count_lines:undefined,line:l})))}>{t('inv_download_report')}</BtnSecondary>
     {c.status==='submitted'&&can(c.department,true)&&<><BtnPrimary intent="confirm" disabled={busy} onClick={()=>{if(window.confirm(t('count_confirm_apply')))act(()=>unwrap(supabase.rpc('inventory_review_count',{p_count:c.id,p_approve:true,p_note:t('inv_mobile_approved_note')})),t('inv_count_approved'));}}>{t('inv_approve_apply')}</BtnPrimary>
      <BtnDanger intent="danger" disabled={busy} onClick={()=>act(()=>unwrap(supabase.rpc('inventory_review_count',{p_count:c.id,p_approve:false,p_note:t('inv_mobile_rejected_note')})),t('inv_count_rejected'))}>{t('inv_reject')}</BtnDanger></>}
    </td></tr>

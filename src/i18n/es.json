@@ -1,4 +1,6 @@
 {
+  "cat_bom_fg": "BOM – Productos Terminados",
+  "cat_bom_semi": "BOM – SEMI",
   "dt_product_multi_hint": "Selecciona los códigos de salida SEMI o FG. La máquina puede transformar RAW en SEMI / FG y SEMI en SEMI / FG.",
   "shipping_swipe_table": "Desliza la tabla hacia los lados para ver todas las columnas.",
   "actions": "Acciones",

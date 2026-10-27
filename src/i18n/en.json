@@ -1,4 +1,6 @@
 {
+  "cat_bom_fg": "BOM – Finished Goods",
+  "cat_bom_semi": "BOM – SEMI",
   "dt_product_multi_hint": "Select the SEMI or FG output codes. The workstation can transform RAW into SEMI / FG and SEMI into SEMI / FG.",
   "shipping_swipe_table": "Swipe the table sideways to see all columns.",
   "actions": "Actions",

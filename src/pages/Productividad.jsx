@@ -1,3 +1,4 @@
+import {completeRecord,recordTable} from '../dataExport.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import {saveShippingFile} from '../nativeShippingBridge';
 import {useLiveVersion} from '../useLiveVersion';
@@ -114,7 +115,7 @@ export default function Productividad() {
           .from("actividades_realizadas")
           .select("*")
           .eq("estado", "finalizada")
-          .order("hora_inicio", { ascending: false }); // <-- ajusta el nombre si tu columna de tiempo es distinta
+          .order("hora_inicio", { ascending: false }).order("id", { ascending: false }); // <-- ajusta el nombre si tu columna de tiempo es distinta
 
         if (opts.fromISO) q = q.gte("hora_inicio", opts.fromISO);
         if (opts.toISO) q = q.lte("hora_inicio", opts.toISO);
@@ -338,8 +339,9 @@ export default function Productividad() {
       [t("average_time_minutes")]: agrupadoPor2 ? promediosCruzados[i] : promedios[i],
     }));
 
-    const csv = Papa.unparse(datosCSV);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const details=filtrarRegistros().map(r=>completeRecord({'Record Type':'Activity',[t('activity')]:actividades[r.actividad]||r.actividad,[t('product')]:productos[r.producto]||r.producto,[t('operator')]:(Array.isArray(r.operadores)?r.operadores:[]).map(id=>operadores[id]||id).join(' / '),[t('start_time')]:r.hora_inicio,[t('end_time')]:r.hora_fin},r));
+    const csv = Papa.unparse(recordTable([...datosCSV.map(r=>({'Record Type':'Summary',...r})),...details]),{escapeFormulae:true});
+    const blob = new Blob(['\ufeff'+csv], { type: "text/csv;charset=utf-8;" });
     try { await saveShippingFile(blob, "productividad.csv"); } catch(error) { toast.error(error.message); return; }
     toast.success(t("export_success"));
   };

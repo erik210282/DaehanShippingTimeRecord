@@ -1,3 +1,4 @@
+import {completeRecord,recordTable} from '../dataExport.mjs';
 import {departmentOperators} from '../shipping/departmentOperators.mjs';
 import CaptureDateTime from '../components/CaptureDateTime';
 import {uiTitle} from '../components/actionTheme.mjs';
@@ -442,7 +443,7 @@ useEffect(() => {
     const inicio = new Date(d.horaInicio);
     const fin = new Date(d.horaFin);
 
-    return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
+    return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => completeRecord({
       [t("idx")]: d.idx || "N/A",
       [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
       [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
@@ -466,11 +467,11 @@ useEffect(() => {
         ? (isShippingVerified(d, d.shipping_capture, mapaActividades[d.actividad])
           ? t("shipping_verified") : (d.force_review_pending?f("pending"):t("shipping_pending_verification")))
         : "",
-    }));
+    },{...d,product:p}));
   });
 
-  const csv = Papa.unparse(datosCSV);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const csv = Papa.unparse(recordTable(datosCSV),{escapeFormulae:true});
+  const blob = new Blob(['\ufeff'+csv], { type: "text/csv;charset=utf-8;" });
   try { await saveShippingFile(blob, "registros.csv"); } catch(error) { toast.error(error.message); return; }
 
   toast.success(t("export_success") || "CSV exportado correctamente");

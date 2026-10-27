@@ -1,3 +1,4 @@
+import {allRows,recordTable} from '../dataExport.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import {AppAction} from '../components/controls';
 import ShippingPacking from '../components/ShippingPacking';
@@ -57,7 +58,7 @@ async function fileRows(file, sheetName, t) {
   return rows;
 }
 function saveCsv(filename, rows) {
-  const csv = Papa.unparse(rows, { escapeFormulae: true });
+  const csv = Papa.unparse(recordTable(rows), { escapeFormulae: true });
   const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }));
   const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -107,7 +108,7 @@ export default function Inventarios({ access,permissionDepartment='inventory' })
     const [i, b, c, imp, ship, disp, lines, pendingRows] = await Promise.all([
       unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,productos(nombre,descripcion),category,uom,minimum_quantity,responsible_department,default_location,active').order('part_number')),
       unwrap(supabase.from('inventory_balances').select('item_id,area,quantity')),
-      unwrap(supabase.from('inventory_counts').select('*,inventory_count_lines(*)').order('submitted_at', { ascending: false }).limit(50)),
+      allRows(()=>supabase.from('inventory_counts').select('*,inventory_count_lines(*)').order('submitted_at', { ascending: false }).order('id')),
       unwrap(supabase.from('inventory_demand_imports').select('*').order('imported_at', { ascending: false }).limit(10)),
       can('shipping',true) ? unwrap(supabase.from('actividades').select('id,nombre').ilike('nombre','load')) : Promise.resolve([]),
       unwrap(supabase.from('inventory_dispatches').select('*').order('confirmed_at', { ascending: false }).limit(50)),

@@ -1,3 +1,4 @@
+import {allRows} from '../dataExport.mjs';
 import {useMachineTypes,machineTypeOptions} from '../catalog/useMachineTypes';
 import {uiTitle} from './actionTheme.mjs';
 import {registerShippingPacking} from '../inventory/shippingPackingTranslations';
@@ -29,12 +30,12 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  const [search,setSearch]=useState(''),[edit,setEdit]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25),[expanded,setExpanded]=useState(null);
  const manage=!!(access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role)));
- const stations=mode==='stations';
+ const stations=mode==='stations',outputCategory=mode==='bom-semi'?'SEMI':'FG';
  const refresh=useCallback(async()=>{
   const [r,i,p]=await Promise.all([
-   unwrap(supabase.from(stations?'inventory_workstations':'inventory_boms').select(stations?'*':recipeSelect).order(stations?'code':'product_part_number')),
-   unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active').order('part_number')),
-   unwrap(supabase.from('productos').select('id,part_number,nombre,descripcion,activo,tipo_empaque_retornable,tipo_empaque_expendable,cantidad_por_caja_retornable,cantidad_por_caja_expendable')),
+   allRows(()=>supabase.from(stations?'inventory_workstations':'inventory_boms').select(stations?'*':recipeSelect).order(stations?'code':'product_part_number')),
+   allRows(()=>supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active').order('part_number')),
+   allRows(()=>supabase.from('productos').select('id,part_number,nombre,descripcion,activo,tipo_empaque_retornable,tipo_empaque_expendable,cantidad_por_caja_retornable,cantidad_por_caja_expendable').order('id')),
   ]);
   setRows((stations?(r||[]):normalizeRecipes(r)).filter(x=>!x.archived));setItems(i||[]);setProducts(p||[]);setError('');
  },[stations]);
@@ -42,10 +43,12 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   const off=subscribeUpdates(supabase,'production-catalog-'+mode,['inventory_workstations','inventory_boms','inventory_bom_lines','inventory_bom_packaging','inventory_bom_packaging_lines','catalog_updates','productos'],load);
   return()=>{live=false;off();};},[mode,refresh]);
  const productFor=r=>products.find(p=>p.id===items.find(i=>i.id===r.finished_item_id)?.producto_id || (p.part_number===r.product_part_number && p.part_number!=='NA'));
- const nameFor=r=>productFor(r)?.nombre||'—';
+ const itemFor=r=>items.find(i=>i.id===r.finished_item_id||i.part_number===r.product_part_number);
+ const nameFor=r=>itemFor(r)?.part_name||productFor(r)?.nombre||itemFor(r)?.description||'-';
+ const categoryFor=r=>itemFor(r)?.category||'FG';
  const status=r=>!r.finished_item_id?'cat_pending_product':productFor(r)?.activo===false?'cat_inactive_product':r.active?'inv_active':'inv_draft';
  const query=(externalControls?filter:search).trim().toLowerCase();
- const visible=rows.filter(r=>(!hideInactive||(r.active&&(stations||productFor(r)?.activo!==false)))&&(JSON.stringify(r).toLowerCase().includes(query)||(stations&&(r.raw_material_ids||[]).some(id=>{const i=items.find(x=>x.id===id);return [i?.part_number,i?.part_name,i?.description].join(' ').toLowerCase().includes(query);}))||(!stations&&nameFor(r).toLowerCase().includes(query))));
+ const visible=rows.filter(r=>(stations||categoryFor(r)===outputCategory)&&(!hideInactive||(r.active&&(stations||productFor(r)?.activo!==false)))&&(JSON.stringify(r).toLowerCase().includes(query)||(stations&&(r.raw_material_ids||[]).some(id=>{const i=items.find(x=>x.id===id);return [i?.part_number,i?.part_name,i?.description].join(' ').toLowerCase().includes(query);}))||(!stations&&nameFor(r).toLowerCase().includes(query))));
  useEffect(()=>{setPage(1);},[filter,hideInactive]);
  const totalPages=Math.max(1,Math.ceil(visible.length/pageSize)),currentPage=Math.min(page,totalPages);
  const fmt=value=>Number(value||0).toLocaleString('en-US',{maximumFractionDigits:6});
@@ -84,7 +87,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   }else{
    if(edit.packing.some(p=>p.enabled&&p.lines.some((l,k)=>l.ingredient_id&&p.lines.some((other,j)=>j!==k&&other.ingredient_id===l.ingredient_id))))throw Error('pr_pack_material_duplicate');
    const lines=edit.lines.map(l=>({ingredient_id:l.ingredient_id,quantity_per_unit:Number(l.quantity_per_unit),waste_rate:Number(l.waste)/100}));
-   if(!edit.product_part_number.trim()||!lines.length||lines.some(l=>!l.ingredient_id||!Number.isFinite(l.quantity_per_unit)||l.quantity_per_unit<=0||!Number.isFinite(l.waste_rate)||l.waste_rate<0||l.waste_rate>=1))throw Error('catalog_recipe_required');
+   if(!edit.product_part_number.trim()||!items.some(i=>i.part_number===edit.product_part_number&&i.category===outputCategory)||!lines.length||lines.some(l=>!l.ingredient_id||!Number.isFinite(l.quantity_per_unit)||l.quantity_per_unit<=0||!Number.isFinite(l.waste_rate)||l.waste_rate<0||l.waste_rate>=1))throw Error('catalog_recipe_required');
    await unwrap(supabase.rpc('inventory_catalog_recipe',{p_action:'save',p_data:{id:edit.id,product_part_number:edit.product_part_number,version:edit.version||null,active:edit.active,notes:edit.notes,lines,packaging:edit.packing.filter(p=>p.enabled).map(p=>({packaging_type:p.packaging_type,box_name:p.box_name,shipping_dimensions:p.shipping_dimensions||null,pieces_per_box:Number(p.pieces_per_box),boxes_per_pallet:p.lines.some(l=>l.basis==='pallet')?Number(p.boxes_per_pallet):null,lines:p.lines.map(l=>({ingredient_id:l.ingredient_id,quantity:Number(l.quantity),basis:l.basis,waste_rate:Number(l.waste)/100}))}))}}));
   }
  }
@@ -110,22 +113,23 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  function removeUnconfiguredProduct(p){
   if(!manage||busy||!window.confirm(t('pr_delete_unconfigured_product',{part:p.part_number})))return;
   perform(async()=>{
-   const updated=await unwrap(supabase.from('productos').update({activo:false}).eq('id',p.id).select('id'));
+   const updated=await unwrap(supabase.from(outputCategory==='SEMI'?'inventory_items':'productos').update(outputCategory==='SEMI'?{active:false}:{activo:false}).eq('id',p.id).select('id'));
    if(!updated?.length)throw Error('receiving_forbidden');
   });
  }
  const recipeActions=p=>{const existing=existingFor(p.part_number);return <div className="catalog-row-actions"><BtnEditDark intent="neutral" disabled={!manage||busy} onClick={()=>openRecipe(p)}>{t(existing?'edit':'add')}</BtnEditDark>{existing&&<BtnSecondary intent="create" disabled={!manage||busy} onClick={()=>duplicate(existing)}>{t('cat_duplicate')}</BtnSecondary>}<BtnDanger intent="danger" style={{background:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={!manage||busy} onClick={()=>existing?remove(existing):removeUnconfiguredProduct(p)}>{t('delete')}</BtnDanger></div>;};
  const duplicateRecipe=edit?.isNew&&!stations?existingFor(edit.product_part_number||''):null;
  const noticeMatch=p=>!query||[p.part_number,p.nombre,p.descripcion].join(' ').toLowerCase().includes(query);
- const missing=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_lines?.length));
- const missingPacking=products.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_packaging?.length));
- const editProduct=edit&&!stations?products.find(p=>p.part_number===edit.product_part_number):null;
+ const recipeProducts=outputCategory==='SEMI'?items.filter(i=>i.category==='SEMI').map(i=>({...i,nombre:i.part_name||i.description,descripcion:i.description,activo:i.active})):products;
+ const missing=recipeProducts.filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_lines?.length));
+ const missingPacking=(outputCategory==='FG'?recipeProducts:[]).filter(p=>p.activo&&p.part_number!=='NA'&&!rows.some(r=>r.product_part_number===p.part_number&&r.active&&r.inventory_bom_packaging?.length));
+ const editProduct=edit&&!stations?recipeProducts.find(p=>p.part_number===edit.product_part_number):null;
  function clearFilters(){setSearch('');setPage(1);setExpanded(null);}
  function exportCSV(){
   const data=productionExport({stations,rows:visible,items,nameFor,status,t});
   const csv=Papa.unparse(data,{escapeFormulae:true});
   const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
-  const a=document.createElement('a');a.href=url;a.download=stations?'workstations.csv':'bom.csv';
+  const a=document.createElement('a');a.href=url;a.download=stations?'workstations.csv':outputCategory==='SEMI'?'bom_semi.csv':'bom_fg.csv';
   document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
  }
  useImperativeHandle(ref,()=>({add,clearFilters,exportCSV}));
@@ -159,7 +163,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
   </tbody></table><TablePagination totalRows={visible.length} page={currentPage} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}}/></div>
   <Modal isOpen={!!edit} onRequestClose={()=>!busy&&setEdit(null)} style={{overlay:{zIndex:10000,backgroundColor:'#0008',display:'flex',alignItems:'center',justifyContent:'center',padding:16,boxSizing:'border-box'},content:{position:'relative',top:'auto',right:'auto',bottom:'auto',left:'auto',width:'min(1100px, 100%)',maxHeight:'calc(100dvh - 32px)',transform:'none',boxSizing:'border-box',borderRadius:14,padding:24}}}>
    {edit&&<form className="catalog-page catalog-dialog catalog-recipe-dialog" onSubmit={e=>{e.preventDefault();perform(save);}}>
-    <h2>{uiTitle(t(stations?'inv_workstations':'inv_bom_title'))} · {uiTitle(t(edit.isNew?'add':'edit'))}</h2>
+    <h2>{uiTitle(t(stations?'inv_workstations':outputCategory==='SEMI'?'cat_bom_semi':'cat_bom_fg'))} · {uiTitle(t(edit.isNew?'add':'edit'))}</h2>
     {edit.duplicated&&<p>{t('cat_duplicate_help')}</p>}
     {edit.isNew&&edit[stations?'code':'product_part_number']?.trim()&&hasDuplicateIdentifier(rows,stations?'code':'product_part_number',edit[stations?'code':'product_part_number'])&&<p role="alert" className="inv-message">{t('catalog_duplicate_identifier')}</p>}
     {duplicateRecipe&&<div className="catalog-existing-recipe" role="status"><span>{t('pr_existing_recipe')}</span><BtnEditDark intent="neutral" type="button" disabled={busy} onClick={()=>editRow(duplicateRecipe)}>{t('pr_edit_existing_recipe')}</BtnEditDark></div>}
@@ -168,7 +172,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
      <CatalogInput required label={uiTitle(t('name'))} value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})}/>
      <CatalogSelect disabled={!!typeError} label={uiTitle(t('inv_station_type'))} value={edit.machine_type} onChange={machine_type=>setEdit({...edit,machine_type})} options={machineTypeOptions(machineTypes,[edit.machine_type])}/></>:<>
      <CatalogInput required label={uiTitle(t('inv_ref_fg'))} list="recipe-products" value={edit.product_part_number} onChange={e=>changeOutput(e.target.value.toUpperCase())}/>
-     <datalist id="recipe-products">{items.filter(i=>['FG','SEMI'].includes(i.category)).map(i=><option key={i.id} value={i.part_number}>{products.find(p=>p.id===i.producto_id)?.nombre}</option>)}</datalist>
+     <datalist id="recipe-products">{items.filter(i=>i.category===outputCategory).map(i=><option key={i.id} value={i.part_number}>{i.part_name||products.find(p=>p.id===i.producto_id)?.nombre||i.description}</option>)}</datalist>
      <CatalogInput label={uiTitle(t('name'))} readOnly value={editProduct?.nombre||t('cat_pending_product')}/>
      <CatalogInput label={uiTitle(t('inv_version'))} type="number" min="1" step="1" value={edit.version} onChange={e=>setEdit({...edit,version:e.target.value})}/>
      <CatalogInput label={uiTitle(t('inv_notes'))} value={edit.notes||''} onChange={e=>setEdit({...edit,notes:e.target.value})}/></>}

@@ -1,3 +1,4 @@
+import {allRows,completeRecord,recordTable} from '../dataExport.mjs';
 import KpiTracker from '../production/KpiTracker';
 import {ProductionPackingDetails,ProductionExtraWork} from '../components/ProductionDailyDetails';
 import {stationLabel,packingRows} from '../production/dailyDetails.mjs';
@@ -119,7 +120,7 @@ export default function Production({access}) {
 
   const [reports,items,stations,boms,balances,consumptions,reporters]=await Promise.all([
 
-   unwrap(supabase.from('production_station_reports').select('*').order('production_date',{ascending:false}).order('created_at',{ascending:false})),
+   allRows(()=>supabase.from('production_station_reports').select('*').order('production_date',{ascending:false}).order('created_at',{ascending:false}).order('id')),
 
    unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active,packing_type,productos(nombre,descripcion,tipo_empaque_retornable,tipo_empaque_expendable,cantidad_por_caja_retornable,cantidad_por_caja_expendable)').order('part_number')),
 
@@ -270,7 +271,7 @@ export default function Production({access}) {
 
  async function exportCsv(excel=false) {
 
-  const records=filtered.map(r=>({
+  const records=filtered.map(r=>completeRecord({
 
    [t('pr_date')]:r.production_date,[t('inv_station_code')]:r.station_code,[t('name')]:stationFor(r)?.name,
 
@@ -286,11 +287,11 @@ export default function Production({access}) {
 
    [t('pr_packing_type')]:packingName(r),[t('pr_boxes')]:r.full_boxes,[t('pr_pallets')]:r.pallets,[t('pr_packed')]:r.packed_quantity,
 
-   [t('pr_turns')]:r.turns??'',[t('status')]:t('pr_'+r.status),[t('inv_notes')]:r.note
+   [t('pr_turns')]:r.turns??'',[t('status')]:t('pr_'+r.status),[t('inv_notes')]:r.note,[t('pr_reporter')]:reporterName(r.created_by)
 
-  }));const csv=Papa.unparse(records,{escapeFormulae:true});
+  },{...r,workstation:stationFor(r),item:itemFor(r)}));const table=recordTable(records,[t('pr_date')]);const csv=Papa.unparse(table,{escapeFormulae:true});
 
-  if(excel===true){try{await exportWorkbook('Production_'+tab,Object.keys(records[0]||{[t('pr_date')]:''}),records.map(r=>Object.values(r)));}catch(e){setError(t('pr_save_error'));}return;}
+  if(excel===true){try{await exportWorkbook('Production_'+tab,table.fields,table.data);}catch(e){setError(t('pr_save_error'));}return;}
   const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='production.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 
  }

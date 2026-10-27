@@ -1,3 +1,4 @@
+import {allRows,completeRecord,recordTable} from '../dataExport.mjs';
 import {departmentOperators} from '../shipping/departmentOperators.mjs';
 import {uiTitle} from './actionTheme.mjs';
 import {AppAction} from './controls';
@@ -38,7 +39,7 @@ export default function ExportCSV() {
   }, []);
 
   const exportarDatos = async () => {
-    const { data, error } = await supabase.from('actividades_realizadas').select('*');
+    let data,error;try{data=await allRows(()=>supabase.from('actividades_realizadas').select('*').order('id'));}catch(failure){error=failure;}
 
     if (error) {
       return;
@@ -49,23 +50,23 @@ export default function ExportCSV() {
     // Filtrar según lo seleccionado
     datos = datos.filter(d => {
       const cumpleActividad = !actividad || d.actividad === actividad.value;
-      const cumpleProducto = !producto || d.producto === producto.value;
+      const cumpleProducto = !producto || d.producto === producto.value || (d.productos||[]).some(p=>p.producto===producto.value);
       const cumpleOperador = !operador || (Array.isArray(d.operadores) && d.operadores.includes(operador.value));
       return cumpleActividad && cumpleProducto && cumpleOperador;
     });
 
     // Preparar CSV
-    const datosCSV = datos.map(d => ({
+    const datosCSV = datos.map(d => completeRecord({
       Actividad: d.actividad,
       Producto: d.producto,
       Operadores: Array.isArray(d.operadores) ? d.operadores.join(', ') : '',
       Cantidad: d.cantidad,
-      HoraInicio: d.horaInicio ? new Date(d.horaInicio).toLocaleString() : '',
-      HoraFin: d.horaFin ? new Date(d.horaFin).toLocaleString() : ''
-    }));
+      HoraInicio: (d.hora_inicio||d.horaInicio) ? new Date(d.hora_inicio||d.horaInicio).toLocaleString() : '',
+      HoraFin: (d.hora_fin||d.horaFin) ? new Date(d.hora_fin||d.horaFin).toLocaleString() : ''
+    },d));
 
-    const csv = Papa.unparse(datosCSV);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const csv = Papa.unparse(recordTable(datosCSV),{escapeFormulae:true});
+    const blob = new Blob(['\ufeff'+csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement('a');

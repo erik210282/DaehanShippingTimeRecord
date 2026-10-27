@@ -1,3 +1,4 @@
+import {allRows,completeRecord,recordTable} from '../dataExport.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import './Catalogos.css';
 import { catalogIdentifier, duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplication';
@@ -60,7 +61,7 @@ Modal.setAppElement("#root");
 export default function Catalogos({ access }) {
   const { t } = useTranslation();
 
-  const [tab, setTab] = usePageSection('catalog', 'productos', ['productos', ...Object.keys(catalogKinds), 'pos', 'shipper', 'actividades', 'bom', 'stations', 'machine-types']);
+  const [tab, setTab] = usePageSection('catalog', 'productos', ['productos', ...Object.keys(catalogKinds), 'pos', 'shipper', 'actividades', 'bom', 'bom-semi', 'stations', 'machine-types']);
   const [snapshot, setSnapshot] = useState({ tab: null, rows: [] });
   const rows = snapshot.tab === tab ? snapshot.rows : [];
   const request = useRef(0), currentTab = useRef(tab), loadedTab = useRef(null);
@@ -70,10 +71,10 @@ export default function Catalogos({ access }) {
   const [typeFilter,setTypeFilter]=useState(''),[hideInactive,setHideInactive]=useState(true);
   const canManage=access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role));
   const kind=catalogKinds[tab];
-  const sectionLabel=t(kind?(kind==='material'?'rc_material_types':kind==='supplier'?'rc_suppliers':'rc_locations'):({productos:'products',pos:'po',shipper:'shipper',actividades:'activities',bom:'inv_bom',stations:'inv_workstations','machine-types':'mt_title'})[tab]);
+  const sectionLabel=t(kind?(kind==='material'?'rc_material_types':kind==='supplier'?'rc_suppliers':'rc_locations'):({productos:'products',pos:'po',shipper:'shipper',actividades:'activities',bom:'cat_bom_fg','bom-semi':'cat_bom_semi',stations:'inv_workstations','machine-types':'mt_title'})[tab]);
   const [filter, setFilter] = useState("");
   const productionRef=useRef(null);
-  const production=tab==='bom'||tab==='stations'||tab==='machine-types';
+  const production=tab==='bom'||tab==='bom-semi'||tab==='stations'||tab==='machine-types';
   const [edit, setEdit] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [saving,setSaving]=useState(false),[duplicating,setDuplicating]=useState(false);
@@ -175,19 +176,19 @@ export default function Catalogos({ access }) {
   const simpleDefaults = { nombre: "", activo: true };
 
   async function load() {
-    if (tab==='bom' || tab==='stations' || tab==='machine-types') { setLoading(false); return; }
+    if (tab==='bom' || tab==='bom-semi' || tab==='stations' || tab==='machine-types') { setLoading(false); return; }
     const version = ++request.current;
     const current = () => version === request.current && currentTab.current === tab;
     if(loadedTab.current!==tab)setLoading(true);
     try {
       const [stock,products,locs,types,assignments,itemTypes,supplierRows] = await Promise.all([
-        unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active,part_name,supplier_id,lead_time_days,packing_type,packing_weight,packing_weight_unit,packing_measures').order('part_number')),
-        unwrap(supabase.from('productos').select('*').order('nombre')),
-        unwrap(supabase.from('receiving_locations').select('*').order('code')),
-        unwrap(supabase.from('receiving_material_types').select('*').order('code')),
-        unwrap(supabase.from('receiving_item_locations').select('*')),
-        unwrap(supabase.from('receiving_item_types').select('*')),
-        unwrap(supabase.from('receiving_suppliers').select('*').order('name')),
+        allRows(()=>supabase.from('inventory_items').select('id,producto_id,part_number,description,category,uom,minimum_quantity,responsible_department,default_location,active,part_name,supplier_id,lead_time_days,packing_type,packing_weight,packing_weight_unit,packing_measures').order('part_number')),
+        allRows(()=>supabase.from('productos').select('*').order('nombre').order('id')),
+        allRows(()=>supabase.from('receiving_locations').select('*').order('code')),
+        allRows(()=>supabase.from('receiving_material_types').select('*').order('code')),
+        allRows(()=>supabase.from('receiving_item_locations').select('*').order('item_id').order('location_id')),
+        allRows(()=>supabase.from('receiving_item_types').select('*').order('item_id')),
+        allRows(()=>supabase.from('receiving_suppliers').select('*').order('name')),
       ]);
       if (!current()) return;
       setPackingItems(stock.filter(i=>i.category==='PACKAGING'));setLocations(locs.filter(r=>!r.archived));setMaterials(types.filter(r=>!r.archived));setSuppliers(supplierRows.filter(r=>!r.archived));
@@ -196,7 +197,7 @@ export default function Catalogos({ access }) {
         setRows([...products.map(p=>({...p,...metadata(stock.find(i=>i.producto_id===p.id))})),...stock.filter(i=>!i.producto_id).map(i=>({id:i.id,nombre:i.part_name||i.description,descripcion:i.description,part_number:i.part_number,activo:i.active,...metadata(i)}))]);
       } else {
         const table=kind==='supplier'?'receiving_suppliers':kind==='location'?'receiving_locations':kind==='material'?'receiving_material_types':tableName;
-        const data=await unwrap(supabase.from(table).select('*').order(kind?'code':tab==='pos'||tab==='shipper'?'id':'nombre'));
+        const data=await allRows(()=>supabase.from(table).select('*').order(kind?'code':tab==='pos'||tab==='shipper'?'id':'nombre'));
         if (!current()) return;
         setRows(kind ? data.filter(r=>!r.archived && (kind!=='location'||!r.is_system_stage)) : data);
       }
@@ -471,65 +472,9 @@ async function save() {
   }
 
   const exportCSV = () => {
-    const data = (filtered || []).map((r) => {
-      if(kind)return {Code:r.code,Name:kind==='material'?materialLabel(r,t):r.name,...(kind==='supplier'?Object.fromEntries(addressFields.map(k=>[k,r[k]||''])):{Type:kind==='material'?r.category:r.material_type}),Status:t(r.active?'active':'inactive')};
-      if (tab === "productos") {
-        if(typeFilter==='PACKAGING')return {Name:r.nombre,'Part Number':r.part_number,Description:r.descripcion,Type:r.packing_type?t('rc_'+r.packing_type):r.material_type,Weight:r.packing_weight,'Weight unit':r.packing_weight_unit||'kg',Measures:r.packing_measures,'Minimum Stock':r.minimum_quantity,Unit:r.uom,'Preassigned location':r.default_location,Status:t(r.activo?'active':'inactive')};
-        return {
-          [t("name")]: r.nombre || "",
-          PartNumber: r.part_number || "",Type:r.material_type,Minimum:r.minimum_quantity,Unit:r.uom,Locations:(r.locations || []).map(id=>locations.find(l=>l.id===id)?.code).join(', '),
-          [t("description")]: r.descripcion || "",
-          "Weight/Piece": r.peso_por_pieza ?? "",
-          "Packing Weight":r.packing_weight??"","Packing Weight Unit":r.packing_weight_unit||"kg",Measures:r.packing_measures||"",'Preassigned location':r.default_location||"",
-          "Returnable Box W.": r.peso_caja_retornable ?? "",
-          "Expendable Box W.": r.peso_caja_expendable ?? "",
-          [t("status")]: r.activo ? t("active") : t("inactive"),
-        };
-      }
-      if (tab === "pos") {
-        return {
-          PO: r.po || "",
-          Consignee: r.consignee_name || "",
-          Address: [r.consignee_address1, r.consignee_address2].filter(Boolean).join(" ") || "",
-          City: r.consignee_city || "",
-          State: r.consignee_state || "",
-          ZIP: r.consignee_zip || "",
-          Country: r.consignee_country || "",
-          Contact: [r.consignee_contact_name, r.consignee_contact_phone, r.consignee_contact_email].filter(Boolean).join(" / "),
-          Carrier: r.carrier_name || "",
-          Freight: [r.freight_class, r.freight_charges].filter(Boolean).join(" / "),
-          [t("status")]: r.activo ? t("active") : t("inactive"),
-        };
-      }
-      if (tab === "shipper") {
-        return {
-          shipper: r.shipper_name || "",
-          Address: [r.shipper_address1, r.shipper_address2].filter(Boolean).join(" ") || "",
-          City: r.shipper_city || "",
-          State: r.shipper_state || "",
-          ZIP: r.shipper_zip || "",
-          Country: r.shipper_country || "",
-          Contact: [r.shipper_contact_name, r.shipper_contact_phone, r.shipper_contact_email].filter(Boolean).join(" / "),
-          [t("status")]: r.activo ? t("active") : t("inactive"),
-        };
-      }
-      return {
-        [t("name")]: r.nombre || `ID: ${r.id}`,
-        [t("status")]: r.activo ? t("active") : t("inactive"),
-      };
-    });
-
-    const csv = Papa.unparse(data,{escapeFormulae:true});
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${tableName}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    toast.success(t("export_success") || "CSV exportado correctamente");
-  };
+ const records=(filtered||[]).map(r=>completeRecord({[t('name')]:kind==='material'?materialLabel(r,t):r.nombre||r.name||r.shipper_name||r.consignee_name||'',[t('part_number')]:r.part_number||'',[t('description')]:r.descripcion||r.description||'',[t('status')]:t((r.active??r.activo)?'active':'inactive'),[t('rc_supplier')]:suppliers.find(s=>s.id===r.supplier_id)?.name||'',[t('rc_supplier_location')]:supplierAddress(suppliers.find(s=>s.id===r.supplier_id)),[t('rc_lead_time')]:r.lead_time_days??'',[t('rc_allowed')]:(r.locations||[]).map(id=>locations.find(l=>l.id===id)?.code||id).join(' / ')},r));
+ const csv=Papa.unparse(recordTable(records),{escapeFormulae:true}),url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download=tableName+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast.success(t('export_success'));
+ };
 
   const filtered = useMemo(() => {
     const q = (filter || "").toLowerCase();
@@ -557,7 +502,7 @@ async function save() {
           <BtnSecondary intent="neutral" onClick={() => setTab("pos")}>{t("po")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
-          <BtnSecondary intent="neutral" onClick={()=>setTab("bom")}>{t("inv_bom")}</BtnSecondary>
+          <BtnSecondary intent="neutral" onClick={()=>setTab("bom")}>{t("cat_bom_fg")}</BtnSecondary><BtnSecondary intent="neutral" onClick={()=>setTab("bom-semi")}>{t("cat_bom_semi")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={()=>setTab("stations")}>{t("inv_workstations")}</BtnSecondary><BtnSecondary intent="neutral" onClick={()=>setTab("machine-types")}>{t("mt_title")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={() => {setFilter('');setTypeFilter('');setHideInactive(true);setPage(1);productionRef.current?.clearFilters();}}>{t("clear_filters")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={()=>production?productionRef.current?.exportCSV():exportCSV()}>{t("export_csv")}</BtnSecondary>
