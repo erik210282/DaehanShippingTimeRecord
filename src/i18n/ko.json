@@ -561,7 +561,7 @@
   "inv_station_code": "코드",
   "inv_station_name": "작업장",
   "inv_station_type": "설비 유형",
-  "inv_station_materials": "제품 / ERP 참조",
+  "inv_station_materials": "생산 제품 (SEMI / FG)",
   "inv_ref_description": "설명",
   "inv_ref_fg": "관련 제품",
   "inv_ref_quantity": "원래 수량",
