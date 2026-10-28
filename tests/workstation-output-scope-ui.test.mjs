@@ -49,8 +49,11 @@ try{
  await page.locator('.global-user-row').filter({hasText:'Inactive Person'}).waitFor();
  assert.equal(await page.locator('.global-user-row').filter({hasText:'erik.alejandro.lopez@gmail.com'}).count(),0,'Admin stays hidden when showing inactive accounts');
  await page.locator('.global-user-row').filter({hasText:'Normal Supervisor'}).click();
- assert.equal(await page.getByRole('option',{name:'Admin',exact:true}).count(),0,'Admin hidden from user selector');
- assert.equal(await page.getByRole('option',{name:'Normal Supervisor',exact:true}).count(),1,'Normal supervisor remains selectable');
+ await page.locator('.global-access-actions').waitFor();
+ const userSelector=page.locator('.global-panel select').first();
+ await userSelector.waitFor();
+ assert.equal(await userSelector.locator('option').filter({hasText:/^Admin$/}).count(),0,'Admin hidden from user selector');
+ assert.equal(await userSelector.locator('option').filter({hasText:/^Normal Supervisor$/}).count(),1,'Normal supervisor remains selectable');
  console.log('PASS actual Settings: Admin hidden in users and access selector; normal supervisors remain visible');
  await page.getByRole('button',{name:/Create user/i}).click();
  await page.locator('.global-department-choice').getByText('Catalogs',{exact:true}).waitFor();
