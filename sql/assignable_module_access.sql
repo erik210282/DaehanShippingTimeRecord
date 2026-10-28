@@ -23,3 +23,17 @@ create or replace function global_private.can_manage_department(p_department tex
  or (p_department not in ('catalogs','settings') and exists(select 1 from public.global_department_memberships where user_id=auth.uid() and department='settings' and active) and exists(select 1 from public.global_department_memberships where user_id=auth.uid() and active and department=p_department and role='supervisor')));
  $fn$;
 update public.catalog_updates set version=version+1 where id=1;
+
+create or replace function rls_internal.save_role_access(p_department text,p_role text,p_activities text[],p_version integer)
+returns jsonb language plpgsql security definer set search_path='' as $fn$
+declare actor_admin boolean;current_version integer;
+begin
+ actor_admin:=exists(select 1 from public.global_system_admins where user_id=auth.uid());
+ if not public.inventory_access() or not (actor_admin or public.inventory_access('settings') and public.inventory_access(p_department,true) and p_role in ('operador','lider')) then raise exception 'ra_denied';end if;
+ if p_activities is null or cardinality(p_activities)>100 or p_role not in ('operador','lider','supervisor') or exists(select 1 from unnest(p_activities)a where not exists(select 1 from public.global_role_activity_catalog c where c.department=p_department and c.activity=a and p_role=any(c.allowed_roles))) then raise exception 'ra_invalid';end if;
+ select version into current_version from public.global_role_access_profiles where department=p_department and role=p_role for update;
+ if current_version is null then raise exception 'ra_invalid';end if;
+ if current_version is distinct from p_version then raise exception 'ra_changed';end if;
+ update public.global_role_access_profiles set activities=array(select distinct unnest(p_activities)),version=version+1,updated_by=auth.uid(),updated_at=now() where department=p_department and role=p_role;
+ return jsonb_build_object('saved',true);
+end $fn$;

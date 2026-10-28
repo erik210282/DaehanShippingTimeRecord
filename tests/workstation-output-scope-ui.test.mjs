@@ -29,7 +29,7 @@ try{
  }
  for(const screen of ['daily','live']){
   await page.goto('http://127.0.0.1:4193/'+name+'.html?screen='+screen+'&production=records');
-  if(screen==='daily')await page.getByRole('button',{name:/Record production/}).click();
+  if(screen==='daily'){await page.waitForTimeout(2000);console.log('DAILY PAGE',await page.locator('body').innerText(),errors);await page.getByRole('button',{name:/Record production/}).click();}
   else await page.locator('.live-machine').getByRole('button',{name:'Edit',exact:true}).click();
   const dialog=page.getByRole('dialog').first();
   const stationLabel=screen==='daily'?'Code':'Workstation';
