@@ -74,4 +74,5 @@
 
 .downtime-duration-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}.downtime-duration-toolbar>.catalog-field{display:flex;flex-direction:column;gap:6px;flex:0 1 150px;width:150px;min-width:120px;margin:0}.downtime-duration-toolbar>.catalog-field>span{min-height:40px;line-height:20px}.downtime-duration-toolbar>.catalog-field input{width:100%;margin:0!important}.downtime-duration-toolbar>.live-row-actions{display:flex;margin:0;align-items:center}
 
-.report-filters-parameters{align-items:flex-start}.report-filters .parameter-date-filters{flex:0 1 360px;min-width:0;max-width:100%;display:flex;flex-direction:column;gap:10px}.parameter-date-inputs{display:flex;gap:12px;flex-wrap:wrap}.parameter-date-inputs>.catalog-field{flex:1 1 145px;min-width:0}.parameter-date-filters>.catalog-checkbox{margin:0;min-height:24px;align-self:flex-start}
+
+.parameter-report-toolbar>.parameter-outside-filter{flex:0 0 100%;width:100%;box-sizing:border-box;min-height:28px;margin:0;padding-top:2px;justify-content:flex-start}

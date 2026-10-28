@@ -10,4 +10,4 @@ Progress Report omits the sessions/active-lines/low-production KPI strip. The ma
 
 Run node tests/export-completeness.mjs after changing export shaping or pagination.
 
-Catalog navigation exposes a single BOM entry with Finished Goods and SEMI as internal buttons. Machine Parameters places Out Of Range below the date inputs, before the other filters, in both clients.
+Catalog navigation exposes a single BOM entry with Finished Goods and SEMI as internal buttons. Web Machine Parameters aligns all date, workstation and search controls on the same baseline and puts Out Of Range in a separate full-width row below the fields and actions. Native filters retain their vertical layout.
