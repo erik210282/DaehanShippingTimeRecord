@@ -25,7 +25,7 @@ try{
   const field=dialog.getByRole('combobox',{name:'Part',exact:true});await field.click();
   for(const code of expected)assert.ok((await dialog.innerText()).includes(code)||await page.getByRole('option').filter({hasText:code}).count()>0,'Expected selected or available '+code);
   for(const code of absent)assert.equal(await page.getByRole('option').filter({hasText:code}).count(),0,'Excluded '+code);
-  await field.press('Escape');
+  await dialog.locator('h2').first().click();
  }
  for(const screen of ['daily','live']){
   await page.goto('http://127.0.0.1:4193/'+name+'.html?screen='+screen+'&production=records');
