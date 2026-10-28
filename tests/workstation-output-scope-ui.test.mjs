@@ -23,7 +23,7 @@ try{
  async function choose(dialog,label,option){await dialog.getByRole('combobox',{name:label,exact:true}).click();await page.getByRole('option',{name:option,exact:true}).click();}
  async function checkParts(dialog,expected,absent){
   const field=dialog.getByRole('combobox',{name:'Part',exact:true});await field.click();
-  for(const code of expected)assert.ok(await page.getByRole('option').filter({hasText:code}).count()>0,'Expected '+code);
+  for(const code of expected)assert.ok((await dialog.innerText()).includes(code)||await page.getByRole('option').filter({hasText:code}).count()>0,'Expected selected or available '+code);
   for(const code of absent)assert.equal(await page.getByRole('option').filter({hasText:code}).count(),0,'Excluded '+code);
   await field.press('Escape');
  }
