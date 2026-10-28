@@ -1,10 +1,12 @@
+import {directoryPeople,isDirectoryPerson} from '../userDirectory.mjs';
 export function parameterShift(time){const hour=Number(String(time||'').slice(0,2));return Number.isFinite(hour)&&hour>=6&&hour<18?'DAY SHIFT':'NIGHT SHIFT';}
 export function printPeople(report,staff=[]){
+ staff=directoryPeople(staff);
  const supervisors=staff.filter(p=>p.role==='supervisor'),leaders=staff.filter(p=>p.role==='lider');
- const author=staff.find(p=>p.id===report.leader_id),isLeader=report.author_role==='lider'||!report.author_role&&author?.role==='lider';
+ const author=staff.find(p=>p.id===report.leader_id),isLeader=isDirectoryPerson({id:report.leader_id})&&(report.author_role==='lider'||!report.author_role&&author?.role==='lider');
  const facilitatorOptions=[...leaders,...supervisors].map(p=>({value:p.name,label:p.name}));
- if(report.leader_name&&!facilitatorOptions.some(p=>p.value===report.leader_name))facilitatorOptions.push({value:report.leader_name,label:report.leader_name});
- return {isLeader,supervisors:supervisors.map(p=>({value:p.name,label:p.name})),facilitators:[...new Map(facilitatorOptions.map(p=>[p.value,p])).values()],supervisor:supervisors.find(p=>p.id===report.leader_id)?.name||supervisors[0]?.name||'',facilitator:report.leader_name||'',shift:parameterShift(report.recorded_time)};
+ if(isDirectoryPerson({id:report.leader_id})&&report.leader_name&&!facilitatorOptions.some(p=>p.value===report.leader_name))facilitatorOptions.push({value:report.leader_name,label:report.leader_name});
+ return {isLeader,supervisors:supervisors.map(p=>({value:p.name,label:p.name})),facilitators:[...new Map(facilitatorOptions.map(p=>[p.value,p])).values()],supervisor:supervisors.find(p=>p.id===report.leader_id)?.name||supervisors[0]?.name||'',facilitator:isDirectoryPerson({id:report.leader_id})?report.leader_name||'':'',shift:parameterShift(report.recorded_time)};
 }
 export function escapePrint(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 export function printChunks(value,size=180){const chars=Array.from(String(value??''));if(!chars.length)return [''];const chunks=[];while(chars.length)chunks.push(chars.splice(0,size).join(''));return chunks;}

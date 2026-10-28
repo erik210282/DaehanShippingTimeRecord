@@ -18,3 +18,12 @@ for (const includeInactive of [false,true]) {
 const denied={data:null,error:{message:'Department access required'}};
 assert.equal(await departmentOperators({rpc:async()=>denied},'production'),denied);
 console.log('PASS reserved Admin hidden; real supervisors and inactive filtering preserved; identity source and denied access intact');
+
+const {printPeople}=await import('../src/production/parameterPrint.mjs');
+const printStaff=[{id:reservedAdminUserId,name:'Admin',role:'supervisor'},{id:'real-supervisor',name:'Normal Supervisor',role:'supervisor'},{id:'leader',name:'Normal Leader',role:'lider'}];
+const print=printPeople({leader_id:reservedAdminUserId,leader_name:'Admin',author_role:'supervisor'},printStaff);
+assert.deepEqual(print.supervisors,[{value:'Normal Supervisor',label:'Normal Supervisor'}]);
+assert.ok(print.facilitators.every(p=>p.value!=='Admin'));
+assert.equal(print.supervisor,'Normal Supervisor');
+assert.equal(print.facilitator,'');
+console.log('PASS Admin authors remain excluded from print approver choices and defaults');
