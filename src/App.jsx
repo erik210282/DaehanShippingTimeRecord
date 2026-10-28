@@ -1,3 +1,4 @@
+import {moduleAllowed} from './access';
 import {uiTitle} from './components/actionTheme.mjs';
 import NativeShippingGate from './NativeShippingGate';
 import {nativeShipping} from './nativeShippingBridge';
@@ -257,7 +258,7 @@ const PrivateArea = () => {
     try { sessionStorage.setItem('announcement-return', returnPath.current); } catch {}
     return <Navigate to="/announcements" replace />;
   }
-  const canManageSettings = access.admin || access.supervisor;
+  const canManageSettings = moduleAllowed(access.memberships,access.admin,'settings');
   const isGlobalRoute = ['/inicio', '/global-settings', '/announcements', '/inventarios', '/catalogos', '/usuarios'].includes(location.pathname) || location.pathname.startsWith('/departamento/');
   if (!isGlobalRoute && !access.admin && !access.memberships.some(m => m.department === 'shipping')) return <Navigate to="/inicio" replace />;
   const portal = <>
@@ -279,7 +280,7 @@ const PrivateArea = () => {
           <Route path="/generarbol" element={<ProtectedRoute><SectionPermission department="shipping" activity="bol"><GenerarBOL /></SectionPermission></ProtectedRoute>} />
           <Route path="/comunicaciones" element={<ProtectedRoute><Comunicaciones /></ProtectedRoute>} />
           <Route path="/productividad" element={<ProtectedRoute><SectionPermission department="shipping" activity="productivity"><Productividad /></SectionPermission></ProtectedRoute>} />
-          <Route path="/catalogos" element={access.admin || access.memberships.length ? <Catalogos access={access}/> : <Navigate to="/inicio" replace/>} />
+          <Route path="/catalogos" element={moduleAllowed(access.memberships,access.admin,'catalogs') ? <Catalogos access={access}/> : <Navigate to="/inicio" replace/>} />
           <Route path="/usuarios" element={<Navigate to="/global-settings" replace />} />
           <Route path="/configuracion-tareas" element={<ProtectedRoute><SectionPermission department="shipping" activity="tasks-settings"><ConfiguracionTareas /></SectionPermission></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/inicio" replace />} />

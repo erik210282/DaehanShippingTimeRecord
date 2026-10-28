@@ -1,3 +1,4 @@
+import {moduleAllowed} from '../access';
 import {allRows} from '../dataExport.mjs';
 import {useMachineTypes,machineTypeOptions} from '../catalog/useMachineTypes';
 import {uiTitle} from './actionTheme.mjs';
@@ -29,7 +30,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  const [rows,setRows]=useState([]),[items,setItems]=useState([]),[products,setProducts]=useState([]);
  const [search,setSearch]=useState(''),[edit,setEdit]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25),[expanded,setExpanded]=useState(null);
- const manage=!!(access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role)));
+ const manage=!!(moduleAllowed(access?.memberships,access?.admin,'catalogs',true));
  const stations=mode==='stations',outputCategory=mode==='bom-semi'?'SEMI':'FG';
  const refresh=useCallback(async()=>{
   const [r,i,p]=await Promise.all([
