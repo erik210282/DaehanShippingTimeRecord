@@ -1,3 +1,4 @@
+import {directoryPeople} from './userDirectory.mjs';
 import {uiTitle} from './components/actionTheme.mjs';
 import {AppAction} from './components/controls';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -102,7 +103,7 @@ export function GlobalAnnouncements({ access, announcements, onContinue, onBack 
   }, [access.admin]);
   useEffect(() => {
     if (access.admin) supabase.from('operadores').select('uid,nombre,activo').not('uid', 'is', null).order('nombre')
-      .then(({ data }) => setUsers(data || []));
+      .then(({ data }) => setUsers(directoryPeople(data || [])));
   }, [access.admin]);
   useEffect(() => { loadAdminItems(); }, [loadAdminItems]);
 

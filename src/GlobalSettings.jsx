@@ -1,3 +1,4 @@
+import {directoryPeople} from './userDirectory.mjs';
 import {uiTitle} from './components/actionTheme.mjs';
 import {AppAction} from './components/controls';
 import DepartmentNav from './components/DepartmentNav';
@@ -39,7 +40,7 @@ export default function GlobalSettings({ access }) {
       supabase.from('global_department_memberships').select('user_id,department,role,active').order('department'),
     ]);
     if (users.error || assigned.error) { setStatus(users.error?.message || assigned.error?.message); return; }
-    setPeople(users.data || []); setMemberships(assigned.data || []);
+    setPeople(directoryPeople(users.data || [])); setMemberships(assigned.data || []);
     return assigned.data || [];
   }
   useEffect(() => { refresh(); }, []);
