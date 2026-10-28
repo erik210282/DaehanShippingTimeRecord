@@ -6,7 +6,7 @@ import { supabase } from './supabase/client';
 import { localGreeting } from './GlobalAnnouncements';
 import './GlobalPortal.css';
 
-import { departmentKeys, visibleDepartments } from './access';
+import { departmentKeys, visibleDepartments,moduleAllowed } from './access';
 export { departmentKeys } from './access';
 
 export function useGlobalAccess() {
@@ -55,9 +55,9 @@ export function GlobalHome({ access }) {
           <span>{key[0].toUpperCase()}</span><strong>{t(`global_${key}`)}</strong><small>↗</small>
         </button>
       )}
-      <button className="global-card" onClick={() => navigate('/catalogos')}><span>C</span><strong>{t('catalogs')}</strong><small>›</small></button>
+      {moduleAllowed(access.memberships,access.admin,'catalogs')&&<button className="global-card" onClick={() => navigate('/catalogos')}><span>C</span><strong>{t('catalogs')}</strong><small>›</small></button>}
       <button className="global-card" onClick={() => navigate('/announcements')}><span>✉</span><strong>{t('global_announcements')}</strong><small>↗</small></button>
-      {(access.admin || access.supervisor) && <button className="global-card" onClick={() => navigate('/global-settings')}><span>⚙</span><strong>{t('global_settings')}</strong><small>↗</small></button>}
+      {moduleAllowed(access.memberships,access.admin,'settings') && <button className="global-card" onClick={() => navigate('/global-settings')}><span>⚙</span><strong>{t('global_settings')}</strong><small>↗</small></button>}
     </div>
   </main>;
 }

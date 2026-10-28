@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const mobile=fs.existsSync('ProductionMobile.js');
+const root=mobile?'':'src/';
+const context=vm.createContext({});
+for(const path of [mobile?'production/workstationDefaults.js':'src/production/workstationDefaults.mjs',mobile?'production/multi.js':'src/production/multi.mjs',root+'access.js']){
+ vm.runInContext(fs.readFileSync(path,'utf8').replace(/^import .*$/gm,'').replaceAll('export ',''),context);
+}
+const {workstationProductIds,selectProducts,dailyProducts,selectLiveProducts,moduleAllowed}=context;
+const plain=value=>JSON.parse(JSON.stringify(value));
+const items=[{id:'a',active:true,category:'FG',part_number:'PN-A'},{id:'b',active:true,category:'SEMI',part_number:'PN-B'},{id:'raw',active:true,category:'RAW'},{id:'off',active:false,category:'FG'}];
+const first={active:true,materials:[{item_ids:['a','raw','off','a']}]},second={active:true,materials:[{item_id:'b'}]},empty={active:true,materials:[]};
+assert.deepEqual(plain(workstationProductIds(first,items)),['a']);
+assert.deepEqual(plain(workstationProductIds(second,items)),['b']);
+assert.deepEqual(plain(workstationProductIds(empty,items,['FG','SEMI'],['a'])),[]);
+assert.deepEqual(plain(workstationProductIds(null,items)),[]);
+assert.deepEqual(plain(workstationProductIds({...first,active:false},items)),[]);
+assert.deepEqual(plain(workstationProductIds({materials:[{client_part_number:' pn-b '}]},items)),['b']);
+let n=0;const id=()=>String(++n);
+let daily=selectProducts({id:'report',item_id:'a',machine_quantity:'12'},workstationProductIds(second,items),id);
+assert.deepEqual(plain(dailyProducts(daily).map(p=>p.item_id)),['b']);
+assert.equal(daily.machine_quantity,'');
+daily=selectProducts(daily,workstationProductIds(empty,items),id);
+assert.equal(daily.item_id,'');assert.deepEqual(plain(dailyProducts(daily)),[]);
+let live=selectLiveProducts({item_id:'a',quantity:'12'},workstationProductIds(second,items),id);
+assert.equal(live.item_id,'b');assert.equal(live.quantity,'');
+live=selectLiveProducts(live,[],id);assert.equal(live.item_id,'');assert.equal(live.quantity,'');
+assert.equal(moduleAllowed([],true,'settings',true),true);
+assert.equal(moduleAllowed([{department:'production',role:'supervisor'}],false,'settings'),false);
+assert.equal(moduleAllowed([{department:'catalogs',role:'operador'}],false,'catalogs'),true);
+assert.equal(moduleAllowed([{department:'catalogs',role:'operador'}],false,'catalogs',true),false);
+assert.equal(moduleAllowed([{department:'catalogs',role:'lider'}],false,'catalogs',true),true);
+assert.equal(moduleAllowed([{department:'catalogs',role:'supervisor',active:false}],false,'catalogs'),false);
+console.log('PASS workstation-only FG/SEMI outputs, stale selection reset, empty/unconfigured workstations, module isolation and Admin bypass');

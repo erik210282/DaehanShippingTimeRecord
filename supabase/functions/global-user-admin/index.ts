@@ -3,16 +3,17 @@ import { createClient } from 'npm:@supabase/supabase-js@2.50.0';
 const projectUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const secret = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const webUrl = 'https://daehanshippingtimerecord.vercel.app';
-const departments = new Set(['shipping', 'production', 'quality', 'receiving', 'inventory']);
+const departments = new Set(['shipping', 'production', 'quality', 'receiving', 'inventory', 'catalogs', 'settings']);
 const roles = new Set(['operador', 'lider', 'supervisor']);
 
 function response(req: Request, body: Record<string, unknown>, status = 200) {
   const origin = req.headers.get('origin') ?? '';
-  const allowed = origin === webUrl || /^http:\/\/localhost:(5173|5174)$/.test(origin);
+  const allowedOrigins = new Set([webUrl, 'https://daehanapp.vercel.app', 'https://daehanapp.expo.app', 'https://daehanshippingtr.expo.app']);
+  const allowed = allowedOrigins.has(origin) || /^http:\/\/(localhost|127\.0\.0\.1):(5173|5174|8081|19006)$/.test(origin);
   return new Response(JSON.stringify(body), { status, headers: {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': allowed ? origin : webUrl,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin',
     'Cache-Control': 'no-store',
@@ -35,13 +36,13 @@ Deno.serve(async (req: Request) => {
   ]);
   const isAdmin = !!admin;
   const manageable = new Set((managed || []).map(m => m.department));
-  if (!person?.activo || (!isAdmin && !manageable.size)) return response(req, { error: 'Forbidden' }, 403);
+  if (!person?.activo || (!isAdmin && (!manageable.size || !(await db.from('global_department_memberships').select('user_id').eq('user_id',caller.id).eq('department','settings').eq('active',true).maybeSingle()).data))) return response(req, { error: 'Forbidden' }, 403);
 
   let input: Record<string, unknown>;
   try { input = await req.json(); } catch { return response(req, { error: 'Invalid JSON' }, 400); }
   const action = input.action;
   const userId = typeof input.user_id === 'string' ? input.user_id : '';
-  const canManage = (department: string) => isAdmin || manageable.has(department);
+  const canManage = (department: string) => isAdmin || (!['catalogs','settings'].includes(department) && manageable.has(department));
 
   async function setupLink(email: string) {
     const { data, error } = await db.auth.admin.generateLink({ type: 'recovery', email });
@@ -53,8 +54,10 @@ Deno.serve(async (req: Request) => {
     if (action === 'create') {
       const name = typeof input.name === 'string' ? input.name.trim() : '';
       const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : '';
+      const systemAdmin = input.system_admin === true;
+      if(systemAdmin && !isAdmin)return response(req,{error:'Forbidden'},403);
       const assignments = Array.isArray(input.assignments) ? input.assignments : [];
-      if (name.length < 2 || name.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || assignments.length < 1 || assignments.length > 5)
+      if (name.length < 2 || name.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || (!systemAdmin && assignments.length < 1) || assignments.length > 7)
         return response(req, { error: 'Invalid user details' }, 400);
       const unique = new Set<string>();
       for (const assignment of assignments) {
@@ -68,13 +71,14 @@ Deno.serve(async (req: Request) => {
       if (createError || !created.user) return response(req, { error: createError?.message || 'Could not create user' }, 400);
       const uid = created.user.id;
       const shippingSupervisor = assignments.some(a => a.department === 'shipping' && a.role === 'supervisor');
-      const { error: profileError } = await db.from('operadores').insert({ uid, nombre: name, email, activo: true, role: shippingSupervisor ? 'supervisor' : 'operador' });
-      const { error: assignmentError } = profileError ? { error: profileError } : await db.from('global_department_memberships')
-        .insert(assignments.map(a => ({ user_id: uid, department: a.department, role: a.role, active: true })));
-      if (assignmentError) {
+      const { error: profileError } = await db.from('operadores').insert({ uid, nombre: name, email, activo: true, role: systemAdmin || shippingSupervisor ? 'supervisor' : 'operador' });
+      const { error: assignmentError } = profileError ? { error: profileError } : assignments.length ? await db.from('global_department_memberships')
+        .insert(assignments.map(a => ({ user_id: uid, department: a.department, role: a.role, active: true }))) : {error:null};
+      const {error: adminError}=!assignmentError && systemAdmin ? await db.from('global_system_admins').insert({user_id:uid}) : {error:null};
+      if (assignmentError || adminError) {
         await db.from('operadores').delete().eq('uid', uid);
         await db.auth.admin.deleteUser(uid);
-        return response(req, { error: assignmentError.message }, 400);
+        return response(req, { error: (assignmentError || adminError)!.message }, 400);
       }
       try { return response(req, { user_id: uid, link: await setupLink(email) }); }
       catch (error) { return response(req, { user_id: uid, error: `User created. ${error instanceof Error ? error.message : 'Could not generate link'}` }, 500); }

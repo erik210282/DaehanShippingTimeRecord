@@ -9,7 +9,9 @@ registerRoleAccess(i18n);
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from './supabase/client';
-import { departmentKeys } from './GlobalPortal';
+import { accessKeys } from './access';
+import {registerModuleAccess} from './roleAccessTranslations';
+registerModuleAccess(i18n);
 import './GlobalPortal.css';
 
 const emptyAssignments = () => ({});
@@ -17,7 +19,7 @@ const emptyAssignments = () => ({});
 export default function GlobalSettings({ access }) {
   const { t } = useTranslation();
   const [section,setSection]=usePageSection('global-settings','users',['users','access','create','roles']);
-  const managed = access.admin ? departmentKeys : departmentKeys.filter(d => access.memberships.some(m => m.department === d && m.role === 'supervisor' && m.active !== false));
+  const managed = access.admin ? accessKeys : accessKeys.filter(d => !['catalogs','settings'].includes(d) && access.memberships.some(m => m.department === d && m.role === 'supervisor' && m.active !== false));
   const [hideInactive,setHideInactive]=useState(true);
   const [people, setPeople] = useState([]);
   const [memberships, setMemberships] = useState([]);
@@ -26,6 +28,7 @@ export default function GlobalSettings({ access }) {
   const [newDraft, setNewDraft] = useState(emptyAssignments);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [newAdmin,setNewAdmin]=useState(false);
   const [link, setLink] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
@@ -106,7 +109,7 @@ export default function GlobalSettings({ access }) {
     <div className="global-settings-toolbar"><DepartmentNav label={uiTitle(t('ra_menu'))} value={section} onChange={setSection} items={[{key:'users',label:t('global_users')},{key:'access',label:t('global_access')},{key:'create',label:t('global_create_user')},{key:'roles',label:t('ra_roles')}]}/>
     {['users','access'].includes(section)&&<label className="global-inactive-filter"><input type="checkbox" checked={hideInactive} onChange={e=>setHideInactive(e.target.checked)}/><span>{t('ra_hide_inactive')}</span></label>}</div>
     <div className="global-settings-sections">
-      {section==='roles'&&<RoleAccessSettings access={access} managed={managed}/>}
+      {section==='roles'&&<RoleAccessSettings access={access} managed={managed.filter(d=>!['catalogs','settings'].includes(d))}/>}
       {section==='users'&&<section className="global-panel"><h2>{uiTitle(t('global_users'))}</h2>
         <div className="global-list">{visiblePeople.map(u => {
           const assigned = memberships.filter(m => m.user_id === u.uid && m.active && managed.includes(m.department));
@@ -136,9 +139,9 @@ export default function GlobalSettings({ access }) {
       {section==='create'&&<section className="global-panel"><h2>{uiTitle(t('global_create_user'))}</h2>
         <form onSubmit={e => { e.preventDefault(); perform(async () => {
           const assignments = Object.entries(newDraft).map(([department, role]) => ({ department, role }));
-          if (!assignments.length) throw new Error(t('global_choose_department'));
-          const result = await invoke({ action: 'create', name: name.trim(), email: email.trim(), assignments });
-          setName(''); setEmail(''); setNewDraft({});
+          if (!assignments.length && !newAdmin) throw new Error(t('global_choose_department'));
+          const result = await invoke({ action: 'create', name: name.trim(), email: email.trim(), assignments, system_admin: newAdmin });
+          setName(''); setEmail(''); setNewDraft({}); setNewAdmin(false);
           const updated = await refresh();
           setSelected(result.user_id);
           setDraft(Object.fromEntries((updated || []).filter(m => m.user_id === result.user_id && m.active && managed.includes(m.department)).map(m => [m.department, m.role])));
@@ -146,7 +149,7 @@ export default function GlobalSettings({ access }) {
         }); }}>
           <label>{t('global_name')}<input required minLength={2} maxLength={100} value={name} onChange={e => setName(e.target.value)} /></label>
           <label>{t('email')}<input required type="email" value={email} onChange={e => setEmail(e.target.value)} /></label>
-          <strong>{t('global_access')}</strong>{Choices({values:newDraft,onChange:setNewDraft})}
+          {access.admin&&<label className="global-department-choice"><input type="checkbox" checked={newAdmin} onChange={e=>setNewAdmin(e.target.checked)}/><span>{t('global_admin_account')}</span></label>}<strong>{t('global_access')}</strong>{!newAdmin&&Choices({values:newDraft,onChange:setNewDraft})}
           <AppAction intent="create" disabled={busy}>{t('global_create_and_link')}</AppAction>
         </form>
       </section>}

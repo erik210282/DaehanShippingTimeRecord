@@ -9,7 +9,7 @@ assert.deepEqual(workstationProductIds(station,items),['a','b','c']);
 assert.deepEqual(workstationProductIds(station,items,['RAW']),['raw']);
 assert.deepEqual(workstationProductIds({...station,materials:[{item_ids:['a','b']}]},items),['a','b']);
 assert.deepEqual(workstationProductIds(null,items),[]);
-assert.deepEqual(workstationProductIds({materials:[]},items,['FG'],['b']),['b'],'A machine without assignments preserves manual selections');
+assert.deepEqual(workstationProductIds({materials:[]},items,['FG'],['b']),[],'A machine without assignments clears stale selections');
 assert.deepEqual(workstationProductIds({...station,active:false},items),[]);
 let sequence=0;const newId=()=>String(++sequence);
 let daily=selectProducts({id:'report',item_id:'',products:[]},workstationProductIds(station,items),newId);

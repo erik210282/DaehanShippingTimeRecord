@@ -1,3 +1,4 @@
+import {moduleAllowed} from '../access';
 import {allRows} from '../dataExport.mjs';
 import {catalogCsvRows,userCsvTable} from '../businessCsv.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
@@ -70,7 +71,7 @@ export default function Catalogos({ access }) {
   const setRows = next => setSnapshot({ tab, rows: next });
   const [locations,setLocations]=useState([]),[materials,setMaterials]=useState([]),[suppliers,setSuppliers]=useState([]),[packingItems,setPackingItems]=useState([]);
   const [typeFilter,setTypeFilter]=useState(''),[hideInactive,setHideInactive]=useState(true);
-  const canManage=access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role));
+  const canManage=moduleAllowed(access?.memberships,access?.admin,'catalogs',true);
   const kind=catalogKinds[tab];
   const sectionLabel=t(kind?(kind==='material'?'rc_material_types':kind==='supplier'?'rc_suppliers':'rc_locations'):({productos:'products',pos:'po',shipper:'shipper',actividades:'activities',bom:'inv_bom','bom-semi':'inv_bom',stations:'inv_workstations','machine-types':'mt_title'})[tab]);
   const [filter, setFilter] = useState("");

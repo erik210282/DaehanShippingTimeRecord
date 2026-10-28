@@ -1,3 +1,4 @@
+import {moduleAllowed} from '../access';
 import {userCsvTable} from '../businessCsv.mjs';
 import React,{forwardRef,useImperativeHandle,useState} from 'react';
 import {useTranslation} from 'react-i18next';
@@ -12,7 +13,7 @@ import ErrorPopup from '../components/ErrorPopup';
 const modal={overlay:{position:'fixed',inset:0,zIndex:10000,background:'#0f172a99',display:'flex',alignItems:'center',justifyContent:'center',padding:16},content:{position:'relative',inset:'auto',width:'min(600px,100%)',maxHeight:'calc(100dvh - 32px)',overflow:'auto',boxSizing:'border-box',padding:24,border:'1px solid #cbd5e1',borderRadius:14}};
 export default forwardRef(function MachineTypesCatalog({access,filter='',hideInactive=false},ref){
  const {t}=useTranslation(),{types,error,refresh}=useMachineTypes(),[edit,setEdit]=useState(null),[busy,setBusy]=useState(false),[failure,setFailure]=useState(''),[page,setPage]=useState(1),[size,setSize]=useState(25);
- const manage=access?.admin||access?.memberships?.some(m=>m.active!==false&&['supervisor','lider'].includes(m.role));
+ const manage=moduleAllowed(access?.memberships,access?.admin,'catalogs',true);
  const rows=types.filter(r=>(!hideInactive||r.active)&&r.name.toLowerCase().includes(filter.trim().toLowerCase())),current=Math.min(page,Math.max(1,Math.ceil(rows.length/size)));
  useImperativeHandle(ref,()=>({add:()=>manage&&setEdit({name:'',active:true}),clearFilters:()=>setPage(1),exportCSV:()=>{const blob=new Blob(['\ufeff'+Papa.unparse(userCsvTable(rows.map(r=>({[t('mt_name')]:r.name,[t('status')]:t(r.active?'active':'inactive')})),[t('mt_name'),t('status')]),{escapeFormulae:true})],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='machine-types.csv';a.click();URL.revokeObjectURL(url);}}));
  async function run(action){if(busy||!manage)return;setBusy(true);setFailure('');try{const {error}=await action();if(error)throw error;await refresh();setEdit(null);}catch(e){setFailure(t(e.code==='23505'?'mt_duplicate':e.message,{defaultValue:e.message}));}finally{setBusy(false);}}
