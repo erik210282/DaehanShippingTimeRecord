@@ -1,4 +1,5 @@
-import {allRows,completeRecord,recordTable} from '../dataExport.mjs';
+import {allRows} from '../dataExport.mjs';
+import {userCsvTable} from '../businessCsv.mjs';
 import {departmentOperators} from '../shipping/departmentOperators.mjs';
 import {uiTitle} from './actionTheme.mjs';
 import {AppAction} from './controls';
@@ -56,16 +57,10 @@ export default function ExportCSV() {
     });
 
     // Preparar CSV
-    const datosCSV = datos.map(d => completeRecord({
-      Actividad: d.actividad,
-      Producto: d.producto,
-      Operadores: Array.isArray(d.operadores) ? d.operadores.join(', ') : '',
-      Cantidad: d.cantidad,
-      HoraInicio: (d.hora_inicio||d.horaInicio) ? new Date(d.hora_inicio||d.horaInicio).toLocaleString() : '',
-      HoraFin: (d.hora_fin||d.horaFin) ? new Date(d.hora_fin||d.horaFin).toLocaleString() : ''
-    },d));
+    const datosCSV = datos.flatMap(d=>(Array.isArray(d.productos)&&d.productos.length?d.productos:[{producto:d.producto,cantidad:d.cantidad}]).map(p=>({
+ Actividad:actividades.find(a=>a.value===d.actividad)?.label||'',Producto:productos.find(row=>row.value===p.producto)?.label||'',Operadores:(Array.isArray(d.operadores)?d.operadores:[]).map(id=>operadores.find(o=>o.value===id)?.label||'').filter(Boolean).join(', '),Cantidad:p.cantidad,HoraInicio:(d.hora_inicio||d.horaInicio)?new Date(d.hora_inicio||d.horaInicio).toLocaleString():'',HoraFin:(d.hora_fin||d.horaFin)?new Date(d.hora_fin||d.horaFin).toLocaleString():''})));
 
-    const csv = Papa.unparse(recordTable(datosCSV),{escapeFormulae:true});
+    const csv = Papa.unparse(userCsvTable(datosCSV),{escapeFormulae:true});
     const blob = new Blob(['\ufeff'+csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
 

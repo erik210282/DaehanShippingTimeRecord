@@ -1,4 +1,5 @@
-import {allRows,completeRecord,recordTable} from '../dataExport.mjs';
+import {allRows} from '../dataExport.mjs';
+import {catalogCsvRows,userCsvTable} from '../businessCsv.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import './Catalogos.css';
 import { catalogIdentifier, duplicateCatalogRow, hasDuplicateIdentifier } from '../catalog/duplication';
@@ -71,7 +72,7 @@ export default function Catalogos({ access }) {
   const [typeFilter,setTypeFilter]=useState(''),[hideInactive,setHideInactive]=useState(true);
   const canManage=access?.admin || access?.memberships?.some(m=>['supervisor','lider'].includes(m.role));
   const kind=catalogKinds[tab];
-  const sectionLabel=t(kind?(kind==='material'?'rc_material_types':kind==='supplier'?'rc_suppliers':'rc_locations'):({productos:'products',pos:'po',shipper:'shipper',actividades:'activities',bom:'cat_bom_fg','bom-semi':'cat_bom_semi',stations:'inv_workstations','machine-types':'mt_title'})[tab]);
+  const sectionLabel=t(kind?(kind==='material'?'rc_material_types':kind==='supplier'?'rc_suppliers':'rc_locations'):({productos:'products',pos:'po',shipper:'shipper',actividades:'activities',bom:'inv_bom','bom-semi':'inv_bom',stations:'inv_workstations','machine-types':'mt_title'})[tab]);
   const [filter, setFilter] = useState("");
   const productionRef=useRef(null);
   const production=tab==='bom'||tab==='bom-semi'||tab==='stations'||tab==='machine-types';
@@ -471,9 +472,11 @@ async function save() {
     }
   }
 
-  const exportCSV = () => {
- const records=(filtered||[]).map(r=>completeRecord({[t('name')]:kind==='material'?materialLabel(r,t):r.nombre||r.name||r.shipper_name||r.consignee_name||'',[t('part_number')]:r.part_number||'',[t('description')]:r.descripcion||r.description||'',[t('status')]:t((r.active??r.activo)?'active':'inactive'),[t('rc_supplier')]:suppliers.find(s=>s.id===r.supplier_id)?.name||'',[t('rc_supplier_location')]:supplierAddress(suppliers.find(s=>s.id===r.supplier_id)),[t('rc_lead_time')]:r.lead_time_days??'',[t('rc_allowed')]:(r.locations||[]).map(id=>locations.find(l=>l.id===id)?.code||id).join(' / ')},r));
- const csv=Papa.unparse(recordTable(records),{escapeFormulae:true}),url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download=tableName+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast.success(t('export_success'));
+  const exportCSV = async () => {
+ try{const billRows=tab==='pos'?await allRows(()=>supabase.from('bill_charges_to').select('po,bill_to_name,bill_to_address1,bill_to_address2,bill_to_city,bill_to_state,bill_to_zip,bill_to_country').order('po')):[];
+ const records=catalogCsvRows({tab,kind,rows:filtered||[],t,suppliers,locations,billRows,materialLabel,supplierAddress});
+ const csv=Papa.unparse(userCsvTable(records),{escapeFormulae:true}),url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download=tableName+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast.success(t('export_success'));
+ }catch(e){toast.error(e.message||t('error_loading'));}
  };
 
   const filtered = useMemo(() => {
@@ -502,12 +505,13 @@ async function save() {
           <BtnSecondary intent="neutral" onClick={() => setTab("pos")}>{t("po")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
-          <BtnSecondary intent="neutral" onClick={()=>setTab("bom")}>{t("cat_bom_fg")}</BtnSecondary><BtnSecondary intent="neutral" onClick={()=>setTab("bom-semi")}>{t("cat_bom_semi")}</BtnSecondary>
+          <BtnSecondary intent="neutral" onClick={()=>setTab("bom")}>{t("inv_bom")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={()=>setTab("stations")}>{t("inv_workstations")}</BtnSecondary><BtnSecondary intent="neutral" onClick={()=>setTab("machine-types")}>{t("mt_title")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={() => {setFilter('');setTypeFilter('');setHideInactive(true);setPage(1);productionRef.current?.clearFilters();}}>{t("clear_filters")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={()=>production?productionRef.current?.exportCSV():exportCSV()}>{t("export_csv")}</BtnSecondary>
           <BtnPrimary intent="create" disabled={!canManage} onClick={()=>production?productionRef.current?.add():openNew()}>➕ {t("add")}</BtnPrimary>
         </div>
+        {['bom','bom-semi'].includes(tab)&&<nav className="catalog-actions catalog-bom-tabs" aria-label={t('inv_bom')}><BtnSecondary intent="neutral" aria-pressed={tab==='bom'} onClick={()=>setTab('bom')}>{t('cat_bom_tab_fg')}</BtnSecondary><BtnSecondary intent="neutral" aria-pressed={tab==='bom-semi'} onClick={()=>setTab('bom-semi')}>{t('cat_bom_tab_semi')}</BtnSecondary></nav>}
         <div className="catalog-filters">
          {tab==='productos'&&<CatalogSelect label={uiTitle(t('rc_type'))} value={typeFilter} onChange={value=>{setTypeFilter(value);setPage(1);}} options={[{value:'',label:t('rc_all')},...['RAW','SEMI','FG','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))]}/>}
          <label className="catalog-checkbox"><input type="checkbox" checked={hideInactive} onChange={e=>{setHideInactive(e.target.checked);setPage(1);}}/>{t('rc_hide_inactive')}</label>

@@ -1,4 +1,4 @@
-import {completeRecord,recordTable} from '../dataExport.mjs';
+import {userCsvTable} from '../businessCsv.mjs';
 import {departmentOperators} from '../shipping/departmentOperators.mjs';
 import CaptureDateTime from '../components/CaptureDateTime';
 import {uiTitle} from '../components/actionTheme.mjs';
@@ -443,17 +443,17 @@ useEffect(() => {
     const inicio = new Date(d.horaInicio);
     const fin = new Date(d.horaFin);
 
-    return (Array.isArray(d.productos) ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => completeRecord({
+    return (Array.isArray(d.productos)&&d.productos.length ? d.productos : [{ producto: d.producto, cantidad: d.cantidad }]).map((p) => ({
       [t("idx")]: d.idx || "N/A",
-      [t("activity")]: mapaActividades[d.actividad] || `ID: ${d.actividad}`,
-      [t("product")]: mapaProductos[p.producto] || `ID: ${p.producto}`,
+      [t("activity")]: mapaActividades[d.actividad] || "",
+      [t("product")]: mapaProductos[p.producto] || "",
       [t("operator")]: Array.isArray(d.operadores)
-        ? d.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ")
+        ? d.operadores.map((id) => mapaOperadores[id] || "").join(", ")
         : "",
       [t("amount")]: p.cantidad,
-      [t("start_time")]: inicio.toLocaleString(),
-      [t("end_time")]: fin.toLocaleString(),
-      [t("duration_min")]: d.duracion ? Math.round(d.duracion) : "-",
+      [t("start_time")]: Number.isNaN(inicio.getTime())?"":inicio.toLocaleString(),
+      [t("end_time")]: Number.isNaN(fin.getTime())?"":fin.toLocaleString(),
+      [t("duration_min")]: d.duracion!=null&&d.duracion!=="" ? Math.round(d.duracion) : "",
       [t("pausas")]: typeof d.pausa_total === "number" ? Math.round(d.pausa_total) : "-",
       [t("notes")]: d.comentario_actividad ?? d.notas ?? "N/A",
       ["Supervisor instructions"]: d.instrucciones_supervisor || "",
@@ -467,10 +467,10 @@ useEffect(() => {
         ? (isShippingVerified(d, d.shipping_capture, mapaActividades[d.actividad])
           ? t("shipping_verified") : (d.force_review_pending?f("pending"):t("shipping_pending_verification")))
         : "",
-    },{...d,product:p}));
+    }));
   });
 
-  const csv = Papa.unparse(recordTable(datosCSV),{escapeFormulae:true});
+  const csv = Papa.unparse(userCsvTable(datosCSV),{escapeFormulae:true});
   const blob = new Blob(['\ufeff'+csv], { type: "text/csv;charset=utf-8;" });
   try { await saveShippingFile(blob, "registros.csv"); } catch(error) { toast.error(error.message); return; }
 
@@ -558,7 +558,7 @@ useEffect(() => {
                      <td>
                       {Array.isArray(r.productos)
                         ? r.productos.map((p, i) => (
-                            <div key={i}>{mapaProductos[p.producto] || `ID: ${p.producto}`}</div>
+                            <div key={i}>{mapaProductos[p.producto] || ""}</div>
                           ))
                         : mapaProductos[r.producto]}
                     </td>
@@ -569,7 +569,7 @@ useEffect(() => {
                           ))
                         : r.cantidad}
                     </td>
-                      <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || `ID: ${id}`).join(", ") : "N/A"}</td>
+                      <td>{r.operadores && Array.isArray(r.operadores) ? r.operadores.map((id) => mapaOperadores[id] || "").join(", ") : "N/A"}</td>
                        <td className="records-date"><div>{startParts[0]}</div><div>{startParts[1]}</div></td>
                        <td className="records-date"><div>{endParts[0]}</div><div>{endParts[1]}</div></td>
                        <td className="records-nowrap" title={`${r.duracion ?? "—"} / ${r.pausa_total ?? "—"} min`}>

@@ -1,4 +1,6 @@
 {
+  "cat_bom_tab_fg": "Productos Terminados",
+  "cat_bom_tab_semi": "SEMI",
   "cat_bom_fg": "BOM – Productos Terminados",
   "cat_bom_semi": "BOM – SEMI",
   "dt_product_multi_hint": "Selecciona los códigos de salida SEMI o FG. La máquina puede transformar RAW en SEMI / FG y SEMI en SEMI / FG.",
@@ -377,7 +379,7 @@
   "inv_area_FG": "Producto Terminado (FG)",
   "inv_area_PACKAGING": "Material de Empaque",
   "inv_area_HOLD": "Retenido por Calidad",
-  "inv_bom": "Recetas (BOM)",
+  "inv_bom": "BOM",
   "inv_demand": "Demanda",
   "inv_quality": "Control de Calidad",
   "inv_counts": "Chequeo de Inventario",

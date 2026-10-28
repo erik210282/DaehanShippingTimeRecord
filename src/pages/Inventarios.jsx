@@ -1,4 +1,5 @@
-import {allRows,recordTable} from '../dataExport.mjs';
+import {allRows} from '../dataExport.mjs';
+import {userCsvTable} from '../businessCsv.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import {AppAction} from '../components/controls';
 import ShippingPacking from '../components/ShippingPacking';
@@ -58,7 +59,7 @@ async function fileRows(file, sheetName, t) {
   return rows;
 }
 function saveCsv(filename, rows) {
-  const csv = Papa.unparse(recordTable(rows), { escapeFormulae: true });
+  const csv = Papa.unparse(userCsvTable(rows), { escapeFormulae: true });
   const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }));
   const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);

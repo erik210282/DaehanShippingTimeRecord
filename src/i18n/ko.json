@@ -1,4 +1,6 @@
 {
+  "cat_bom_tab_fg": "완제품",
+  "cat_bom_tab_semi": "SEMI",
   "cat_bom_fg": "BOM – 완제품",
   "cat_bom_semi": "BOM – 반제품",
   "dt_product_multi_hint": "SEMI 또는 FG 생산 코드를 선택하세요. RAW는 SEMI / FG로, SEMI는 SEMI / FG로 가공할 수 있습니다.",
@@ -377,7 +379,7 @@
   "inv_area_FG": "완제품 (FG)",
   "inv_area_PACKAGING": "포장재",
   "inv_area_HOLD": "품질 보류",
-  "inv_bom": "자재 명세서 (BOM)",
+  "inv_bom": "BOM",
   "inv_demand": "수요",
   "inv_quality": "품질 관리",
   "inv_counts": "재고 실사",

@@ -1,4 +1,6 @@
 {
+  "cat_bom_tab_fg": "Finished Goods",
+  "cat_bom_tab_semi": "SEMI",
   "cat_bom_fg": "BOM – Finished Goods",
   "cat_bom_semi": "BOM – SEMI",
   "dt_product_multi_hint": "Select the SEMI or FG output codes. The workstation can transform RAW into SEMI / FG and SEMI into SEMI / FG.",
@@ -377,7 +379,7 @@
   "inv_area_FG": "Finished Goods (FG)",
   "inv_area_PACKAGING": "Packaging Material",
   "inv_area_HOLD": "Quality Hold",
-  "inv_bom": "Recipes (BOM)",
+  "inv_bom": "BOM",
   "inv_demand": "Demand",
   "inv_quality": "Quality Control",
   "inv_counts": "Inventory Counts",

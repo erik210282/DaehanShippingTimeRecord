@@ -1,4 +1,5 @@
-import {allRows,completeRecord,recordTable} from '../dataExport.mjs';
+import {allRows} from '../dataExport.mjs';
+import {userCsvTable} from '../businessCsv.mjs';
 import KpiTracker from '../production/KpiTracker';
 import {ProductionPackingDetails,ProductionExtraWork} from '../components/ProductionDailyDetails';
 import {stationLabel,packingRows} from '../production/dailyDetails.mjs';
@@ -271,7 +272,7 @@ export default function Production({access}) {
 
  async function exportCsv(excel=false) {
 
-  const records=filtered.map(r=>completeRecord({
+  const records=filtered.map(r=>({
 
    [t('pr_date')]:r.production_date,[t('inv_station_code')]:r.station_code,[t('name')]:stationFor(r)?.name,
 
@@ -287,9 +288,9 @@ export default function Production({access}) {
 
    [t('pr_packing_type')]:packingName(r),[t('pr_boxes')]:r.full_boxes,[t('pr_pallets')]:r.pallets,[t('pr_packed')]:r.packed_quantity,
 
-   [t('pr_turns')]:r.turns??'',[t('status')]:t('pr_'+r.status),[t('inv_notes')]:r.note,[t('pr_reporter')]:reporterName(r.created_by)
+   [t('pr_turns')]:r.turns??'',[t('status')]:t('pr_'+r.status),[t('inv_notes')]:r.note,[t('pr_reporter')]:reporterName(r.created_by),[t('pr_staff_names')]:r.staff_names||'','Extra Work':(r.break_work||[]).map(w=>w.minutes+' min × '+w.people+' '+t('pr_people')).join(' / ')
 
-  },{...r,workstation:stationFor(r),item:itemFor(r)}));const table=recordTable(records,[t('pr_date')]);const csv=Papa.unparse(table,{escapeFormulae:true});
+  }));const table=userCsvTable(records,[t('pr_date')]);const csv=Papa.unparse(table,{escapeFormulae:true});
 
   if(excel===true){try{await exportWorkbook('Production_'+tab,table.fields,table.data);}catch(e){setError(t('pr_save_error'));}return;}
   const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='production.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
