@@ -17,7 +17,7 @@ try{
  await page.route('**/rest/v1/**',route=>{
   const table=new URL(route.request().url()).pathname.split('/').pop();
   const run={id:'run-a',item_id:'a',station_code:'M1',session_id:'session-a',started_at:new Date(Date.now()-1800000).toISOString(),closed_at:null,latest_quantity:0,shift_hours:8,target_8h:800,target_10h:1000,warning_percent:90,critical_percent:75,can_manage:true,can_continue:true,created_by:'tester',downtime_events:[]};
-  const json=table==='inventory_items'?items:table==='inventory_workstations'?stations:table==='operadores'?[{uid:'tester',nombre:'Tester',activo:true,email:'test@example.com'}]:table==='production_live_snapshot_range'?{targets:items.map(i=>({item_id:i.id,target_8h:800,target_10h:1000})),runs:[run],checkpoints:[]}:table==='production_supply_snapshot'?{materials:[],runs:[],loads:[],wip:[],baselines:[]}:table==='global_department_memberships'?[]:[];
+  const json=table==='inventory_items'?items:table==='inventory_workstations'?stations:table==='operadores'?[{uid:'tester',nombre:'Tester',activo:true,email:'test@example.com'},{uid:'b291183c-efd7-4686-9fb5-a3d385c23f30',nombre:'Admin',activo:true,email:'erik.alejandro.lopez@gmail.com'},{uid:'supervisor',nombre:'Normal Supervisor',activo:true,email:'supervisor@example.com'},{uid:'inactive',nombre:'Inactive Person',activo:false,email:'inactive@example.com'}]:table==='production_live_snapshot_range'?{targets:items.map(i=>({item_id:i.id,target_8h:800,target_10h:1000})),runs:[run],checkpoints:[]}:table==='production_supply_snapshot'?{materials:[],runs:[],loads:[],wip:[],baselines:[]}:table==='global_department_memberships'?[]:[];
   return route.fulfill({json});
  });
  async function choose(dialog,label,option){await dialog.getByRole('combobox',{name:label,exact:true}).click();await page.getByRole('option',{name:option,exact:true}).click();}
@@ -43,6 +43,15 @@ try{
   console.log('PASS actual '+screen+' form: workstation change limits outputs and clears stale products');
  }
  await page.goto('http://127.0.0.1:4193/'+name+'.html?screen=settings');
+ await page.locator('.global-user-row').filter({hasText:'Normal Supervisor'}).waitFor();
+ assert.equal(await page.locator('.global-user-row').filter({hasText:'erik.alejandro.lopez@gmail.com'}).count(),0,'Admin hidden from user list');
+ await page.locator('.global-inactive-filter input').uncheck();
+ await page.locator('.global-user-row').filter({hasText:'Inactive Person'}).waitFor();
+ assert.equal(await page.locator('.global-user-row').filter({hasText:'erik.alejandro.lopez@gmail.com'}).count(),0,'Admin stays hidden when showing inactive accounts');
+ await page.locator('.global-user-row').filter({hasText:'Normal Supervisor'}).click();
+ assert.equal(await page.getByRole('option',{name:'Admin',exact:true}).count(),0,'Admin hidden from user selector');
+ assert.equal(await page.getByRole('option',{name:'Normal Supervisor',exact:true}).count(),1,'Normal supervisor remains selectable');
+ console.log('PASS actual Settings: Admin hidden in users and access selector; normal supervisors remain visible');
  await page.getByRole('button',{name:/Create user/i}).click();
  await page.locator('.global-department-choice').getByText('Catalogs',{exact:true}).waitFor();
  await page.locator('.global-department-choice').getByText('Settings',{exact:true}).waitFor();
