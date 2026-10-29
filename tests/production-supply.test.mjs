@@ -4,7 +4,7 @@ import vm from 'node:vm';
 const file=fs.existsSync('src/production/supply.mjs')?'src/production/supply.mjs':'production/supply.js';
 const source=fs.readFileSync(file,'utf8').replace(/export /g,'');
 const {partLabel,contributorNames,supplyRows,shiftCapture}=vm.runInNewContext(source+'\n({partLabel,contributorNames,supplyRows,shiftCapture})');
-assert.equal(partLabel({part_number:'PN',productos:{nombre:'Assembly'}}),'PN · Assembly');
+assert.equal(partLabel({part_number:'PN',productos:{nombre:'Assembly'}}),'PN · ASSEMBLY');
 assert.equal(contributorNames({id:'r'},[{run_id:'r',created_by:'a'},{run_id:'r',created_by:'b'},{run_id:'r',created_by:'a'}],[{uid:'a',nombre:'Ana'},{uid:'b',nombre:'Luis'}]),'Ana, Luis');
 assert.equal(contributorNames({id:'r',contributors:[{uid:'a',name:'Ana'},{uid:'b',name:'Luis'}]},[],[]),'Ana, Luis');
 const at=new Date('2026-10-11T10:00:00Z');

@@ -1,3 +1,4 @@
+import {productionRpc} from '../production/commit';
 import {detailedTable} from '../dataExport.mjs';
 import {lifecycleEditor,lifecycleSubmission} from './lifecycleEditor.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
@@ -79,7 +80,7 @@ export default function ProductionLive({items,stations,supervisor,reporterName,r
  const closeRun=(r,only=false)=>open(r,'finish',only);
  const deleteLatest=r=>{const latest=snapshot.checkpoints.filter(c=>c.run_id===r.id).sort((a,b)=>new Date(b.recorded_at)-new Date(a.recorded_at))[0];if(latest)confirm('delete_checkpoint',{id:latest.id});else setError(t('pl_no_history'));};
  async function send(action,payload){if(lock.current)return;lock.current=true;setBusy(true);try{
- await unwrap(supabase.rpc('production_live_action',{p_action:action,p_data:payload}));
+ await unwrap(productionRpc('production_live_action',{p_action:action,p_data:payload}));
  setEdit(null);setTarget(null);setConfirmation(null);setLifecycle(null);
  if(action.startsWith('delete_'))setUndo({action:action.replace('delete_','restore_'),payload});
  else if(action.startsWith('restore_'))setUndo(null);
@@ -139,3 +140,4 @@ const full=detailedTable(headers,rows,mode==='dashboard'?dashboard.rows.map(row=
  </Modal><ErrorPopup message={error} onClose={()=>setError('')}/>
  </section>;
 }
+

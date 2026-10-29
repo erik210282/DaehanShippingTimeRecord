@@ -89,10 +89,10 @@ export const DSSelect = ({
 
 // --------- Botones ----------
 function actionText(children){return React.Children.toArray(children).map(c=>typeof c==='string'||typeof c==='number'?String(c):React.isValidElement(c)?actionText(c.props.children):'').join(' ');}
-export function AppAction({children,style,intent,tone='primary',...props}){
+export function AppAction({children,style,intent,tone='primary',preserveLabel=false,...props}){
  const resolved=resolveIntent(intent,tone),background=uiTokens[resolved],base=resolved==='danger'?dangerBtn:resolved==='neutral'?secondaryBtn:primaryBtn;
  const layout={...style};for(const key of ['background','backgroundColor','color','border','borderColor','borderRadius','padding','paddingTop','paddingBottom','fontSize','fontFamily','fontWeight','height','minHeight','lineHeight','textAlign','boxShadow'])delete layout[key];
- return <button {...props} data-ui-intent={resolved} data-button-tone={resolved==='neutral'?'secondary':resolved==='danger'?'danger':'primary'} style={{...layout,...base,...layout,background,borderColor:background,color:'#fff'}}>{actionLabel(actionText(children),resolved)}</button>;
+ return <button {...props} data-ui-intent={resolved} data-button-tone={resolved==='neutral'?'secondary':resolved==='danger'?'danger':'primary'} style={{...layout,...base,...layout,background,borderColor:background,color:'#fff'}}>{preserveLabel?actionText(children):actionLabel(actionText(children),resolved)}</button>;
 }
 export const BtnPrimary=props=><AppAction {...props}/>;
 export const BtnSecondary=props=><AppAction {...props} tone="secondary"/>;

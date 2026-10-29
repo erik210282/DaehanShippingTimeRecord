@@ -1,5 +1,5 @@
 
-export function partLabel(item){return [item?.part_number,item?.productos?.nombre||item?.part_name||item?.description].filter(Boolean).join(' · ');}
+export function partLabel(item){return [item?.part_number,item?.productos?.nombre||item?.part_name||item?.description].filter(Boolean).join(' · ').toUpperCase();}
 export function contributorNames(run,checkpoints=[],people=[]){
  const participants=run.contributors??checkpoints.filter(c=>c.run_id===run.id&&!c.deleted_at).map(c=>({uid:c.created_by}));
  const ids=new Set();return participants.filter(p=>{if(!p.uid||ids.has(p.uid))return false;ids.add(p.uid);return true;}).map(p=>p.name||people.find(o=>o.uid===p.uid)?.nombre||'—').join(', ')||'—';
@@ -39,8 +39,8 @@ export function shiftCapture(edit,sessionId,runs,newId,reports=[]){
  const downtime_events=draft?.downtime_events||(first.downtime_events||[]).map(d=>({...d,start_time:new Date(d.start_at).toTimeString().slice(0,5),end_time:new Date(d.end_at).toTimeString().slice(0,5),minutes:String((new Date(d.end_at)-new Date(d.start_at))/60000)}));
  return {...edit,...draft,...products[0],products,machine_session_id:first.session_id||first.id,shift_session_id:sessionId,group_id:first.session_id||first.id,capture_group_id:draft?.capture_group_id||first.session_id||first.id,station_code:first.station_code,production_date:day(date),start_time:date.toTimeString().slice(0,5),end_time:end?end.toTimeString().slice(0,5):'',ends_next_day:end?day(date)!==day(end):false,people:draft?.people??'',report_mode:'production',downtime_events};
 }
-export function shiftOptions(runs,items){
- const seen=new Set();return runs.filter(r=>{const key=(r.session_id||r.id)+(r.closed_at?'|closed':'|active');if(seen.has(key))return false;seen.add(key);return true;}).map(r=>({value:r.closed_at?'closed:'+r.id:r.session_id||r.id,label:r.station_code+' · '+new Date(r.started_at).toLocaleString()+' · '+runs.filter(p=>(p.session_id||p.id)===(r.session_id||r.id)&&(!r.closed_at?!p.closed_at:!!p.closed_at)).map(p=>partLabel(items.find(i=>i.id===p.item_id))).join(' / ')}));
+export function shiftOptions(runs,items,stations=[]){
+ const seen=new Set();return runs.filter(r=>{const key=(r.session_id||r.id)+(r.closed_at?'|closed':'|active');if(seen.has(key))return false;seen.add(key);return true;}).map(r=>({value:r.closed_at?'closed:'+r.id:r.session_id||r.id,label:[r.station_code,stations.find(s=>s.code===r.station_code)?.name].filter(Boolean).join(' · ')+' · '+new Date(r.started_at).toLocaleString()+' · '+runs.filter(p=>(p.session_id||p.id)===(r.session_id||r.id)&&(!r.closed_at?!p.closed_at:!!p.closed_at)).map(p=>partLabel(items.find(i=>i.id===p.item_id))).join(' / ')}));
 }
 
 export function loadCounterRuns(data,edit){if(!edit||data.materials?.some(m=>m.station_code===edit.station_code&&m.item_id===edit.item_id))return [];return (data.runs||[]).filter(r=>!r.closed_at&&r.station_code===edit.station_code&&r.raw_recipe?.some(l=>l.item_id===edit.item_id));}
@@ -61,4 +61,14 @@ export function updateLoadEntry(edit,itemId,patch,getEntries){
 }
 export function materialLoadPayload(data,edit,getEntries){
  return {entries:getEntries(edit).map(row=>({...row,alert_minutes:15,baselines:loadCounterRuns(data,row).map(r=>({run_id:r.id,quantity:row.counters?.[r.id]??''}))}))};
+}
+
+
+// Match closed-session option IDs and retain a readable label after a run leaves the snapshot.
+export function reportSession(edit,runs,items,stations,manualLabel){
+ const options=[{value:'',label:manualLabel},...shiftOptions(runs,items,stations)];
+ const run=runs.find(r=>r.id===edit.live_run_id);
+ const value=run?(run.closed_at?'closed:'+run.id:run.session_id||run.id):edit.shift_session_id||edit.machine_session_id||'';
+ if(value&&!options.some(o=>o.value===value))options.push({value,label:[edit.station_code,stations.find(s=>s.code===edit.station_code)?.name,edit.production_date].filter(Boolean).join(' · ')});
+ return {value,options};
 }
