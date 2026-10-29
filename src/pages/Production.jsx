@@ -1,3 +1,4 @@
+import {productionRpc} from '../production/commit';
 import {allRows} from '../dataExport.mjs';
 import {userCsvTable} from '../businessCsv.mjs';
 import KpiTracker from '../production/KpiTracker';
@@ -18,7 +19,7 @@ import {dailyProducts,selectProducts,switchProduct,openCapture,sharedTimeRows,re
 
 import ProductionSupply,{ProductionSupplyAlerts} from '../production/ProductionSupply';
 import {useSupply} from '../production/useSupply';
-import {shiftCapture,shiftOptions} from '../production/supply.mjs';
+import {shiftCapture,shiftOptions,reportSession} from '../production/supply.mjs';
 import {registerSupply} from '../production/supplyTranslations';
 import ProductionLive from '../production/ProductionLive';
 
@@ -123,11 +124,11 @@ export default function Production({access}) {
 
    allRows(()=>supabase.from('production_station_reports').select('*').order('production_date',{ascending:false}).order('created_at',{ascending:false}).order('id')),
 
-   unwrap(supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active,packing_type,productos(nombre,descripcion,tipo_empaque_retornable,tipo_empaque_expendable,cantidad_por_caja_retornable,cantidad_por_caja_expendable)').order('part_number')),
+   allRows(()=>supabase.from('inventory_items').select('id,producto_id,part_number,part_name,description,category,uom,active,packing_type,productos(nombre,descripcion,tipo_empaque_retornable,tipo_empaque_expendable,cantidad_por_caja_retornable,cantidad_por_caja_expendable)').order('part_number').order('id')),
 
-   unwrap(supabase.from('inventory_workstations').select('*').order('code')),
+   allRows(()=>supabase.from('inventory_workstations').select('*').order('code')),
 
-   unwrap(supabase.from('inventory_boms').select(recipeSelect).eq('archived',false)),
+   allRows(()=>supabase.from('inventory_boms').select(recipeSelect).eq('archived',false).order('id')),
 
    unwrap(supabase.from('inventory_balances').select('item_id,area,quantity')),
 
@@ -203,7 +204,7 @@ export default function Production({access}) {
 
    }
 
-   await unwrap(supabase.rpc('production_station_action',{p_action:type,p_data:payload}));
+   await unwrap(productionRpc('production_station_action',{p_action:type,p_data:payload}));
 
    await refresh();setEdit(null);setReview(null);setConfirming(false);setMessage('');
 
@@ -241,7 +242,7 @@ export default function Production({access}) {
 
    lock.current=true;setBusy(true);
 
-   await unwrap(supabase.rpc('production_station_action',{p_action:type,p_data:{capture_group_id:edit.capture_group_id||edit.group_id,machine_session_id:edit.machine_session_id,products}}));
+   await unwrap(productionRpc('production_station_action',{p_action:type,p_data:{capture_group_id:edit.capture_group_id||edit.group_id,machine_session_id:edit.machine_session_id,products}}));
 
    await refresh();setEdit(null);setMessage('');
 
@@ -396,7 +397,7 @@ export default function Production({access}) {
 
    <CatalogSelect multi disabled={!!edit.created_at||!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('inv_part'))} value={dailyProducts(edit).map(r=>r.item_id)} onChange={ids=>setEdit(current=>selectProducts(current,ids,()=>crypto.randomUUID()))} options={data.items.filter(i=>workstationProductIds(data.stations.find(s=>s.code===edit.station_code),data.items).includes(i.id)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
 
- <CatalogSelect label={uiTitle(t('ps_session'))} disabled={!!edit.created_at} value={edit.shift_session_id||supply.data.runs.find(r=>r.id===edit.live_run_id)?.session_id||''} onChange={session=>setEdit(v=>shiftCapture(v,session,supply.data.runs,()=>crypto.randomUUID(),data.reports))} options={[{value:'',label:t('ps_manual')},...shiftOptions(supply.data.runs,data.items)]}/>
+ <CatalogSelect label={uiTitle(t('ps_session'))} disabled={!!edit.created_at} value={reportSession(edit,supply.data.runs,data.items,data.stations,t('ps_manual')).value} onChange={session=>setEdit(v=>shiftCapture(v,session,supply.data.runs,()=>crypto.randomUUID(),data.reports))} options={reportSession(edit,supply.data.runs,data.items,data.stations,t('ps_manual')).options}/>
 
    <CatalogSelect label={uiTitle(t('pr_report_mode'))} value={edit.report_mode} onChange={report_mode=>setEdit(changeDailyShared(edit,{report_mode}))} options={['production','packing'].map(value=>({value,label:t('pr_mode_'+value)}))}/>
 
@@ -420,7 +421,7 @@ export default function Production({access}) {
 
   {scheduleError&&edit.start_time&&edit.end_time&&<p role="alert" className="inv-message">{t(scheduleError)}</p>}
 
-  <section className="production-section"><p className="inv-muted">{t('pm_shared_hint')}</p><div className="production-row-actions">{dailyProducts(edit).map(r=><BtnEditDark intent="neutral" key={r.item_id} type="button" aria-pressed={edit.item_id===r.item_id} style={edit.item_id===r.item_id?{background:'#28a745',color:'#fff'}:undefined} onClick={()=>setEdit(switchProduct(edit,r.item_id))}>{partLabel(itemFor(r))}</BtnEditDark>)}</div><h3>{partLabel(itemFor(edit))} · {uiTitle(t('pr_quantities'))}</h3><p className="inv-muted">{t('pr_quantity_hint')}</p><div className="production-form-grid production-form-grid-four">
+  <section className="production-section"><p className="inv-muted">{t('pm_shared_hint')}</p><div className="production-row-actions">{dailyProducts(edit).map(r=><BtnEditDark preserveLabel intent={edit.item_id===r.item_id?"confirm":"neutral"} key={r.item_id} type="button" aria-pressed={edit.item_id===r.item_id} style={edit.item_id===r.item_id?{background:'#28a745',color:'#fff'}:undefined} onClick={()=>setEdit(switchProduct(edit,r.item_id))}>{partLabel(itemFor(r))}</BtnEditDark>)}</div><h3>{partLabel(itemFor(edit))} · {uiTitle(t('pr_quantities'))}</h3><p className="inv-muted">{t('pr_quantity_hint')}</p><div className="production-form-grid production-form-grid-four">
 
    {numeric('machine_quantity','pr_machine_quantity')}{numeric('scrap_quantity','pr_scrap')}{numeric('rework_quantity','pr_rework')}<CatalogInput label={uiTitle(t('pr_good'))} readOnly value={fmt(metrics.good)}/>
 
@@ -505,4 +506,5 @@ export default function Production({access}) {
  </>;
 
 }
+
 
