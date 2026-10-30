@@ -41,3 +41,12 @@ export function productPlanHours(row,plan){return Object.fromEntries((row.item_i
 export function machinePlanHours(row,plan){const values=Object.values(productPlanHours(row,plan));return values.length?Math.max(...values):Number(row.custom_hours??plan.planned_hours??plan.shift_hours);}
 export function validPlanHours(value){return value!==''&&Number.isFinite(Number(value))&&Number(value)>=0.5&&Number(value)<=24;}
 export function runPlanHours(runs){return Math.max(...runs.map(r=>Number(r.planned_hours||r.shift_hours)),0);}
+
+export function machineRouteGroups(routes){
+ const groups=new Map();
+ for(const route of routes){let group=groups.get(route.parent_station_code);if(!group){group={station_code:route.parent_station_code,dependencies:[]};groups.set(group.station_code,group);}const previous=group.dependencies.find(r=>r.station_code===route.station_code);if(previous){previous.item_ids=[...new Set([...previous.item_ids,...route.item_ids])];if(route.source==='manual')previous.source='manual';}else group.dependencies.push({...route,item_ids:[...route.item_ids]});}
+ return [...groups.values()];
+}
+export function machineDependencyEdit(data,parent,routes=[]){const codes=[...new Set(routes.map(r=>r.station_code))];return {root_station_code:parent,dependency_station_codes:codes,original_codes:codes,products:Object.fromEntries(routes.map(r=>[r.station_code,r.item_ids])),versions:Object.fromEntries(data.links.filter(l=>l.root_station_code===parent).map(l=>[l.dependency_station_code,l.updated_at]))};}
+export function selectMachineDependencies(edit,codes,data){return {...edit,dependency_station_codes:codes,products:Object.fromEntries(codes.map(code=>[code,edit.products[code]??data.links.find(l=>l.root_station_code===edit.root_station_code&&l.dependency_station_code===code)?.item_ids??outputIds(data.stations.find(s=>s.code===code),data)]))};}
+export function machineDependencyPayload(edit){return {root_station_code:edit.root_station_code,dependencies:[...new Set([...edit.dependency_station_codes,...edit.original_codes])].map(code=>({dependency_station_code:code,item_ids:edit.products[code]||[],enabled:edit.dependency_station_codes.includes(code),version:edit.versions[code]}))};}
