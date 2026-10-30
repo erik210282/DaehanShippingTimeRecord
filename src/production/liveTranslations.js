@@ -85,5 +85,5 @@ Object.assign(phrases,{
   "재개된 제품만 강제 종료할 수 있습니다."
  ]
 });
+Object.assign(phrases,{before_start:['Antes del inicio actualizado','Before updated start','변경된 시작 전'],history_start:['Inicio de producción','Production start','생산 시작'],history_capture:['Capturado el','Captured at','기록 시간']});
 export function registerLive(i18n){['es','en','ko'].forEach((lang,index)=>i18n.addResourceBundle(lang,'translation',Object.fromEntries(Object.entries(phrases).map(([key,values])=>['pl_'+key,values[index]])),true,true));registerDowntime(i18n);}
-
