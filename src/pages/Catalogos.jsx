@@ -1,3 +1,4 @@
+import MachineBomCatalog from '../catalog/MachineBomCatalog';
 import {moduleAllowed} from '../access';
 import {allRows} from '../dataExport.mjs';
 import {catalogCsvRows,userCsvTable} from '../businessCsv.mjs';
@@ -63,7 +64,7 @@ Modal.setAppElement("#root");
 export default function Catalogos({ access }) {
   const { t } = useTranslation();
 
-  const [tab, setTab] = usePageSection('catalog', 'productos', ['productos', ...Object.keys(catalogKinds), 'pos', 'shipper', 'actividades', 'bom', 'bom-semi', 'stations', 'machine-types']);
+  const [tab, setTab] = usePageSection('catalog', 'productos', ['productos', ...Object.keys(catalogKinds), 'pos', 'shipper', 'actividades', 'bom', 'bom-semi', 'machine-bom', 'stations', 'machine-types']);
   const [snapshot, setSnapshot] = useState({ tab: null, rows: [] });
   const rows = snapshot.tab === tab ? snapshot.rows : [];
   const request = useRef(0), currentTab = useRef(tab), loadedTab = useRef(null);
@@ -73,10 +74,10 @@ export default function Catalogos({ access }) {
   const [typeFilter,setTypeFilter]=useState(''),[hideInactive,setHideInactive]=useState(true);
   const canManage=moduleAllowed(access?.memberships,access?.admin,'catalogs',true);
   const kind=catalogKinds[tab];
-  const sectionLabel=t(kind?(kind==='material'?'rc_material_types':kind==='supplier'?'rc_suppliers':'rc_locations'):({productos:'products',pos:'po',shipper:'shipper',actividades:'activities',bom:'inv_bom','bom-semi':'inv_bom',stations:'inv_workstations','machine-types':'mt_title'})[tab]);
+  const sectionLabel=t(kind?(kind==='material'?'rc_material_types':kind==='supplier'?'rc_suppliers':'rc_locations'):({productos:'products',pos:'po',shipper:'shipper',actividades:'activities',bom:'inv_bom','bom-semi':'inv_bom','machine-bom':'mp_title',stations:'inv_workstations','machine-types':'mt_title'})[tab]);
   const [filter, setFilter] = useState("");
   const productionRef=useRef(null);
-  const production=tab==='bom'||tab==='bom-semi'||tab==='stations'||tab==='machine-types';
+  const production=tab==='machine-bom'||tab==='bom'||tab==='bom-semi'||tab==='stations'||tab==='machine-types';
   const [edit, setEdit] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [saving,setSaving]=useState(false),[duplicating,setDuplicating]=useState(false);
@@ -178,7 +179,7 @@ export default function Catalogos({ access }) {
   const simpleDefaults = { nombre: "", activo: true };
 
   async function load() {
-    if (tab==='bom' || tab==='bom-semi' || tab==='stations' || tab==='machine-types') { setLoading(false); return; }
+    if (tab==='machine-bom' || tab==='bom' || tab==='bom-semi' || tab==='stations' || tab==='machine-types') { setLoading(false); return; }
     const version = ++request.current;
     const current = () => version === request.current && currentTab.current === tab;
     if(loadedTab.current!==tab)setLoading(true);
@@ -512,12 +513,12 @@ async function save() {
           <BtnSecondary intent="neutral" onClick={()=>production?productionRef.current?.exportCSV():exportCSV()}>{t("export_csv")}</BtnSecondary>
           <BtnPrimary intent="create" disabled={!canManage} onClick={()=>production?productionRef.current?.add():openNew()}>➕ {t("add")}</BtnPrimary>
         </div>
-        {['bom','bom-semi'].includes(tab)&&<nav className="catalog-actions catalog-bom-tabs" aria-label={t('inv_bom')}><BtnSecondary intent="neutral" aria-pressed={tab==='bom'} onClick={()=>setTab('bom')}>{t('cat_bom_tab_fg')}</BtnSecondary><BtnSecondary intent="neutral" aria-pressed={tab==='bom-semi'} onClick={()=>setTab('bom-semi')}>{t('cat_bom_tab_semi')}</BtnSecondary></nav>}
+        {['bom','bom-semi','machine-bom'].includes(tab)&&<nav className="catalog-actions catalog-bom-tabs" aria-label={t('inv_bom')}><BtnSecondary intent="neutral" aria-pressed={tab==='bom'} onClick={()=>setTab('bom')}>{t('cat_bom_tab_fg')}</BtnSecondary><BtnSecondary intent="neutral" aria-pressed={tab==='bom-semi'} onClick={()=>setTab('bom-semi')}>{t('cat_bom_tab_semi')}</BtnSecondary><BtnSecondary intent="neutral" aria-pressed={tab==='machine-bom'} onClick={()=>setTab('machine-bom')}>{t('mp_title')}</BtnSecondary></nav>}
         <div className="catalog-filters">
          {tab==='productos'&&<CatalogSelect label={uiTitle(t('rc_type'))} value={typeFilter} onChange={value=>{setTypeFilter(value);setPage(1);}} options={[{value:'',label:t('rc_all')},...['RAW','SEMI','FG','PACKAGING'].map(value=>({value,label:t('rc_'+value)}))]}/>}
          <label className="catalog-checkbox"><input type="checkbox" checked={hideInactive} onChange={e=>{setHideInactive(e.target.checked);setPage(1);}}/>{t('rc_hide_inactive')}</label>
         </div></div>
-        {production ? tab==='machine-types'?<MachineTypesCatalog ref={productionRef} access={access} filter={filter} hideInactive={hideInactive}/>:<ProductionCatalog ref={productionRef} key={tab} mode={tab} access={access} filter={filter} hideInactive={hideInactive} externalControls/> : <><div className="table-wrap catalog-table-scroll">
+        {production ? tab==='machine-bom'?<MachineBomCatalog ref={productionRef} filter={filter} hideInactive={hideInactive}/>:tab==='machine-types'?<MachineTypesCatalog ref={productionRef} access={access} filter={filter} hideInactive={hideInactive}/>:<ProductionCatalog ref={productionRef} key={tab} mode={tab} access={access} filter={filter} hideInactive={hideInactive} externalControls/> : <><div className="table-wrap catalog-table-scroll">
           <table className={typeFilter==='PACKAGING'?'table catalog-packing-table':'table'}>
             <thead>
               <tr>
@@ -953,3 +954,4 @@ async function save() {
     </div>
   );
 }
+
