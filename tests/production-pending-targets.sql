@@ -1,0 +1,33 @@
+begin;
+do $test$
+declare actor uuid; semi uuid:=gen_random_uuid(); fg uuid:=gen_random_uuid(); a text:='PENDING-'||substr(gen_random_uuid()::text,1,8); b text; c text; d text; run8 uuid; run10 uuid; direct_run uuid:=gen_random_uuid(); known_run uuid; cp public.production_checkpoints; scheduled uuid:=gen_random_uuid(); before_time timestamptz;
+begin
+ b:=a||'-10';c:=a||'-DIRECT';d:=a||'-KNOWN';
+ select m.user_id into actor from public.global_department_memberships m join public.operadores o on o.uid=m.user_id where m.department='production' and m.active and m.role='supervisor' and o.activo limit 1;
+ perform set_config('request.jwt.claim.sub',actor::text,true);
+ insert into public.inventory_items(id,part_number,category) values(semi,'PENDING-SEMI-'||semi,'SEMI'),(fg,'PENDING-FG-'||fg,'FG');
+ insert into public.inventory_workstations(code,name,machine_type) select code,'Pending target test',(select name from public.machine_types limit 1) from unnest(array[a,b,c,d]) code;
+ perform public.production_schedule_action('save',jsonb_build_object('id',scheduled,'started_at',clock_timestamp()+interval '1 day','shift_hours',10,'stations',jsonb_build_array(jsonb_build_object('station_code',a,'item_ids',jsonb_build_array(semi)))));
+ if not exists(select 1 from public.production_shift_schedule where id=scheduled and status='scheduled') then raise exception 'pending target schedule failed';end if;
+ perform public.production_supply_action('start',jsonb_build_object('id',gen_random_uuid(),'started_at',clock_timestamp()-interval '2 hours','shift_hours',8,'stations',jsonb_build_array(jsonb_build_object('station_code',a,'item_ids',jsonb_build_array(semi)))));
+ perform public.production_supply_action('start',jsonb_build_object('id',gen_random_uuid(),'started_at',clock_timestamp()-interval '2 hours','shift_hours',10,'stations',jsonb_build_array(jsonb_build_object('station_code',b,'item_ids',jsonb_build_array(semi)))));
+ select id into run8 from public.production_live_runs where station_code=a;select id into run10 from public.production_live_runs where station_code=b;
+ if exists(select 1 from public.production_live_runs where id in(run8,run10) and (shift_target is not null or pieces_per_hour is not null)) then raise exception 'fabricated target';end if;
+ perform public.production_live_action('checkpoint',jsonb_build_object('id',gen_random_uuid(),'run_id',run8,'quantity',200));
+ perform public.production_live_action('checkpoint',jsonb_build_object('id',gen_random_uuid(),'run_id',direct_run,'session_id',gen_random_uuid(),'station_code',c,'item_id',semi,'started_at',clock_timestamp()-interval '2 hours','shift_hours',8,'quantity',150));
+ select * into cp from public.production_checkpoints where run_id=run8 limit 1;before_time:=cp.recorded_at;
+ if cp.expected_quantity is not null or cp.attainment is not null or cp.performance<>'pending' then raise exception 'pending checkpoint KPI wrong';end if;
+ perform public.production_live_action('finish',jsonb_build_object('id',gen_random_uuid(),'run_id',run8,'quantity',220,'finished_at',clock_timestamp()));
+ if not exists(select 1 from public.production_live_runs where id=run8 and closed_at is not null and shift_target is null) then raise exception 'pending finish failed';end if;
+ perform public.production_live_action('target',jsonb_build_object('item_id',fg,'target_8h',800,'target_10h',992,'warning_percent',90,'critical_percent',75));
+ perform public.production_supply_action('start',jsonb_build_object('id',gen_random_uuid(),'started_at',clock_timestamp()-interval '2 hours','shift_hours',8,'stations',jsonb_build_array(jsonb_build_object('station_code',d,'item_ids',jsonb_build_array(fg)))));
+ select id into known_run from public.production_live_runs where station_code=d;
+ perform public.production_live_action('target',jsonb_build_object('item_id',fg,'target_8h',1200,'target_10h',1488,'warning_percent',90,'critical_percent',75));
+ if (select shift_target from public.production_live_runs where id=known_run)<>800 then raise exception 'existing target snapshot overwritten';end if;
+ perform public.production_live_action('target',jsonb_build_object('item_id',semi,'target_8h',750,'target_10h',930,'warning_percent',90,'critical_percent',75));
+ if (select shift_target from public.production_live_runs where id=run8)<>750 or (select shift_target from public.production_live_runs where id=run10)<>930 then raise exception 'late target shift scaling failed';end if;
+ if exists(select 1 from public.production_checkpoints where run_id in(run8,direct_run) and (expected_quantity is null or expected_quantity<=0 or attainment is null or performance='pending')) then raise exception 'historical KPI not recalculated';end if;
+ if not exists(select 1 from public.production_checkpoints where id=cp.id and quantity=200 and recorded_at=before_time) then raise exception 'actual output or time modified';end if;
+ if exists(select 1 from public.production_live_runs where item_id=semi and shift_target is null) then raise exception 'missed pending run';end if;
+end $test$;
+rollback;
