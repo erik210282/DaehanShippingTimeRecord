@@ -9,7 +9,7 @@ export function supplyRows(snapshot,now=new Date()){
  return (snapshot.materials||[]).map(m=>{
   let pending=0,rate=0,missingRecipe=false;
   for(const r of snapshot.runs||[]){
-   if(r.station_code!==m.station_code||new Date(r.closed_at||now)<new Date(m.tracked_at))continue;
+   if(new Date(r.started_at)>new Date(now)||r.station_code!==m.station_code||new Date(r.closed_at||now)<new Date(m.tracked_at))continue;
    const recipe=(r.raw_recipe||[]).filter(l=>l.item_id===m.item_id),per=recipe.reduce((sum,l)=>sum+Number(l.per_unit),0);
    if(!r.closed_at&&!r.raw_recipe?.length)missingRecipe=true;
    if(!per)continue;
