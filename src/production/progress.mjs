@@ -12,7 +12,7 @@ export function eventsInEditor(run){return (run?mergeShiftEvents(run.started_at,
 export function progressCapture(edit,now=new Date()){
  const start=edit.started_at||localStart(edit.date,edit.time);
  const finishDay=new Date(start);if(edit.ends_next_day)finishDay.setDate(finishDay.getDate()+1);
- const end=edit.action==='finish'?localStart(edit.finish_date||localDate(finishDay),edit.finish_time):now.toISOString();
+ const end=edit.action==='finish'?localStart(edit.finish_date||localDate(finishDay),edit.finish_time):edit.recorded_at||now.toISOString();
  if(!start||!end||new Date(end)<=new Date(start)||new Date(end)>now)return {error:'pl_finish_invalid'};
  const a=new Date(start),b=new Date(end),report={start_time:a.toTimeString().slice(0,5),end_time:b.toTimeString().slice(0,5),ends_next_day:localDate(a)!==localDate(b),production_date:localDate(a),downtime_events:edit.downtime_events||[]};
  const schedule=downtimeSchedule(report);

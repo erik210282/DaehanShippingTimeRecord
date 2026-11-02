@@ -1,3 +1,5 @@
+import {dailyReportClock} from '../production/reportClock.mjs';
+import {registerReportClock} from '../production/reportClockWords';
 import {productionRpc} from '../production/commit';
 import {allRows} from '../dataExport.mjs';
 import {userCsvTable} from '../businessCsv.mjs';
@@ -73,7 +75,8 @@ const unwrap=async q=>{const {data,error}=await q;if(error)throw error;return da
 
 const day=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 
-const blank=()=>({id:crypto.randomUUID(),production_date:'',station_code:'',item_id:'',start_time:'',end_time:'',ends_next_day:false,machine_minutes:'',downtime_minutes:'0',downtime_reason:'',break_count:'0',break_minutes:'0',people:'',machine_quantity:'',scrap_quantity:'',rework_quantity:'',packaging_type:'',full_boxes:'',pallets:'0',pieces_per_box:0,turns:'',report_mode:'',note:'',staff_names:'',status:'draft',downtime_events:[],rework_completed:true,catalog_packing:false});
+registerReportClock(i18n);
+const blank=()=>({...dailyReportClock(),id:crypto.randomUUID(),station_code:'',item_id:'',start_time:'',ends_next_day:false,machine_minutes:'',downtime_minutes:'0',downtime_reason:'',break_count:'0',break_minutes:'0',people:'',machine_quantity:'',scrap_quantity:'',rework_quantity:'',packaging_type:'',full_boxes:'',pallets:'0',pieces_per_box:0,turns:'',report_mode:'',note:'',staff_names:'',status:'draft',downtime_events:[],rework_completed:true,catalog_packing:false});
 
 const productionModalStyle={
 
@@ -280,7 +283,7 @@ export default function Production({access}) {
 
    [t('inv_part')]:partLabel(itemFor(r)),[t('description')]:itemFor(r)?.description,
 
-   [t('pr_start')]:r.start_time,[t('pr_end')]:r.end_time,[t('pr_next_day')]:t(r.ends_next_day?'yes':'no'),
+   [t('pr_start')]:r.start_time,[t('rp_time')]:r.end_time,[t('rp_saved')]:r.created_at,[t('pr_next_day')]:t(r.ends_next_day?'yes':'no'),
 
    [t('pr_total_hours')]:r.elapsed_minutes/60,[t('pr_worked_hours')]:reportMetrics(r).worked/60,[t('pr_labor_hours')]:reportMetrics(r).laborHours,
 
@@ -369,7 +372,7 @@ export default function Production({access}) {
 
    </>:<div className="table-wrap catalog-table-scroll"><table className="table production-daily-table"><thead><tr>{['pr_date','inv_station_code','inv_part','name','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_packing_type','pr_machine_minutes','pr_downtime','pr_people','pr_total_hours','pr_labor_hours','pr_turns','status','actions'].map(k=><th key={k}>{uiTitle(t(k))}</th>)}</tr></thead><tbody>
 
-    {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))-1)*pageSize,Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))*pageSize).map(r=><tr key={r.id}><td>{r.production_date}</td><td>{stationLabel(r,data.stations)}</td><td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{packingName(r)||'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td><td><div className="production-row-actions">
+    {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))-1)*pageSize,Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))*pageSize).map(r=><tr key={r.id}><td>{r.production_date}<small style={{display:'block'}}>{t('rp_time')}: {String(r.end_time||'').slice(0,5)}{r.ends_next_day?' (+1)':''}</small></td><td>{stationLabel(r,data.stations)}</td><td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{packingName(r)||'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td><td><div className="production-row-actions">
 
      <BtnSecondary intent="neutral" disabled={busy} onClick={()=>{setError('');setConfirming(false);setReview(r);}}>{t('pr_details')}</BtnSecondary>
 
@@ -409,7 +412,7 @@ export default function Production({access}) {
 
    <ProductionClockInput disabled={!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('pr_start'))} value={edit.start_time} onChange={start_time=>setEdit(changeDailyShared(edit,{start_time}))}/>
 
-   <ProductionClockInput label={uiTitle(t('pr_end'))} value={edit.end_time} onChange={end_time=>setEdit(changeDailyShared(edit,{end_time}))}/>
+   <ProductionClockInput label={uiTitle(t('rp_daily'))} value={edit.end_time} onChange={end_time=>setEdit(changeDailyShared(edit,{end_time}))}/><p className="inv-muted">{t('rp_help')}</p>
 
    {numeric('people','pr_people',{min:1})}
 
