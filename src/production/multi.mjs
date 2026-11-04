@@ -28,16 +28,17 @@ export function sharedTimeRows(rows){
 const savedSingle=edit=>!edit.products||edit.products.length<=1;
 export function selectLiveProducts(edit,ids,newId){
  const saved=(edit.products||[{item_id:edit.item_id,id:edit.id,run_id:edit.run_id,quantity:edit.quantity}]).map(row=>savedSingle(edit)&&row.item_id===edit.item_id?{...row,quantity:edit.quantity}:row);
- const products=[...new Set(ids)].map(item_id=>saved.find(r=>r.item_id===item_id)||{item_id,id:newId(),run_id:newId(),quantity:''});
+ const allowed=edit.existing&&edit.action==='checkpoint'?edit.available_products:undefined;
+ const products=[...new Set(ids)].filter(item_id=>!allowed||allowed.some(p=>p.item_id===item_id)).map(item_id=>saved.find(r=>r.item_id===item_id)||allowed?.find(r=>r.item_id===item_id)||{item_id,id:newId(),run_id:newId(),quantity:''});
  const current=products.find(row=>row.item_id===edit.item_id)||products[0];
- return {...edit,products,item_id:current?.item_id||'',quantity:current?.quantity??''};
+ return {...edit,...current,products,item_id:current?.item_id||'',quantity:current?.quantity??'',downtime_item_ids:edit.downtime_item_ids?.filter(id=>ids.includes(id))};
 }
 
 export function registerMulti(i18n){
  const resources={
- en:{pm_products:'Products',pm_shared_hint:'The machine, shift and staff are shared. Capture downtime and quantities separately for each product.',pm_quantity_for:'Produced quantity · {{part}}'},
- es:{pm_products:'Productos',pm_shared_hint:'La máquina, el horario y el personal se comparten. Los paros y las cantidades se capturan por producto.',pm_quantity_for:'Cantidad producida · {{part}}'},
- ko:{pm_products:'제품',pm_shared_hint:'기계, 근무 시간, 인원은 공유됩니다. 정지 시간과 수량은 제품별로 입력하세요.',pm_quantity_for:'생산 수량 · {{part}}'}
+ en:{pm_select_products:'Select at least one product to report.',pm_products:'Products',pm_shared_hint:'The machine, shift and staff are shared. Capture downtime and quantities separately for each product.',pm_quantity_for:'Produced quantity · {{part}}'},
+ es:{pm_select_products:'Selecciona al menos un producto para reportar.',pm_products:'Productos',pm_shared_hint:'La máquina, el horario y el personal se comparten. Los paros y las cantidades se capturan por producto.',pm_quantity_for:'Cantidad producida · {{part}}'},
+ ko:{pm_select_products:'보고할 제품을 하나 이상 선택하세요.',pm_products:'제품',pm_shared_hint:'기계, 근무 시간, 인원은 공유됩니다. 정지 시간과 수량은 제품별로 입력하세요.',pm_quantity_for:'생산 수량 · {{part}}'}
  };
  for(const [lang,values] of Object.entries(resources))i18n.addResourceBundle(lang,'translation',values,true,true);
 }
