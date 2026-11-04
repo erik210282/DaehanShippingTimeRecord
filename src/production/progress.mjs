@@ -75,20 +75,17 @@ export function dashboardTable(runs,checkpoints,day,now=new Date(),endDay=day){
   const scheduleEnd=start+(captures.length+2)*7200000+(run.downtime_events||[]).filter(d=>d.type==='lunch').reduce((sum,d)=>sum+Math.max(0,new Date(d.end_at)-new Date(d.start_at)),0);
   const schedule=reportingCuts(run,scheduleEnd,false);
   return {run,quantity,efficiency:expected==null?null:expected>0?quantity*100/expected:0,average:measured.working>0?quantity/measured.working:0,target:run.shift_target===null?null:Number(run.shift_target||0)/effectiveShiftHours(run.shift_hours),expected,...hours,
-   cells:[Number(initial?.quantity??0),...captures.map(c=>Number(c.quantity))],
-   recordedTimes:[new Date(start),...captures.map(c=>new Date(c.recorded_at))],
-   scheduledTimes:schedule.map(at=>new Date(at))};
+   cells:[Number(initial?.quantity??0),...captures.filter(c=>c!==final).map(c=>Number(c.quantity))],
+   recordedTimes:[new Date(start),...captures.filter(c=>c!==final).map(c=>new Date(c.recorded_at))],
+   final,scheduledTimes:schedule.map(at=>new Date(at))};
  });
- const count=Math.max(...rows.map(row=>row.cells.length));
- const columns=Array.from({length:count},(_,index)=>{
-  const times=rows.map(row=>row.scheduledTimes[index]?.getTime());
-  return {index,time:times.every(at=>at===times[0])&&times[0]!==undefined?new Date(times[0]):null};
- });
- for(const row of rows)while(row.cells.length<count)row.cells.push(null);
+ const count=Math.max(...rows.map(row=>row.cells.length)),hasFinal=rows.some(row=>row.final);
+ for(const row of rows){while(row.cells.length<count){row.cells.push(null);row.recordedTimes.push(null);}if(hasFinal){row.cells.push(row.final?Number(row.final.quantity):null);row.recordedTimes.push(row.final?new Date(row.final.recorded_at):null);}}
+ const columns=Array.from({length:count+(hasFinal?1:0)},(_,index)=>{const times=rows.map(row=>row.recordedTimes[index]?.getTime()).filter(at=>at!=null);return {index,final:hasFinal&&index===count,time:times.length&&times.every(at=>at===times[0])?new Date(times[0]):null};});
+
  return {columns,rows};
 }
 export function dashboardColumnLabel(column,t,language){
- const label=t(column.index===0?'pl_report_start':column.index===1?'pl_first_report':'pl_numbered_report',{number:column.index});
+ const label=t(column.final?'pl_final_report':column.index===0?'pl_report_start':column.index===1?'pl_first_report':'pl_numbered_report',{number:column.index});
  return label+(column.time?' ('+column.time.toLocaleTimeString(language,{hour:'numeric',minute:'2-digit'})+')':'');
 }
-

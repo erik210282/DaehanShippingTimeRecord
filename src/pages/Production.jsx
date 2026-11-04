@@ -1,3 +1,4 @@
+import {stationProductSummary,machineReviewRows,machinePrintReports} from '../production/machineReports.mjs';
 import {dailyReportClock} from '../production/reportClock.mjs';
 import {registerReportClock} from '../production/reportClockWords';
 import {productionRpc} from '../production/commit';
@@ -368,7 +369,7 @@ export default function Production({access}) {
 
     <p className="inv-muted">{t('pr_summary_hint')}</p><div className="production-metrics">{[['pr_machine_quantity',totals.machine_quantity],['pr_good',totals.good_quantity],['pr_scrap',totals.scrap_quantity],['pr_rework',totals.rework_quantity],['pr_boxes',totals.full_boxes],['pr_labor_hours',totals.labor]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
 
-    <div className="table-wrap"><table className="table"><thead><tr>{['inv_station_code','name','pr_machine_quantity','pr_scrap','pr_rework','pr_boxes','pr_machine_minutes','pr_downtime','pr_labor_hours'].map(k=><th key={k}>{uiTitle(t(k))}</th>)}</tr></thead><tbody>{byStation.map(s=><tr key={s.code}><td>{s.code}</td><td>{data.stations.find(x=>x.code===s.code)?.name}</td>{['pieces','scrap','rework','boxes','machine','downtime','labor'].map(k=><td key={k}>{fmt(s[k])}</td>)}</tr>)}</tbody></table></div>
+    {stationProductSummary(filtered).map(group=><section className="production-section" key={group.code}><h3>{group.code} · {data.stations.find(x=>x.code===group.code)?.name}</h3><div className="table-wrap"><table className="table"><thead><tr>{['inv_part','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes'].map(k=><th key={k}>{uiTitle(t(k))}</th>)}</tr></thead><tbody>{group.products.map(product=><tr key={product.item_id}><td>{partLabel(data.items.find(i=>i.id===product.item_id))}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(key=><td key={key}>{fmt(product[key])}</td>)}</tr>)}</tbody></table></div><p>{t('pr_machine_minutes')}: {fmt(byStation.find(s=>s.code===group.code)?.machine)} · {t('pr_downtime')}: {fmt(byStation.find(s=>s.code===group.code)?.downtime)} · {t('pr_labor_hours')}: {fmt(byStation.find(s=>s.code===group.code)?.labor)}</p>{manage&&<div className="production-row-actions">{machinePrintReports(filtered.filter(r=>r.station_code===group.code),supply.data.runs).map(r=><BtnEditDark key={r.id} intent="neutral" disabled={busy} onClick={()=>setPrintReport(r)}>{t('dt_print')} · {r.production_date} · {String(r.start_time).slice(0,5)} — {String(r.end_time).slice(0,5)}</BtnEditDark>)}</div>}</section>)}
 
    </>:<div className="table-wrap catalog-table-scroll"><table className="table production-daily-table"><thead><tr>{['pr_date','inv_station_code','inv_part','name','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_packing_type','pr_machine_minutes','pr_downtime','pr_people','pr_total_hours','pr_labor_hours','pr_turns','status','actions'].map(k=><th key={k}>{uiTitle(t(k))}</th>)}</tr></thead><tbody>
 
@@ -473,7 +474,7 @@ export default function Production({access}) {
 
  {review&&<div className="production-form"><h2>{uiTitle(t('pr_details'))} · {review.production_date}</h2>
 
-  <p><strong>{review.station_code} · {stationFor(review)?.name}</strong></p><p>{itemFor(review)?.part_number} · {itemFor(review)?.part_name}</p>
+  {machineReviewRows(review,data.reports,supply.data.runs).map(product=><section className="production-section" key={product.id}>{(()=>{const review=product;return <>  <p><strong>{review.station_code} · {stationFor(review)?.name}</strong></p><p>{itemFor(review)?.part_number} · {itemFor(review)?.part_name}</p>
 
   <div className="production-metrics">{[['pr_machine_quantity',review.machine_quantity],['pr_good',review.good_quantity],['pr_scrap',review.scrap_quantity],['pr_rework',review.rework_quantity],['pr_boxes',review.full_boxes],['pr_packed',review.packed_quantity],['pr_total_hours',review.elapsed_minutes/60],['pr_machine_minutes',review.machine_minutes],['pr_total_downtime',reportMetrics(review).totalDowntime],['pr_people',review.people],['pr_labor_hours',reportMetrics(review).laborHours]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
 
@@ -487,10 +488,11 @@ export default function Production({access}) {
 
   
 
+</>;})()}</section>)}
+
   <div className="catalog-actions">
 
-   {review.status==='draft'&&<BtnPrimary intent="confirm" disabled={busy} onClick={()=>completeReport(review)}>{t('ps_complete_daily')}</BtnPrimary>}
-   {review.status==='submitted'&&supervisor&&<><BtnPrimary intent="confirm" disabled={busy} onClick={()=>setConfirming(true)}>{t('pr_post_inventory')}</BtnPrimary><BtnSecondary intent="neutral" disabled={busy} onClick={()=>action('return',review)}>{t('pr_return_draft')}</BtnSecondary></>}
+   {machineReviewRows(review,data.reports,supply.data.runs).map(product=><div key={product.id}><strong>{partLabel(itemFor(product))}</strong>{product.status==='draft'&&<BtnPrimary intent="confirm" disabled={busy} onClick={()=>completeReport(product)}>{t('ps_complete_daily')}</BtnPrimary>}{product.status==='submitted'&&supervisor&&<><BtnPrimary intent="confirm" disabled={busy} onClick={()=>{setReview(product);setConfirming(true);}}>{t('pr_post_inventory')}</BtnPrimary><BtnSecondary intent="neutral" disabled={busy} onClick={()=>action('return',product)}>{t('pr_return_draft')}</BtnSecondary></>}</div>)}
 
    <BtnSecondary intent="danger" style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} onClick={()=>{setReview(null);setConfirming(false);}}>{t('cancel')}</BtnSecondary>
 
@@ -509,5 +511,3 @@ export default function Production({access}) {
  </>;
 
 }
-
-
