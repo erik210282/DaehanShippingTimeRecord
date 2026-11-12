@@ -1,3 +1,4 @@
+import {localDate} from './live.mjs';
 
 export function partLabel(item){return [item?.part_number,item?.productos?.nombre||item?.part_name||item?.description].filter(Boolean).join(' · ').toUpperCase();}
 export function contributorNames(run,checkpoints=[],people=[]){
@@ -71,4 +72,41 @@ export function reportSession(edit,runs,items,stations,manualLabel){
  const value=run?(run.closed_at?'closed:'+run.id:run.session_id||run.id):edit.shift_session_id||edit.machine_session_id||'';
  if(value&&!options.some(o=>o.value===value))options.push({value,label:[edit.station_code,stations.find(s=>s.code===edit.station_code)?.name,edit.production_date].filter(Boolean).join(' · ')});
  return {value,options};
+}
+
+
+export function plannedStation(snapshot, stationCode, date) {
+ const matches = [];
+ for (const schedule of snapshot.schedules || []) {
+  if (!['scheduled', 'failed'].includes(schedule.status)) continue;
+  for (const station of schedule.payload?.stations || []) {
+   if (station.station_code !== stationCode) continue;
+   const startedAt = new Date(station.started_at || schedule.started_at);
+   if (!Number.isFinite(startedAt.getTime()) || localDate(startedAt) !== date) continue;
+   matches.push({startedAt, shiftHours: String(schedule.payload.shift_hours ?? '')});
+  }
+ }
+ matches.sort((a, b) => a.startedAt - b.startedAt);
+ return matches.findLast(plan => plan.startedAt <= new Date()) || matches[0];
+}
+
+export function workstationOptions(stations, snapshot, date, selected, separatorLabel) {
+ const scheduled = [];
+ const other = [];
+ for (const station of stations) {
+  if (!station.active && station.code !== selected) continue;
+  const option = {value: station.code, label: [station.code, station.name].filter(Boolean).join(' · ')};
+  const running = (snapshot.runs || []).some(run =>
+   run.station_code === station.code && !run.closed_at && !run.deleted_at && Number(run.planned_hours) > 0 && localDate(run.started_at) === date
+  );
+  const group = running || plannedStation(snapshot, station.code, date) ? scheduled : other;
+  group.push(option);
+ }
+ if (!scheduled.length || !other.length) return [...scheduled, ...other];
+ return [...scheduled, {
+  value: '__workstation_schedule_separator__',
+  label: '┄┄┄ ' + separatorLabel + ' ┄┄┄',
+  isDisabled: true,
+  disabled: true,
+ }, ...other];
 }

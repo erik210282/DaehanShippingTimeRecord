@@ -1,4 +1,5 @@
-import {stationProductSummary,machineReviewRows,machinePrintReports} from '../production/machineReports.mjs';
+import {localDate} from '../production/live.mjs';
+import {stationProductSummary,machineReviewRows,machinePrintReports,machineReportGroups} from '../production/machineReports.mjs';
 import {dailyReportClock} from '../production/reportClock.mjs';
 import {registerReportClock} from '../production/reportClockWords';
 import {productionRpc} from '../production/commit';
@@ -22,7 +23,7 @@ import {dailyProducts,selectProducts,switchProduct,openCapture,sharedTimeRows,re
 
 import ProductionSupply,{ProductionSupplyAlerts} from '../production/ProductionSupply';
 import {useSupply} from '../production/useSupply';
-import {shiftCapture,shiftOptions,reportSession} from '../production/supply.mjs';
+import {shiftCapture,shiftOptions,reportSession,workstationOptions} from '../production/supply.mjs';
 import {registerSupply} from '../production/supplyTranslations';
 import ProductionLive from '../production/ProductionLive';
 
@@ -108,7 +109,11 @@ export default function Production({access}) {
 
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
 
- const [filter,setFilter]=useState(''),[stationFilter,setStationFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState('');
+ const [filter,setFilter]=useState(''),[stationFilter,setStationFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),[dateFilters,setDateFilters]=useState({});
+ const defaultsToToday = tab === 'records' ? localDate() : '';
+ const {from=defaultsToToday,to=defaultsToToday}=dateFilters[tab]||{};
+ const setFrom=from=>setDateFilters(previous=>({...previous,[tab]:{...previous[tab],from}}));
+ const setTo=to=>setDateFilters(previous=>({...previous,[tab]:{...previous[tab],to}}));
 
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25),[edit,setEdit]=useState(null),[review,setReview]=useState(null);
 
@@ -168,6 +173,9 @@ export default function Production({access}) {
   return (!stationFilter||r.station_code===stationFilter)&&(!statusFilter||r.status===statusFilter)&&(!from||r.production_date>=from)&&(!to||r.production_date<=to)&&(!filter.trim()||[i?.part_number,i?.part_name,s?.name,r.station_code,r.note].join(' ').toLowerCase().includes(filter.trim().toLowerCase()));
 
  }),[data,stationFilter,statusFilter,from,to,filter]);
+
+ const dailyGroups=machineReportGroups(filtered,supply.data.runs);
+ const dailyPage=Math.min(page,Math.max(1,Math.ceil(dailyGroups.length/pageSize)));
 
  useEffect(()=>setPage(1),[filter,stationFilter,statusFilter,from,to]);
 
@@ -334,7 +342,7 @@ export default function Production({access}) {
  <ProductionSupplyAlerts enabled={manage&&!edit&&!review} items={data.items} rows={supply.rows}/>
  <main className="page-container page-container--fluid production-page production-report-surface">
 
-  <SectionPermission department="production" activity={tab}>{tab==='kpi'?<KpiTracker/>:tab==='rework'?<ProductionRework reporterName={access.name} canReview={access.admin||access.memberships.some(m=>m.department==='quality'&&m.role==='supervisor')}/>:['parameters','parameter-settings'].includes(tab)?<ProductionParameters mode={tab} manage={manage} supervisor={supervisor} reporterName={reporterName(access.userId)} items={data.items} stations={data.stations}/>:['materials','shifts'].includes(tab)?<ProductionSupply onCloseShift={r=>{setFinishRun(r);setTab('partial');}} mode={tab} items={data.items} stations={data.stations} manage={manage}/>:['partial','dashboard','targets'].includes(tab)?<ProductionLive finishRun={finishRun} onFinishHandled={()=>setFinishRun(null)} key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
+  <SectionPermission department="production" activity={tab}>{tab==='kpi'?<KpiTracker/>:tab==='rework'?<ProductionRework reporterName={access.name} canReview={access.admin||access.memberships.some(m=>m.department==='quality'&&m.role==='supervisor')}/>:['parameters','parameter-settings'].includes(tab)?<ProductionParameters stationSchedule={supply.data} mode={tab} manage={manage} supervisor={supervisor} reporterName={reporterName(access.userId)} items={data.items} stations={data.stations}/>:['materials','shifts'].includes(tab)?<ProductionSupply onCloseShift={r=>{setFinishRun(r);setTab('partial');}} mode={tab} items={data.items} stations={data.stations} manage={manage}/>:['partial','dashboard','targets'].includes(tab)?<ProductionLive finishRun={finishRun} onFinishHandled={()=>setFinishRun(null)} key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
 
    <div className="catalog-toolbar"><header className="live-page-header"><div><p className="live-eyebrow">{t('global_production')}</p><h2 className="module-title">{uiTitle(t(tab==='summary'?'pr_summary':'pr_records'))}</h2></div></header>
 
@@ -352,7 +360,7 @@ export default function Production({access}) {
 
    </div><div className="report-actions">
 
-    <BtnSecondary intent="neutral" data-report-action="clear" onClick={()=>{setFilter('');setStationFilter('');setStatusFilter('');setFrom('');setTo('');}}>{t('clear_filters')}</BtnSecondary>
+    <BtnSecondary intent="neutral" data-report-action="clear" onClick={()=>{setFilter('');setStationFilter('');setStatusFilter('');setDateFilters(previous=>({...previous,[tab]:{}}));}}>{t('clear_filters')}</BtnSecondary>
 
     <BtnSecondary intent="neutral" data-report-action="export" onClick={()=>exportCsv(true)}>{t('rt_excel')}</BtnSecondary><BtnPrimary intent="create" disabled={busy||loading} onClick={()=>{setError('');setEdit({...blank(),group_id:crypto.randomUUID()});}}>➕ {t('pr_new_report')}</BtnPrimary>
 
@@ -373,17 +381,22 @@ export default function Production({access}) {
 
    </>:<div className="table-wrap catalog-table-scroll"><table className="table production-daily-table"><thead><tr>{['pr_date','inv_station_code','inv_part','name','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_packing_type','pr_machine_minutes','pr_downtime','pr_people','pr_total_hours','pr_labor_hours','pr_turns','status','actions'].map(k=><th key={k}>{uiTitle(t(k))}</th>)}</tr></thead><tbody>
 
-    {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))-1)*pageSize,Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))*pageSize).map(r=><tr key={r.id}><td>{r.production_date}<small style={{display:'block'}}>{t('rp_time')}: {String(r.end_time||'').slice(0,5)}{r.ends_next_day?' (+1)':''}</small></td><td>{stationLabel(r,data.stations)}</td><td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{packingName(r)||'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td><td><div className="production-row-actions">
-
-     <BtnSecondary intent="neutral" disabled={busy} onClick={()=>{setError('');setConfirming(false);setReview(r);}}>{t('pr_details')}</BtnSecondary>
-
-     {manage&&<BtnEditDark intent="neutral" disabled={busy} onClick={()=>setPrintReport(r)}>{t('dt_print')}</BtnEditDark>}{editable(r)&&<><BtnEditDark intent="neutral" disabled={busy} onClick={()=>completeReport(r)}>{t(r.progress_draft?'ps_complete_daily':'edit')}</BtnEditDark>{(manage||r.created_by===access.userId)&&<BtnDanger intent="danger" disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',r)}>{t('delete')}</BtnDanger>}</>}
-
-    </div></td></tr>)}
+    {dailyGroups.slice((dailyPage-1)*pageSize,dailyPage*pageSize).flatMap(group=>{
+     const anchor=group.reports[0],count=group.reports.length;
+     const cutoffs=[...new Set(group.reports.map(r=>String(r.end_time||'').slice(0,5)+(r.ends_next_day?' (+1)':'')))];
+     return group.reports.map((r,index)=><tr key={r.id}>
+      {index===0&&<><td rowSpan={count}>{anchor.production_date}<small style={{display:'block'}}>{t('rp_time')}: {cutoffs.join(' / ')}</small></td><td className="production-machine-cell" rowSpan={count}>{stationLabel(anchor,data.stations)}</td></>}
+      <td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{packingName(r)||'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td>
+      {index===0&&<td className="production-actions-cell" rowSpan={count}><div className="production-row-actions">
+       <BtnSecondary intent="neutral" disabled={busy} onClick={()=>{setError('');setConfirming(false);setReview(anchor);}}>{t('pr_details')}</BtnSecondary>
+       {manage&&<BtnEditDark intent="neutral" disabled={busy} onClick={()=>setPrintReport(anchor)}>{t('dt_print')}</BtnEditDark>}
+      </div></td>}
+     </tr>);
+    })}
 
     {!filtered.length&&<tr><td colSpan="18">{t('no_results_found')}</td></tr>}
 
-   </tbody></table><TablePagination totalRows={filtered.length} page={Math.min(page,Math.max(1,Math.ceil(filtered.length/pageSize)))} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}}/></div>}
+   </tbody></table><TablePagination totalRows={dailyGroups.length} page={dailyPage} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}}/></div>}
 
   </section>}</SectionPermission></main>
 
@@ -397,7 +410,7 @@ export default function Production({access}) {
   <fieldset disabled={busy} className="production-editor">
   <section className="production-section"><h3>{uiTitle(t('pr_identity_section'))}</h3><div className="production-form-grid">
 
-   <CatalogSelect disabled={!!edit.created_at||!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('inv_station_code'))} value={edit.station_code} onChange={station_code=>setEdit(current=>{if(current.station_code===station_code)return current;const next={...current,station_code,turns:''};return current.created_at?next:selectProducts(next,workstationProductIds(data.stations.find(s=>s.code===station_code),data.items,['FG','SEMI'],dailyProducts(current).map(p=>p.item_id)),()=>crypto.randomUUID());})} options={data.stations.filter(s=>s.active||s.code===edit.station_code).map(s=>({value:s.code,label:s.code+' · '+s.name}))}/>
+   <CatalogSelect disabled={!!edit.created_at||!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('inv_station_code'))} value={edit.station_code} onChange={station_code=>setEdit(current=>{if(current.station_code===station_code)return current;const next={...current,station_code,turns:''};return current.created_at?next:selectProducts(next,workstationProductIds(data.stations.find(s=>s.code===station_code),data.items,['FG','SEMI'],dailyProducts(current).map(p=>p.item_id)),()=>crypto.randomUUID());})} options={workstationOptions(data.stations,supply.data,edit.production_date||localDate(),edit.station_code,t('ps_unscheduled_stations'))}/>
 
    <CatalogSelect multi disabled={!!edit.created_at||!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('inv_part'))} value={dailyProducts(edit).map(r=>r.item_id)} onChange={ids=>setEdit(current=>selectProducts(current,ids,()=>crypto.randomUUID()))} options={data.items.filter(i=>workstationProductIds(data.stations.find(s=>s.code===edit.station_code),data.items).includes(i.id)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
 
@@ -492,7 +505,7 @@ export default function Production({access}) {
 
   <div className="catalog-actions">
 
-   {machineReviewRows(review,data.reports,supply.data.runs).map(product=><div key={product.id}><strong>{partLabel(itemFor(product))}</strong>{product.status==='draft'&&<BtnPrimary intent="confirm" disabled={busy} onClick={()=>completeReport(product)}>{t('ps_complete_daily')}</BtnPrimary>}{product.status==='submitted'&&supervisor&&<><BtnPrimary intent="confirm" disabled={busy} onClick={()=>{setReview(product);setConfirming(true);}}>{t('pr_post_inventory')}</BtnPrimary><BtnSecondary intent="neutral" disabled={busy} onClick={()=>action('return',product)}>{t('pr_return_draft')}</BtnSecondary></>}</div>)}
+   {machineReviewRows(review,data.reports,supply.data.runs).map(product=><div key={product.id}><strong>{partLabel(itemFor(product))}</strong>{editable(product)&&<><BtnPrimary intent="confirm" disabled={busy} onClick={()=>completeReport(product)}>{t(product.progress_draft?'ps_complete_daily':'edit')}</BtnPrimary>{(manage||product.created_by===access.userId)&&<BtnDanger intent="danger" disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',product)}>{t('delete')}</BtnDanger>}</>}{product.status==='submitted'&&supervisor&&<><BtnPrimary intent="confirm" disabled={busy} onClick={()=>{setReview(product);setConfirming(true);}}>{t('pr_post_inventory')}</BtnPrimary><BtnSecondary intent="neutral" disabled={busy} onClick={()=>action('return',product)}>{t('pr_return_draft')}</BtnSecondary></>}</div>)}
 
    <BtnSecondary intent="danger" style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} onClick={()=>{setReview(null);setConfirming(false);}}>{t('cancel')}</BtnSecondary>
 

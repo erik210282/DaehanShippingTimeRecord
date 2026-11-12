@@ -41,7 +41,7 @@ html body #root :is(.catalog-filters,.rc-filters,.inventory-filter-bar)>.catalog
 html body #root :is(.catalog-filters,.rc-filters,.inventory-filter-bar)>input{flex:0 1 200px;width:200px!important;margin:0}
 html body #root :is(.catalog-filters,.rc-filters,.inventory-filter-bar)>input[type=date]{flex-basis:154px;width:154px!important}
 html body.native-shipping.compact-leader #root .records-filter-toolbar .shipping-filters{display:none!important}
-.production-daily-table th:nth-child(2),.production-daily-table td:nth-child(2){min-width:180px;word-break:normal;white-space:normal}
+.production-daily-table th:nth-child(2),.production-daily-table td.production-machine-cell{min-width:180px;word-break:normal;white-space:normal}
 
 html body #root .rc-filters>.rc-field{flex:0 1 180px;width:180px;min-width:140px;margin:0}
 
@@ -51,7 +51,7 @@ html body.native-shipping.compact-leader #root .records-filter-toolbar>.shipping
 
 html body #root .global-settings-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:12px}html body #root .global-settings-toolbar>input{width:220px!important;max-width:100%;flex:0 1 220px;margin:0}
 
-.production-daily-table{min-width:2600px;table-layout:auto}.production-daily-table .production-row-actions{min-width:480px;justify-content:flex-start;flex-wrap:wrap;gap:8px}.production-daily-table .production-row-actions button[data-ui-intent]{white-space:nowrap!important}
+.production-daily-table{min-width:2600px;table-layout:auto}.production-daily-table .production-row-actions{min-width:max-content;justify-content:flex-start;flex-wrap:nowrap;gap:8px}.production-daily-table .production-row-actions button[data-ui-intent]{white-space:nowrap!important}
 
 /* Native selects use the same bounded, wrapping toolbar as every report. */
 html body #root .shipping-filters>select{flex:0 1 220px;width:220px!important;min-width:180px;margin:0!important}
