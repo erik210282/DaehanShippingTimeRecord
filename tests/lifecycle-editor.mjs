@@ -8,6 +8,6 @@ const editor=lifecycleEditor(run,all,()=>String(++n));assert.equal(editor.produc
 const valid={...editor,date:'2026-10-22',time:'09:00'};assert.equal(lifecycleSubmission(valid).payload.products.length,2);
 assert.equal(lifecycleSubmission({...valid,products:valid.products.map(p=>({...p,selected:false}))}).error,'pl_select_finish');
 const subset={...valid,products:valid.products.map((p,i)=>({...p,selected:i===0}))};assert.equal(lifecycleSubmission(subset).payload.products.length,1);
-const active=all.map(r=>({...r,closed_at:null,can_force_finish:true}));const force=lifecycleEditor(active[0],active,()=>String(++n),'force_finish_batch');assert.equal(lifecycleSubmission(force).error,'pl_force_reason_invalid');const result=lifecycleSubmission({...force,reason:'Opened accidentally'});assert.equal(result.action,'force_finish_batch');assert.equal(result.payload.products.length,2);assert.equal(result.payload.products[0].quantity,undefined);
-const finish=liveEditor(active[0],'finish',active,()=>String(++n),true);assert.ok(finish.products.every(p=>p.selected));
+const active=all.map(r=>({...r,closed_at:null,can_force_finish:true}));const force=lifecycleEditor(active[0],active,()=>String(++n),'force_finish_batch');assert.equal(lifecycleSubmission(force).payload.reason,'');const result=lifecycleSubmission({...force,reason:'Opened accidentally'});assert.equal(result.action,'force_finish_batch');assert.equal(result.payload.products.length,2);assert.equal(result.payload.products[0].quantity,undefined);
+const finish=liveEditor(active[0],'finish',active,()=>String(++n),true);assert.deepEqual(finish.products.map(p=>p.selected),[true,false]);
 console.log('PASS required time, default all products, deselection, unchanged force totals and finish defaults');

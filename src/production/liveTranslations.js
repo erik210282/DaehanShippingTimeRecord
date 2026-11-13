@@ -45,15 +45,13 @@ Object.assign(phrases,{
   "사유"
  ],
  "force_hint": [
-  "Utiliza esta acción para corregir una reapertura accidental. Sin piezas nuevas se recupera el cierre anterior; si se capturaron piezas adicionales se cierra con el último total registrado. El motivo queda registrado.",
-  "Use this action to correct an accidental reopening. Without new pieces the previous closure is restored; with additional pieces the latest recorded total is retained. The reason is recorded.",
-  "실수로 재개한 경우 사용하세요. 새 생산량이 없으면 이전 종료 시각을 복원하고, 추가 생산량이 있으면 최신 합계로 종료합니다. 사유가 기록됩니다."
+  "Se usará el último avance registrado, o 0 si no hay avance. Completa o corrige las cantidades en el borrador del Reporte Diario.",
+  "The last recorded count will be used, or 0 if no progress was recorded. Complete or correct the quantities in the Daily Report draft.",
+  "마지막 기록 수량을 사용하며 기록이 없으면 0을 사용합니다. 일일 보고서 초안에서 수량을 입력하거나 수정하세요."
  ],
- "force_reason_invalid": [
-  "Escribe un motivo de entre 5 y 2000 caracteres.",
-  "Enter a reason between 5 and 2000 characters.",
-  "사유를 5~2000자로 입력하세요."
- ],
+ "force_reason_invalid": ["El motivo admite hasta 2000 caracteres.","The reason can be up to 2000 characters.","사유는 최대 2000자까지 입력할 수 있습니다."],
+ "force_empty": ["No hay sesiones abiertas para cerrar.","There are no open sessions to close.","종료할 열린 세션이 없습니다."],
+ "force_saved": ["Sesión cerrada. Completa el borrador en Reporte Diario.","Session closed. Complete the draft in Daily Report.","세션이 종료되었습니다. 일일 보고서의 초안을 완료하세요."],
  "reopen_time_invalid": [
   "Indica una fecha y hora de reapertura válidas, posteriores al cierre y antes de las 24 horas del turno.",
   "Choose a valid reopening date and time after closure and within 24 hours of shift start.",

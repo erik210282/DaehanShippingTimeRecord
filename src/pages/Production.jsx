@@ -1,3 +1,4 @@
+import ProductionForceClose from '../production/ProductionForceClose';
 import {localDate} from '../production/live.mjs';
 import {stationProductSummary,machineReviewRows,machinePrintReports,machineReportGroups} from '../production/machineReports.mjs';
 import {dailyReportClock} from '../production/reportClock.mjs';
@@ -342,6 +343,7 @@ export default function Production({access}) {
  <ProductionSupplyAlerts enabled={manage&&!edit&&!review} items={data.items} rows={supply.rows}/>
  <main className="page-container page-container--fluid production-page production-report-surface">
 
+  {access.memberships.some(m=>m.active!==false&&m.department==='production'&&m.role==='supervisor')&&<ProductionForceClose supply={supply} stations={data.stations} items={data.items} onClosed={refresh}/>}
   <SectionPermission department="production" activity={tab}>{tab==='kpi'?<KpiTracker/>:tab==='rework'?<ProductionRework reporterName={access.name} canReview={access.admin||access.memberships.some(m=>m.department==='quality'&&m.role==='supervisor')}/>:['parameters','parameter-settings'].includes(tab)?<ProductionParameters stationSchedule={supply.data} mode={tab} manage={manage} supervisor={supervisor} reporterName={reporterName(access.userId)} items={data.items} stations={data.stations}/>:['materials','shifts'].includes(tab)?<ProductionSupply onCloseShift={r=>{setFinishRun(r);setTab('partial');}} mode={tab} items={data.items} stations={data.stations} manage={manage}/>:['partial','dashboard','targets'].includes(tab)?<ProductionLive finishRun={finishRun} onFinishHandled={()=>setFinishRun(null)} key={tab} reporterName={reporterName(access.userId)} reporters={data.reporters} items={data.items} stations={data.stations} supervisor={supervisor} mode={tab==='targets'&&!supervisor?'partial':tab}/>:<section className="card">
 
    <div className="catalog-toolbar"><header className="live-page-header"><div><p className="live-eyebrow">{t('global_production')}</p><h2 className="module-title">{uiTitle(t(tab==='summary'?'pr_summary':'pr_records'))}</h2></div></header>
