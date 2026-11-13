@@ -24,6 +24,10 @@ export function automaticPallets(r,bom,profile) {
  const capacity=Number(profile?.boxes_per_pallet);
  return Number.isInteger(capacity)&&capacity>0?Math.ceil(Number(r.full_boxes)/capacity):null;
 }
+export function withoutSemiPacking(report,item) {
+ if(item?.category!=='SEMI')return report;
+ return {...report,report_mode:'production',packaging_type:null,full_boxes:0,pallets:0,pieces_per_box:0,packing_breakdown:[]};
+}
 export function prepareReport(r,bom,profile) {
  if(!Array.isArray(r.downtime_events))return r;
  const m=reportMetrics(r,profile),breaks=r.downtime_events.filter(d=>['break','lunch'].includes(d.type));

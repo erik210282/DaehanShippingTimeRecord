@@ -27,11 +27,11 @@ export function sharedTimeRows(rows){
 }
 const savedSingle=edit=>!edit.products||edit.products.length<=1;
 export function selectLiveProducts(edit,ids,newId){
- const saved=(edit.products||[{item_id:edit.item_id,id:edit.id,run_id:edit.run_id,quantity:edit.quantity}]).map(row=>savedSingle(edit)&&row.item_id===edit.item_id?{...row,quantity:edit.quantity}:row);
+ const saved=(edit.products||[{item_id:edit.item_id,id:edit.id,run_id:edit.run_id,quantity:edit.quantity,started_at:edit.started_at,downtime_events:edit.downtime_events,add_to_run_id:edit.add_to_run_id}]).map(row=>savedSingle(edit)&&row.item_id===edit.item_id?{...row,quantity:edit.quantity}:row);
  const allowed=edit.existing&&edit.action==='checkpoint'?edit.available_products:undefined;
  const products=[...new Set(ids)].filter(item_id=>!allowed||allowed.some(p=>p.item_id===item_id)).map(item_id=>saved.find(r=>r.item_id===item_id)||allowed?.find(r=>r.item_id===item_id)||{item_id,id:newId(),run_id:newId(),quantity:''});
  const current=products.find(row=>row.item_id===edit.item_id)||products[0];
- return {...edit,...current,products,item_id:current?.item_id||'',quantity:current?.quantity??'',downtime_item_ids:edit.downtime_item_ids?.filter(id=>ids.includes(id))};
+ return {...edit,...current,add_to_run_id:current?.add_to_run_id,products,item_id:current?.item_id||'',quantity:current?.quantity??'',downtime_item_ids:edit.downtime_item_ids?.filter(id=>ids.includes(id))};
 }
 
 export function registerMulti(i18n){

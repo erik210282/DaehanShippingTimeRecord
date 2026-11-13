@@ -60,7 +60,7 @@ import {registerProduction,registerCaptureHints} from '../production/translation
 
 import {recipeSelect,normalizeRecipes} from '../production/queries.mjs';
 
-import {reportMetrics,consumptionPreview,isRepack,isTurntable,validateReport,prepareReport,reportDowntimes,automaticPallets,packingProfiles,packingLabel} from '../production/model.mjs';
+import {reportMetrics,consumptionPreview,withoutSemiPacking,isRepack,isTurntable,validateReport,prepareReport,reportDowntimes,automaticPallets,packingProfiles,packingLabel} from '../production/model.mjs';
 
 import {ProductionClockInput,ProductionStaffNames,ProductionDowntimes,ProductionCompleteBoxes} from '../components/ProductionCaptureFields';
 
@@ -191,7 +191,7 @@ export default function Production({access}) {
 
    const schedule=downtimeSchedule(r);if(schedule.error){setError(t(schedule.error));return;}
 
-   r=prepareReport(normalizeCapture(r),bom,profileFor(r,bom));
+   r=prepareReport(withoutSemiPacking(normalizeCapture(r),itemFor(r)),bom,profileFor(r,bom));
 
   }
 
@@ -239,7 +239,7 @@ export default function Production({access}) {
 
     const schedule=downtimeSchedule(row);if(schedule.error)throw Error(schedule.error);
 
-    const r=prepareReport(normalizeCapture(row),bom,profile),problem=validateReport(r,{station:stationFor(r),bom,profile,forSubmit:type==='submit'});
+    const r=prepareReport(withoutSemiPacking(normalizeCapture(row),itemFor(row)),bom,profile),problem=validateReport(r,{station:stationFor(r),bom,profile,forSubmit:type==='submit'});
 
     if(problem){setEdit(switchProduct(edit,row.item_id));throw Error(problem);}
 
@@ -316,7 +316,9 @@ export default function Production({access}) {
 
  const eProfile=edit?profileFor(edit,eBom):null;
 
- const captured=edit?normalizeCapture(edit):null;
+ const semiOutput=edit&&itemFor(edit)?.category==='SEMI';
+ const canPack=edit&&dailyProducts(edit).some(row=>itemFor(row)?.category==='FG');
+ const captured=edit?withoutSemiPacking(normalizeCapture(edit),itemFor(edit)):null;
 
  const metrics=edit?reportMetrics(captured,eProfile):null;
 
@@ -324,7 +326,7 @@ export default function Production({access}) {
 
  const repack=edit&&isRepack(eBom,edit.item_id);
 
- const preview=r=>r.status==='posted'?data.consumptions.filter(c=>c.report_id===r.id):consumptionPreview(normalizeCapture(r),bomFor(r),data.items,profileFor(r));
+ const preview=r=>r.status==='posted'?data.consumptions.filter(c=>c.report_id===r.id):consumptionPreview(withoutSemiPacking(normalizeCapture(r),itemFor(r)),bomFor(r),data.items,profileFor(r));
 
  const stock=(id,area)=>Number(data.balances.find(b=>b.item_id===id&&b.area===area)?.quantity||0);
 
@@ -418,7 +420,7 @@ export default function Production({access}) {
 
  <CatalogSelect label={uiTitle(t('ps_session'))} disabled={!!edit.created_at} value={reportSession(edit,supply.data.runs,data.items,data.stations,t('ps_manual')).value} onChange={session=>setEdit(v=>shiftCapture(v,session,supply.data.runs,()=>crypto.randomUUID(),data.reports))} options={reportSession(edit,supply.data.runs,data.items,data.stations,t('ps_manual')).options}/>
 
-   <CatalogSelect label={uiTitle(t('pr_report_mode'))} value={edit.report_mode} onChange={report_mode=>setEdit(changeDailyShared(edit,{report_mode}))} options={['production','packing'].map(value=>({value,label:t('pr_mode_'+value)}))}/>
+   <CatalogSelect label={uiTitle(t('pr_report_mode'))} value={canPack?edit.report_mode:'production'} onChange={report_mode=>setEdit(changeDailyShared(edit,{report_mode}))} options={(canPack?['production','packing']:['production']).map(value=>({value,label:t('pr_mode_'+value)}))}/>
 
   </div></section>
 
@@ -446,7 +448,7 @@ export default function Production({access}) {
 
   </div></section>
 
-  <section className="production-section"><h3>{uiTitle(t('pr_packing'))}</h3><p className="inv-muted">{t('pr_packing_capture_hint')}</p><div className="production-form-grid production-form-grid-four">
+  {!semiOutput&&<section className="production-section"><h3>{uiTitle(t('pr_packing'))}</h3><p className="inv-muted">{t('pr_packing_capture_hint')}</p><div className="production-form-grid production-form-grid-four">
 
    <ProductionPackingDetails report={edit} profiles={profilesFor(edit,eBom)} onChange={setEdit}/>
   </div>{metrics.packed>metrics.good&&<p role="alert" className="inv-message">{t('pr_quantity_invalid')}</p>}<p className="inv-muted">{t('pr_pallet_auto_hint')}</p>
@@ -461,7 +463,7 @@ export default function Production({access}) {
 
    {edit.report_mode==='packing'&&<p className="inv-muted">{t('pr_packing_only_hint')}</p>}
 
-  </section>
+  </section>}
 
   <section className="production-section production-calculated"><h3>{uiTitle(t('pr_hours'))}</h3><div className="production-metrics">{[['pr_total_hours',metrics.elapsed/60],['pr_total_downtime',metrics.totalDowntime],['pr_machine_minutes',metrics.machine],['pr_labor_hours',metrics.laborHours]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{Number.isFinite(value)?fmt(value):'—'}</strong></div>)}</div></section>
 
@@ -526,3 +528,5 @@ export default function Production({access}) {
  </>;
 
 }
+
+

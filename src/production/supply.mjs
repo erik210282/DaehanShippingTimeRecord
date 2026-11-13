@@ -44,7 +44,6 @@ export function shiftOptions(runs,items,stations=[]){
  const seen=new Set();return runs.filter(r=>{const key=(r.session_id||r.id)+(r.closed_at?'|closed':'|active');if(seen.has(key))return false;seen.add(key);return true;}).map(r=>({value:r.closed_at?'closed:'+r.id:r.session_id||r.id,label:[r.station_code,stations.find(s=>s.code===r.station_code)?.name].filter(Boolean).join(' · ')+' · '+new Date(r.started_at).toLocaleString()+' · '+runs.filter(p=>(p.session_id||p.id)===(r.session_id||r.id)&&(!r.closed_at?!p.closed_at:!!p.closed_at)).map(p=>partLabel(items.find(i=>i.id===p.item_id))).join(' / ')}));
 }
 
-export function loadCounterRuns(data,edit){if(!edit||data.materials?.some(m=>m.station_code===edit.station_code&&m.item_id===edit.item_id))return [];return (data.runs||[]).filter(r=>!r.closed_at&&r.station_code===edit.station_code&&r.raw_recipe?.some(l=>l.item_id===edit.item_id));}
 
 // RAW / SEMI inputs are assigned explicitly per workstation, independently of output BOMs.
 // No assignment means an empty list, never the complete input catalog.
@@ -60,8 +59,8 @@ export function updateLoadEntry(edit,itemId,patch,getEntries){
  const entries=getEntries(edit).map(row=>row.item_id===itemId?{...row,...patch}:row);
  return {...edit,...(edit.item_id===itemId?patch:{}),entries};
 }
-export function materialLoadPayload(data,edit,getEntries){
- return {entries:getEntries(edit).map(row=>({...row,alert_minutes:15,baselines:loadCounterRuns(data,row).map(r=>({run_id:r.id,quantity:row.counters?.[r.id]??''}))}))};
+export function materialLoadPayload(edit,getEntries){
+ return {entries:getEntries(edit).map(({id,station_code,item_id,quantity})=>({id,station_code,item_id,quantity}))};
 }
 
 

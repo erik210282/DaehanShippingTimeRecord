@@ -59,6 +59,11 @@ const words={
   "Process Available Parts Only",
   "준비된 제품만 처리"
  ],
+ "pp_print_facilitator": ["Facilitador", "Facilitator", "진행 담당자"],
+ "pp_print_supervisor": ["Supervisor", "Supervisor", "감독자"],
+ "pp_print_shift": ["Turno", "Shift", "근무조"],
+ "dt_day_shift": ["Turno de día", "Day shift", "주간조"],
+ "dt_night_shift": ["Turno de noche", "Night shift", "야간조"],
  "dx_grouped": [
   "Los reportes con el mismo horario, personal y downtime se imprimen juntos. Los datos diferentes generan hojas separadas.",
   "Reports with matching shift times, staff and downtime print together. Different data generates separate sheets.",
