@@ -1,4 +1,7 @@
 const words={
+ "dx_carryover": ["Piezas sin empacar de turnos anteriores", "Unpacked pieces from previous shifts", "이전 교대 미포장 수량"],
+ "dx_carryover_used": ["Remanente usado en cajas", "Carryover used in boxes", "박스에 사용한 이월 수량"],
+ "dx_carryover_changed": ["El saldo de piezas sin empacar cambió o es insuficiente. Devuelve el reporte a borrador y ajusta el remanente antes de confirmarlo.", "The unpacked balance changed or is insufficient. Return the report to draft and adjust the carryover before confirming it.", "미포장 잔량이 변경되었거나 부족합니다. 보고서를 초안으로 돌린 후 이월 수량을 조정하세요."],
  "dx_time_hint": [
   "Captura la hora como 1000 (10:00), en formato de 24 hrs.",
   "Enter time as 1000 (10:00), using the 24-hour format.",

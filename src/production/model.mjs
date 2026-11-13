@@ -28,6 +28,13 @@ export function withoutSemiPacking(report,item) {
  if(item?.category!=='SEMI')return report;
  return {...report,report_mode:'production',packaging_type:null,full_boxes:0,pallets:0,pieces_per_box:0,packing_breakdown:[]};
 }
+export function dailyCarryover(report,item,bom,reports) {
+ if(item?.category!=='FG'||report.report_mode!=='production'||isRepack(bom,item.id))return null;
+ return report.carryover_quantity??Math.max(0,reports.reduce((total,row)=>{
+  if(row.status!=='posted'||row.id===report.id||row.item_id!==item.id||row.station_code!==report.station_code||row.production_date>report.production_date)return total;
+  return total+(row.report_mode==='packing'?0:Number(row.good_quantity||0))-Number(row.packed_quantity||0);
+ },0));
+}
 export function prepareReport(r,bom,profile) {
  if(!Array.isArray(r.downtime_events))return r;
  const m=reportMetrics(r,profile),breaks=r.downtime_events.filter(d=>['break','lunch'].includes(d.type));
@@ -39,12 +46,13 @@ export function reportMetrics(r,profile) {
  const elapsed=clock(r.end_time)-clock(r.start_time)+(r.ends_next_day?1440:0);
  const good=Number(r.machine_quantity||0)-Number(r.scrap_quantity||0)+(r.rework_completed===true?1:-1)*Number(r.rework_quantity||0);
  const packed=r.packing_breakdown?.length?packingTotals(r).pieces:Number(r.full_boxes||0)*Number(profile?.pieces_per_box??r.pieces_per_box??0);
+ const carryover=Number(r.carryover_quantity||0),carryoverUsed=Math.min(carryover,packed);
  const automatic=Array.isArray(r.downtime_events);
  const totalDowntime=automatic?r.downtime_events.reduce((sum,d)=>sum+Number(d.minutes),0):Number(r.downtime_minutes||0)+Number(r.break_minutes||0);
  const breaks=automatic?r.downtime_events.filter(d=>['break','lunch'].includes(d.type)).reduce((sum,d)=>sum+Number(d.minutes),0):Number(r.break_minutes||0);
  const inactive=automatic?r.downtime_events.filter(d=>d.type==='inactive').reduce((sum,d)=>sum+Number(d.minutes),0):0;
  const extra=extraWork(r),worked=elapsed-breaks-inactive+extra.minutes,machine=automatic?elapsed-totalDowntime+extra.minutes:Number(r.machine_minutes||0);
- return {elapsed:elapsed-inactive,wallElapsed:elapsed,inactive,good,packed,wip:Math.max(0,good-packed),worked,machine,totalDowntime:totalDowntime-inactive-extra.minutes,breaks:breaks-extra.minutes,extraMinutes:extra.minutes,laborHours:(worked-extra.minutes)*Number(r.people||0)/60+extra.labor,idle:automatic?0:worked-(totalDowntime-breaks)-machine};
+ return {elapsed:elapsed-inactive,wallElapsed:elapsed,inactive,good,packed,carryoverUsed,wip:Math.max(0,good+carryover-packed),worked,machine,totalDowntime:totalDowntime-inactive-extra.minutes,breaks:breaks-extra.minutes,extraMinutes:extra.minutes,laborHours:(worked-extra.minutes)*Number(r.people||0)/60+extra.labor,idle:automatic?0:worked-(totalDowntime-breaks)-machine};
 }
 export function validateReport(r,{station,bom,profile,forSubmit=true}={}) {
  if(Array.isArray(r.downtime_events)){
@@ -53,6 +61,8 @@ export function validateReport(r,{station,bom,profile,forSubmit=true}={}) {
   if(r.pallets===null)return 'pr_pallet_capacity';
  }
  const m=reportMetrics(r,profile);
+ const carryover=Number(r.carryover_quantity||0);
+ if(!Number.isSafeInteger(carryover)||carryover<0||carryover>2147483647)return 'pr_quantity_invalid';
  const extraError=validateExtra(r);if(extraError)return extraError;
  if(r.packing_breakdown?.length){const rows=r.packing_breakdown,available=bom?.inventory_bom_packaging||[];if(rows.length>10||new Set(rows.map(p=>p.packaging_type)).size!==rows.length||rows.some(p=>Number(p.full_boxes)>0&&!available.some(x=>x.packaging_type===p.packaging_type)||p.full_boxes===''||!Number.isInteger(Number(p.full_boxes))||Number(p.full_boxes)<0))return 'dx_packing_invalid';}
  if(!station?.active)return 'pr_station_required';
@@ -62,7 +72,7 @@ export function validateReport(r,{station,bom,profile,forSubmit=true}={}) {
  if(!Number.isFinite(m.elapsed)||m.elapsed<=0||m.elapsed>1440||Number(r.people)<1||m.idle<0||
    (Number(r.break_count)===0)!==(Number(r.break_minutes)===0)||
    (Number(r.downtime_minutes)>0&&!r.downtime_reason?.trim()))return 'pr_time_invalid';
- if(['break_count','people','machine_quantity','scrap_quantity','rework_quantity','full_boxes','pallets'].some(key=>!Number.isInteger(Number(r[key])))||Number(r.scrap_quantity)>Number(r.machine_quantity)||m.good<0||m.packed>m.good)return 'pr_quantity_invalid';
+ if(['break_count','people','machine_quantity','scrap_quantity','rework_quantity','full_boxes','pallets'].some(key=>!Number.isInteger(Number(r[key])))||Number(r.scrap_quantity)>Number(r.machine_quantity)||m.good<0||m.packed>m.good+carryover)return 'pr_quantity_invalid';
  if(isTurntable(station)&&(r.turns===''||r.turns==null||!Number.isInteger(Number(r.turns))||Number(r.turns)<0))return 'pr_turns_required';
  if(Number(r.full_boxes)>0&&!profile&&!r.packing_breakdown?.length)return 'pr_pack_missing';
  if(Number(r.full_boxes)===0&&Number(r.pallets)!==0)return 'pr_quantity_invalid';
@@ -83,6 +93,7 @@ export function consumptionPreview(r,bom,items,profile) {
  else for(const l of bom?.inventory_bom_lines||[]){
   const item=items.find(i=>i.id===l.ingredient_id);add(l.ingredient_id,item?.category==='SEMI'?'WIP':item?.category,'manufacturing',total*Number(l.quantity_per_unit)*(1+Number(l.waste_rate)));
  }
+ if(r.report_mode==='production')add(r.item_id,'WIP','wip',metrics.carryoverUsed);
  if(metrics.packed>0)for(const pack of packingRows(r,bom?.inventory_bom_packaging||[]))for(const l of bom?.inventory_bom_packaging_lines||[]){
   if(l.packaging_type!==pack.packaging_type)continue;
   const base=l.basis==='piece'?Number(pack.full_boxes)*Number(pack.pieces_per_box):l.basis==='box'?Number(pack.full_boxes):Number(pack.pallets);

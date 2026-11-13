@@ -60,7 +60,7 @@ import {registerProduction,registerCaptureHints} from '../production/translation
 
 import {recipeSelect,normalizeRecipes} from '../production/queries.mjs';
 
-import {reportMetrics,consumptionPreview,withoutSemiPacking,isRepack,isTurntable,validateReport,prepareReport,reportDowntimes,automaticPallets,packingProfiles,packingLabel} from '../production/model.mjs';
+import {reportMetrics,consumptionPreview,dailyCarryover,withoutSemiPacking,isRepack,isTurntable,validateReport,prepareReport,reportDowntimes,automaticPallets,packingProfiles,packingLabel} from '../production/model.mjs';
 
 import {ProductionClockInput,ProductionStaffNames,ProductionDowntimes,ProductionCompleteBoxes} from '../components/ProductionCaptureFields';
 
@@ -155,6 +155,7 @@ export default function Production({access}) {
 
  const reporterName=uid=>data.reporters.find(person=>person.uid===uid)?.nombre||'—';
  const itemFor=r=>data.items.find(i=>i.id===r.item_id),stationFor=r=>data.stations.find(s=>s.code===r.station_code);
+ const captureWithCarryover=(r,bom)=>withoutSemiPacking({...normalizeCapture(r),carryover_quantity:dailyCarryover(r,itemFor(r),bom,data.reports)},itemFor(r));
 
  const bomFor=r=>data.boms.find(b=>b.id===r.bom_id)||data.boms.find(b=>b.finished_item_id===r.item_id&&b.active);
 
@@ -191,7 +192,7 @@ export default function Production({access}) {
 
    const schedule=downtimeSchedule(r);if(schedule.error){setError(t(schedule.error));return;}
 
-   r=prepareReport(withoutSemiPacking(normalizeCapture(r),itemFor(r)),bom,profileFor(r,bom));
+   r=prepareReport(captureWithCarryover(r,bom),bom,profileFor(r,bom));
 
   }
 
@@ -214,6 +215,7 @@ export default function Production({access}) {
     payload.turns=payload.turns===''||payload.turns==null?null:Number(payload.turns);
 
     payload.packaging_type=payload.packaging_type||null;
+    if(payload.carryover_quantity!=null)payload.carryover_quantity=Number(payload.carryover_quantity);
 
    }
 
@@ -239,7 +241,7 @@ export default function Production({access}) {
 
     const schedule=downtimeSchedule(row);if(schedule.error)throw Error(schedule.error);
 
-    const r=prepareReport(withoutSemiPacking(normalizeCapture(row),itemFor(row)),bom,profile),problem=validateReport(r,{station:stationFor(r),bom,profile,forSubmit:type==='submit'});
+    const r=prepareReport(captureWithCarryover(row,bom),bom,profile),problem=validateReport(r,{station:stationFor(r),bom,profile,forSubmit:type==='submit'});
 
     if(problem){setEdit(switchProduct(edit,row.item_id));throw Error(problem);}
 
@@ -248,6 +250,7 @@ export default function Production({access}) {
     for(const k of ['machine_minutes','downtime_minutes','break_count','break_minutes','people','machine_quantity','scrap_quantity','rework_quantity','full_boxes','pallets'])payload[k]=Number(payload[k]);
 
     payload.turns=payload.turns===''||payload.turns==null?null:Number(payload.turns);payload.packaging_type=payload.packaging_type||null;
+    if(payload.carryover_quantity!=null)payload.carryover_quantity=Number(payload.carryover_quantity);
 
     products.push(payload);
 
@@ -318,7 +321,7 @@ export default function Production({access}) {
 
  const semiOutput=edit&&itemFor(edit)?.category==='SEMI';
  const canPack=edit&&dailyProducts(edit).some(row=>itemFor(row)?.category==='FG');
- const captured=edit?withoutSemiPacking(normalizeCapture(edit),itemFor(edit)):null;
+ const captured=edit?captureWithCarryover(edit,eBom):null;
 
  const metrics=edit?reportMetrics(captured,eProfile):null;
 
@@ -414,7 +417,7 @@ export default function Production({access}) {
   <fieldset disabled={busy} className="production-editor">
   <section className="production-section"><h3>{uiTitle(t('pr_identity_section'))}</h3><div className="production-form-grid">
 
-   <CatalogSelect disabled={!!edit.created_at||!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('inv_station_code'))} value={edit.station_code} onChange={station_code=>setEdit(current=>{if(current.station_code===station_code)return current;const next={...current,station_code,turns:''};return current.created_at?next:selectProducts(next,workstationProductIds(data.stations.find(s=>s.code===station_code),data.items,['FG','SEMI'],dailyProducts(current).map(p=>p.item_id)),()=>crypto.randomUUID());})} options={workstationOptions(data.stations,supply.data,edit.production_date||localDate(),edit.station_code,t('ps_unscheduled_stations'))}/>
+   <CatalogSelect disabled={!!edit.created_at||!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('inv_station_code'))} value={edit.station_code} onChange={station_code=>setEdit(current=>{if(current.station_code===station_code)return current;const next={...current,station_code,turns:'',carryover_quantity:null,products:current.products?.map(row=>({...row,carryover_quantity:null}))};return current.created_at?next:selectProducts(next,workstationProductIds(data.stations.find(s=>s.code===station_code),data.items,['FG','SEMI'],dailyProducts(current).map(p=>p.item_id)),()=>crypto.randomUUID());})} options={workstationOptions(data.stations,supply.data,edit.production_date||localDate(),edit.station_code,t('ps_unscheduled_stations'))}/>
 
    <CatalogSelect multi disabled={!!edit.created_at||!!edit.shift_session_id||!!edit.live_run_id} label={uiTitle(t('inv_part'))} value={dailyProducts(edit).map(r=>r.item_id)} onChange={ids=>setEdit(current=>selectProducts(current,ids,()=>crypto.randomUUID()))} options={data.items.filter(i=>workstationProductIds(data.stations.find(s=>s.code===edit.station_code),data.items).includes(i.id)).map(i=>({value:i.id,label:i.part_number+' · '+i.part_name}))}/>
 
@@ -444,14 +447,14 @@ export default function Production({access}) {
 
   <section className="production-section"><p className="inv-muted">{t('pm_shared_hint')}</p><div className="production-row-actions">{dailyProducts(edit).map(r=><BtnEditDark preserveLabel intent={edit.item_id===r.item_id?"confirm":"neutral"} key={r.item_id} type="button" aria-pressed={edit.item_id===r.item_id} style={edit.item_id===r.item_id?{background:'#28a745',color:'#fff'}:undefined} onClick={()=>setEdit(switchProduct(edit,r.item_id))}>{partLabel(itemFor(r))}</BtnEditDark>)}</div><h3>{partLabel(itemFor(edit))} · {uiTitle(t('pr_quantities'))}</h3><p className="inv-muted">{t('pr_quantity_hint')}</p><div className="production-form-grid production-form-grid-four">
 
-   {numeric('machine_quantity','pr_machine_quantity')}{numeric('scrap_quantity','pr_scrap')}{numeric('rework_quantity','pr_rework')}<CatalogInput label={uiTitle(t('pr_good'))} readOnly value={fmt(metrics.good)}/>
+   {numeric('machine_quantity','pr_machine_quantity')}{numeric('scrap_quantity','pr_scrap')}{numeric('rework_quantity','pr_rework')}{captured.carryover_quantity!=null&&<CatalogInput label={uiTitle(t('dx_carryover'))} type="number" min="0" max="2147483647" step="1" value={captured.carryover_quantity} onChange={ev=>setEdit({...edit,carryover_quantity:ev.target.value})}/>}<CatalogInput label={uiTitle(t('pr_good'))} readOnly value={fmt(metrics.good)}/>
 
   </div></section>
 
   {!semiOutput&&<section className="production-section"><h3>{uiTitle(t('pr_packing'))}</h3><p className="inv-muted">{t('pr_packing_capture_hint')}</p><div className="production-form-grid production-form-grid-four">
 
    <ProductionPackingDetails report={edit} profiles={profilesFor(edit,eBom)} onChange={setEdit}/>
-  </div>{metrics.packed>metrics.good&&<p role="alert" className="inv-message">{t('pr_quantity_invalid')}</p>}<p className="inv-muted">{t('pr_pallet_auto_hint')}</p>
+  </div>{metrics.packed>metrics.good+Number(captured.carryover_quantity||0)&&<p role="alert" className="inv-message">{t('pr_quantity_invalid')}</p>}<p className="inv-muted">{t('pr_pallet_auto_hint')}</p>{metrics.carryoverUsed>0&&<p>{t('dx_carryover_used')} · {fmt(metrics.carryoverUsed)}</p>}
 
    {!eBom&&edit.item_id&&<p className="inv-message">{t('pr_recipe_missing')}</p>}
 
@@ -493,7 +496,7 @@ export default function Production({access}) {
 
   {machineReviewRows(review,data.reports,supply.data.runs).map(product=><section className="production-section" key={product.id}>{(()=>{const review=product;return <>  <p><strong>{review.station_code} · {stationFor(review)?.name}</strong></p><p>{itemFor(review)?.part_number} · {itemFor(review)?.part_name}</p>
 
-  <div className="production-metrics">{[['pr_machine_quantity',review.machine_quantity],['pr_good',review.good_quantity],['pr_scrap',review.scrap_quantity],['pr_rework',review.rework_quantity],['pr_boxes',review.full_boxes],['pr_packed',review.packed_quantity],['pr_total_hours',review.elapsed_minutes/60],['pr_machine_minutes',review.machine_minutes],['pr_total_downtime',reportMetrics(review).totalDowntime],['pr_people',review.people],['pr_labor_hours',reportMetrics(review).laborHours]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
+  <div className="production-metrics">{[['pr_machine_quantity',review.machine_quantity],['pr_good',review.good_quantity],['pr_scrap',review.scrap_quantity],['pr_rework',review.rework_quantity],['pr_boxes',review.full_boxes],['pr_packed',review.packed_quantity],...(review.carryover_quantity==null?[]:[['dx_carryover_used',Math.min(review.carryover_quantity,review.packed_quantity)]]),['pr_total_hours',review.elapsed_minutes/60],['pr_machine_minutes',review.machine_minutes],['pr_total_downtime',reportMetrics(review).totalDowntime],['pr_people',review.people],['pr_labor_hours',reportMetrics(review).laborHours]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
 
   <p>{t('pr_reporter')}: {reporterName(review.created_by)}</p><p>{t('pr_start')}: {review.start_time} · {t('pr_end')}: {review.end_time}{review.ends_next_day?' (+1)':''}</p>
 
