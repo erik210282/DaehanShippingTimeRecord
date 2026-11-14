@@ -1,30 +1,35 @@
 import React, {useRef, useState} from 'react';
 import Modal from 'react-modal';
 import {useTranslation} from 'react-i18next';
-import {CatalogSelect} from '../components/SharedCatalogFields';
 import {BtnDanger, BtnSecondary} from '../components/controls';
 import {sessionGroups} from './machineCards.mjs';
-import {lifecycleEditor, lifecycleSubmission} from './lifecycleEditor.mjs';
+import {lifecycleSubmission} from './lifecycleEditor.mjs';
 import {partLabel} from './supply.mjs';
 import {productionRpc} from './commit';
 
 export default function ProductionForceClose({supply, stations, items, onClosed}) {
  const {t}=useTranslation();
- const [visible,setVisible]=useState(false),[draft,setDraft]=useState(null);
+ const [visible,setVisible]=useState(false),[selection,setSelection]=useState({id:null,ids:[]});
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState(false);
  const lock=useRef(false);
  const runs=supply.data.runs.filter(run=>run.can_force_finish);
  const sessions=sessionGroups(runs);
- const options=sessions.map(({key,runs:[run]})=>({value:key,label:[run.station_code,stations.find(s=>s.code===run.station_code)?.name,new Date(run.started_at).toLocaleString()].filter(Boolean).join(' · ')}));
- function selectSession(key){
-  const session=sessions.find(row=>row.key===key);
-  setDraft(session?{...lifecycleEditor(session.runs[0],runs,()=>crypto.randomUUID(),'force_finish_batch'),key}:null);
+ const selected=new Set(selection.ids);
+ const products=runs.filter(run=>selected.has(run.id)).map(run=>({run_id:run.id,selected:true}));
+ const allSelected=runs.length>0&&products.length===runs.length;
+ function toggleRuns(rows,checked){
+  const ids=new Set(selection.ids);
+  for(const run of rows){
+   if(checked)ids.add(run.id);
+   else ids.delete(run.id);
+  }
+  setSelection({id:crypto.randomUUID(),ids:[...ids]});
   setError('');
  }
  async function finish(event){
   event.preventDefault();
-  if(lock.current||!draft)return;
-  const result=lifecycleSubmission(draft);
+  if(lock.current||!products.length)return;
+  const result=lifecycleSubmission({id:selection.id,action:'force_finish_batch',products});
   if(result.error){setError(result.error);return;}
   lock.current=true;
   setBusy(true);
@@ -38,19 +43,29 @@ export default function ProductionForceClose({supply, stations, items, onClosed}
   }catch(failure){setError(failure.message);}finally{lock.current=false;setBusy(false);}
  }
  return <div className="report-actions" style={{marginBottom:12}}>
-  <BtnDanger intent="danger" disabled={!supply.ready||busy} onClick={()=>{setDraft(null);setError('');setSaved(false);setVisible(true);}}>{t('pl_force_finish')}</BtnDanger>
+  <BtnDanger intent="danger" disabled={!supply.ready||busy} onClick={()=>{setSelection({id:null,ids:[]});setError('');setSaved(false);setVisible(true);}}>{t('pl_force_finish')}</BtnDanger>
   {saved&&<span role="status">{t('pl_force_saved')}</span>}
   <Modal isOpen={visible} contentLabel={t('pl_force_finish')} onRequestClose={()=>!busy&&setVisible(false)} style={{overlay:{position:'fixed',inset:0,zIndex:11000,backgroundColor:'#0f172a99',display:'flex',alignItems:'center',justifyContent:'center'},content:{position:'relative',inset:'auto',width:'min(560px,92vw)',maxHeight:'90vh'}}}>
    <form onSubmit={finish}>
     <h2>{t('pl_force_finish')}</h2><p>{t('pl_force_hint')}</p>
-    {options.length?<CatalogSelect label={t('pr_station')} value={draft?.key||''} options={options} onChange={selectSession} disabled={busy}/>:<p>{t('pl_force_empty')}</p>}
-    {draft?.products.map(product=><label key={product.run_id} className="catalog-checkbox" style={{display:'flex',marginBlock:8}}>
-     <input type="checkbox" disabled={busy} checked={product.selected} onChange={event=>{const selected=event.target.checked;setDraft(current=>({...current,products:current.products.map(row=>row.run_id===product.run_id?{...row,selected}:row)}));}}/>
-     {partLabel(items.find(item=>item.id===product.item_id))||product.item_id} · {product.quantity??0}
-    </label>)}
+    {runs.length>0?<BtnSecondary type="button" intent="neutral" disabled={busy} onClick={()=>toggleRuns(runs,!allSelected)}>{t(allSelected?'pl_force_clear_all':'pl_force_select_all')}</BtnSecondary>:<p>{t('pl_force_empty')}</p>}
+    {sessions.map(({key,runs:rows})=>{
+     const first=rows[0],label=[first.station_code,stations.find(s=>s.code===first.station_code)?.name,new Date(first.started_at).toLocaleString()].filter(Boolean).join(' · ');
+     const checked=rows.every(run=>selected.has(run.id)),partial=!checked&&rows.some(run=>selected.has(run.id));
+     return <fieldset key={key} style={{marginBlock:12}}>
+      <legend><label className="catalog-checkbox">
+       <input type="checkbox" disabled={busy} checked={checked} ref={input=>{if(input)input.indeterminate=partial;}} onChange={()=>toggleRuns(rows,!checked)}/>
+       {label}
+      </label></legend>
+      {rows.map(run=><label key={run.id} className="catalog-checkbox" style={{display:'flex',marginBlock:6}}>
+       <input type="checkbox" disabled={busy} checked={selected.has(run.id)} onChange={event=>toggleRuns([run],event.target.checked)}/>
+       {partLabel(items.find(item=>item.id===run.item_id))||run.item_id} · {run.latest_quantity??0}
+      </label>)}
+     </fieldset>;
+    })}
     {error&&<p role="alert">{t(error,{defaultValue:t('pr_save_error')})}</p>}
     <div className="live-row-actions" style={{marginTop:16}}>
-     <BtnDanger intent="danger" type="submit" disabled={busy||!draft?.products.some(product=>product.selected)}>{t('pl_force_finish')}</BtnDanger>
+     <BtnDanger intent="danger" type="submit" disabled={busy||!products.length}>{products.length?t('pl_force_finish_selected',{count:products.length}):t('pl_force_finish')}</BtnDanger>
      <BtnSecondary intent="neutral" type="button" disabled={busy} onClick={()=>setVisible(false)}>{t('cancel')}</BtnSecondary>
     </div>
    </form>

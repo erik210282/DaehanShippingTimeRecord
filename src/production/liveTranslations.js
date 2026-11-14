@@ -50,6 +50,9 @@ Object.assign(phrases,{
   "마지막 기록 수량을 사용하며 기록이 없으면 0을 사용합니다. 일일 보고서 초안에서 수량을 입력하거나 수정하세요."
  ],
  "force_reason_invalid": ["El motivo admite hasta 2000 caracteres.","The reason can be up to 2000 characters.","사유는 최대 2000자까지 입력할 수 있습니다."],
+ "force_select_all": ["Seleccionar todas las estaciones", "Select all workstations", "모든 작업장 선택"],
+ "force_clear_all": ["Quitar todas las selecciones", "Clear all selections", "모든 선택 해제"],
+ "force_finish_selected": ["Cerrar selección ({{count}})", "Close selection ({{count}})", "선택 종료 ({{count}})"],
  "force_empty": ["No hay sesiones abiertas para cerrar.","There are no open sessions to close.","종료할 열린 세션이 없습니다."],
  "force_saved": ["Sesión cerrada. Completa el borrador en Reporte Diario.","Session closed. Complete the draft in Daily Report.","세션이 종료되었습니다. 일일 보고서의 초안을 완료하세요."],
  "reopen_time_invalid": [
@@ -86,3 +89,4 @@ Object.assign(phrases,{
 Object.assign(phrases,{before_start:['Antes del inicio actualizado','Before updated start','변경된 시작 전'],history_start:['Inicio de producción','Production start','생산 시작'],history_capture:['Capturado el','Captured at','기록 시간']});
 Object.assign(phrases,{edit_time_hint:['Puedes corregir la cantidad y la hora a la que corresponde la producción. Se conserva la hora original de captura.','Correct the quantity and the production report time. The original save time is retained.','수량과 생산 기준 시간을 수정할 수 있습니다. 최초 저장 시간은 보관됩니다.']});
 export function registerLive(i18n){['es','en','ko'].forEach((lang,index)=>i18n.addResourceBundle(lang,'translation',Object.fromEntries(Object.entries(phrases).map(([key,values])=>['pl_'+key,values[index]])),true,true));registerDowntime(i18n);}
+
