@@ -1,4 +1,5 @@
 const phrases={
+ "machine_type_filter": ["Tipo de máquina","Machine type","기계 유형"],
  "packing_recipe": [
   "Materiales de empaque por producto",
   "Packing materials by product",

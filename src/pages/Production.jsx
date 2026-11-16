@@ -12,7 +12,7 @@ import {stationLabel,packingRows} from '../production/dailyDetails.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import '../production/reportLayout.css';
 import {exportWorkbook,registerReportTools} from '../production/reportTools.mjs';
-import {workstationProductIds} from '../production/workstationDefaults.mjs';
+import {stationTypeOptions,workstationProductIds} from '../production/workstationDefaults.mjs';
 import DailyPrintDialog from '../production/DailyPrintDialog';
 import {codeLabel} from '../production/downtimeCodes.mjs';
 import {affectedIds,selectedDowntime,applySelectedDowntime} from '../production/downtimeSelection.mjs';
@@ -110,7 +110,7 @@ export default function Production({access}) {
 
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
 
- const [filter,setFilter]=useState(''),[stationFilter,setStationFilter]=useState(''),[statusFilter,setStatusFilter]=useState(''),[dateFilters,setDateFilters]=useState({});
+ const [filter,setFilter]=useState(''),[stationFilter,setStationFilter]=useState(''),[machineType,setMachineType]=useState(''),[statusFilter,setStatusFilter]=useState(''),[dateFilters,setDateFilters]=useState({});
  const defaultsToToday = tab === 'records' ? localDate() : '';
  const {from=defaultsToToday,to=defaultsToToday}=dateFilters[tab]||{};
  const setFrom=from=>setDateFilters(previous=>({...previous,[tab]:{...previous[tab],from}}));
@@ -172,14 +172,14 @@ export default function Production({access}) {
 
   const i=data.items.find(i=>i.id===r.item_id),s=data.stations.find(s=>s.code===r.station_code);
 
-  return (!stationFilter||r.station_code===stationFilter)&&(!statusFilter||r.status===statusFilter)&&(!from||r.production_date>=from)&&(!to||r.production_date<=to)&&(!filter.trim()||[i?.part_number,i?.part_name,s?.name,r.station_code,r.note].join(' ').toLowerCase().includes(filter.trim().toLowerCase()));
+  return (tab!=='summary'||!machineType||s?.machine_type===machineType)&&(!stationFilter||r.station_code===stationFilter)&&(!statusFilter||r.status===statusFilter)&&(!from||r.production_date>=from)&&(!to||r.production_date<=to)&&(!filter.trim()||[i?.part_number,i?.part_name,s?.name,r.station_code,r.note].join(' ').toLowerCase().includes(filter.trim().toLowerCase()));
 
- }),[data,stationFilter,statusFilter,from,to,filter]);
+ }),[data,stationFilter,machineType,statusFilter,from,to,filter]);
 
  const dailyGroups=machineReportGroups(filtered,supply.data.runs);
  const dailyPage=Math.min(page,Math.max(1,Math.ceil(dailyGroups.length/pageSize)));
 
- useEffect(()=>setPage(1),[filter,stationFilter,statusFilter,from,to]);
+ useEffect(()=>setPage(1),[filter,stationFilter,machineType,statusFilter,from,to]);
 
  async function action(type,r) {
   if(['save','submit'].includes(type)&&dailyProducts(r).some(p=>!workstationProductIds(data.stations.find(s=>s.code===r.station_code),data.items).includes(p.item_id)&&!data.reports.some(old=>old.id===p.id&&old.station_code===r.station_code&&old.item_id===p.item_id))){setError(t('pr_output_required'));return;}
@@ -294,7 +294,7 @@ export default function Production({access}) {
 
    [t('pr_date')]:r.production_date,[t('inv_station_code')]:r.station_code,[t('name')]:stationFor(r)?.name,
 
-   [t('inv_part')]:partLabel(itemFor(r)),[t('description')]:itemFor(r)?.description,
+   [t('inv_part')]:partLabel(itemFor(r)),[t('pr_reporter')]:reporterName(r.created_by),[t('description')]:itemFor(r)?.description,
 
    [t('pr_start')]:r.start_time,[t('rp_time')]:r.end_time,[t('rp_saved')]:r.created_at,[t('pr_next_day')]:t(r.ends_next_day?'yes':'no'),
 
@@ -306,7 +306,7 @@ export default function Production({access}) {
 
    [t('pr_packing_type')]:packingName(r),[t('pr_boxes')]:r.full_boxes,[t('pr_pallets')]:r.pallets,[t('pr_packed')]:r.packed_quantity,
 
-   [t('pr_turns')]:r.turns??'',[t('status')]:t('pr_'+r.status),[t('inv_notes')]:r.note,[t('pr_reporter')]:reporterName(r.created_by),[t('pr_staff_names')]:r.staff_names||'','Extra Work':(r.break_work||[]).map(w=>w.minutes+' min × '+w.people+' '+t('pr_people')).join(' / ')
+   [t('pr_turns')]:r.turns??'',[t('status')]:t('pr_'+r.status),[t('inv_notes')]:r.note,[t('pr_staff_names')]:r.staff_names||'','Extra Work':(r.break_work||[]).map(w=>w.minutes+' min × '+w.people+' '+t('pr_people')).join(' / ')
 
   }));const table=userCsvTable(records,[t('pr_date')]);const csv=Papa.unparse(table,{escapeFormulae:true});
 
@@ -361,13 +361,14 @@ export default function Production({access}) {
 
     <CatalogSelect label={uiTitle(t('inv_station_code'))} value={stationFilter} onChange={setStationFilter} options={[{value:'',label:t('rc_all')},...data.stations.map(s=>({value:s.code,label:s.code+' · '+s.name}))]}/>
 
+    {tab==='summary'&&<CatalogSelect label={uiTitle(t('pr_machine_type_filter'))} value={machineType} onChange={setMachineType} options={stationTypeOptions(data.stations,t('pl_all'))}/>}
     <CatalogSelect label={uiTitle(t('status'))} value={statusFilter} onChange={setStatusFilter} options={[{value:'',label:t('rc_all')},...['draft','submitted','posted'].map(value=>({value,label:t('pr_'+value)}))]}/>
 
     <CatalogInput label={uiTitle(t('search'))} value={filter} onChange={ev=>setFilter(ev.target.value)}/>
 
    </div><div className="report-actions">
 
-    <BtnSecondary intent="neutral" data-report-action="clear" onClick={()=>{setFilter('');setStationFilter('');setStatusFilter('');setDateFilters(previous=>({...previous,[tab]:{}}));}}>{t('clear_filters')}</BtnSecondary>
+    <BtnSecondary intent="neutral" data-report-action="clear" onClick={()=>{setFilter('');setStationFilter('');setMachineType('');setStatusFilter('');setDateFilters(previous=>({...previous,[tab]:{}}));}}>{t('clear_filters')}</BtnSecondary>
 
     <BtnSecondary intent="neutral" data-report-action="export" onClick={()=>exportCsv(true)}>{t('rt_excel')}</BtnSecondary><BtnPrimary intent="create" disabled={busy||loading} onClick={()=>{setError('');setEdit({...blank(),group_id:crypto.randomUUID()});}}>➕ {t('pr_new_report')}</BtnPrimary>
 
@@ -384,7 +385,7 @@ export default function Production({access}) {
 
     <p className="inv-muted">{t('pr_summary_hint')}</p><div className="production-metrics">{[['pr_machine_quantity',totals.machine_quantity],['pr_good',totals.good_quantity],['pr_scrap',totals.scrap_quantity],['pr_rework',totals.rework_quantity],['pr_boxes',totals.full_boxes],['pr_labor_hours',totals.labor]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
 
-    <div className="table-wrap catalog-table-scroll"><table className="table production-summary-table" style={{minWidth:1800}}><thead><tr>{['pr_station','inv_part','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_machine_minutes','pr_downtime','pr_labor_hours','actions'].map(key=><th key={key}>{uiTitle(t(key))}</th>)}</tr></thead><tbody>{stationProductSummary(filtered).flatMap(group=>group.products.map((product,index)=>{const machine=byStation.find(s=>s.code===group.code),count=group.products.length;return <tr key={group.code+'|'+product.item_id}>{index===0&&<td rowSpan={count} style={{minWidth:220}}>{stationLabel({station_code:group.code},data.stations)}</td>}<td style={{minWidth:200}}>{partLabel(data.items.find(i=>i.id===product.item_id))}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(key=><td key={key}>{fmt(product[key])}</td>)}{index===0&&<>{['machine','downtime','labor'].map(key=><td key={key} rowSpan={count}>{fmt(machine?.[key])}</td>)}<td rowSpan={count}>{manage&&<div className="production-row-actions">{machinePrintReports(filtered.filter(r=>r.station_code===group.code),supply.data.runs).map(r=><div key={r.id}><BtnEditDark intent="neutral" disabled={busy} onClick={()=>setPrintReport(r)}>{t('dt_print')}</BtnEditDark><small style={{display:'block',marginTop:4,whiteSpace:'nowrap'}}>{r.production_date} · {String(r.start_time).slice(0,5)} — {String(r.end_time).slice(0,5)}</small></div>)}</div>}</td></>}</tr>;}))}</tbody></table></div>
+    <div className="table-wrap catalog-table-scroll"><table className="table production-summary-table" style={{minWidth:1800}}><thead><tr>{['pr_station','inv_part','pr_reporter','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_machine_minutes','pr_downtime','pr_labor_hours','actions'].map(key=><th key={key}>{uiTitle(t(key))}</th>)}</tr></thead><tbody>{stationProductSummary(filtered,uid=>data.reporters.find(person=>person.uid===uid)?.nombre).flatMap(group=>group.products.map((product,index)=>{const machine=byStation.find(s=>s.code===group.code),count=group.products.length;return <tr key={group.code+'|'+product.item_id}>{index===0&&<td rowSpan={count} style={{minWidth:220}}>{stationLabel({station_code:group.code},data.stations)}</td>}<td style={{minWidth:200}}>{partLabel(data.items.find(i=>i.id===product.item_id))}</td><td>{[...product.reporters].join(', ')||'—'}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(key=><td key={key}>{fmt(product[key])}</td>)}{index===0&&<>{['machine','downtime','labor'].map(key=><td key={key} rowSpan={count}>{fmt(machine?.[key])}</td>)}<td rowSpan={count}>{manage&&<div className="production-row-actions">{machinePrintReports(filtered.filter(r=>r.station_code===group.code),supply.data.runs).map(r=><div key={r.id}><BtnEditDark intent="neutral" disabled={busy} onClick={()=>setPrintReport(r)}>{t('dt_print')}</BtnEditDark><small style={{display:'block',marginTop:4,whiteSpace:'nowrap'}}>{r.production_date} · {String(r.start_time).slice(0,5)} — {String(r.end_time).slice(0,5)}</small></div>)}</div>}</td></>}</tr>;}))}</tbody></table></div>
 
    </>:<div className="table-wrap catalog-table-scroll"><table className="table production-daily-table"><thead><tr>{['pr_date','inv_station_code','inv_part','name','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_packing_type','pr_machine_minutes','pr_downtime','pr_people','pr_total_hours','pr_labor_hours','pr_turns','status','actions'].map(k=><th key={k}>{uiTitle(t(k))}</th>)}</tr></thead><tbody>
 

@@ -12,3 +12,8 @@ export function workstationProductIds(station,items,categories=['FG','SEMI'],fal
  // Machines without configured matches must not erase a manual selection.
  return available.length?available:fallback;
 }
+
+export function stationTypeOptions(stations,allLabel){
+ const types=[...new Set(stations.map(station=>station.machine_type).filter(Boolean))];
+ return [{value:'',label:allLabel},...types.sort((a,b)=>a.localeCompare(b)).map(value=>({value,label:value}))];
+}
