@@ -79,7 +79,7 @@ export default function ProductionLive({items,stations,supervisor,reporterName,r
  const dashboard=dashboardTable(runs,reports,mode==='partial'?localDate():day,new Date(),mode==='partial'?localDate():endDay);
  const {data:stationSessions,ready:stationScheduleReady,error:stationScheduleError}=useSupply();
  const outputIds=code=>workstationProductIds(stations.find(station=>station.code===code),items);
- const open=(r,action='checkpoint',only=false)=>setEdit(liveEditor(r,action,snapshot.runs,()=>crypto.randomUUID(),only,outputIds(r.station_code)));
+ const open=(r,action='checkpoint',only=false)=>setEdit(liveEditor(r,action,snapshot.runs,()=>crypto.randomUUID(),only,r?outputIds(r.station_code):[]));
  const chooseStation=station_code=>setEdit(current=>{if(current.station_code===station_code)return current;const existing=!current.existing&&sessionForStation([...snapshot.runs,...stationSessions.runs],station_code);if(existing)return liveEditor(existing,'checkpoint',snapshot.runs.some(r=>r.id===existing.id)?snapshot.runs:stationSessions.runs,()=>crypto.randomUUID(),false,outputIds(station_code));const plan = !current.existing && plannedStation(stationSessions, station_code, current.date || localDate());
  const defaults = current.existing ? {} : {
   time: plan ? plan.startedAt.toTimeString().slice(0, 5) : '',

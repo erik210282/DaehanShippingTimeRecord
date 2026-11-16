@@ -12,6 +12,14 @@ export function matchingTemplates(templates,station,itemIds=[]){
  if(!station)return [];
  return templates.filter(t=>t.active&&!t.deleted_at&&t.machine_types.includes(station.machine_type)&&(!templateStations(t).length||templateStations(t).includes(station.code))&&(!(t.item_ids?.length||t.item_id)||itemIds.length>0&&itemIds.every(id=>(t.item_ids?.length?t.item_ids:[t.item_id]).includes(id)))).sort((a,b)=>(Number(!!templateStations(b).length)*2+Number(!!(b.item_ids?.length||b.item_id)))-(Number(!!templateStations(a).length)*2+Number(!!(a.item_ids?.length||a.item_id)))||a.name.localeCompare(b.name));
 }
+export function moveParameterField(fields,id,direction){
+ const index=fields.findIndex(field=>field.id===id);
+ const next=index+direction;
+ if(index<0||next<0||next>=fields.length)return fields;
+ const reordered=[...fields];
+ [reordered[index],reordered[next]]=[reordered[next],reordered[index]];
+ return reordered;
+}
 export function blankParameter(newId){return {id:newId(),label:'',unit:'',reference:'',input_type:'numeric',minimum:'',maximum:''};}
 export function blankTemplate(newId){return {id:newId(),name:'',machine_types:[],station_codes:[],station_code:'',item_id:'',fields:[blankParameter(newId)]};}
 export function referenceBounds(reference){
