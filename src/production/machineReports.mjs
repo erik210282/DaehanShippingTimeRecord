@@ -13,3 +13,16 @@ export function machineReportGroups(reports, runs = []) {
  }
  return [...groups.values()];
 }
+
+export function datedStationSummary(reports=[],reporterName){
+ const dates=new Map();
+ for(const report of reports){
+  const key=JSON.stringify([report.production_date,report.station_code]);
+  if(!dates.has(key))dates.set(key,{key,production_date:report.production_date,code:report.station_code,reports:[]});
+  dates.get(key).reports.push(report);
+ }
+ return [...dates.values()].map(group=>({...group,products:stationProductSummary(group.reports,reporterName)[0].products}));
+}
+export function summaryPrintReport(group,runs=[]){
+ return {...group.reports[0],print_report_ids:machinePrintReports(group.reports,runs).map(report=>report.id),included_report_ids:group.reports.map(report=>report.id)};
+}
