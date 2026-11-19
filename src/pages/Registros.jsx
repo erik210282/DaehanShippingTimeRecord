@@ -393,6 +393,7 @@ useEffect(() => {
     actividad,
     productos: productosLimpios,
     operadores,
+    instrucciones_supervisor: registroActual.instrucciones_supervisor ?? "",
     notas: notas || "",
     hora_inicio: new Date(horaInicio),
     hora_fin: new Date(horaFin),
@@ -737,6 +738,9 @@ useEffect(() => {
            )}
           <div style={{ marginTop: 12 }}></div>
           <DSSelect classNamePrefix="shipping-select" isMulti options={operadoresEditables} value={operadoresEditables.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
+          <label style={{display:"block",marginTop:12}}>{t("task_supervisor_instructions_placeholder")}
+            <TextAreaStyle aria-label={t("task_supervisor_instructions_placeholder")} value={registroActual?.instrucciones_supervisor ?? ""} onChange={e=>setRegistroActual({...registroActual,instrucciones_supervisor:e.target.value})} rows={3} style={{display:"block",marginTop:6,minHeight:90,width:"85%"}} />
+          </label>
           <TextAreaStyle value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={3} style={{ marginTop: 10, minHeight: 90, width: "85%", }} />
            <div className="records-edit-grid">
              <CaptureDateTime label={t('start_time')} value={registroActual?.horaInicio||''} onChange={e=>cambiarFechaRegistro('horaInicio',e.target.value)}/>
