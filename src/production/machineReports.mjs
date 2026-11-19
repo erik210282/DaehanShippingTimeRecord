@@ -26,3 +26,17 @@ export function datedStationSummary(reports=[],reporterName){
 export function summaryPrintReport(group,runs=[]){
  return {...group.reports[0],print_report_ids:machinePrintReports(group.reports,runs).map(report=>report.id),included_report_ids:group.reports.map(report=>report.id)};
 }
+
+export function reportNeedsCompletion(report){
+ return report.status==='draft'||report.progress_draft||!report.production_date||!report.start_time||!report.end_time||!(Number(report.people)>0)||
+ ['machine_quantity','scrap_quantity','rework_quantity','full_boxes'].some(key=>report[key]==null||report[key]==='');
+}
+export function machineReviewState(report,reports,runs=[]){
+ const rows=report?machineReviewRows(report,reports,runs):[];
+ return {rows,draft:rows.find(row=>row.status==='draft'),
+  canPost:rows.some(row=>row.status==='submitted')&&rows.every(row=>['submitted','posted'].includes(row.status)),
+  canReturn:rows.some(row=>row.status==='submitted')&&rows.every(row=>['submitted','draft'].includes(row.status))};
+}
+export function machineReviewPayload(report,reports,runs=[]){
+ return {products:machineReviewRows(report,reports,runs).map(row=>({id:row.id}))};
+}

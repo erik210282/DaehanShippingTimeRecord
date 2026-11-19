@@ -76,3 +76,7 @@
 
 
 .parameter-report-toolbar>.parameter-outside-filter{flex:0 0 100%;width:100%;box-sizing:border-box;min-height:28px;margin:0;padding-top:2px;justify-content:flex-start}
+
+.production-report-portal .production-product-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:8px;width:100%;min-width:0;white-space:normal}
+.production-report-portal .production-product-tabs button[data-ui-intent]{width:100%;min-width:0;max-width:100%;white-space:normal!important;overflow-wrap:anywhere}
+.production-report-portal .production-section{min-width:0}

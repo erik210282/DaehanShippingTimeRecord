@@ -109,3 +109,10 @@ export function workstationOptions(stations, snapshot, date, selected, separator
   disabled: true,
  }, ...other];
 }
+
+export function loadableRawIds(data,stations,items,stationCode){
+ return stationRawIds(data,stations,items,stationCode).filter(id=>items.some(item=>item.id===id&&item.category==='RAW'));
+}
+export function rawReceivingStations(data,stations,items){
+ return stations.filter(station=>station.active&&loadableRawIds(data,stations,items,station.code).length>0);
+}

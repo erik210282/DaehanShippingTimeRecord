@@ -1,6 +1,6 @@
 import ProductionForceClose from '../production/ProductionForceClose';
 import {localDate} from '../production/live.mjs';
-import {datedStationSummary,summaryPrintReport,machineReviewRows,machineReportGroups} from '../production/machineReports.mjs';
+import {reportNeedsCompletion,machineReviewState,machineReviewPayload,datedStationSummary,summaryPrintReport,machineReviewRows,machineReportGroups} from '../production/machineReports.mjs';
 import {dailyReportClock} from '../production/reportClock.mjs';
 import {registerReportClock} from '../production/reportClockWords';
 import {productionRpc} from '../production/commit';
@@ -166,6 +166,7 @@ export default function Production({access}) {
  const packingName=r=>r.packing_breakdown?.length?r.packing_breakdown.map(p=>(p.box_name||packingLabel(profilesFor(r).find(x=>x.packaging_type===p.packaging_type)))+' × '+p.full_boxes).join(' / '):r.packing_box_name||packingLabel(profileFor(r))||(['returnable','expendable'].includes(r.packaging_type)?t('pr_'+r.packaging_type):'');
 
  const editable=r=>r.status==='draft';
+ const reviewState=machineReviewState(review,data.reports,supply.data.runs);
  const completeReport=r=>{setReview(null);setError('');const capture={...openCapture(r,data.reports,supply.data.runs),turns:r.turns??'',packaging_type:r.packaging_type||'',downtime_events:reportDowntimes(r,{forEdit:true})};const missing=dailyMissing(capture,data.reports,supply.data.runs,workstationProductIds(stationFor(r),data.items,['FG','SEMI'],[]));if(missing.length)setDailyChoice({capture,missing});else setEdit(capture);};
 
  const filtered=useMemo(()=>data.reports.filter(r=>{
@@ -200,7 +201,7 @@ export default function Production({access}) {
 
   try {
 
-   const payload=type==='save'||type==='submit'?{timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,...Object.fromEntries(Object.entries(r).filter(([k])=>!['products','created_by','created_at','updated_at','reviewed_by','reviewed_at','inventory_report_id','good_quantity','packed_quantity','elapsed_minutes','bom_id','status'].includes(k)))}:{id:r.id};
+   const payload=type==='save'||type==='submit'?{timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,...Object.fromEntries(Object.entries(r).filter(([k])=>!['products','created_by','created_at','updated_at','reviewed_by','reviewed_at','inventory_report_id','good_quantity','packed_quantity','elapsed_minutes','bom_id','status'].includes(k)))}:['post','return'].includes(type)?machineReviewPayload(r,data.reports,supply.data.runs):{id:r.id};
 
    if(type==='save'||type==='submit'){
 
@@ -385,19 +386,19 @@ export default function Production({access}) {
 
     <p className="inv-muted">{t('pr_summary_hint')}</p><div className="production-metrics">{[['pr_machine_quantity',totals.machine_quantity],['pr_good',totals.good_quantity],['pr_scrap',totals.scrap_quantity],['pr_rework',totals.rework_quantity],['pr_boxes',totals.full_boxes],['pr_labor_hours',totals.labor]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
 
-    <div className="table-wrap catalog-table-scroll"><table className="table production-summary-table" style={{minWidth:1800}}><thead><tr>{['pr_date','pr_station','inv_part','pr_reporter','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_machine_minutes','pr_downtime','pr_labor_hours','actions'].map(key=><th key={key}>{uiTitle(t(key))}</th>)}</tr></thead><tbody>{datedStationSummary(filtered,uid=>data.reporters.find(person=>person.uid===uid)?.nombre).flatMap(group=>group.products.map((product,index)=>{const machine=byStation.find(s=>s.code===group.code&&s.production_date===group.production_date),count=group.products.length;return <tr key={group.key+'|'+product.item_id}>{index===0&&<td rowSpan={count}>{group.production_date}</td>}{index===0&&<td rowSpan={count} style={{minWidth:220}}>{stationLabel({station_code:group.code},data.stations)}</td>}<td style={{minWidth:200}}>{partLabel(data.items.find(i=>i.id===product.item_id))}</td><td>{[...product.reporters].join(', ')||'—'}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(key=><td key={key}>{fmt(product[key])}</td>)}{index===0&&<>{['machine','downtime','labor'].map(key=><td key={key} rowSpan={count}>{fmt(machine?.[key])}</td>)}<td rowSpan={count}>{manage&&<div className="production-row-actions"><BtnEditDark intent="neutral" disabled={busy} onClick={()=>setPrintReport(summaryPrintReport(group,supply.data.runs))}>{t('dt_print')}</BtnEditDark></div>}</td></>}</tr>;}))}</tbody></table></div>
+    <div className="table-wrap catalog-table-scroll"><table className="table production-summary-table" style={{minWidth:1800}}><thead><tr>{['pr_date','pr_station','inv_part','pr_reporter','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_machine_minutes','pr_downtime','pr_labor_hours','actions'].map(key=><th key={key}>{uiTitle(t(key))}</th>)}</tr></thead><tbody>{datedStationSummary(filtered,uid=>data.reporters.find(person=>person.uid===uid)?.nombre).flatMap(group=>group.products.map((product,index)=>{const machine=byStation.find(s=>s.code===group.code&&s.production_date===group.production_date),count=group.products.length,incomplete=group.reports.find(reportNeedsCompletion);return <tr key={group.key+'|'+product.item_id}>{index===0&&<td rowSpan={count}>{group.production_date}</td>}{index===0&&<td rowSpan={count} style={{minWidth:220}}>{stationLabel({station_code:group.code},data.stations)}</td>}<td style={{minWidth:200}}>{partLabel(data.items.find(i=>i.id===product.item_id))}</td><td>{[...product.reporters].join(', ')||'—'}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(key=><td key={key}>{fmt(product[key])}</td>)}{index===0&&<>{['machine','downtime','labor'].map(key=><td key={key} rowSpan={count}>{fmt(machine?.[key])}</td>)}<td rowSpan={count}>{manage&&<div className="production-row-actions"><BtnEditDark intent="neutral" disabled={busy} onClick={()=>incomplete?completeReport(incomplete):setPrintReport(summaryPrintReport(group,supply.data.runs))}>{t(incomplete?'ps_complete_daily':'dt_print')}</BtnEditDark></div>}</td></>}</tr>;}))}</tbody></table></div>
 
    </>:<div className="table-wrap catalog-table-scroll"><table className="table production-daily-table"><thead><tr>{['pr_date','inv_station_code','inv_part','name','pr_machine_quantity','pr_good','pr_scrap','pr_rework','pr_boxes','pr_packing_type','pr_machine_minutes','pr_downtime','pr_people','pr_total_hours','pr_labor_hours','pr_turns','status','actions'].map(k=><th key={k}>{uiTitle(t(k))}</th>)}</tr></thead><tbody>
 
     {dailyGroups.slice((dailyPage-1)*pageSize,dailyPage*pageSize).flatMap(group=>{
-     const anchor=group.reports[0],count=group.reports.length;
+     const anchor=group.reports[0],count=group.reports.length,incomplete=group.reports.find(reportNeedsCompletion);
      const cutoffs=[...new Set(group.reports.map(r=>String(r.end_time||'').slice(0,5)+(r.ends_next_day?' (+1)':'')))];
      return group.reports.map((r,index)=><tr key={r.id}>
       {index===0&&<><td rowSpan={count}>{anchor.production_date}<small style={{display:'block'}}>{t('rp_time')}: {cutoffs.join(' / ')}</small></td><td className="production-machine-cell" rowSpan={count}>{stationLabel(anchor,data.stations)}</td></>}
       <td>{itemFor(r)?.part_number}</td><td>{itemFor(r)?.part_name}</td>{['machine_quantity','good_quantity','scrap_quantity','rework_quantity','full_boxes'].map(k=><td key={k}>{fmt(r[k])}</td>)}<td>{packingName(r)||'—'}</td><td>{fmt(r.machine_minutes)}</td><td>{fmt(reportMetrics(r).totalDowntime)}</td><td>{r.people}</td><td>{fmt(r.elapsed_minutes/60)}</td><td>{fmt(reportMetrics(r).laborHours)}</td><td>{r.turns??'—'}</td><td><span className={'production-status production-status-'+r.status}>{t('pr_'+r.status)}</span></td>
       {index===0&&<td className="production-actions-cell" rowSpan={count}><div className="production-row-actions">
-       <BtnSecondary intent="neutral" disabled={busy} onClick={()=>{setError('');setConfirming(false);setReview(anchor);}}>{t('pr_details')}</BtnSecondary>
-       {manage&&<BtnEditDark intent="neutral" disabled={busy} onClick={()=>setPrintReport(anchor)}>{t('dt_print')}</BtnEditDark>}
+       {incomplete?<BtnPrimary intent="confirm" disabled={busy} onClick={()=>completeReport(incomplete)}>{t('ps_complete_daily')}</BtnPrimary>:<><BtnSecondary intent="neutral" disabled={busy} onClick={()=>{setError('');setConfirming(false);setReview(anchor);}}>{t('pr_details')}</BtnSecondary>
+       {manage&&<BtnEditDark intent="neutral" disabled={busy} onClick={()=>setPrintReport(anchor)}>{t('dt_print')}</BtnEditDark>}</>}
       </div></td>}
      </tr>);
     })}
@@ -446,7 +447,7 @@ export default function Production({access}) {
 
   {scheduleError&&edit.start_time&&edit.end_time&&<p role="alert" className="inv-message">{t(scheduleError)}</p>}
 
-  <section className="production-section"><p className="inv-muted">{t('pm_shared_hint')}</p><div className="production-row-actions">{dailyProducts(edit).map(r=><BtnEditDark preserveLabel intent={edit.item_id===r.item_id?"confirm":"neutral"} key={r.item_id} type="button" aria-pressed={edit.item_id===r.item_id} style={edit.item_id===r.item_id?{background:'#28a745',color:'#fff'}:undefined} onClick={()=>setEdit(switchProduct(edit,r.item_id))}>{partLabel(itemFor(r))}</BtnEditDark>)}</div><h3>{partLabel(itemFor(edit))} · {uiTitle(t('pr_quantities'))}</h3><p className="inv-muted">{t('pr_quantity_hint')}</p><div className="production-form-grid production-form-grid-four">
+  <section className="production-section"><p className="inv-muted">{t('pm_shared_hint')}</p><div className="production-product-tabs">{dailyProducts(edit).map(r=><BtnEditDark preserveLabel intent={edit.item_id===r.item_id?"confirm":"neutral"} key={r.item_id} type="button" aria-pressed={edit.item_id===r.item_id} style={edit.item_id===r.item_id?{background:'#28a745',color:'#fff'}:undefined} onClick={()=>setEdit(switchProduct(edit,r.item_id))}>{partLabel(itemFor(r))}</BtnEditDark>)}</div><h3>{partLabel(itemFor(edit))} · {uiTitle(t('pr_quantities'))}</h3><p className="inv-muted">{t('pr_quantity_hint')}</p><div className="production-form-grid production-form-grid-four">
 
    {numeric('machine_quantity','pr_machine_quantity')}{numeric('scrap_quantity','pr_scrap')}{numeric('rework_quantity','pr_rework')}{captured.carryover_quantity!=null&&<CatalogInput label={uiTitle(t('dx_carryover'))} type="number" min="0" max="2147483647" step="1" value={captured.carryover_quantity} onChange={ev=>setEdit({...edit,carryover_quantity:ev.target.value})}/>}<CatalogInput label={uiTitle(t('pr_good'))} readOnly value={fmt(metrics.good)}/>
 
@@ -495,7 +496,7 @@ export default function Production({access}) {
 
  {review&&<div className="production-form"><h2>{uiTitle(t('pr_details'))} · {review.production_date}</h2>
 
-  {machineReviewRows(review,data.reports,supply.data.runs).map(product=><section className="production-section" key={product.id}>{(()=>{const review=product;return <>  <p><strong>{review.station_code} · {stationFor(review)?.name}</strong></p><p>{itemFor(review)?.part_number} · {itemFor(review)?.part_name}</p>
+  {reviewState.rows.map(product=><section className="production-section" key={product.id}>{(()=>{const review=product;return <>  <p><strong>{review.station_code} · {stationFor(review)?.name}</strong></p><p>{itemFor(review)?.part_number} · {itemFor(review)?.part_name}</p>
 
   <div className="production-metrics">{[['pr_machine_quantity',review.machine_quantity],['pr_good',review.good_quantity],['pr_scrap',review.scrap_quantity],['pr_rework',review.rework_quantity],['pr_boxes',review.full_boxes],['pr_packed',review.packed_quantity],...(review.carryover_quantity==null?[]:[['dx_carryover_used',Math.min(review.carryover_quantity,review.packed_quantity)]]),['pr_total_hours',review.elapsed_minutes/60],['pr_machine_minutes',review.machine_minutes],['pr_total_downtime',reportMetrics(review).totalDowntime],['pr_people',review.people],['pr_labor_hours',reportMetrics(review).laborHours]].map(([label,value])=><div key={label}><span>{t(label)}</span><strong>{fmt(value)}</strong></div>)}</div>
 
@@ -505,7 +506,7 @@ export default function Production({access}) {
 
   <section className="production-section"><h3>{uiTitle(t('pr_downtime_section'))}</h3>{reportDowntimes(review).length?<ul>{reportDowntimes(review).map((d,k)=><li key={k}>{codeLabel(d,t)}{d.start_time&&d.end_time?' · '+d.start_time+' — '+d.end_time:''} · {fmt(d.minutes)} min{d.note?' · '+d.note:''}</li>)}</ul>:<p>{t('pr_downtime_empty')}</p>}</section>{review.staff_names&&<p>{t('pr_staff_names')}: {review.staff_names}</p>}<p>{t('inv_notes')}: {review.note||'—'}</p>
 
-  <h3>{uiTitle(t(review.status==='posted'?'pr_consumed':'pr_consumption_preview'))}</h3>{consumptionTable(review)}
+  <h3>{uiTitle(t(review.status==='posted'?'pr_consumed':'pr_consumption_preview'))}</h3>{consumptionTable(review)}{editable(review)&&(manage||review.created_by===access.userId)&&<BtnDanger intent="danger" disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',review)}>{t('delete')}</BtnDanger>}
 
   
 
@@ -513,7 +514,9 @@ export default function Production({access}) {
 
   <div className="catalog-actions">
 
-   {machineReviewRows(review,data.reports,supply.data.runs).map(product=><div key={product.id}><strong>{partLabel(itemFor(product))}</strong>{editable(product)&&<><BtnPrimary intent="confirm" disabled={busy} onClick={()=>completeReport(product)}>{t(product.progress_draft?'ps_complete_daily':'edit')}</BtnPrimary>{(manage||product.created_by===access.userId)&&<BtnDanger intent="danger" disabled={busy} onClick={()=>window.confirm(t('pr_delete_confirm'))&&action('delete',product)}>{t('delete')}</BtnDanger>}</>}{product.status==='submitted'&&supervisor&&<><BtnPrimary intent="confirm" disabled={busy} onClick={()=>{setReview(product);setConfirming(true);}}>{t('pr_post_inventory')}</BtnPrimary><BtnSecondary intent="neutral" disabled={busy} onClick={()=>action('return',product)}>{t('pr_return_draft')}</BtnSecondary></>}</div>)}
+   {reviewState.draft&&<BtnPrimary intent="confirm" disabled={busy} onClick={()=>completeReport(reviewState.draft)}>{t('ps_complete_daily')}</BtnPrimary>}
+   {supervisor&&reviewState.canPost&&<BtnPrimary intent="confirm" disabled={busy} onClick={()=>setConfirming(true)}>{t('pr_post_inventory')}</BtnPrimary>}
+   {supervisor&&reviewState.canReturn&&<BtnSecondary intent="neutral" disabled={busy} onClick={()=>action('return',review)}>{t('pr_return_draft')}</BtnSecondary>}
 
    <BtnSecondary intent="danger" style={{backgroundColor:'#dc3545',color:'#fff',borderColor:'#dc3545'}} disabled={busy} onClick={()=>{setReview(null);setConfirming(false);}}>{t('cancel')}</BtnSecondary>
 
