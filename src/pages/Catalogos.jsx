@@ -1,4 +1,5 @@
 import MachineBomCatalog from '../catalog/MachineBomCatalog';
+import RevisionReplacement from '../catalog/RevisionReplacement';
 import {moduleAllowed} from '../access';
 import {allRows} from '../dataExport.mjs';
 import {catalogCsvRows,userCsvTable} from '../businessCsv.mjs';
@@ -73,6 +74,8 @@ export default function Catalogos({ access }) {
   const [locations,setLocations]=useState([]),[materials,setMaterials]=useState([]),[suppliers,setSuppliers]=useState([]),[packingItems,setPackingItems]=useState([]);
   const [typeFilter,setTypeFilter]=useState(''),[hideInactive,setHideInactive]=useState(true);
   const canManage=moduleAllowed(access?.memberships,access?.admin,'catalogs',true);
+  const canReplace=!!(access?.admin||access?.memberships?.some(m=>m.department==='catalogs'&&m.role==='supervisor'&&m.active!==false));
+  const [revisionOpen,setRevisionOpen]=useState(false);
   const kind=catalogKinds[tab];
   const sectionLabel=t(kind?(kind==='material'?'rc_material_types':kind==='supplier'?'rc_suppliers':'rc_locations'):({productos:'products',pos:'po',shipper:'shipper',actividades:'activities',bom:'inv_bom','bom-semi':'inv_bom','machine-bom':'mp_title',stations:'inv_workstations','machine-types':'mt_title'})[tab]);
   const [filter, setFilter] = useState("");
@@ -498,6 +501,7 @@ async function save() {
 
   return (
     <div className="page-container page-container--fluid catalog-page">
+      {revisionOpen&&<RevisionReplacement onClose={()=>setRevisionOpen(false)}/>}
       <div className="card">
         <div className="catalog-toolbar"><h2 className="module-title catalog-current-title">{uiTitle(t("catalogs"))} <span>· {sectionLabel}</span></h2>
         <div className="catalog-actions">
@@ -508,6 +512,7 @@ async function save() {
           <BtnSecondary intent="neutral" onClick={() => setTab("shipper")}>{t("shipper")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={() => setTab("actividades")}>{t("activities")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={()=>setTab("bom")}>{t("inv_bom")}</BtnSecondary>
+          {canReplace&&<BtnSecondary intent="neutral" onClick={()=>setRevisionOpen(true)}>{t('cr_title')}</BtnSecondary>}
           <BtnSecondary intent="neutral" onClick={()=>setTab("stations")}>{t("inv_workstations")}</BtnSecondary><BtnSecondary intent="neutral" onClick={()=>setTab("machine-types")}>{t("mt_title")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={() => {setFilter('');setTypeFilter('');setHideInactive(true);setPage(1);productionRef.current?.clearFilters();}}>{t("clear_filters")}</BtnSecondary>
           <BtnSecondary intent="neutral" onClick={()=>production?productionRef.current?.exportCSV():exportCSV()}>{t("export_csv")}</BtnSecondary>

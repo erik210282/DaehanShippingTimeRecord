@@ -1,5 +1,7 @@
 import {moduleAllowed} from '../access';
 import {allRows} from '../dataExport.mjs';
+import {recipeMatches} from '../catalog/recipeSearch.mjs';
+import {registerRevisionWords} from '../catalog/revisionWords';
 import {useMachineTypes,machineTypeOptions} from '../catalog/useMachineTypes';
 import {uiTitle} from './actionTheme.mjs';
 import {registerShippingPacking} from '../inventory/shippingPackingTranslations';
@@ -15,7 +17,7 @@ import { recipeSelect, normalizeRecipes } from '../production/queries.mjs';
 import { blankIngredient,recipePacking } from '../production/model.mjs';
 import { registerProduction } from '../production/translations';
 import i18nInstance from '../i18n/i18n';
-registerProduction(i18nInstance);registerDowntime(i18nInstance);
+registerProduction(i18nInstance);registerDowntime(i18nInstance);registerRevisionWords(i18nInstance);
 import { productionExport } from '../catalog/productionExport.mjs';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
@@ -49,7 +51,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
  const categoryFor=r=>itemFor(r)?.category||'FG';
  const status=r=>!r.finished_item_id?'cat_pending_product':productFor(r)?.activo===false?'cat_inactive_product':r.active?'inv_active':'inv_draft';
  const query=(externalControls?filter:search).trim().toLowerCase();
- const visible=rows.filter(r=>(stations||categoryFor(r)===outputCategory)&&(!hideInactive||(r.active&&(stations||productFor(r)?.activo!==false)))&&(JSON.stringify(r).toLowerCase().includes(query)||(stations&&(r.raw_material_ids||[]).some(id=>{const i=items.find(x=>x.id===id);return [i?.part_number,i?.part_name,i?.description].join(' ').toLowerCase().includes(query);}))||(!stations&&nameFor(r).toLowerCase().includes(query))));
+ const visible=rows.filter(r=>(stations||categoryFor(r)===outputCategory)&&(!hideInactive||(r.active&&(stations||productFor(r)?.activo!==false)))&&(stations?(JSON.stringify(r).toLowerCase().includes(query)||(r.raw_material_ids||[]).some(id=>{const i=items.find(x=>x.id===id);return [i?.part_number,i?.part_name,i?.description].join(' ').toLowerCase().includes(query);})):recipeMatches(r,query,items,nameFor(r))));
  useEffect(()=>{setPage(1);},[filter,hideInactive]);
  const totalPages=Math.max(1,Math.ceil(visible.length/pageSize)),currentPage=Math.min(page,totalPages);
  const fmt=value=>Number(value||0).toLocaleString('en-US',{maximumFractionDigits:6});
@@ -142,6 +144,7 @@ const ProductionCatalog=forwardRef(function ProductionCatalog({ mode, access, fi
    <BtnPrimary intent="create" disabled={!manage||busy} onClick={add}>{t('add')}</BtnPrimary>
   </div>}
   <ErrorPopup message={error} onClose={()=>setError('')}/>
+  {!stations&&query&&!visible.length&&items.some(i=>[i.part_number,i.part_name,i.description].join(' ').toLowerCase().includes(query))&&<div className="inv-message" role="status"><strong>{t('cr_matching_parts')}</strong><p>{t('cr_no_recipe_match')}</p><ul>{items.filter(i=>[i.part_number,i.part_name,i.description].join(' ').toLowerCase().includes(query)).slice(0,10).map(i=><li key={i.id}>{i.part_number} · {i.part_name||i.description} · {i.category}</li>)}</ul></div>}
   {!stations&&<div className="catalog-recipe-notices">
    <details open><summary>{t('cat_missing_recipes',{count:missing.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{uiTitle(t('inv_ref_fg'))}</th><th>{uiTitle(t('name'))}</th><th>{uiTitle(t('description'))}</th><th>{uiTitle(t('actions'))}</th></tr></thead><tbody>{missing.filter(noticeMatch).map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{p.descripcion}</td><td>{recipeActions(p)}</td></tr>)}</tbody></table></div></details>
    <details><summary>{t('pr_missing_packing',{count:missingPacking.length})}</summary><div className="table-wrap"><table className="table"><thead><tr><th>{uiTitle(t('inv_ref_fg'))}</th><th>{uiTitle(t('name'))}</th><th>{uiTitle(t('actions'))}</th></tr></thead><tbody>{missingPacking.filter(noticeMatch).map(p=><tr key={p.id}><td>{p.part_number}</td><td>{p.nombre}</td><td>{recipeActions(p)}</td></tr>)}</tbody></table></div></details>

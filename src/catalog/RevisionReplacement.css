@@ -1,0 +1,6 @@
+.revision-dialog{position:absolute;background:#fff;border:1px solid #ccd2da;border-radius:8px;min-width:0;box-sizing:border-box;overflow-wrap:anywhere}
+.revision-dialog .table-wrap{width:100%;max-width:100%;min-width:0;overflow-x:auto;box-sizing:border-box}
+.revision-dialog .catalog-field input{width:100%!important;max-width:100%!important;min-width:0;box-sizing:border-box}
+.revision-dialog .catalog-actions{margin-block:16px}
+.revision-dialog button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.revision-dialog input[type=checkbox]{flex-shrink:0}
