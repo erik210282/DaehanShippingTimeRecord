@@ -81,10 +81,16 @@ export default function Registros() {
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
 
   const [totalRows,setTotalRows]=useState(0),[loadingRecords,setLoadingRecords]=useState(true),[recordsError,setRecordsError]=useState(""),[exporting,setExporting]=useState(false);
-  const querySeq=useRef(0),mounted=useRef(true);
+  const querySeq=useRef(0),mounted=useRef(true),recordsRequest=useRef(null);
   const [queryKey,setQueryKey]=useState("{}");
   const filtersKey=JSON.stringify({activities:actividadFiltro.map(x=>x.value),products:productoFiltro.map(x=>x.value),operators:operadorFiltro.map(x=>x.value),search:busquedaTexto.trim(),from:fechaDesde?new Date(fechaDesde+"T00:00:00").toISOString():null,to:fechaHasta?nextLocalDay(fechaHasta):null});
-  useEffect(()=>{const timer=setTimeout(()=>{setQueryKey(filtersKey);setPage(1);},250);return()=>clearTimeout(timer);},[filtersKey]);
+  useEffect(()=>{
+    ++querySeq.current;
+    recordsRequest.current?.abort();
+    setRegistros([]);setFiltrados([]);setTotalRows(0);setRecordsError("");setLoadingRecords(true);
+    const timer=setTimeout(()=>{setQueryKey(filtersKey);setPage(1);},250);
+    return()=>clearTimeout(timer);
+  },[filtersKey]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -164,17 +170,20 @@ const cargarCatalogos = async () => {
 
 const shapeRecords=(result)=>(result.records||[]).map(doc=>({...doc,idx:doc.idx||"",shipping_capture:result.captures?.[doc.id]||legacyShippingCapture(doc),operadores:Array.isArray(doc.operadores)?doc.operadores:[],horaInicio:parseFecha(doc.hora_inicio),horaFin:parseFecha(doc.hora_fin),duracion:doc.duracion??""}));
 const actualizarRegistros=useCallback(async()=>{
+ if(queryKey!==filtersKey)return;
+ recordsRequest.current?.abort();
+ const controller=new AbortController();recordsRequest.current=controller;
  const seq=++querySeq.current;setLoadingRecords(true);setRecordsError("");
  try{
-  const {data,error}=await supabase.rpc("shipping_records_page",{p_page:page,p_page_size:pageSize,p_filters:JSON.parse(queryKey)});
+  const {data,error}=await supabase.rpc("shipping_records_page",{p_page:page,p_page_size:pageSize,p_filters:JSON.parse(queryKey)}).abortSignal(controller.signal);
   if(error)throw error;
   if(!mounted.current||seq!==querySeq.current)return;
   const rows=shapeRecords(data);setRegistros(rows);setFiltrados(rows);setTotalRows(data.total||0);
   if(data.page!==page)setPage(data.page);
- }catch(error){if(mounted.current&&seq===querySeq.current)setRecordsError(error.message||t("shipping_captures_error"));}
+ }catch(error){if(mounted.current&&seq===querySeq.current&&!controller.signal.aborted){setRegistros([]);setFiltrados([]);setTotalRows(0);setRecordsError(error.message||t("shipping_captures_error"));}}
  finally{if(mounted.current&&seq===querySeq.current)setLoadingRecords(false);}
-},[page,pageSize,queryKey,t]);
-useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;++querySeq.current;};},[]);
+},[page,pageSize,queryKey,filtersKey,t]);
+useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;++querySeq.current;recordsRequest.current?.abort();};},[]);
 useEffect(()=>{actualizarRegistros();},[actualizarRegistros,liveVersion]);
 useEffect(()=>{
  cargarCatalogos();
@@ -486,7 +495,7 @@ useEffect(() => {
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const filasPagina = filtrados;
+  const filasPagina = loadingRecords || recordsError || filtersKey!==queryKey ? [] : filtrados;
 
   return (
     <div className="page-container page-container--fluid shipping-page shipping-records">
@@ -658,6 +667,17 @@ useEffect(() => {
 
           <DSSelect options={selectActividades} value={selectActividades.find((i) => i.value === registroActual?.actividad)} onChange={(e) => setRegistroActual({ ...registroActual, actividad: e.value })} placeholder={t("select_activity")} />
 
+          <label style={{ display: "block", marginTop: 12 }}>
+            {t("task_supervisor_instructions_placeholder")}
+            <TextAreaStyle
+              aria-label={t("task_supervisor_instructions_placeholder")}
+              value={registroActual?.instrucciones_supervisor ?? ""}
+              onChange={(e) => setRegistroActual({ ...registroActual, instrucciones_supervisor: e.target.value })}
+              rows={3}
+              style={{ display: "block", marginTop: 6, marginBottom: 12, minHeight: 90, width: "100%" }}
+            />
+          </label>
+
           {registroActual?.productos?.map((p, index) => (
             <div key={index} style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
               <DSSelect
@@ -738,9 +758,6 @@ useEffect(() => {
            )}
           <div style={{ marginTop: 12 }}></div>
           <DSSelect classNamePrefix="shipping-select" isMulti options={operadoresEditables} value={operadoresEditables.filter((i) => registroActual?.operadores?.includes(i.value))} onChange={(e) => setRegistroActual({ ...registroActual, operadores: e.map((i) => i.value) })} placeholder={t("select_operator")} />
-          <label style={{display:"block",marginTop:12}}>{t("task_supervisor_instructions_placeholder")}
-            <TextAreaStyle aria-label={t("task_supervisor_instructions_placeholder")} value={registroActual?.instrucciones_supervisor ?? ""} onChange={e=>setRegistroActual({...registroActual,instrucciones_supervisor:e.target.value})} rows={3} style={{display:"block",marginTop:6,minHeight:90,width:"85%"}} />
-          </label>
           <TextAreaStyle value={registroActual?.notas} onChange={(e) => setRegistroActual({ ...registroActual, notas: e.target.value })} placeholder={t("notes")} rows={3} style={{ marginTop: 10, minHeight: 90, width: "85%", }} />
            <div className="records-edit-grid">
              <CaptureDateTime label={t('start_time')} value={registroActual?.horaInicio||''} onChange={e=>cambiarFechaRegistro('horaInicio',e.target.value)}/>
