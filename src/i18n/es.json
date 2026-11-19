@@ -208,6 +208,8 @@
   "task_supervisor_instructions_placeholder": "Instrucciones del supervisor",
   "task_idx_locked_error": "El IDX de una tarea con etiquetas no se puede cambiar.",
   "task_product_plan_error": "Cada producto necesita sufijo IDX, primera etiqueta y cantidad de cajas válida.",
+  "task_label_conflict": "La etiqueta {{label}} ya está reservada para {{idx}}. Revisa ese IDX antes de volver a usarla.",
+  "task_label_conflict_unknown": "La etiqueta ya está reservada. Revisa el IDX y la primera etiqueta.",
   "task_unique_suffix_error": "Cada producto necesita un sufijo IDX distinto.",
   "shipping_validation": "Validación",
   "shipping_verified": "Validado",

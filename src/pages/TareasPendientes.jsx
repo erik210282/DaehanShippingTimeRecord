@@ -1,4 +1,5 @@
 import {departmentOperators} from '../shipping/departmentOperators.mjs';
+import {normalizeFirstLabel, planErrorMessage} from '../shipping/firstLabel.mjs';
 import {uiTitle} from '../components/actionTheme.mjs';
 import {useShippingForceText} from "../shipping/forceFinish";
 import NativeShippingTableHint from "../components/NativeShippingTableHint";
@@ -311,7 +312,8 @@ export default function TareasPendientes() {
   };
 
   const guardarTarea = async () => {
-    const { idx, actividad, productos: listaProductos } = tareaActual;
+    const { idx, actividad } = tareaActual;
+    const listaProductos = tareaActual.productos.map(p => ({...p, primera_etiqueta: normalizeFirstLabel(p.primera_etiqueta)}));
     const instrucciones = tareaActual.instrucciones_supervisor ?? tareaActual.notas ?? "";
 
     if (!actividad || !idx || listaProductos.some((p) => !p.producto || !p.cantidad)) {
@@ -405,7 +407,7 @@ export default function TareasPendientes() {
       fetchTareas();
     } catch (error) {
       console.error("Error al guardar la tarea:", error);
-      toast.error(error?.message || t("error_saving"));
+      toast.error(planErrorMessage(error, t));
     }
   };
 
@@ -491,7 +493,7 @@ export default function TareasPendientes() {
 
   const guardarPrimeraEtiqueta = async (linea) => {
     if (guardandoEtiqueta) return;
-    const etiqueta = nuevaEtiqueta.trim().toUpperCase().replace(/\s+/g, "");
+    const etiqueta = normalizeFirstLabel(nuevaEtiqueta);
     if (!/^(6J|5J|1J).*\d{4,}$/.test(etiqueta)) {
       toast.error(t("task_product_plan_error"));
       return;
@@ -867,6 +869,11 @@ export default function TareasPendientes() {
                         type="text"
                          placeholder={t("task_first_label_placeholder")}
                          value={p.primera_etiqueta || ""}
+                         onBlur={() => {
+                           const nuevos = [...tareaActual.productos];
+                           nuevos[index] = {...p, primera_etiqueta: normalizeFirstLabel(p.primera_etiqueta)};
+                           setTareaActual({...tareaActual, productos: nuevos});
+                         }}
                          onFocus={() => {
                            if (p.primera_etiqueta) return;
                            const nuevos = [...tareaActual.productos];

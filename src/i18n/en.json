@@ -213,6 +213,8 @@
   "task_supervisor_instructions_placeholder": "Supervisor instructions",
   "task_idx_locked_error": "The IDX of a task with labels cannot be changed.",
   "task_product_plan_error": "Each product needs an IDX suffix, first label, and valid box count.",
+  "task_label_conflict": "Label {{label}} is already reserved for {{idx}}. Check that IDX before using it again.",
+  "task_label_conflict_unknown": "This label is already reserved. Check the IDX and first label.",
   "task_unique_suffix_error": "Each product needs a distinct IDX suffix.",
   "shipping_validation": "Validation",
   "shipping_verified": "Verified",

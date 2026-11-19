@@ -202,6 +202,8 @@
   "task_supervisor_instructions_placeholder": "관리자 지시 사항",
   "task_idx_locked_error": "라벨이 있는 작업의 IDX는 변경할 수 없습니다.",
   "task_product_plan_error": "각 제품에 IDX 접미사, 첫 라벨, 올바른 박스 수가 필요합니다.",
+  "task_label_conflict": "라벨 {{label}}은(는) 이미 {{idx}}에 예약되어 있습니다. 다시 사용하기 전에 해당 IDX를 확인하세요.",
+  "task_label_conflict_unknown": "이미 예약된 라벨입니다. IDX와 첫 라벨을 확인하세요.",
   "task_unique_suffix_error": "각 제품에는 서로 다른 IDX 접미사가 필요합니다.",
   "shipping_validation": "검증",
   "shipping_verified": "검증됨",
